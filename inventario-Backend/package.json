@@ -1,0 +1,16 @@
+{
+  "name": "inventario-backend",
+  "version": "1.0.0",
+  "description": "Backend para app de inventario",
+  "license": "ISC",
+  "author": "Yeferson",
+  "type": "module",
+  "main": "realTestCreateStoreProfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "uuid": "^14.0.0"
+  }
+}
