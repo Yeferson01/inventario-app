@@ -1,0 +1,9 @@
+{
+  "APP_NAME": "[DEV] Inventario",
+  "APP_SUFFIX": ".dev",
+  
+  "API_URL": "http://10.0.2.2:3000",
+  "__API_URL_COMENTADO": "http://localhost:3000",
+  
+  "SUPABASE_URL": "https://supabase.co"
+}

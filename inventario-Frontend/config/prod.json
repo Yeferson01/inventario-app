@@ -1,0 +1,6 @@
+{
+  "APP_NAME": "Inventario App",
+  "APP_SUFFIX": "",
+  "API_URL": "https://tuempresa.com",
+  "SUPABASE_URL": "https://supabase.co"
+}
