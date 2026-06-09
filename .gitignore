@@ -177,5 +177,6 @@ dist
 *.ntvs*
 *.njsproj
 *.sln
+*.iml
 .DS_Store
 Thumbs.db
