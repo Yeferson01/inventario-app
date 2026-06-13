@@ -9,7 +9,7 @@
 *.sqlite3
 *.db-shm
 *.db-wal
-*.sql
+
 *.dump
 **/db_data/
 **/postgres_data/
@@ -20,9 +20,16 @@
 *.zip
 **/supabase/.branches
 **/supabase/.temp
+!**/supabase/migrations/*.sql
 
 # Local backups - NO subir backups reales al repo
 **/backups/*
+**/backups/*.sql
+**/backups/*.sql.gz
+**/backups/*.dump
+**/backups/*.backup
+**/backups/*.tar
+**/backups/*.zip
 !**/backups/.gitkeep
 
 # ==============================================================================
