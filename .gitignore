@@ -14,6 +14,16 @@
 **/db_data/
 **/postgres_data/
 **/mongo_data/
+*.backup
+*.sql.gz
+*.tar
+*.zip
+**/supabase/.branches
+**/supabase/.temp
+
+# Local backups - NO subir backups reales al repo
+**/backups/*
+!**/backups/.gitkeep
 
 # ==============================================================================
 # 2. FLUTTER & DART (inventario-Frontend)
