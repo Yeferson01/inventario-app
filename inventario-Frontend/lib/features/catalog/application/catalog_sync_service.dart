@@ -32,7 +32,7 @@ class CatalogSyncService {
       final syncState = await _localRepository.getCatalogSyncState(businessId);
 
       DateTime? sinceUpdatedAt;
-      int? sinceCatalogVersion;
+
       Map<String, dynamic>? pageToken;
 
       if (syncState != null) {
@@ -41,8 +41,6 @@ class CatalogSyncService {
               syncState['last_server_time'] ??
               syncState['last_catalog_pull_at'],
         );
-
-        sinceCatalogVersion = _int(syncState['last_catalog_version']);
 
         pageToken = _decodePageToken(syncState['last_page_token']);
       }
@@ -53,9 +51,9 @@ class CatalogSyncService {
         final request = CatalogPullRequest(
           businessId: businessId,
           sinceUpdatedAt: sinceUpdatedAt,
-          sinceCatalogVersion: sinceCatalogVersion,
           pageToken: pageToken,
           limit: pageLimit,
+          includeDeleted: false,
         );
 
         final response =
@@ -157,21 +155,5 @@ class CatalogSyncService {
     }
 
     return DateTime.tryParse(value.toString())?.toUtc();
-  }
-
-  int? _int(dynamic value) {
-    if (value == null) {
-      return null;
-    }
-
-    if (value is int) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(value.toString());
   }
 }

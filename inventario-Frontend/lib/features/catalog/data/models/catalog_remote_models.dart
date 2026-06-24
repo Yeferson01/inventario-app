@@ -2,24 +2,24 @@ class CatalogPullRequest {
   const CatalogPullRequest({
     required this.businessId,
     this.sinceUpdatedAt,
-    this.sinceCatalogVersion,
     this.pageToken,
-    this.limit = 500,
+    this.limit = 1000,
+    this.includeDeleted = false,
   });
 
   final String businessId;
   final DateTime? sinceUpdatedAt;
-  final int? sinceCatalogVersion;
   final Map<String, dynamic>? pageToken;
   final int limit;
+  final bool includeDeleted;
 
   Map<String, dynamic> toRpcParams() {
     return {
       'p_business_id': businessId,
       'p_since_updated_at': sinceUpdatedAt?.toUtc().toIso8601String(),
-      'p_since_catalog_version': sinceCatalogVersion,
-      'p_page_token': pageToken,
       'p_limit': limit,
+      'p_page_token': pageToken ?? <String, dynamic>{},
+      'p_include_deleted': includeDeleted,
     };
   }
 }
@@ -73,10 +73,8 @@ class CatalogPullResponse {
           map['pageToken'],
     );
 
-    final hasMore = _bool(
-          map['has_more'] ?? map['hasMore'] ?? map['more'],
-        ) ??
-        nextPageToken != null;
+    final hasMore = _bool(map['has_more'] ?? map['hasMore'] ?? map['more']) ??
+        (nextPageToken != null && nextPageToken.isNotEmpty);
 
     return CatalogPullResponse(
       records: records,
@@ -117,15 +115,19 @@ class CatalogPullResponse {
       return null;
     }
 
+    Map<String, dynamic>? map;
+
     if (value is Map<String, dynamic>) {
-      return value;
+      map = value;
+    } else if (value is Map) {
+      map = Map<String, dynamic>.from(value);
     }
 
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
+    if (map == null || map.isEmpty) {
+      return null;
     }
 
-    return null;
+    return map;
   }
 
   static DateTime? _dateTime(dynamic value) {
