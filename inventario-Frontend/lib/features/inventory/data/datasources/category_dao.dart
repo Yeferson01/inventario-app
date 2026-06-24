@@ -1,7 +1,8 @@
 part of 'package:inventario_frontend/core/database/app_database.dart';
 
 @DriftAccessor(tables: [Categories])
-class CategoryDao extends DatabaseAccessor<AppDatabase> with _$CategoryDaoMixin {
+class CategoryDao extends DatabaseAccessor<AppDatabase>
+    with _$CategoryDaoMixin {
   CategoryDao(AppDatabase db) : super(db);
 
   // Transmitir las categorías activas a los formularios del inventario

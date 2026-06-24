@@ -5,7 +5,7 @@ class ProductDao extends DatabaseAccessor<AppDatabase> with _$ProductDaoMixin {
   ProductDao(AppDatabase db) : super(db);
 
   // --- Operaciones de UI (Fase 5.3) ---
-  
+
   // Obtener todos los productos activos de un negocio
   Stream<List<Product>> watchActiveProducts(String businessId) {
     return (select(products)
@@ -41,7 +41,7 @@ class ProductDao extends DatabaseAccessor<AppDatabase> with _$ProductDaoMixin {
   }
 
   // --- Operaciones para el Sync Engine (Fase 4) ---
-  
+
   // Obtener cambios locales pendientes de subir a la nube
   Future<List<Product>> getPendingSyncProducts(String businessId) {
     return (select(products)

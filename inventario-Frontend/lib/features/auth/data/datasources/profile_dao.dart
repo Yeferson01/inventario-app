@@ -6,7 +6,8 @@ class ProfileDao extends DatabaseAccessor<AppDatabase> with _$ProfileDaoMixin {
 
   // Observar el perfil del usuario autenticado en la app
   Stream<Profile?> watchProfileById(String id) {
-    return (select(profiles)..where((t) => t.id.equals(id))).watchSingleOrNull();
+    return (select(profiles)..where((t) => t.id.equals(id)))
+        .watchSingleOrNull();
   }
 
   Future<Profile?> getProfileById(String id) {
@@ -27,6 +28,8 @@ class ProfileDao extends DatabaseAccessor<AppDatabase> with _$ProfileDaoMixin {
 
   // Sync Engine: Obtener cambios de perfiles locales
   Future<List<Profile>> getPendingSyncProfiles() {
-    return (select(profiles)..where((t) => t.syncStatus.equals(SyncStatus.synced.index).not())).get();
+    return (select(profiles)
+          ..where((t) => t.syncStatus.equals(SyncStatus.synced.index).not()))
+        .get();
   }
 }

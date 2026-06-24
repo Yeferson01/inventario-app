@@ -1,7 +1,8 @@
 part of 'package:inventario_frontend/core/database/app_database.dart';
 
 @DriftAccessor(tables: [Purchases, PurchaseItems, Products])
-class PurchaseDao extends DatabaseAccessor<AppDatabase> with _$PurchaseDaoMixin {
+class PurchaseDao extends DatabaseAccessor<AppDatabase>
+    with _$PurchaseDaoMixin {
   PurchaseDao(AppDatabase db) : super(db);
 
   // Observar el historial de compras en la UI
@@ -9,13 +10,18 @@ class PurchaseDao extends DatabaseAccessor<AppDatabase> with _$PurchaseDaoMixin 
     return (select(purchases)
           ..where((t) => t.businessId.equals(businessId))
           ..where((t) => t.deletedAt.isNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
+          ]))
         .watch();
   }
 
   // Obtener los detalles de una compra específica
   Future<List<PurchaseItem>> getItemsByPurchaseId(String purchaseId) {
-    return (select(purchaseItems)..where((t) => t.purchaseId.equals(purchaseId))).get();
+    return (select(purchaseItems)
+          ..where((t) => t.purchaseId.equals(purchaseId)))
+        .get();
   }
 
   // Transacción local: Guardar Compra e incrementar Stock en caliente
@@ -32,7 +38,9 @@ class PurchaseDao extends DatabaseAccessor<AppDatabase> with _$PurchaseDaoMixin 
         await into(purchaseItems).insert(item);
 
         // Buscar producto local para actualizar existencias y costos
-        final product = await (select(products)..where((t) => t.id.equals(item.productId!))).getSingle();
+        final product = await (select(products)
+              ..where((t) => t.id.equals(item.productId!)))
+            .getSingle();
         final newStock = product.stockQuantity + item.quantity;
 
         await (update(products)..where((t) => t.id.equals(product.id))).write(
@@ -57,7 +65,10 @@ class PurchaseDao extends DatabaseAccessor<AppDatabase> with _$PurchaseDaoMixin 
   }
 
   // Sync Engine: Obtener ítems asociados a esas compras pendientes
-  Future<List<PurchaseItem>> getPendingSyncPurchaseItems(List<String> pendingPurchaseIds) {
-    return (select(purchaseItems)..where((t) => t.purchaseId.isIn(pendingPurchaseIds))).get();
+  Future<List<PurchaseItem>> getPendingSyncPurchaseItems(
+      List<String> pendingPurchaseIds) {
+    return (select(purchaseItems)
+          ..where((t) => t.purchaseId.isIn(pendingPurchaseIds)))
+        .get();
   }
 }

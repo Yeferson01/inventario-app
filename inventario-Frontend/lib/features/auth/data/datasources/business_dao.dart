@@ -1,7 +1,8 @@
 part of 'package:inventario_frontend/core/database/app_database.dart';
 
 @DriftAccessor(tables: [Businesses])
-class BusinessDao extends DatabaseAccessor<AppDatabase> with _$BusinessDaoMixin {
+class BusinessDao extends DatabaseAccessor<AppDatabase>
+    with _$BusinessDaoMixin {
   BusinessDao(AppDatabase db) : super(db);
 
   // Obtener el negocio actual de manera reactiva (UI)
@@ -12,7 +13,8 @@ class BusinessDao extends DatabaseAccessor<AppDatabase> with _$BusinessDaoMixin 
 
   // Obtener datos del negocio de forma asíncrona
   Future<Business?> getBusinessById(String id) {
-    return (select(businesses)..where((t) => t.id.equals(id))).getSingleOrNull();
+    return (select(businesses)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
   }
 
   // Insertar o actualizar los datos del negocio (SaaS)
@@ -33,6 +35,8 @@ class BusinessDao extends DatabaseAccessor<AppDatabase> with _$BusinessDaoMixin 
 
   // Sync Engine: Obtener negocios pendientes de sincronizar
   Future<List<Business>> getPendingSyncBusinesses() {
-    return (select(businesses)..where((t) => t.syncStatus.equals(SyncStatus.synced.index).not())).get();
+    return (select(businesses)
+          ..where((t) => t.syncStatus.equals(SyncStatus.synced.index).not()))
+        .get();
   }
 }

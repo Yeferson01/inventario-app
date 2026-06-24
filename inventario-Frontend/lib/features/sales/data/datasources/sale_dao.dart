@@ -9,7 +9,10 @@ class SaleDao extends DatabaseAccessor<AppDatabase> with _$SaleDaoMixin {
     return (select(sales)
           ..where((t) => t.businessId.equals(businessId))
           ..where((t) => t.deletedAt.isNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
+          ]))
         .watch();
   }
 
@@ -26,19 +29,21 @@ class SaleDao extends DatabaseAccessor<AppDatabase> with _$SaleDaoMixin {
     await transaction(() async {
       // 1. Guardar cabecera de la venta
       await into(sales).insert(saleRecord);
-      
+
       // 2. Procesar ítems e impactar inventario
       for (final item in itemsList) {
         await into(saleItems).insert(item);
-        
+
         // Descontar inventario local inmediatamente para dar feedback ágil a la UI
-        final product = await (select(products)..where((t) => t.id.equals(item.productId!))).getSingle();
+        final product = await (select(products)
+              ..where((t) => t.id.equals(item.productId!)))
+            .getSingle();
         final newStock = product.stockQuantity - item.quantity;
-        
+
         await (update(products)..where((t) => t.id.equals(product.id))).write(
           ProductsCompanion(
             stockQuantity: Value(newStock),
-            syncStatus: const Value(SyncStatus.pendingUpdate), 
+            syncStatus: const Value(SyncStatus.pendingUpdate),
             updatedAt: Value(DateTime.now()),
           ),
         );
@@ -56,6 +61,7 @@ class SaleDao extends DatabaseAccessor<AppDatabase> with _$SaleDaoMixin {
 
   // Sync Engine: Obtener ítems de venta pendientes vinculados a esas ventas
   Future<List<SaleItem>> getPendingSyncSaleItems(List<String> pendingSaleIds) {
-    return (select(saleItems)..where((t) => t.saleId.isIn(pendingSaleIds))).get();
+    return (select(saleItems)..where((t) => t.saleId.isIn(pendingSaleIds)))
+        .get();
   }
 }

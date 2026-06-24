@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'routes_constants.dart';
 
 // SIMULADOR TEMPORAL DE AUTH (Cambiar a 'true' para probar rutas privadas, 'false' para públicas)
-bool _isUserLoggedInSimulated = true; 
+bool _isUserLoggedInSimulated = true;
 
 class AppRouter {
   AppRouter._();
@@ -14,13 +14,14 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.dashboardPath,
-    debugLogDiagnostics: true, // Loguea en consola los cambios de ruta en desarrollo
+    debugLogDiagnostics:
+        true, // Loguea en consola los cambios de ruta en desarrollo
 
     // 🛡️ GUARDS & REDIRECTS: Interceptor global de seguridad
     redirect: (BuildContext context, GoRouterState state) {
       final isGoingToLogin = state.matchedLocation == AppRoutes.loginPath;
       final isGoingToRegister = state.matchedLocation == AppRoutes.registerPath;
-      
+
       // Si está intentando ir a una ruta pública (como registro)
       final isGoingToPublic = isGoingToLogin || isGoingToRegister;
 
@@ -64,7 +65,7 @@ class AppRouter {
         builder: (context, state) => const TemporaryInventarioView(),
       ),
     ],
-    
+
     // Vista de error global por si se intenta acceder a una ruta inexistente
     errorBuilder: (context, state) => const Scaffold(
       body: Center(child: Text('404 - Página no encontrada')),
@@ -126,7 +127,8 @@ class TemporaryDashboardView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Bienvenido al Sistema SaaS', style: theme.textTheme.headlineLarge),
+            Text('Bienvenido al Sistema SaaS',
+                style: theme.textTheme.headlineLarge),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => context.goNamed(AppRoutes.inventarioName),
@@ -145,7 +147,8 @@ class TemporaryInventarioView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Módulo de Inventario')),
-      body: const Center(child: Text('📦 Aquí se listarán tus productos (Fase 3)')),
+      body: const Center(
+          child: Text('📦 Aquí se listarán tus productos (Fase 3)')),
     );
   }
 }

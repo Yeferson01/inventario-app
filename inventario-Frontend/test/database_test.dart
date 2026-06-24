@@ -10,7 +10,7 @@ void main() {
     late AppDatabase db;
     late ProductDao productDao;
     late SaleDao saleDao;
-    
+
     final String businessId = const Uuid().v4();
     final String productId = const Uuid().v4();
     final String saleId = const Uuid().v4();
@@ -18,7 +18,7 @@ void main() {
     setUp(() {
       // 1. Inicializamos Drift directamente en memoria RAM usando el constructor con executor
       db = AppDatabase.executor(NativeDatabase.memory());
-      
+
       // 2. Como los DAOs son partes del archivo central, los instanciamos pasándoles la base de datos en memoria
       productDao = ProductDao(db);
       saleDao = SaleDao(db);
@@ -29,7 +29,9 @@ void main() {
       await db.close();
     });
 
-    test('Debería insertar un producto y luego descontar stock al realizar una venta', () async {
+    test(
+        'Debería insertar un producto y luego descontar stock al realizar una venta',
+        () async {
       // 1. Crear e insertar un producto inicial con 50 unidades en stock
       final productoInicial = Product(
         id: productId,
@@ -38,12 +40,13 @@ void main() {
         salePrice: 1500.0,
         purchasePrice: 1000.0,
         stockQuantity: 50, // Stock inicial
-        minimumStock: 5,   // Proporcionamos el valor requerido por la tabla
+        minimumStock: 5, // Proporcionamos el valor requerido por la tabla
         unit: 'unidad',
         status: 'active',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        syncStatus: SyncStatus.pendingInsert, // Pasamos el índice entero (.index) si la base de datos espera un int
+        syncStatus: SyncStatus
+            .pendingInsert, // Pasamos el índice entero (.index) si la base de datos espera un int
       );
 
       await productDao.saveProductLocal(productoInicial);
@@ -58,13 +61,15 @@ void main() {
         status: 'completed',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        syncStatus: SyncStatus.pendingInsert, // .index si tu DB mapea el Enum como Integer
+        syncStatus: SyncStatus
+            .pendingInsert, // .index si tu DB mapea el Enum como Integer
       );
 
       final detalleItem = SaleItem(
         id: const Uuid().v4(),
         saleId: saleId,
-        productId: productId, // Como esta columna espera un String no nulo o usamos '!', aquí va directo
+        productId:
+            productId, // Como esta columna espera un String no nulo o usamos '!', aquí va directo
         quantity: 5, // Compramos 5 unidades
         unitPrice: 1500.0,
         subtotal: 7500.0,
@@ -80,18 +85,21 @@ void main() {
       );
 
       // 4. Verificar que el stock se haya reducido automáticamente (50 - 5 = 45)
-      final productosActivos = await productDao.searchProducts(businessId, 'Prueba');
+      final productosActivos =
+          await productDao.searchProducts(businessId, 'Prueba');
       final productoActualizado = productosActivos.first;
 
       print('📊 Stock Inicial: 50 | Cantidad Vendida: 5');
-      print('📊 Stock Actual en DB Local: ${productoActualizado.stockQuantity}');
-      
+      print(
+          '📊 Stock Actual en DB Local: ${productoActualizado.stockQuantity}');
+
       expect(productoActualizado.stockQuantity, 45);
-      
+
       // Comparamos contra el índice numérico del enum (o contra el enum entero según corresponda)
-      expect(productoActualizado.syncStatus, SyncStatus.pendingUpdate); 
-      
-      print('🎉 ¡Prueba superada con éxito! La persistencia local y la lógica de stock funcionan perfectamente.');
+      expect(productoActualizado.syncStatus, SyncStatus.pendingUpdate);
+
+      print(
+          '🎉 ¡Prueba superada con éxito! La persistencia local y la lógica de stock funcionan perfectamente.');
     });
   });
 }

@@ -1,7 +1,8 @@
 part of 'package:inventario_frontend/core/database/app_database.dart';
 
 @DriftAccessor(tables: [Customers])
-class CustomerDao extends DatabaseAccessor<AppDatabase> with _$CustomerDaoMixin {
+class CustomerDao extends DatabaseAccessor<AppDatabase>
+    with _$CustomerDaoMixin {
   CustomerDao(AppDatabase db) : super(db);
 
   // Ver lista de clientes en tiempo real en la UI reactiva

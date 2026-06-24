@@ -35,14 +35,16 @@ class Businesses extends Table {
   TextColumn get phone => text().nullable()();
   TextColumn get email => text().nullable().unique()();
   TextColumn get address => text().nullable()();
-  TextColumn get subscriptionPlan => text().withDefault(const Constant('free'))();
+  TextColumn get subscriptionPlan =>
+      text().withDefault(const Constant('free'))();
   TextColumn get status => text().withDefault(const Constant('active'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
-  
+
   // Control Local Offline-First
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -53,12 +55,14 @@ class Profiles extends Table {
   TextColumn get id => text()(); // ID correspondiente a auth.users(id)
   TextColumn get businessId => text().nullable().references(Businesses, #id)();
   TextColumn get fullName => text().nullable()();
-  TextColumn get role => text().nullable()(); // 'owner', 'admin', 'cashier', etc.
+  TextColumn get role =>
+      text().nullable()(); // 'owner', 'admin', 'cashier', etc.
   TextColumn get status => text().withDefault(const Constant('active'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -74,7 +78,8 @@ class Categories extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -92,7 +97,8 @@ class Customers extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -117,7 +123,8 @@ class Products extends Table {
   DateTimeColumn get deletedAt => dateTime().nullable()();
   TextColumn get simpleCategory => text().nullable()();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -136,7 +143,8 @@ class Sales extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -152,16 +160,19 @@ class SaleItems extends Table {
   RealColumn get subtotal => real()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
 }
+
 @DataClassName('Purchase')
 class Purchases extends Table {
   TextColumn get id => text()(); // UUID mapeado como String
   TextColumn get businessId => text().nullable().references(Businesses, #id)();
-  TextColumn get supplierId => text().nullable()(); // Puede apuntar a un catálogo de proveedores si lo añades luego
+  TextColumn get supplierId => text()
+      .nullable()(); // Puede apuntar a un catálogo de proveedores si lo añades luego
   TextColumn get userId => text().nullable().references(Profiles, #id)();
   RealColumn get total => real()();
   TextColumn get status => text().withDefault(const Constant('completed'))();
@@ -169,11 +180,13 @@ class Purchases extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   TextColumn get invoicePhotoUrl => text().nullable()();
-  TextColumn get processingStatus => text().withDefault(const Constant('pending'))();
+  TextColumn get processingStatus =>
+      text().withDefault(const Constant('pending'))();
   TextColumn get supplierName => text().nullable()();
 
   // Control Local Offline-First
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -189,7 +202,8 @@ class PurchaseItems extends Table {
   RealColumn get subtotal => real()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -208,8 +222,8 @@ class PurchaseItems extends Table {
     Products,
     Sales,
     SaleItems,
-    Purchases,     
-    PurchaseItems, 
+    Purchases,
+    PurchaseItems,
   ],
   daos: [
     BusinessDao,
@@ -218,10 +232,9 @@ class PurchaseItems extends Table {
     CustomerDao,
     ProductDao,
     SaleDao,
-    PurchaseDao,  
+    PurchaseDao,
   ],
 )
-
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -231,7 +244,7 @@ class AppDatabase extends _$AppDatabase {
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
   int get schemaVersion => 1;
-  
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
