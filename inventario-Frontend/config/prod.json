@@ -1,6 +1,8 @@
 {
-  "APP_NAME": "Inventario App",
-  "APP_SUFFIX": "",
-  "API_URL": "https://tuempresa.com",
-  "SUPABASE_URL": "https://supabase.co"
+  "APP_NAME": "Inventario",
+  "ENVIRONMENT": "prod",
+  "API_URL": "https://api.tu-dominio.com",
+  "SUPABASE_URL": "https://mtisfzthiyusmqfuhydp.supabase.co",
+  "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10aXNmenRoaXl1c21xZnVoeWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NjIwMzAsImV4cCI6MjA5MzEzODAzMH0.mQ66lTJ2vCZwH4ZwPffnblBGhKtN4HZYVwZzaJetP64"
 }
+
