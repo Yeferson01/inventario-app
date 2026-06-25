@@ -213,8 +213,310 @@ class PurchaseItems extends Table {
 // CLASE CENTRAL DE BASE DE DATOS DRIFT
 // ==========================================
 
+// === 6.18C.9.6 LOCAL CATALOG AND SYNC TABLES ===
+
+class LocalMasterProductsCatalog extends Table {
+  @override
+  String get tableName => 'local_master_products_catalog';
+
+  TextColumn get id => text()();
+
+  TextColumn get barcode => text().nullable()();
+  TextColumn get gtin => text().nullable()();
+  TextColumn get barcodeNormalized =>
+      text().nullable().named('barcode_normalized')();
+
+  TextColumn get name => text().nullable()();
+  TextColumn get productName => text().nullable().named('product_name')();
+  TextColumn get normalizedName => text().nullable().named('normalized_name')();
+
+  TextColumn get brand => text().nullable()();
+  TextColumn get manufacturer => text().nullable()();
+  TextColumn get categoryName => text().nullable().named('category_name')();
+  TextColumn get subcategoryName =>
+      text().nullable().named('subcategory_name')();
+
+  RealColumn get packageSize => real().nullable().named('package_size')();
+  TextColumn get packageUnit => text().nullable().named('package_unit')();
+  TextColumn get unitType => text().nullable().named('unit_type')();
+
+  BoolColumn get hasImage =>
+      boolean().withDefault(const Constant(false)).named('has_image')();
+  TextColumn get imageThumbUrl => text().nullable().named('image_thumb_url')();
+  TextColumn get imageHash => text().nullable().named('image_hash')();
+
+  TextColumn get source => text().nullable()();
+  TextColumn get verificationStatus =>
+      text().nullable().named('verification_status')();
+  RealColumn get confidenceScore =>
+      real().nullable().named('confidence_score')();
+  IntColumn get catalogVersion =>
+      integer().withDefault(const Constant(1)).named('catalog_version')();
+
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('synced')).named('sync_status')();
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('clean')).named('local_status')();
+  IntColumn get version => integer().withDefault(const Constant(1))();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+  DateTimeColumn get lastSyncedAt =>
+      dateTime().nullable().named('last_synced_at')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalProductBarcodes extends Table {
+  @override
+  String get tableName => 'local_product_barcodes';
+
+  TextColumn get id => text()();
+
+  TextColumn get scope => text()();
+  TextColumn get businessId => text().nullable().named('business_id')();
+  TextColumn get productId => text().nullable().named('product_id')();
+  TextColumn get masterProductId =>
+      text().nullable().named('master_product_id')();
+
+  TextColumn get barcode => text()();
+  TextColumn get barcodeNormalized => text().named('barcode_normalized')();
+  TextColumn get barcodeType => text().nullable().named('barcode_type')();
+
+  BoolColumn get isPrimary =>
+      boolean().withDefault(const Constant(false)).named('is_primary')();
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  TextColumn get source => text().nullable()();
+  RealColumn get confidenceScore =>
+      real().nullable().named('confidence_score')();
+
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('synced')).named('sync_status')();
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('clean')).named('local_status')();
+  IntColumn get version => integer().withDefault(const Constant(1))();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+  DateTimeColumn get lastSyncedAt =>
+      dateTime().nullable().named('last_synced_at')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalCatalogSyncState extends Table {
+  @override
+  String get tableName => 'local_catalog_sync_state';
+
+  TextColumn get id => text()();
+  TextColumn get businessId => text().named('business_id')();
+
+  DateTimeColumn get lastCatalogPullAt =>
+      dateTime().nullable().named('last_catalog_pull_at')();
+  DateTimeColumn get lastServerTime =>
+      dateTime().nullable().named('last_server_time')();
+  DateTimeColumn get lastSinceUpdatedAt =>
+      dateTime().nullable().named('last_since_updated_at')();
+  IntColumn get lastCatalogVersion =>
+      integer().nullable().named('last_catalog_version')();
+
+  TextColumn get lastPageToken => text().nullable().named('last_page_token')();
+  BoolColumn get isSyncing =>
+      boolean().withDefault(const Constant(false)).named('is_syncing')();
+  TextColumn get lastError => text().nullable().named('last_error')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalCatalogContributionQueue extends Table {
+  @override
+  String get tableName => 'local_catalog_contribution_queue';
+
+  TextColumn get id => text()();
+
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().nullable().named('branch_id')();
+
+  TextColumn get localProductId =>
+      text().nullable().named('local_product_id')();
+  TextColumn get masterProductId =>
+      text().nullable().named('master_product_id')();
+
+  TextColumn get contributionType => text().named('contribution_type')();
+
+  TextColumn get barcode => text().nullable()();
+  TextColumn get barcodeNormalized =>
+      text().nullable().named('barcode_normalized')();
+  TextColumn get barcodeType => text().nullable().named('barcode_type')();
+
+  TextColumn get suggestedName => text().nullable().named('suggested_name')();
+  TextColumn get suggestedBrand => text().nullable().named('suggested_brand')();
+  TextColumn get suggestedManufacturer =>
+      text().nullable().named('suggested_manufacturer')();
+  TextColumn get suggestedCategoryName =>
+      text().nullable().named('suggested_category_name')();
+  TextColumn get suggestedSubcategoryName =>
+      text().nullable().named('suggested_subcategory_name')();
+  RealColumn get suggestedPackageSize =>
+      real().nullable().named('suggested_package_size')();
+  TextColumn get suggestedPackageUnit =>
+      text().nullable().named('suggested_package_unit')();
+  TextColumn get suggestedUnitType =>
+      text().nullable().named('suggested_unit_type')();
+
+  TextColumn get suggestedImageUrl =>
+      text().nullable().named('suggested_image_url')();
+  TextColumn get suggestedImageThumbUrl =>
+      text().nullable().named('suggested_image_thumb_url')();
+  TextColumn get suggestedImageHash =>
+      text().nullable().named('suggested_image_hash')();
+
+  TextColumn get source => text().withDefault(const Constant('app'))();
+  RealColumn get confidenceScore =>
+      real().nullable().named('confidence_score')();
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('pending')).named('local_status')();
+  TextColumn get serverContributionId =>
+      text().nullable().named('server_contribution_id')();
+  IntColumn get retryCount =>
+      integer().withDefault(const Constant(0)).named('retry_count')();
+  TextColumn get lastError => text().nullable().named('last_error')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get syncedAt => dateTime().nullable().named('synced_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalSyncBatches extends Table {
+  @override
+  String get tableName => 'local_sync_batches';
+
+  TextColumn get id => text()();
+  TextColumn get serverSyncBatchId =>
+      text().nullable().named('server_sync_batch_id')();
+
+  TextColumn get clientBatchId => text().named('client_batch_id')();
+
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().nullable().named('branch_id')();
+  TextColumn get appDeviceId => text().nullable().named('app_device_id')();
+  TextColumn get profileId => text().nullable().named('profile_id')();
+
+  TextColumn get domain => text()();
+  TextColumn get direction => text().withDefault(const Constant('upload'))();
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+
+  IntColumn get mutationCount =>
+      integer().withDefault(const Constant(0)).named('mutation_count')();
+  IntColumn get appliedCount =>
+      integer().withDefault(const Constant(0)).named('applied_count')();
+  IntColumn get skippedCount =>
+      integer().withDefault(const Constant(0)).named('skipped_count')();
+  IntColumn get conflictCount =>
+      integer().withDefault(const Constant(0)).named('conflict_count')();
+  IntColumn get errorCount =>
+      integer().withDefault(const Constant(0)).named('error_count')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+  TextColumn get lastError => text().nullable().named('last_error')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get uploadedAt => dateTime().nullable().named('uploaded_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalSyncMutations extends Table {
+  @override
+  String get tableName => 'local_sync_mutations';
+
+  TextColumn get id => text()();
+  TextColumn get serverSyncMutationId =>
+      text().nullable().named('server_sync_mutation_id')();
+
+  TextColumn get localSyncBatchId =>
+      text().nullable().named('local_sync_batch_id')();
+  TextColumn get clientBatchId => text().nullable().named('client_batch_id')();
+  TextColumn get clientMutationId => text().named('client_mutation_id')();
+  IntColumn get clientSequence => integer().named('client_sequence')();
+
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().nullable().named('branch_id')();
+  TextColumn get appDeviceId => text().nullable().named('app_device_id')();
+  TextColumn get profileId => text().nullable().named('profile_id')();
+
+  TextColumn get entityTable => text().named('entity_table')();
+  TextColumn get entityId => text().named('entity_id')();
+  TextColumn get operation => text()();
+
+  TextColumn get payloadJson => text().named('payload_json')();
+  TextColumn get beforePayloadJson =>
+      text().nullable().named('before_payload_json')();
+  TextColumn get changedFieldsJson =>
+      text().nullable().named('changed_fields_json')();
+
+  IntColumn get baseVersion => integer().nullable().named('base_version')();
+  DateTimeColumn get baseUpdatedAt =>
+      dateTime().nullable().named('base_updated_at')();
+
+  TextColumn get idempotencyKey => text().named('idempotency_key')();
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+
+  IntColumn get retryCount =>
+      integer().withDefault(const Constant(0)).named('retry_count')();
+  TextColumn get lastError => text().nullable().named('last_error')();
+  TextColumn get errorCode => text().nullable().named('error_code')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get uploadedAt => dateTime().nullable().named('uploaded_at')();
+  DateTimeColumn get resolvedAt => dateTime().nullable().named('resolved_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
+    LocalMasterProductsCatalog,
+    LocalProductBarcodes,
+    LocalCatalogSyncState,
+    LocalCatalogContributionQueue,
+    LocalSyncBatches,
+    LocalSyncMutations,
     Businesses,
     Profiles,
     Categories,
@@ -243,7 +545,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

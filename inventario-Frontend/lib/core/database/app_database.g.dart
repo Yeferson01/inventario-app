@@ -3,6 +3,6625 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $LocalMasterProductsCatalogTable extends LocalMasterProductsCatalog
+    with
+        TableInfo<$LocalMasterProductsCatalogTable,
+            LocalMasterProductsCatalogData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalMasterProductsCatalogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _barcodeMeta =
+      const VerificationMeta('barcode');
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+      'barcode', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _gtinMeta = const VerificationMeta('gtin');
+  @override
+  late final GeneratedColumn<String> gtin = GeneratedColumn<String>(
+      'gtin', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _barcodeNormalizedMeta =
+      const VerificationMeta('barcodeNormalized');
+  @override
+  late final GeneratedColumn<String> barcodeNormalized =
+      GeneratedColumn<String>('barcode_normalized', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _productNameMeta =
+      const VerificationMeta('productName');
+  @override
+  late final GeneratedColumn<String> productName = GeneratedColumn<String>(
+      'product_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _normalizedNameMeta =
+      const VerificationMeta('normalizedName');
+  @override
+  late final GeneratedColumn<String> normalizedName = GeneratedColumn<String>(
+      'normalized_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _brandMeta = const VerificationMeta('brand');
+  @override
+  late final GeneratedColumn<String> brand = GeneratedColumn<String>(
+      'brand', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _manufacturerMeta =
+      const VerificationMeta('manufacturer');
+  @override
+  late final GeneratedColumn<String> manufacturer = GeneratedColumn<String>(
+      'manufacturer', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _categoryNameMeta =
+      const VerificationMeta('categoryName');
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+      'category_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _subcategoryNameMeta =
+      const VerificationMeta('subcategoryName');
+  @override
+  late final GeneratedColumn<String> subcategoryName = GeneratedColumn<String>(
+      'subcategory_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _packageSizeMeta =
+      const VerificationMeta('packageSize');
+  @override
+  late final GeneratedColumn<double> packageSize = GeneratedColumn<double>(
+      'package_size', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _packageUnitMeta =
+      const VerificationMeta('packageUnit');
+  @override
+  late final GeneratedColumn<String> packageUnit = GeneratedColumn<String>(
+      'package_unit', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _unitTypeMeta =
+      const VerificationMeta('unitType');
+  @override
+  late final GeneratedColumn<String> unitType = GeneratedColumn<String>(
+      'unit_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _hasImageMeta =
+      const VerificationMeta('hasImage');
+  @override
+  late final GeneratedColumn<bool> hasImage = GeneratedColumn<bool>(
+      'has_image', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("has_image" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _imageThumbUrlMeta =
+      const VerificationMeta('imageThumbUrl');
+  @override
+  late final GeneratedColumn<String> imageThumbUrl = GeneratedColumn<String>(
+      'image_thumb_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageHashMeta =
+      const VerificationMeta('imageHash');
+  @override
+  late final GeneratedColumn<String> imageHash = GeneratedColumn<String>(
+      'image_hash', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+      'source', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _verificationStatusMeta =
+      const VerificationMeta('verificationStatus');
+  @override
+  late final GeneratedColumn<String> verificationStatus =
+      GeneratedColumn<String>('verification_status', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _confidenceScoreMeta =
+      const VerificationMeta('confidenceScore');
+  @override
+  late final GeneratedColumn<double> confidenceScore = GeneratedColumn<double>(
+      'confidence_score', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _catalogVersionMeta =
+      const VerificationMeta('catalogVersion');
+  @override
+  late final GeneratedColumn<int> catalogVersion = GeneratedColumn<int>(
+      'catalog_version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _syncStatusMeta =
+      const VerificationMeta('syncStatus');
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+      'sync_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('clean'));
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        barcode,
+        gtin,
+        barcodeNormalized,
+        name,
+        productName,
+        normalizedName,
+        brand,
+        manufacturer,
+        categoryName,
+        subcategoryName,
+        packageSize,
+        packageUnit,
+        unitType,
+        hasImage,
+        imageThumbUrl,
+        imageHash,
+        source,
+        verificationStatus,
+        confidenceScore,
+        catalogVersion,
+        syncStatus,
+        localStatus,
+        version,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt,
+        metadataJson
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_master_products_catalog';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalMasterProductsCatalogData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('barcode')) {
+      context.handle(_barcodeMeta,
+          barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta));
+    }
+    if (data.containsKey('gtin')) {
+      context.handle(
+          _gtinMeta, gtin.isAcceptableOrUnknown(data['gtin']!, _gtinMeta));
+    }
+    if (data.containsKey('barcode_normalized')) {
+      context.handle(
+          _barcodeNormalizedMeta,
+          barcodeNormalized.isAcceptableOrUnknown(
+              data['barcode_normalized']!, _barcodeNormalizedMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    }
+    if (data.containsKey('product_name')) {
+      context.handle(
+          _productNameMeta,
+          productName.isAcceptableOrUnknown(
+              data['product_name']!, _productNameMeta));
+    }
+    if (data.containsKey('normalized_name')) {
+      context.handle(
+          _normalizedNameMeta,
+          normalizedName.isAcceptableOrUnknown(
+              data['normalized_name']!, _normalizedNameMeta));
+    }
+    if (data.containsKey('brand')) {
+      context.handle(
+          _brandMeta, brand.isAcceptableOrUnknown(data['brand']!, _brandMeta));
+    }
+    if (data.containsKey('manufacturer')) {
+      context.handle(
+          _manufacturerMeta,
+          manufacturer.isAcceptableOrUnknown(
+              data['manufacturer']!, _manufacturerMeta));
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+          _categoryNameMeta,
+          categoryName.isAcceptableOrUnknown(
+              data['category_name']!, _categoryNameMeta));
+    }
+    if (data.containsKey('subcategory_name')) {
+      context.handle(
+          _subcategoryNameMeta,
+          subcategoryName.isAcceptableOrUnknown(
+              data['subcategory_name']!, _subcategoryNameMeta));
+    }
+    if (data.containsKey('package_size')) {
+      context.handle(
+          _packageSizeMeta,
+          packageSize.isAcceptableOrUnknown(
+              data['package_size']!, _packageSizeMeta));
+    }
+    if (data.containsKey('package_unit')) {
+      context.handle(
+          _packageUnitMeta,
+          packageUnit.isAcceptableOrUnknown(
+              data['package_unit']!, _packageUnitMeta));
+    }
+    if (data.containsKey('unit_type')) {
+      context.handle(_unitTypeMeta,
+          unitType.isAcceptableOrUnknown(data['unit_type']!, _unitTypeMeta));
+    }
+    if (data.containsKey('has_image')) {
+      context.handle(_hasImageMeta,
+          hasImage.isAcceptableOrUnknown(data['has_image']!, _hasImageMeta));
+    }
+    if (data.containsKey('image_thumb_url')) {
+      context.handle(
+          _imageThumbUrlMeta,
+          imageThumbUrl.isAcceptableOrUnknown(
+              data['image_thumb_url']!, _imageThumbUrlMeta));
+    }
+    if (data.containsKey('image_hash')) {
+      context.handle(_imageHashMeta,
+          imageHash.isAcceptableOrUnknown(data['image_hash']!, _imageHashMeta));
+    }
+    if (data.containsKey('source')) {
+      context.handle(_sourceMeta,
+          source.isAcceptableOrUnknown(data['source']!, _sourceMeta));
+    }
+    if (data.containsKey('verification_status')) {
+      context.handle(
+          _verificationStatusMeta,
+          verificationStatus.isAcceptableOrUnknown(
+              data['verification_status']!, _verificationStatusMeta));
+    }
+    if (data.containsKey('confidence_score')) {
+      context.handle(
+          _confidenceScoreMeta,
+          confidenceScore.isAcceptableOrUnknown(
+              data['confidence_score']!, _confidenceScoreMeta));
+    }
+    if (data.containsKey('catalog_version')) {
+      context.handle(
+          _catalogVersionMeta,
+          catalogVersion.isAcceptableOrUnknown(
+              data['catalog_version']!, _catalogVersionMeta));
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+          _syncStatusMeta,
+          syncStatus.isAcceptableOrUnknown(
+              data['sync_status']!, _syncStatusMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalMasterProductsCatalogData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalMasterProductsCatalogData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}barcode']),
+      gtin: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}gtin']),
+      barcodeNormalized: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}barcode_normalized']),
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name']),
+      productName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_name']),
+      normalizedName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}normalized_name']),
+      brand: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}brand']),
+      manufacturer: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}manufacturer']),
+      categoryName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_name']),
+      subcategoryName: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}subcategory_name']),
+      packageSize: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}package_size']),
+      packageUnit: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}package_unit']),
+      unitType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit_type']),
+      hasImage: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}has_image'])!,
+      imageThumbUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_thumb_url']),
+      imageHash: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_hash']),
+      source: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source']),
+      verificationStatus: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}verification_status']),
+      confidenceScore: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}confidence_score']),
+      catalogVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}catalog_version'])!,
+      syncStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+    );
+  }
+
+  @override
+  $LocalMasterProductsCatalogTable createAlias(String alias) {
+    return $LocalMasterProductsCatalogTable(attachedDatabase, alias);
+  }
+}
+
+class LocalMasterProductsCatalogData extends DataClass
+    implements Insertable<LocalMasterProductsCatalogData> {
+  final String id;
+  final String? barcode;
+  final String? gtin;
+  final String? barcodeNormalized;
+  final String? name;
+  final String? productName;
+  final String? normalizedName;
+  final String? brand;
+  final String? manufacturer;
+  final String? categoryName;
+  final String? subcategoryName;
+  final double? packageSize;
+  final String? packageUnit;
+  final String? unitType;
+  final bool hasImage;
+  final String? imageThumbUrl;
+  final String? imageHash;
+  final String? source;
+  final String? verificationStatus;
+  final double? confidenceScore;
+  final int catalogVersion;
+  final String syncStatus;
+  final String localStatus;
+  final int version;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
+  final String? metadataJson;
+  const LocalMasterProductsCatalogData(
+      {required this.id,
+      this.barcode,
+      this.gtin,
+      this.barcodeNormalized,
+      this.name,
+      this.productName,
+      this.normalizedName,
+      this.brand,
+      this.manufacturer,
+      this.categoryName,
+      this.subcategoryName,
+      this.packageSize,
+      this.packageUnit,
+      this.unitType,
+      required this.hasImage,
+      this.imageThumbUrl,
+      this.imageHash,
+      this.source,
+      this.verificationStatus,
+      this.confidenceScore,
+      required this.catalogVersion,
+      required this.syncStatus,
+      required this.localStatus,
+      required this.version,
+      required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt,
+      this.lastSyncedAt,
+      this.metadataJson});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || barcode != null) {
+      map['barcode'] = Variable<String>(barcode);
+    }
+    if (!nullToAbsent || gtin != null) {
+      map['gtin'] = Variable<String>(gtin);
+    }
+    if (!nullToAbsent || barcodeNormalized != null) {
+      map['barcode_normalized'] = Variable<String>(barcodeNormalized);
+    }
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
+    if (!nullToAbsent || productName != null) {
+      map['product_name'] = Variable<String>(productName);
+    }
+    if (!nullToAbsent || normalizedName != null) {
+      map['normalized_name'] = Variable<String>(normalizedName);
+    }
+    if (!nullToAbsent || brand != null) {
+      map['brand'] = Variable<String>(brand);
+    }
+    if (!nullToAbsent || manufacturer != null) {
+      map['manufacturer'] = Variable<String>(manufacturer);
+    }
+    if (!nullToAbsent || categoryName != null) {
+      map['category_name'] = Variable<String>(categoryName);
+    }
+    if (!nullToAbsent || subcategoryName != null) {
+      map['subcategory_name'] = Variable<String>(subcategoryName);
+    }
+    if (!nullToAbsent || packageSize != null) {
+      map['package_size'] = Variable<double>(packageSize);
+    }
+    if (!nullToAbsent || packageUnit != null) {
+      map['package_unit'] = Variable<String>(packageUnit);
+    }
+    if (!nullToAbsent || unitType != null) {
+      map['unit_type'] = Variable<String>(unitType);
+    }
+    map['has_image'] = Variable<bool>(hasImage);
+    if (!nullToAbsent || imageThumbUrl != null) {
+      map['image_thumb_url'] = Variable<String>(imageThumbUrl);
+    }
+    if (!nullToAbsent || imageHash != null) {
+      map['image_hash'] = Variable<String>(imageHash);
+    }
+    if (!nullToAbsent || source != null) {
+      map['source'] = Variable<String>(source);
+    }
+    if (!nullToAbsent || verificationStatus != null) {
+      map['verification_status'] = Variable<String>(verificationStatus);
+    }
+    if (!nullToAbsent || confidenceScore != null) {
+      map['confidence_score'] = Variable<double>(confidenceScore);
+    }
+    map['catalog_version'] = Variable<int>(catalogVersion);
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['local_status'] = Variable<String>(localStatus);
+    map['version'] = Variable<int>(version);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    return map;
+  }
+
+  LocalMasterProductsCatalogCompanion toCompanion(bool nullToAbsent) {
+    return LocalMasterProductsCatalogCompanion(
+      id: Value(id),
+      barcode: barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcode),
+      gtin: gtin == null && nullToAbsent ? const Value.absent() : Value(gtin),
+      barcodeNormalized: barcodeNormalized == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcodeNormalized),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
+      productName: productName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productName),
+      normalizedName: normalizedName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(normalizedName),
+      brand:
+          brand == null && nullToAbsent ? const Value.absent() : Value(brand),
+      manufacturer: manufacturer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(manufacturer),
+      categoryName: categoryName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryName),
+      subcategoryName: subcategoryName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subcategoryName),
+      packageSize: packageSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageSize),
+      packageUnit: packageUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageUnit),
+      unitType: unitType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitType),
+      hasImage: Value(hasImage),
+      imageThumbUrl: imageThumbUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageThumbUrl),
+      imageHash: imageHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageHash),
+      source:
+          source == null && nullToAbsent ? const Value.absent() : Value(source),
+      verificationStatus: verificationStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(verificationStatus),
+      confidenceScore: confidenceScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidenceScore),
+      catalogVersion: Value(catalogVersion),
+      syncStatus: Value(syncStatus),
+      localStatus: Value(localStatus),
+      version: Value(version),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+    );
+  }
+
+  factory LocalMasterProductsCatalogData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalMasterProductsCatalogData(
+      id: serializer.fromJson<String>(json['id']),
+      barcode: serializer.fromJson<String?>(json['barcode']),
+      gtin: serializer.fromJson<String?>(json['gtin']),
+      barcodeNormalized:
+          serializer.fromJson<String?>(json['barcodeNormalized']),
+      name: serializer.fromJson<String?>(json['name']),
+      productName: serializer.fromJson<String?>(json['productName']),
+      normalizedName: serializer.fromJson<String?>(json['normalizedName']),
+      brand: serializer.fromJson<String?>(json['brand']),
+      manufacturer: serializer.fromJson<String?>(json['manufacturer']),
+      categoryName: serializer.fromJson<String?>(json['categoryName']),
+      subcategoryName: serializer.fromJson<String?>(json['subcategoryName']),
+      packageSize: serializer.fromJson<double?>(json['packageSize']),
+      packageUnit: serializer.fromJson<String?>(json['packageUnit']),
+      unitType: serializer.fromJson<String?>(json['unitType']),
+      hasImage: serializer.fromJson<bool>(json['hasImage']),
+      imageThumbUrl: serializer.fromJson<String?>(json['imageThumbUrl']),
+      imageHash: serializer.fromJson<String?>(json['imageHash']),
+      source: serializer.fromJson<String?>(json['source']),
+      verificationStatus:
+          serializer.fromJson<String?>(json['verificationStatus']),
+      confidenceScore: serializer.fromJson<double?>(json['confidenceScore']),
+      catalogVersion: serializer.fromJson<int>(json['catalogVersion']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      version: serializer.fromJson<int>(json['version']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'barcode': serializer.toJson<String?>(barcode),
+      'gtin': serializer.toJson<String?>(gtin),
+      'barcodeNormalized': serializer.toJson<String?>(barcodeNormalized),
+      'name': serializer.toJson<String?>(name),
+      'productName': serializer.toJson<String?>(productName),
+      'normalizedName': serializer.toJson<String?>(normalizedName),
+      'brand': serializer.toJson<String?>(brand),
+      'manufacturer': serializer.toJson<String?>(manufacturer),
+      'categoryName': serializer.toJson<String?>(categoryName),
+      'subcategoryName': serializer.toJson<String?>(subcategoryName),
+      'packageSize': serializer.toJson<double?>(packageSize),
+      'packageUnit': serializer.toJson<String?>(packageUnit),
+      'unitType': serializer.toJson<String?>(unitType),
+      'hasImage': serializer.toJson<bool>(hasImage),
+      'imageThumbUrl': serializer.toJson<String?>(imageThumbUrl),
+      'imageHash': serializer.toJson<String?>(imageHash),
+      'source': serializer.toJson<String?>(source),
+      'verificationStatus': serializer.toJson<String?>(verificationStatus),
+      'confidenceScore': serializer.toJson<double?>(confidenceScore),
+      'catalogVersion': serializer.toJson<int>(catalogVersion),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'version': serializer.toJson<int>(version),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+    };
+  }
+
+  LocalMasterProductsCatalogData copyWith(
+          {String? id,
+          Value<String?> barcode = const Value.absent(),
+          Value<String?> gtin = const Value.absent(),
+          Value<String?> barcodeNormalized = const Value.absent(),
+          Value<String?> name = const Value.absent(),
+          Value<String?> productName = const Value.absent(),
+          Value<String?> normalizedName = const Value.absent(),
+          Value<String?> brand = const Value.absent(),
+          Value<String?> manufacturer = const Value.absent(),
+          Value<String?> categoryName = const Value.absent(),
+          Value<String?> subcategoryName = const Value.absent(),
+          Value<double?> packageSize = const Value.absent(),
+          Value<String?> packageUnit = const Value.absent(),
+          Value<String?> unitType = const Value.absent(),
+          bool? hasImage,
+          Value<String?> imageThumbUrl = const Value.absent(),
+          Value<String?> imageHash = const Value.absent(),
+          Value<String?> source = const Value.absent(),
+          Value<String?> verificationStatus = const Value.absent(),
+          Value<double?> confidenceScore = const Value.absent(),
+          int? catalogVersion,
+          String? syncStatus,
+          String? localStatus,
+          int? version,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent(),
+          Value<String?> metadataJson = const Value.absent()}) =>
+      LocalMasterProductsCatalogData(
+        id: id ?? this.id,
+        barcode: barcode.present ? barcode.value : this.barcode,
+        gtin: gtin.present ? gtin.value : this.gtin,
+        barcodeNormalized: barcodeNormalized.present
+            ? barcodeNormalized.value
+            : this.barcodeNormalized,
+        name: name.present ? name.value : this.name,
+        productName: productName.present ? productName.value : this.productName,
+        normalizedName:
+            normalizedName.present ? normalizedName.value : this.normalizedName,
+        brand: brand.present ? brand.value : this.brand,
+        manufacturer:
+            manufacturer.present ? manufacturer.value : this.manufacturer,
+        categoryName:
+            categoryName.present ? categoryName.value : this.categoryName,
+        subcategoryName: subcategoryName.present
+            ? subcategoryName.value
+            : this.subcategoryName,
+        packageSize: packageSize.present ? packageSize.value : this.packageSize,
+        packageUnit: packageUnit.present ? packageUnit.value : this.packageUnit,
+        unitType: unitType.present ? unitType.value : this.unitType,
+        hasImage: hasImage ?? this.hasImage,
+        imageThumbUrl:
+            imageThumbUrl.present ? imageThumbUrl.value : this.imageThumbUrl,
+        imageHash: imageHash.present ? imageHash.value : this.imageHash,
+        source: source.present ? source.value : this.source,
+        verificationStatus: verificationStatus.present
+            ? verificationStatus.value
+            : this.verificationStatus,
+        confidenceScore: confidenceScore.present
+            ? confidenceScore.value
+            : this.confidenceScore,
+        catalogVersion: catalogVersion ?? this.catalogVersion,
+        syncStatus: syncStatus ?? this.syncStatus,
+        localStatus: localStatus ?? this.localStatus,
+        version: version ?? this.version,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+      );
+  LocalMasterProductsCatalogData copyWithCompanion(
+      LocalMasterProductsCatalogCompanion data) {
+    return LocalMasterProductsCatalogData(
+      id: data.id.present ? data.id.value : this.id,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      gtin: data.gtin.present ? data.gtin.value : this.gtin,
+      barcodeNormalized: data.barcodeNormalized.present
+          ? data.barcodeNormalized.value
+          : this.barcodeNormalized,
+      name: data.name.present ? data.name.value : this.name,
+      productName:
+          data.productName.present ? data.productName.value : this.productName,
+      normalizedName: data.normalizedName.present
+          ? data.normalizedName.value
+          : this.normalizedName,
+      brand: data.brand.present ? data.brand.value : this.brand,
+      manufacturer: data.manufacturer.present
+          ? data.manufacturer.value
+          : this.manufacturer,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      subcategoryName: data.subcategoryName.present
+          ? data.subcategoryName.value
+          : this.subcategoryName,
+      packageSize:
+          data.packageSize.present ? data.packageSize.value : this.packageSize,
+      packageUnit:
+          data.packageUnit.present ? data.packageUnit.value : this.packageUnit,
+      unitType: data.unitType.present ? data.unitType.value : this.unitType,
+      hasImage: data.hasImage.present ? data.hasImage.value : this.hasImage,
+      imageThumbUrl: data.imageThumbUrl.present
+          ? data.imageThumbUrl.value
+          : this.imageThumbUrl,
+      imageHash: data.imageHash.present ? data.imageHash.value : this.imageHash,
+      source: data.source.present ? data.source.value : this.source,
+      verificationStatus: data.verificationStatus.present
+          ? data.verificationStatus.value
+          : this.verificationStatus,
+      confidenceScore: data.confidenceScore.present
+          ? data.confidenceScore.value
+          : this.confidenceScore,
+      catalogVersion: data.catalogVersion.present
+          ? data.catalogVersion.value
+          : this.catalogVersion,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      version: data.version.present ? data.version.value : this.version,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalMasterProductsCatalogData(')
+          ..write('id: $id, ')
+          ..write('barcode: $barcode, ')
+          ..write('gtin: $gtin, ')
+          ..write('barcodeNormalized: $barcodeNormalized, ')
+          ..write('name: $name, ')
+          ..write('productName: $productName, ')
+          ..write('normalizedName: $normalizedName, ')
+          ..write('brand: $brand, ')
+          ..write('manufacturer: $manufacturer, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('subcategoryName: $subcategoryName, ')
+          ..write('packageSize: $packageSize, ')
+          ..write('packageUnit: $packageUnit, ')
+          ..write('unitType: $unitType, ')
+          ..write('hasImage: $hasImage, ')
+          ..write('imageThumbUrl: $imageThumbUrl, ')
+          ..write('imageHash: $imageHash, ')
+          ..write('source: $source, ')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('confidenceScore: $confidenceScore, ')
+          ..write('catalogVersion: $catalogVersion, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('metadataJson: $metadataJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        barcode,
+        gtin,
+        barcodeNormalized,
+        name,
+        productName,
+        normalizedName,
+        brand,
+        manufacturer,
+        categoryName,
+        subcategoryName,
+        packageSize,
+        packageUnit,
+        unitType,
+        hasImage,
+        imageThumbUrl,
+        imageHash,
+        source,
+        verificationStatus,
+        confidenceScore,
+        catalogVersion,
+        syncStatus,
+        localStatus,
+        version,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt,
+        metadataJson
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalMasterProductsCatalogData &&
+          other.id == this.id &&
+          other.barcode == this.barcode &&
+          other.gtin == this.gtin &&
+          other.barcodeNormalized == this.barcodeNormalized &&
+          other.name == this.name &&
+          other.productName == this.productName &&
+          other.normalizedName == this.normalizedName &&
+          other.brand == this.brand &&
+          other.manufacturer == this.manufacturer &&
+          other.categoryName == this.categoryName &&
+          other.subcategoryName == this.subcategoryName &&
+          other.packageSize == this.packageSize &&
+          other.packageUnit == this.packageUnit &&
+          other.unitType == this.unitType &&
+          other.hasImage == this.hasImage &&
+          other.imageThumbUrl == this.imageThumbUrl &&
+          other.imageHash == this.imageHash &&
+          other.source == this.source &&
+          other.verificationStatus == this.verificationStatus &&
+          other.confidenceScore == this.confidenceScore &&
+          other.catalogVersion == this.catalogVersion &&
+          other.syncStatus == this.syncStatus &&
+          other.localStatus == this.localStatus &&
+          other.version == this.version &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.metadataJson == this.metadataJson);
+}
+
+class LocalMasterProductsCatalogCompanion
+    extends UpdateCompanion<LocalMasterProductsCatalogData> {
+  final Value<String> id;
+  final Value<String?> barcode;
+  final Value<String?> gtin;
+  final Value<String?> barcodeNormalized;
+  final Value<String?> name;
+  final Value<String?> productName;
+  final Value<String?> normalizedName;
+  final Value<String?> brand;
+  final Value<String?> manufacturer;
+  final Value<String?> categoryName;
+  final Value<String?> subcategoryName;
+  final Value<double?> packageSize;
+  final Value<String?> packageUnit;
+  final Value<String?> unitType;
+  final Value<bool> hasImage;
+  final Value<String?> imageThumbUrl;
+  final Value<String?> imageHash;
+  final Value<String?> source;
+  final Value<String?> verificationStatus;
+  final Value<double?> confidenceScore;
+  final Value<int> catalogVersion;
+  final Value<String> syncStatus;
+  final Value<String> localStatus;
+  final Value<int> version;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<String?> metadataJson;
+  final Value<int> rowid;
+  const LocalMasterProductsCatalogCompanion({
+    this.id = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.gtin = const Value.absent(),
+    this.barcodeNormalized = const Value.absent(),
+    this.name = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.normalizedName = const Value.absent(),
+    this.brand = const Value.absent(),
+    this.manufacturer = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.subcategoryName = const Value.absent(),
+    this.packageSize = const Value.absent(),
+    this.packageUnit = const Value.absent(),
+    this.unitType = const Value.absent(),
+    this.hasImage = const Value.absent(),
+    this.imageThumbUrl = const Value.absent(),
+    this.imageHash = const Value.absent(),
+    this.source = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
+    this.confidenceScore = const Value.absent(),
+    this.catalogVersion = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalMasterProductsCatalogCompanion.insert({
+    required String id,
+    this.barcode = const Value.absent(),
+    this.gtin = const Value.absent(),
+    this.barcodeNormalized = const Value.absent(),
+    this.name = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.normalizedName = const Value.absent(),
+    this.brand = const Value.absent(),
+    this.manufacturer = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.subcategoryName = const Value.absent(),
+    this.packageSize = const Value.absent(),
+    this.packageUnit = const Value.absent(),
+    this.unitType = const Value.absent(),
+    this.hasImage = const Value.absent(),
+    this.imageThumbUrl = const Value.absent(),
+    this.imageHash = const Value.absent(),
+    this.source = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
+    this.confidenceScore = const Value.absent(),
+    this.catalogVersion = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<LocalMasterProductsCatalogData> custom({
+    Expression<String>? id,
+    Expression<String>? barcode,
+    Expression<String>? gtin,
+    Expression<String>? barcodeNormalized,
+    Expression<String>? name,
+    Expression<String>? productName,
+    Expression<String>? normalizedName,
+    Expression<String>? brand,
+    Expression<String>? manufacturer,
+    Expression<String>? categoryName,
+    Expression<String>? subcategoryName,
+    Expression<double>? packageSize,
+    Expression<String>? packageUnit,
+    Expression<String>? unitType,
+    Expression<bool>? hasImage,
+    Expression<String>? imageThumbUrl,
+    Expression<String>? imageHash,
+    Expression<String>? source,
+    Expression<String>? verificationStatus,
+    Expression<double>? confidenceScore,
+    Expression<int>? catalogVersion,
+    Expression<String>? syncStatus,
+    Expression<String>? localStatus,
+    Expression<int>? version,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<String>? metadataJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (barcode != null) 'barcode': barcode,
+      if (gtin != null) 'gtin': gtin,
+      if (barcodeNormalized != null) 'barcode_normalized': barcodeNormalized,
+      if (name != null) 'name': name,
+      if (productName != null) 'product_name': productName,
+      if (normalizedName != null) 'normalized_name': normalizedName,
+      if (brand != null) 'brand': brand,
+      if (manufacturer != null) 'manufacturer': manufacturer,
+      if (categoryName != null) 'category_name': categoryName,
+      if (subcategoryName != null) 'subcategory_name': subcategoryName,
+      if (packageSize != null) 'package_size': packageSize,
+      if (packageUnit != null) 'package_unit': packageUnit,
+      if (unitType != null) 'unit_type': unitType,
+      if (hasImage != null) 'has_image': hasImage,
+      if (imageThumbUrl != null) 'image_thumb_url': imageThumbUrl,
+      if (imageHash != null) 'image_hash': imageHash,
+      if (source != null) 'source': source,
+      if (verificationStatus != null) 'verification_status': verificationStatus,
+      if (confidenceScore != null) 'confidence_score': confidenceScore,
+      if (catalogVersion != null) 'catalog_version': catalogVersion,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (localStatus != null) 'local_status': localStatus,
+      if (version != null) 'version': version,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalMasterProductsCatalogCompanion copyWith(
+      {Value<String>? id,
+      Value<String?>? barcode,
+      Value<String?>? gtin,
+      Value<String?>? barcodeNormalized,
+      Value<String?>? name,
+      Value<String?>? productName,
+      Value<String?>? normalizedName,
+      Value<String?>? brand,
+      Value<String?>? manufacturer,
+      Value<String?>? categoryName,
+      Value<String?>? subcategoryName,
+      Value<double?>? packageSize,
+      Value<String?>? packageUnit,
+      Value<String?>? unitType,
+      Value<bool>? hasImage,
+      Value<String?>? imageThumbUrl,
+      Value<String?>? imageHash,
+      Value<String?>? source,
+      Value<String?>? verificationStatus,
+      Value<double?>? confidenceScore,
+      Value<int>? catalogVersion,
+      Value<String>? syncStatus,
+      Value<String>? localStatus,
+      Value<int>? version,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
+      Value<String?>? metadataJson,
+      Value<int>? rowid}) {
+    return LocalMasterProductsCatalogCompanion(
+      id: id ?? this.id,
+      barcode: barcode ?? this.barcode,
+      gtin: gtin ?? this.gtin,
+      barcodeNormalized: barcodeNormalized ?? this.barcodeNormalized,
+      name: name ?? this.name,
+      productName: productName ?? this.productName,
+      normalizedName: normalizedName ?? this.normalizedName,
+      brand: brand ?? this.brand,
+      manufacturer: manufacturer ?? this.manufacturer,
+      categoryName: categoryName ?? this.categoryName,
+      subcategoryName: subcategoryName ?? this.subcategoryName,
+      packageSize: packageSize ?? this.packageSize,
+      packageUnit: packageUnit ?? this.packageUnit,
+      unitType: unitType ?? this.unitType,
+      hasImage: hasImage ?? this.hasImage,
+      imageThumbUrl: imageThumbUrl ?? this.imageThumbUrl,
+      imageHash: imageHash ?? this.imageHash,
+      source: source ?? this.source,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      confidenceScore: confidenceScore ?? this.confidenceScore,
+      catalogVersion: catalogVersion ?? this.catalogVersion,
+      syncStatus: syncStatus ?? this.syncStatus,
+      localStatus: localStatus ?? this.localStatus,
+      version: version ?? this.version,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      metadataJson: metadataJson ?? this.metadataJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
+    if (gtin.present) {
+      map['gtin'] = Variable<String>(gtin.value);
+    }
+    if (barcodeNormalized.present) {
+      map['barcode_normalized'] = Variable<String>(barcodeNormalized.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (productName.present) {
+      map['product_name'] = Variable<String>(productName.value);
+    }
+    if (normalizedName.present) {
+      map['normalized_name'] = Variable<String>(normalizedName.value);
+    }
+    if (brand.present) {
+      map['brand'] = Variable<String>(brand.value);
+    }
+    if (manufacturer.present) {
+      map['manufacturer'] = Variable<String>(manufacturer.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (subcategoryName.present) {
+      map['subcategory_name'] = Variable<String>(subcategoryName.value);
+    }
+    if (packageSize.present) {
+      map['package_size'] = Variable<double>(packageSize.value);
+    }
+    if (packageUnit.present) {
+      map['package_unit'] = Variable<String>(packageUnit.value);
+    }
+    if (unitType.present) {
+      map['unit_type'] = Variable<String>(unitType.value);
+    }
+    if (hasImage.present) {
+      map['has_image'] = Variable<bool>(hasImage.value);
+    }
+    if (imageThumbUrl.present) {
+      map['image_thumb_url'] = Variable<String>(imageThumbUrl.value);
+    }
+    if (imageHash.present) {
+      map['image_hash'] = Variable<String>(imageHash.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (verificationStatus.present) {
+      map['verification_status'] = Variable<String>(verificationStatus.value);
+    }
+    if (confidenceScore.present) {
+      map['confidence_score'] = Variable<double>(confidenceScore.value);
+    }
+    if (catalogVersion.present) {
+      map['catalog_version'] = Variable<int>(catalogVersion.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalMasterProductsCatalogCompanion(')
+          ..write('id: $id, ')
+          ..write('barcode: $barcode, ')
+          ..write('gtin: $gtin, ')
+          ..write('barcodeNormalized: $barcodeNormalized, ')
+          ..write('name: $name, ')
+          ..write('productName: $productName, ')
+          ..write('normalizedName: $normalizedName, ')
+          ..write('brand: $brand, ')
+          ..write('manufacturer: $manufacturer, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('subcategoryName: $subcategoryName, ')
+          ..write('packageSize: $packageSize, ')
+          ..write('packageUnit: $packageUnit, ')
+          ..write('unitType: $unitType, ')
+          ..write('hasImage: $hasImage, ')
+          ..write('imageThumbUrl: $imageThumbUrl, ')
+          ..write('imageHash: $imageHash, ')
+          ..write('source: $source, ')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('confidenceScore: $confidenceScore, ')
+          ..write('catalogVersion: $catalogVersion, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalProductBarcodesTable extends LocalProductBarcodes
+    with TableInfo<$LocalProductBarcodesTable, LocalProductBarcode> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalProductBarcodesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _scopeMeta = const VerificationMeta('scope');
+  @override
+  late final GeneratedColumn<String> scope = GeneratedColumn<String>(
+      'scope', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _masterProductIdMeta =
+      const VerificationMeta('masterProductId');
+  @override
+  late final GeneratedColumn<String> masterProductId = GeneratedColumn<String>(
+      'master_product_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _barcodeMeta =
+      const VerificationMeta('barcode');
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+      'barcode', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _barcodeNormalizedMeta =
+      const VerificationMeta('barcodeNormalized');
+  @override
+  late final GeneratedColumn<String> barcodeNormalized =
+      GeneratedColumn<String>('barcode_normalized', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _barcodeTypeMeta =
+      const VerificationMeta('barcodeType');
+  @override
+  late final GeneratedColumn<String> barcodeType = GeneratedColumn<String>(
+      'barcode_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _isPrimaryMeta =
+      const VerificationMeta('isPrimary');
+  @override
+  late final GeneratedColumn<bool> isPrimary = GeneratedColumn<bool>(
+      'is_primary', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_primary" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('active'));
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+      'source', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _confidenceScoreMeta =
+      const VerificationMeta('confidenceScore');
+  @override
+  late final GeneratedColumn<double> confidenceScore = GeneratedColumn<double>(
+      'confidence_score', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _syncStatusMeta =
+      const VerificationMeta('syncStatus');
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+      'sync_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('clean'));
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        scope,
+        businessId,
+        productId,
+        masterProductId,
+        barcode,
+        barcodeNormalized,
+        barcodeType,
+        isPrimary,
+        status,
+        source,
+        confidenceScore,
+        syncStatus,
+        localStatus,
+        version,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt,
+        metadataJson
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_product_barcodes';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalProductBarcode> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('scope')) {
+      context.handle(
+          _scopeMeta, scope.isAcceptableOrUnknown(data['scope']!, _scopeMeta));
+    } else if (isInserting) {
+      context.missing(_scopeMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    }
+    if (data.containsKey('master_product_id')) {
+      context.handle(
+          _masterProductIdMeta,
+          masterProductId.isAcceptableOrUnknown(
+              data['master_product_id']!, _masterProductIdMeta));
+    }
+    if (data.containsKey('barcode')) {
+      context.handle(_barcodeMeta,
+          barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta));
+    } else if (isInserting) {
+      context.missing(_barcodeMeta);
+    }
+    if (data.containsKey('barcode_normalized')) {
+      context.handle(
+          _barcodeNormalizedMeta,
+          barcodeNormalized.isAcceptableOrUnknown(
+              data['barcode_normalized']!, _barcodeNormalizedMeta));
+    } else if (isInserting) {
+      context.missing(_barcodeNormalizedMeta);
+    }
+    if (data.containsKey('barcode_type')) {
+      context.handle(
+          _barcodeTypeMeta,
+          barcodeType.isAcceptableOrUnknown(
+              data['barcode_type']!, _barcodeTypeMeta));
+    }
+    if (data.containsKey('is_primary')) {
+      context.handle(_isPrimaryMeta,
+          isPrimary.isAcceptableOrUnknown(data['is_primary']!, _isPrimaryMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('source')) {
+      context.handle(_sourceMeta,
+          source.isAcceptableOrUnknown(data['source']!, _sourceMeta));
+    }
+    if (data.containsKey('confidence_score')) {
+      context.handle(
+          _confidenceScoreMeta,
+          confidenceScore.isAcceptableOrUnknown(
+              data['confidence_score']!, _confidenceScoreMeta));
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+          _syncStatusMeta,
+          syncStatus.isAcceptableOrUnknown(
+              data['sync_status']!, _syncStatusMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalProductBarcode map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalProductBarcode(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      scope: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}scope'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id']),
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id']),
+      masterProductId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}master_product_id']),
+      barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}barcode'])!,
+      barcodeNormalized: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}barcode_normalized'])!,
+      barcodeType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}barcode_type']),
+      isPrimary: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_primary'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      source: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source']),
+      confidenceScore: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}confidence_score']),
+      syncStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+    );
+  }
+
+  @override
+  $LocalProductBarcodesTable createAlias(String alias) {
+    return $LocalProductBarcodesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalProductBarcode extends DataClass
+    implements Insertable<LocalProductBarcode> {
+  final String id;
+  final String scope;
+  final String? businessId;
+  final String? productId;
+  final String? masterProductId;
+  final String barcode;
+  final String barcodeNormalized;
+  final String? barcodeType;
+  final bool isPrimary;
+  final String status;
+  final String? source;
+  final double? confidenceScore;
+  final String syncStatus;
+  final String localStatus;
+  final int version;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
+  final String? metadataJson;
+  const LocalProductBarcode(
+      {required this.id,
+      required this.scope,
+      this.businessId,
+      this.productId,
+      this.masterProductId,
+      required this.barcode,
+      required this.barcodeNormalized,
+      this.barcodeType,
+      required this.isPrimary,
+      required this.status,
+      this.source,
+      this.confidenceScore,
+      required this.syncStatus,
+      required this.localStatus,
+      required this.version,
+      required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt,
+      this.lastSyncedAt,
+      this.metadataJson});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['scope'] = Variable<String>(scope);
+    if (!nullToAbsent || businessId != null) {
+      map['business_id'] = Variable<String>(businessId);
+    }
+    if (!nullToAbsent || productId != null) {
+      map['product_id'] = Variable<String>(productId);
+    }
+    if (!nullToAbsent || masterProductId != null) {
+      map['master_product_id'] = Variable<String>(masterProductId);
+    }
+    map['barcode'] = Variable<String>(barcode);
+    map['barcode_normalized'] = Variable<String>(barcodeNormalized);
+    if (!nullToAbsent || barcodeType != null) {
+      map['barcode_type'] = Variable<String>(barcodeType);
+    }
+    map['is_primary'] = Variable<bool>(isPrimary);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || source != null) {
+      map['source'] = Variable<String>(source);
+    }
+    if (!nullToAbsent || confidenceScore != null) {
+      map['confidence_score'] = Variable<double>(confidenceScore);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['local_status'] = Variable<String>(localStatus);
+    map['version'] = Variable<int>(version);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    return map;
+  }
+
+  LocalProductBarcodesCompanion toCompanion(bool nullToAbsent) {
+    return LocalProductBarcodesCompanion(
+      id: Value(id),
+      scope: Value(scope),
+      businessId: businessId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(businessId),
+      productId: productId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productId),
+      masterProductId: masterProductId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(masterProductId),
+      barcode: Value(barcode),
+      barcodeNormalized: Value(barcodeNormalized),
+      barcodeType: barcodeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcodeType),
+      isPrimary: Value(isPrimary),
+      status: Value(status),
+      source:
+          source == null && nullToAbsent ? const Value.absent() : Value(source),
+      confidenceScore: confidenceScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidenceScore),
+      syncStatus: Value(syncStatus),
+      localStatus: Value(localStatus),
+      version: Value(version),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+    );
+  }
+
+  factory LocalProductBarcode.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalProductBarcode(
+      id: serializer.fromJson<String>(json['id']),
+      scope: serializer.fromJson<String>(json['scope']),
+      businessId: serializer.fromJson<String?>(json['businessId']),
+      productId: serializer.fromJson<String?>(json['productId']),
+      masterProductId: serializer.fromJson<String?>(json['masterProductId']),
+      barcode: serializer.fromJson<String>(json['barcode']),
+      barcodeNormalized: serializer.fromJson<String>(json['barcodeNormalized']),
+      barcodeType: serializer.fromJson<String?>(json['barcodeType']),
+      isPrimary: serializer.fromJson<bool>(json['isPrimary']),
+      status: serializer.fromJson<String>(json['status']),
+      source: serializer.fromJson<String?>(json['source']),
+      confidenceScore: serializer.fromJson<double?>(json['confidenceScore']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      version: serializer.fromJson<int>(json['version']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'scope': serializer.toJson<String>(scope),
+      'businessId': serializer.toJson<String?>(businessId),
+      'productId': serializer.toJson<String?>(productId),
+      'masterProductId': serializer.toJson<String?>(masterProductId),
+      'barcode': serializer.toJson<String>(barcode),
+      'barcodeNormalized': serializer.toJson<String>(barcodeNormalized),
+      'barcodeType': serializer.toJson<String?>(barcodeType),
+      'isPrimary': serializer.toJson<bool>(isPrimary),
+      'status': serializer.toJson<String>(status),
+      'source': serializer.toJson<String?>(source),
+      'confidenceScore': serializer.toJson<double?>(confidenceScore),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'version': serializer.toJson<int>(version),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+    };
+  }
+
+  LocalProductBarcode copyWith(
+          {String? id,
+          String? scope,
+          Value<String?> businessId = const Value.absent(),
+          Value<String?> productId = const Value.absent(),
+          Value<String?> masterProductId = const Value.absent(),
+          String? barcode,
+          String? barcodeNormalized,
+          Value<String?> barcodeType = const Value.absent(),
+          bool? isPrimary,
+          String? status,
+          Value<String?> source = const Value.absent(),
+          Value<double?> confidenceScore = const Value.absent(),
+          String? syncStatus,
+          String? localStatus,
+          int? version,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent(),
+          Value<String?> metadataJson = const Value.absent()}) =>
+      LocalProductBarcode(
+        id: id ?? this.id,
+        scope: scope ?? this.scope,
+        businessId: businessId.present ? businessId.value : this.businessId,
+        productId: productId.present ? productId.value : this.productId,
+        masterProductId: masterProductId.present
+            ? masterProductId.value
+            : this.masterProductId,
+        barcode: barcode ?? this.barcode,
+        barcodeNormalized: barcodeNormalized ?? this.barcodeNormalized,
+        barcodeType: barcodeType.present ? barcodeType.value : this.barcodeType,
+        isPrimary: isPrimary ?? this.isPrimary,
+        status: status ?? this.status,
+        source: source.present ? source.value : this.source,
+        confidenceScore: confidenceScore.present
+            ? confidenceScore.value
+            : this.confidenceScore,
+        syncStatus: syncStatus ?? this.syncStatus,
+        localStatus: localStatus ?? this.localStatus,
+        version: version ?? this.version,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+      );
+  LocalProductBarcode copyWithCompanion(LocalProductBarcodesCompanion data) {
+    return LocalProductBarcode(
+      id: data.id.present ? data.id.value : this.id,
+      scope: data.scope.present ? data.scope.value : this.scope,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      masterProductId: data.masterProductId.present
+          ? data.masterProductId.value
+          : this.masterProductId,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      barcodeNormalized: data.barcodeNormalized.present
+          ? data.barcodeNormalized.value
+          : this.barcodeNormalized,
+      barcodeType:
+          data.barcodeType.present ? data.barcodeType.value : this.barcodeType,
+      isPrimary: data.isPrimary.present ? data.isPrimary.value : this.isPrimary,
+      status: data.status.present ? data.status.value : this.status,
+      source: data.source.present ? data.source.value : this.source,
+      confidenceScore: data.confidenceScore.present
+          ? data.confidenceScore.value
+          : this.confidenceScore,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      version: data.version.present ? data.version.value : this.version,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalProductBarcode(')
+          ..write('id: $id, ')
+          ..write('scope: $scope, ')
+          ..write('businessId: $businessId, ')
+          ..write('productId: $productId, ')
+          ..write('masterProductId: $masterProductId, ')
+          ..write('barcode: $barcode, ')
+          ..write('barcodeNormalized: $barcodeNormalized, ')
+          ..write('barcodeType: $barcodeType, ')
+          ..write('isPrimary: $isPrimary, ')
+          ..write('status: $status, ')
+          ..write('source: $source, ')
+          ..write('confidenceScore: $confidenceScore, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('metadataJson: $metadataJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      scope,
+      businessId,
+      productId,
+      masterProductId,
+      barcode,
+      barcodeNormalized,
+      barcodeType,
+      isPrimary,
+      status,
+      source,
+      confidenceScore,
+      syncStatus,
+      localStatus,
+      version,
+      createdAt,
+      updatedAt,
+      deletedAt,
+      lastSyncedAt,
+      metadataJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalProductBarcode &&
+          other.id == this.id &&
+          other.scope == this.scope &&
+          other.businessId == this.businessId &&
+          other.productId == this.productId &&
+          other.masterProductId == this.masterProductId &&
+          other.barcode == this.barcode &&
+          other.barcodeNormalized == this.barcodeNormalized &&
+          other.barcodeType == this.barcodeType &&
+          other.isPrimary == this.isPrimary &&
+          other.status == this.status &&
+          other.source == this.source &&
+          other.confidenceScore == this.confidenceScore &&
+          other.syncStatus == this.syncStatus &&
+          other.localStatus == this.localStatus &&
+          other.version == this.version &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.metadataJson == this.metadataJson);
+}
+
+class LocalProductBarcodesCompanion
+    extends UpdateCompanion<LocalProductBarcode> {
+  final Value<String> id;
+  final Value<String> scope;
+  final Value<String?> businessId;
+  final Value<String?> productId;
+  final Value<String?> masterProductId;
+  final Value<String> barcode;
+  final Value<String> barcodeNormalized;
+  final Value<String?> barcodeType;
+  final Value<bool> isPrimary;
+  final Value<String> status;
+  final Value<String?> source;
+  final Value<double?> confidenceScore;
+  final Value<String> syncStatus;
+  final Value<String> localStatus;
+  final Value<int> version;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<String?> metadataJson;
+  final Value<int> rowid;
+  const LocalProductBarcodesCompanion({
+    this.id = const Value.absent(),
+    this.scope = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.masterProductId = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.barcodeNormalized = const Value.absent(),
+    this.barcodeType = const Value.absent(),
+    this.isPrimary = const Value.absent(),
+    this.status = const Value.absent(),
+    this.source = const Value.absent(),
+    this.confidenceScore = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalProductBarcodesCompanion.insert({
+    required String id,
+    required String scope,
+    this.businessId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.masterProductId = const Value.absent(),
+    required String barcode,
+    required String barcodeNormalized,
+    this.barcodeType = const Value.absent(),
+    this.isPrimary = const Value.absent(),
+    this.status = const Value.absent(),
+    this.source = const Value.absent(),
+    this.confidenceScore = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        scope = Value(scope),
+        barcode = Value(barcode),
+        barcodeNormalized = Value(barcodeNormalized);
+  static Insertable<LocalProductBarcode> custom({
+    Expression<String>? id,
+    Expression<String>? scope,
+    Expression<String>? businessId,
+    Expression<String>? productId,
+    Expression<String>? masterProductId,
+    Expression<String>? barcode,
+    Expression<String>? barcodeNormalized,
+    Expression<String>? barcodeType,
+    Expression<bool>? isPrimary,
+    Expression<String>? status,
+    Expression<String>? source,
+    Expression<double>? confidenceScore,
+    Expression<String>? syncStatus,
+    Expression<String>? localStatus,
+    Expression<int>? version,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<String>? metadataJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (scope != null) 'scope': scope,
+      if (businessId != null) 'business_id': businessId,
+      if (productId != null) 'product_id': productId,
+      if (masterProductId != null) 'master_product_id': masterProductId,
+      if (barcode != null) 'barcode': barcode,
+      if (barcodeNormalized != null) 'barcode_normalized': barcodeNormalized,
+      if (barcodeType != null) 'barcode_type': barcodeType,
+      if (isPrimary != null) 'is_primary': isPrimary,
+      if (status != null) 'status': status,
+      if (source != null) 'source': source,
+      if (confidenceScore != null) 'confidence_score': confidenceScore,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (localStatus != null) 'local_status': localStatus,
+      if (version != null) 'version': version,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalProductBarcodesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? scope,
+      Value<String?>? businessId,
+      Value<String?>? productId,
+      Value<String?>? masterProductId,
+      Value<String>? barcode,
+      Value<String>? barcodeNormalized,
+      Value<String?>? barcodeType,
+      Value<bool>? isPrimary,
+      Value<String>? status,
+      Value<String?>? source,
+      Value<double?>? confidenceScore,
+      Value<String>? syncStatus,
+      Value<String>? localStatus,
+      Value<int>? version,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
+      Value<String?>? metadataJson,
+      Value<int>? rowid}) {
+    return LocalProductBarcodesCompanion(
+      id: id ?? this.id,
+      scope: scope ?? this.scope,
+      businessId: businessId ?? this.businessId,
+      productId: productId ?? this.productId,
+      masterProductId: masterProductId ?? this.masterProductId,
+      barcode: barcode ?? this.barcode,
+      barcodeNormalized: barcodeNormalized ?? this.barcodeNormalized,
+      barcodeType: barcodeType ?? this.barcodeType,
+      isPrimary: isPrimary ?? this.isPrimary,
+      status: status ?? this.status,
+      source: source ?? this.source,
+      confidenceScore: confidenceScore ?? this.confidenceScore,
+      syncStatus: syncStatus ?? this.syncStatus,
+      localStatus: localStatus ?? this.localStatus,
+      version: version ?? this.version,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      metadataJson: metadataJson ?? this.metadataJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (scope.present) {
+      map['scope'] = Variable<String>(scope.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (masterProductId.present) {
+      map['master_product_id'] = Variable<String>(masterProductId.value);
+    }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
+    if (barcodeNormalized.present) {
+      map['barcode_normalized'] = Variable<String>(barcodeNormalized.value);
+    }
+    if (barcodeType.present) {
+      map['barcode_type'] = Variable<String>(barcodeType.value);
+    }
+    if (isPrimary.present) {
+      map['is_primary'] = Variable<bool>(isPrimary.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (confidenceScore.present) {
+      map['confidence_score'] = Variable<double>(confidenceScore.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalProductBarcodesCompanion(')
+          ..write('id: $id, ')
+          ..write('scope: $scope, ')
+          ..write('businessId: $businessId, ')
+          ..write('productId: $productId, ')
+          ..write('masterProductId: $masterProductId, ')
+          ..write('barcode: $barcode, ')
+          ..write('barcodeNormalized: $barcodeNormalized, ')
+          ..write('barcodeType: $barcodeType, ')
+          ..write('isPrimary: $isPrimary, ')
+          ..write('status: $status, ')
+          ..write('source: $source, ')
+          ..write('confidenceScore: $confidenceScore, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalCatalogSyncStateTable extends LocalCatalogSyncState
+    with TableInfo<$LocalCatalogSyncStateTable, LocalCatalogSyncStateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalCatalogSyncStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _lastCatalogPullAtMeta =
+      const VerificationMeta('lastCatalogPullAt');
+  @override
+  late final GeneratedColumn<DateTime> lastCatalogPullAt =
+      GeneratedColumn<DateTime>('last_catalog_pull_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastServerTimeMeta =
+      const VerificationMeta('lastServerTime');
+  @override
+  late final GeneratedColumn<DateTime> lastServerTime =
+      GeneratedColumn<DateTime>('last_server_time', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSinceUpdatedAtMeta =
+      const VerificationMeta('lastSinceUpdatedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSinceUpdatedAt =
+      GeneratedColumn<DateTime>('last_since_updated_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastCatalogVersionMeta =
+      const VerificationMeta('lastCatalogVersion');
+  @override
+  late final GeneratedColumn<int> lastCatalogVersion = GeneratedColumn<int>(
+      'last_catalog_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _lastPageTokenMeta =
+      const VerificationMeta('lastPageToken');
+  @override
+  late final GeneratedColumn<String> lastPageToken = GeneratedColumn<String>(
+      'last_page_token', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _isSyncingMeta =
+      const VerificationMeta('isSyncing');
+  @override
+  late final GeneratedColumn<bool> isSyncing = GeneratedColumn<bool>(
+      'is_syncing', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_syncing" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _lastErrorMeta =
+      const VerificationMeta('lastError');
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+      'last_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        businessId,
+        lastCatalogPullAt,
+        lastServerTime,
+        lastSinceUpdatedAt,
+        lastCatalogVersion,
+        lastPageToken,
+        isSyncing,
+        lastError,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_catalog_sync_state';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalCatalogSyncStateData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('last_catalog_pull_at')) {
+      context.handle(
+          _lastCatalogPullAtMeta,
+          lastCatalogPullAt.isAcceptableOrUnknown(
+              data['last_catalog_pull_at']!, _lastCatalogPullAtMeta));
+    }
+    if (data.containsKey('last_server_time')) {
+      context.handle(
+          _lastServerTimeMeta,
+          lastServerTime.isAcceptableOrUnknown(
+              data['last_server_time']!, _lastServerTimeMeta));
+    }
+    if (data.containsKey('last_since_updated_at')) {
+      context.handle(
+          _lastSinceUpdatedAtMeta,
+          lastSinceUpdatedAt.isAcceptableOrUnknown(
+              data['last_since_updated_at']!, _lastSinceUpdatedAtMeta));
+    }
+    if (data.containsKey('last_catalog_version')) {
+      context.handle(
+          _lastCatalogVersionMeta,
+          lastCatalogVersion.isAcceptableOrUnknown(
+              data['last_catalog_version']!, _lastCatalogVersionMeta));
+    }
+    if (data.containsKey('last_page_token')) {
+      context.handle(
+          _lastPageTokenMeta,
+          lastPageToken.isAcceptableOrUnknown(
+              data['last_page_token']!, _lastPageTokenMeta));
+    }
+    if (data.containsKey('is_syncing')) {
+      context.handle(_isSyncingMeta,
+          isSyncing.isAcceptableOrUnknown(data['is_syncing']!, _isSyncingMeta));
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(_lastErrorMeta,
+          lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalCatalogSyncStateData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalCatalogSyncStateData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      lastCatalogPullAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}last_catalog_pull_at']),
+      lastServerTime: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_server_time']),
+      lastSinceUpdatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}last_since_updated_at']),
+      lastCatalogVersion: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}last_catalog_version']),
+      lastPageToken: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_page_token']),
+      isSyncing: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_syncing'])!,
+      lastError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $LocalCatalogSyncStateTable createAlias(String alias) {
+    return $LocalCatalogSyncStateTable(attachedDatabase, alias);
+  }
+}
+
+class LocalCatalogSyncStateData extends DataClass
+    implements Insertable<LocalCatalogSyncStateData> {
+  final String id;
+  final String businessId;
+  final DateTime? lastCatalogPullAt;
+  final DateTime? lastServerTime;
+  final DateTime? lastSinceUpdatedAt;
+  final int? lastCatalogVersion;
+  final String? lastPageToken;
+  final bool isSyncing;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalCatalogSyncStateData(
+      {required this.id,
+      required this.businessId,
+      this.lastCatalogPullAt,
+      this.lastServerTime,
+      this.lastSinceUpdatedAt,
+      this.lastCatalogVersion,
+      this.lastPageToken,
+      required this.isSyncing,
+      this.lastError,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    if (!nullToAbsent || lastCatalogPullAt != null) {
+      map['last_catalog_pull_at'] = Variable<DateTime>(lastCatalogPullAt);
+    }
+    if (!nullToAbsent || lastServerTime != null) {
+      map['last_server_time'] = Variable<DateTime>(lastServerTime);
+    }
+    if (!nullToAbsent || lastSinceUpdatedAt != null) {
+      map['last_since_updated_at'] = Variable<DateTime>(lastSinceUpdatedAt);
+    }
+    if (!nullToAbsent || lastCatalogVersion != null) {
+      map['last_catalog_version'] = Variable<int>(lastCatalogVersion);
+    }
+    if (!nullToAbsent || lastPageToken != null) {
+      map['last_page_token'] = Variable<String>(lastPageToken);
+    }
+    map['is_syncing'] = Variable<bool>(isSyncing);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalCatalogSyncStateCompanion toCompanion(bool nullToAbsent) {
+    return LocalCatalogSyncStateCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      lastCatalogPullAt: lastCatalogPullAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastCatalogPullAt),
+      lastServerTime: lastServerTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastServerTime),
+      lastSinceUpdatedAt: lastSinceUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSinceUpdatedAt),
+      lastCatalogVersion: lastCatalogVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastCatalogVersion),
+      lastPageToken: lastPageToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastPageToken),
+      isSyncing: Value(isSyncing),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalCatalogSyncStateData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalCatalogSyncStateData(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      lastCatalogPullAt:
+          serializer.fromJson<DateTime?>(json['lastCatalogPullAt']),
+      lastServerTime: serializer.fromJson<DateTime?>(json['lastServerTime']),
+      lastSinceUpdatedAt:
+          serializer.fromJson<DateTime?>(json['lastSinceUpdatedAt']),
+      lastCatalogVersion: serializer.fromJson<int?>(json['lastCatalogVersion']),
+      lastPageToken: serializer.fromJson<String?>(json['lastPageToken']),
+      isSyncing: serializer.fromJson<bool>(json['isSyncing']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'lastCatalogPullAt': serializer.toJson<DateTime?>(lastCatalogPullAt),
+      'lastServerTime': serializer.toJson<DateTime?>(lastServerTime),
+      'lastSinceUpdatedAt': serializer.toJson<DateTime?>(lastSinceUpdatedAt),
+      'lastCatalogVersion': serializer.toJson<int?>(lastCatalogVersion),
+      'lastPageToken': serializer.toJson<String?>(lastPageToken),
+      'isSyncing': serializer.toJson<bool>(isSyncing),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalCatalogSyncStateData copyWith(
+          {String? id,
+          String? businessId,
+          Value<DateTime?> lastCatalogPullAt = const Value.absent(),
+          Value<DateTime?> lastServerTime = const Value.absent(),
+          Value<DateTime?> lastSinceUpdatedAt = const Value.absent(),
+          Value<int?> lastCatalogVersion = const Value.absent(),
+          Value<String?> lastPageToken = const Value.absent(),
+          bool? isSyncing,
+          Value<String?> lastError = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      LocalCatalogSyncStateData(
+        id: id ?? this.id,
+        businessId: businessId ?? this.businessId,
+        lastCatalogPullAt: lastCatalogPullAt.present
+            ? lastCatalogPullAt.value
+            : this.lastCatalogPullAt,
+        lastServerTime:
+            lastServerTime.present ? lastServerTime.value : this.lastServerTime,
+        lastSinceUpdatedAt: lastSinceUpdatedAt.present
+            ? lastSinceUpdatedAt.value
+            : this.lastSinceUpdatedAt,
+        lastCatalogVersion: lastCatalogVersion.present
+            ? lastCatalogVersion.value
+            : this.lastCatalogVersion,
+        lastPageToken:
+            lastPageToken.present ? lastPageToken.value : this.lastPageToken,
+        isSyncing: isSyncing ?? this.isSyncing,
+        lastError: lastError.present ? lastError.value : this.lastError,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  LocalCatalogSyncStateData copyWithCompanion(
+      LocalCatalogSyncStateCompanion data) {
+    return LocalCatalogSyncStateData(
+      id: data.id.present ? data.id.value : this.id,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      lastCatalogPullAt: data.lastCatalogPullAt.present
+          ? data.lastCatalogPullAt.value
+          : this.lastCatalogPullAt,
+      lastServerTime: data.lastServerTime.present
+          ? data.lastServerTime.value
+          : this.lastServerTime,
+      lastSinceUpdatedAt: data.lastSinceUpdatedAt.present
+          ? data.lastSinceUpdatedAt.value
+          : this.lastSinceUpdatedAt,
+      lastCatalogVersion: data.lastCatalogVersion.present
+          ? data.lastCatalogVersion.value
+          : this.lastCatalogVersion,
+      lastPageToken: data.lastPageToken.present
+          ? data.lastPageToken.value
+          : this.lastPageToken,
+      isSyncing: data.isSyncing.present ? data.isSyncing.value : this.isSyncing,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCatalogSyncStateData(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('lastCatalogPullAt: $lastCatalogPullAt, ')
+          ..write('lastServerTime: $lastServerTime, ')
+          ..write('lastSinceUpdatedAt: $lastSinceUpdatedAt, ')
+          ..write('lastCatalogVersion: $lastCatalogVersion, ')
+          ..write('lastPageToken: $lastPageToken, ')
+          ..write('isSyncing: $isSyncing, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      businessId,
+      lastCatalogPullAt,
+      lastServerTime,
+      lastSinceUpdatedAt,
+      lastCatalogVersion,
+      lastPageToken,
+      isSyncing,
+      lastError,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalCatalogSyncStateData &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.lastCatalogPullAt == this.lastCatalogPullAt &&
+          other.lastServerTime == this.lastServerTime &&
+          other.lastSinceUpdatedAt == this.lastSinceUpdatedAt &&
+          other.lastCatalogVersion == this.lastCatalogVersion &&
+          other.lastPageToken == this.lastPageToken &&
+          other.isSyncing == this.isSyncing &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalCatalogSyncStateCompanion
+    extends UpdateCompanion<LocalCatalogSyncStateData> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<DateTime?> lastCatalogPullAt;
+  final Value<DateTime?> lastServerTime;
+  final Value<DateTime?> lastSinceUpdatedAt;
+  final Value<int?> lastCatalogVersion;
+  final Value<String?> lastPageToken;
+  final Value<bool> isSyncing;
+  final Value<String?> lastError;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalCatalogSyncStateCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.lastCatalogPullAt = const Value.absent(),
+    this.lastServerTime = const Value.absent(),
+    this.lastSinceUpdatedAt = const Value.absent(),
+    this.lastCatalogVersion = const Value.absent(),
+    this.lastPageToken = const Value.absent(),
+    this.isSyncing = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalCatalogSyncStateCompanion.insert({
+    required String id,
+    required String businessId,
+    this.lastCatalogPullAt = const Value.absent(),
+    this.lastServerTime = const Value.absent(),
+    this.lastSinceUpdatedAt = const Value.absent(),
+    this.lastCatalogVersion = const Value.absent(),
+    this.lastPageToken = const Value.absent(),
+    this.isSyncing = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        businessId = Value(businessId);
+  static Insertable<LocalCatalogSyncStateData> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<DateTime>? lastCatalogPullAt,
+    Expression<DateTime>? lastServerTime,
+    Expression<DateTime>? lastSinceUpdatedAt,
+    Expression<int>? lastCatalogVersion,
+    Expression<String>? lastPageToken,
+    Expression<bool>? isSyncing,
+    Expression<String>? lastError,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (lastCatalogPullAt != null) 'last_catalog_pull_at': lastCatalogPullAt,
+      if (lastServerTime != null) 'last_server_time': lastServerTime,
+      if (lastSinceUpdatedAt != null)
+        'last_since_updated_at': lastSinceUpdatedAt,
+      if (lastCatalogVersion != null)
+        'last_catalog_version': lastCatalogVersion,
+      if (lastPageToken != null) 'last_page_token': lastPageToken,
+      if (isSyncing != null) 'is_syncing': isSyncing,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalCatalogSyncStateCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? businessId,
+      Value<DateTime?>? lastCatalogPullAt,
+      Value<DateTime?>? lastServerTime,
+      Value<DateTime?>? lastSinceUpdatedAt,
+      Value<int?>? lastCatalogVersion,
+      Value<String?>? lastPageToken,
+      Value<bool>? isSyncing,
+      Value<String?>? lastError,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return LocalCatalogSyncStateCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      lastCatalogPullAt: lastCatalogPullAt ?? this.lastCatalogPullAt,
+      lastServerTime: lastServerTime ?? this.lastServerTime,
+      lastSinceUpdatedAt: lastSinceUpdatedAt ?? this.lastSinceUpdatedAt,
+      lastCatalogVersion: lastCatalogVersion ?? this.lastCatalogVersion,
+      lastPageToken: lastPageToken ?? this.lastPageToken,
+      isSyncing: isSyncing ?? this.isSyncing,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (lastCatalogPullAt.present) {
+      map['last_catalog_pull_at'] = Variable<DateTime>(lastCatalogPullAt.value);
+    }
+    if (lastServerTime.present) {
+      map['last_server_time'] = Variable<DateTime>(lastServerTime.value);
+    }
+    if (lastSinceUpdatedAt.present) {
+      map['last_since_updated_at'] =
+          Variable<DateTime>(lastSinceUpdatedAt.value);
+    }
+    if (lastCatalogVersion.present) {
+      map['last_catalog_version'] = Variable<int>(lastCatalogVersion.value);
+    }
+    if (lastPageToken.present) {
+      map['last_page_token'] = Variable<String>(lastPageToken.value);
+    }
+    if (isSyncing.present) {
+      map['is_syncing'] = Variable<bool>(isSyncing.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCatalogSyncStateCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('lastCatalogPullAt: $lastCatalogPullAt, ')
+          ..write('lastServerTime: $lastServerTime, ')
+          ..write('lastSinceUpdatedAt: $lastSinceUpdatedAt, ')
+          ..write('lastCatalogVersion: $lastCatalogVersion, ')
+          ..write('lastPageToken: $lastPageToken, ')
+          ..write('isSyncing: $isSyncing, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalCatalogContributionQueueTable extends LocalCatalogContributionQueue
+    with
+        TableInfo<$LocalCatalogContributionQueueTable,
+            LocalCatalogContributionQueueData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalCatalogContributionQueueTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localProductIdMeta =
+      const VerificationMeta('localProductId');
+  @override
+  late final GeneratedColumn<String> localProductId = GeneratedColumn<String>(
+      'local_product_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _masterProductIdMeta =
+      const VerificationMeta('masterProductId');
+  @override
+  late final GeneratedColumn<String> masterProductId = GeneratedColumn<String>(
+      'master_product_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _contributionTypeMeta =
+      const VerificationMeta('contributionType');
+  @override
+  late final GeneratedColumn<String> contributionType = GeneratedColumn<String>(
+      'contribution_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _barcodeMeta =
+      const VerificationMeta('barcode');
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+      'barcode', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _barcodeNormalizedMeta =
+      const VerificationMeta('barcodeNormalized');
+  @override
+  late final GeneratedColumn<String> barcodeNormalized =
+      GeneratedColumn<String>('barcode_normalized', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _barcodeTypeMeta =
+      const VerificationMeta('barcodeType');
+  @override
+  late final GeneratedColumn<String> barcodeType = GeneratedColumn<String>(
+      'barcode_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedNameMeta =
+      const VerificationMeta('suggestedName');
+  @override
+  late final GeneratedColumn<String> suggestedName = GeneratedColumn<String>(
+      'suggested_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedBrandMeta =
+      const VerificationMeta('suggestedBrand');
+  @override
+  late final GeneratedColumn<String> suggestedBrand = GeneratedColumn<String>(
+      'suggested_brand', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedManufacturerMeta =
+      const VerificationMeta('suggestedManufacturer');
+  @override
+  late final GeneratedColumn<String> suggestedManufacturer =
+      GeneratedColumn<String>('suggested_manufacturer', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedCategoryNameMeta =
+      const VerificationMeta('suggestedCategoryName');
+  @override
+  late final GeneratedColumn<String> suggestedCategoryName =
+      GeneratedColumn<String>('suggested_category_name', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedSubcategoryNameMeta =
+      const VerificationMeta('suggestedSubcategoryName');
+  @override
+  late final GeneratedColumn<String> suggestedSubcategoryName =
+      GeneratedColumn<String>('suggested_subcategory_name', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedPackageSizeMeta =
+      const VerificationMeta('suggestedPackageSize');
+  @override
+  late final GeneratedColumn<double> suggestedPackageSize =
+      GeneratedColumn<double>('suggested_package_size', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedPackageUnitMeta =
+      const VerificationMeta('suggestedPackageUnit');
+  @override
+  late final GeneratedColumn<String> suggestedPackageUnit =
+      GeneratedColumn<String>('suggested_package_unit', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedUnitTypeMeta =
+      const VerificationMeta('suggestedUnitType');
+  @override
+  late final GeneratedColumn<String> suggestedUnitType =
+      GeneratedColumn<String>('suggested_unit_type', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedImageUrlMeta =
+      const VerificationMeta('suggestedImageUrl');
+  @override
+  late final GeneratedColumn<String> suggestedImageUrl =
+      GeneratedColumn<String>('suggested_image_url', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedImageThumbUrlMeta =
+      const VerificationMeta('suggestedImageThumbUrl');
+  @override
+  late final GeneratedColumn<String> suggestedImageThumbUrl =
+      GeneratedColumn<String>('suggested_image_thumb_url', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _suggestedImageHashMeta =
+      const VerificationMeta('suggestedImageHash');
+  @override
+  late final GeneratedColumn<String> suggestedImageHash =
+      GeneratedColumn<String>('suggested_image_hash', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+      'source', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('app'));
+  static const VerificationMeta _confidenceScoreMeta =
+      const VerificationMeta('confidenceScore');
+  @override
+  late final GeneratedColumn<double> confidenceScore = GeneratedColumn<double>(
+      'confidence_score', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  static const VerificationMeta _serverContributionIdMeta =
+      const VerificationMeta('serverContributionId');
+  @override
+  late final GeneratedColumn<String> serverContributionId =
+      GeneratedColumn<String>('server_contribution_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _retryCountMeta =
+      const VerificationMeta('retryCount');
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+      'retry_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _lastErrorMeta =
+      const VerificationMeta('lastError');
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+      'last_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _syncedAtMeta =
+      const VerificationMeta('syncedAt');
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+      'synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        businessId,
+        branchId,
+        localProductId,
+        masterProductId,
+        contributionType,
+        barcode,
+        barcodeNormalized,
+        barcodeType,
+        suggestedName,
+        suggestedBrand,
+        suggestedManufacturer,
+        suggestedCategoryName,
+        suggestedSubcategoryName,
+        suggestedPackageSize,
+        suggestedPackageUnit,
+        suggestedUnitType,
+        suggestedImageUrl,
+        suggestedImageThumbUrl,
+        suggestedImageHash,
+        source,
+        confidenceScore,
+        metadataJson,
+        localStatus,
+        serverContributionId,
+        retryCount,
+        lastError,
+        createdAt,
+        updatedAt,
+        syncedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_catalog_contribution_queue';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalCatalogContributionQueueData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
+    if (data.containsKey('local_product_id')) {
+      context.handle(
+          _localProductIdMeta,
+          localProductId.isAcceptableOrUnknown(
+              data['local_product_id']!, _localProductIdMeta));
+    }
+    if (data.containsKey('master_product_id')) {
+      context.handle(
+          _masterProductIdMeta,
+          masterProductId.isAcceptableOrUnknown(
+              data['master_product_id']!, _masterProductIdMeta));
+    }
+    if (data.containsKey('contribution_type')) {
+      context.handle(
+          _contributionTypeMeta,
+          contributionType.isAcceptableOrUnknown(
+              data['contribution_type']!, _contributionTypeMeta));
+    } else if (isInserting) {
+      context.missing(_contributionTypeMeta);
+    }
+    if (data.containsKey('barcode')) {
+      context.handle(_barcodeMeta,
+          barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta));
+    }
+    if (data.containsKey('barcode_normalized')) {
+      context.handle(
+          _barcodeNormalizedMeta,
+          barcodeNormalized.isAcceptableOrUnknown(
+              data['barcode_normalized']!, _barcodeNormalizedMeta));
+    }
+    if (data.containsKey('barcode_type')) {
+      context.handle(
+          _barcodeTypeMeta,
+          barcodeType.isAcceptableOrUnknown(
+              data['barcode_type']!, _barcodeTypeMeta));
+    }
+    if (data.containsKey('suggested_name')) {
+      context.handle(
+          _suggestedNameMeta,
+          suggestedName.isAcceptableOrUnknown(
+              data['suggested_name']!, _suggestedNameMeta));
+    }
+    if (data.containsKey('suggested_brand')) {
+      context.handle(
+          _suggestedBrandMeta,
+          suggestedBrand.isAcceptableOrUnknown(
+              data['suggested_brand']!, _suggestedBrandMeta));
+    }
+    if (data.containsKey('suggested_manufacturer')) {
+      context.handle(
+          _suggestedManufacturerMeta,
+          suggestedManufacturer.isAcceptableOrUnknown(
+              data['suggested_manufacturer']!, _suggestedManufacturerMeta));
+    }
+    if (data.containsKey('suggested_category_name')) {
+      context.handle(
+          _suggestedCategoryNameMeta,
+          suggestedCategoryName.isAcceptableOrUnknown(
+              data['suggested_category_name']!, _suggestedCategoryNameMeta));
+    }
+    if (data.containsKey('suggested_subcategory_name')) {
+      context.handle(
+          _suggestedSubcategoryNameMeta,
+          suggestedSubcategoryName.isAcceptableOrUnknown(
+              data['suggested_subcategory_name']!,
+              _suggestedSubcategoryNameMeta));
+    }
+    if (data.containsKey('suggested_package_size')) {
+      context.handle(
+          _suggestedPackageSizeMeta,
+          suggestedPackageSize.isAcceptableOrUnknown(
+              data['suggested_package_size']!, _suggestedPackageSizeMeta));
+    }
+    if (data.containsKey('suggested_package_unit')) {
+      context.handle(
+          _suggestedPackageUnitMeta,
+          suggestedPackageUnit.isAcceptableOrUnknown(
+              data['suggested_package_unit']!, _suggestedPackageUnitMeta));
+    }
+    if (data.containsKey('suggested_unit_type')) {
+      context.handle(
+          _suggestedUnitTypeMeta,
+          suggestedUnitType.isAcceptableOrUnknown(
+              data['suggested_unit_type']!, _suggestedUnitTypeMeta));
+    }
+    if (data.containsKey('suggested_image_url')) {
+      context.handle(
+          _suggestedImageUrlMeta,
+          suggestedImageUrl.isAcceptableOrUnknown(
+              data['suggested_image_url']!, _suggestedImageUrlMeta));
+    }
+    if (data.containsKey('suggested_image_thumb_url')) {
+      context.handle(
+          _suggestedImageThumbUrlMeta,
+          suggestedImageThumbUrl.isAcceptableOrUnknown(
+              data['suggested_image_thumb_url']!, _suggestedImageThumbUrlMeta));
+    }
+    if (data.containsKey('suggested_image_hash')) {
+      context.handle(
+          _suggestedImageHashMeta,
+          suggestedImageHash.isAcceptableOrUnknown(
+              data['suggested_image_hash']!, _suggestedImageHashMeta));
+    }
+    if (data.containsKey('source')) {
+      context.handle(_sourceMeta,
+          source.isAcceptableOrUnknown(data['source']!, _sourceMeta));
+    }
+    if (data.containsKey('confidence_score')) {
+      context.handle(
+          _confidenceScoreMeta,
+          confidenceScore.isAcceptableOrUnknown(
+              data['confidence_score']!, _confidenceScoreMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('server_contribution_id')) {
+      context.handle(
+          _serverContributionIdMeta,
+          serverContributionId.isAcceptableOrUnknown(
+              data['server_contribution_id']!, _serverContributionIdMeta));
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+          _retryCountMeta,
+          retryCount.isAcceptableOrUnknown(
+              data['retry_count']!, _retryCountMeta));
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(_lastErrorMeta,
+          lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(_syncedAtMeta,
+          syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalCatalogContributionQueueData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalCatalogContributionQueueData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
+      localProductId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}local_product_id']),
+      masterProductId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}master_product_id']),
+      contributionType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}contribution_type'])!,
+      barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}barcode']),
+      barcodeNormalized: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}barcode_normalized']),
+      barcodeType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}barcode_type']),
+      suggestedName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}suggested_name']),
+      suggestedBrand: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}suggested_brand']),
+      suggestedManufacturer: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}suggested_manufacturer']),
+      suggestedCategoryName: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}suggested_category_name']),
+      suggestedSubcategoryName: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}suggested_subcategory_name']),
+      suggestedPackageSize: attachedDatabase.typeMapping.read(
+          DriftSqlType.double,
+          data['${effectivePrefix}suggested_package_size']),
+      suggestedPackageUnit: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}suggested_package_unit']),
+      suggestedUnitType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}suggested_unit_type']),
+      suggestedImageUrl: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}suggested_image_url']),
+      suggestedImageThumbUrl: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}suggested_image_thumb_url']),
+      suggestedImageHash: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}suggested_image_hash']),
+      source: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
+      confidenceScore: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}confidence_score']),
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      serverContributionId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}server_contribution_id']),
+      retryCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}retry_count'])!,
+      lastError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      syncedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+    );
+  }
+
+  @override
+  $LocalCatalogContributionQueueTable createAlias(String alias) {
+    return $LocalCatalogContributionQueueTable(attachedDatabase, alias);
+  }
+}
+
+class LocalCatalogContributionQueueData extends DataClass
+    implements Insertable<LocalCatalogContributionQueueData> {
+  final String id;
+  final String businessId;
+  final String? branchId;
+  final String? localProductId;
+  final String? masterProductId;
+  final String contributionType;
+  final String? barcode;
+  final String? barcodeNormalized;
+  final String? barcodeType;
+  final String? suggestedName;
+  final String? suggestedBrand;
+  final String? suggestedManufacturer;
+  final String? suggestedCategoryName;
+  final String? suggestedSubcategoryName;
+  final double? suggestedPackageSize;
+  final String? suggestedPackageUnit;
+  final String? suggestedUnitType;
+  final String? suggestedImageUrl;
+  final String? suggestedImageThumbUrl;
+  final String? suggestedImageHash;
+  final String source;
+  final double? confidenceScore;
+  final String? metadataJson;
+  final String localStatus;
+  final String? serverContributionId;
+  final int retryCount;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? syncedAt;
+  const LocalCatalogContributionQueueData(
+      {required this.id,
+      required this.businessId,
+      this.branchId,
+      this.localProductId,
+      this.masterProductId,
+      required this.contributionType,
+      this.barcode,
+      this.barcodeNormalized,
+      this.barcodeType,
+      this.suggestedName,
+      this.suggestedBrand,
+      this.suggestedManufacturer,
+      this.suggestedCategoryName,
+      this.suggestedSubcategoryName,
+      this.suggestedPackageSize,
+      this.suggestedPackageUnit,
+      this.suggestedUnitType,
+      this.suggestedImageUrl,
+      this.suggestedImageThumbUrl,
+      this.suggestedImageHash,
+      required this.source,
+      this.confidenceScore,
+      this.metadataJson,
+      required this.localStatus,
+      this.serverContributionId,
+      required this.retryCount,
+      this.lastError,
+      required this.createdAt,
+      required this.updatedAt,
+      this.syncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
+    if (!nullToAbsent || localProductId != null) {
+      map['local_product_id'] = Variable<String>(localProductId);
+    }
+    if (!nullToAbsent || masterProductId != null) {
+      map['master_product_id'] = Variable<String>(masterProductId);
+    }
+    map['contribution_type'] = Variable<String>(contributionType);
+    if (!nullToAbsent || barcode != null) {
+      map['barcode'] = Variable<String>(barcode);
+    }
+    if (!nullToAbsent || barcodeNormalized != null) {
+      map['barcode_normalized'] = Variable<String>(barcodeNormalized);
+    }
+    if (!nullToAbsent || barcodeType != null) {
+      map['barcode_type'] = Variable<String>(barcodeType);
+    }
+    if (!nullToAbsent || suggestedName != null) {
+      map['suggested_name'] = Variable<String>(suggestedName);
+    }
+    if (!nullToAbsent || suggestedBrand != null) {
+      map['suggested_brand'] = Variable<String>(suggestedBrand);
+    }
+    if (!nullToAbsent || suggestedManufacturer != null) {
+      map['suggested_manufacturer'] = Variable<String>(suggestedManufacturer);
+    }
+    if (!nullToAbsent || suggestedCategoryName != null) {
+      map['suggested_category_name'] = Variable<String>(suggestedCategoryName);
+    }
+    if (!nullToAbsent || suggestedSubcategoryName != null) {
+      map['suggested_subcategory_name'] =
+          Variable<String>(suggestedSubcategoryName);
+    }
+    if (!nullToAbsent || suggestedPackageSize != null) {
+      map['suggested_package_size'] = Variable<double>(suggestedPackageSize);
+    }
+    if (!nullToAbsent || suggestedPackageUnit != null) {
+      map['suggested_package_unit'] = Variable<String>(suggestedPackageUnit);
+    }
+    if (!nullToAbsent || suggestedUnitType != null) {
+      map['suggested_unit_type'] = Variable<String>(suggestedUnitType);
+    }
+    if (!nullToAbsent || suggestedImageUrl != null) {
+      map['suggested_image_url'] = Variable<String>(suggestedImageUrl);
+    }
+    if (!nullToAbsent || suggestedImageThumbUrl != null) {
+      map['suggested_image_thumb_url'] =
+          Variable<String>(suggestedImageThumbUrl);
+    }
+    if (!nullToAbsent || suggestedImageHash != null) {
+      map['suggested_image_hash'] = Variable<String>(suggestedImageHash);
+    }
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || confidenceScore != null) {
+      map['confidence_score'] = Variable<double>(confidenceScore);
+    }
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['local_status'] = Variable<String>(localStatus);
+    if (!nullToAbsent || serverContributionId != null) {
+      map['server_contribution_id'] = Variable<String>(serverContributionId);
+    }
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    return map;
+  }
+
+  LocalCatalogContributionQueueCompanion toCompanion(bool nullToAbsent) {
+    return LocalCatalogContributionQueueCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
+      localProductId: localProductId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localProductId),
+      masterProductId: masterProductId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(masterProductId),
+      contributionType: Value(contributionType),
+      barcode: barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcode),
+      barcodeNormalized: barcodeNormalized == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcodeNormalized),
+      barcodeType: barcodeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcodeType),
+      suggestedName: suggestedName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedName),
+      suggestedBrand: suggestedBrand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedBrand),
+      suggestedManufacturer: suggestedManufacturer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedManufacturer),
+      suggestedCategoryName: suggestedCategoryName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedCategoryName),
+      suggestedSubcategoryName: suggestedSubcategoryName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedSubcategoryName),
+      suggestedPackageSize: suggestedPackageSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedPackageSize),
+      suggestedPackageUnit: suggestedPackageUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedPackageUnit),
+      suggestedUnitType: suggestedUnitType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedUnitType),
+      suggestedImageUrl: suggestedImageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedImageUrl),
+      suggestedImageThumbUrl: suggestedImageThumbUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedImageThumbUrl),
+      suggestedImageHash: suggestedImageHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedImageHash),
+      source: Value(source),
+      confidenceScore: confidenceScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidenceScore),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      localStatus: Value(localStatus),
+      serverContributionId: serverContributionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverContributionId),
+      retryCount: Value(retryCount),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+    );
+  }
+
+  factory LocalCatalogContributionQueueData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalCatalogContributionQueueData(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
+      localProductId: serializer.fromJson<String?>(json['localProductId']),
+      masterProductId: serializer.fromJson<String?>(json['masterProductId']),
+      contributionType: serializer.fromJson<String>(json['contributionType']),
+      barcode: serializer.fromJson<String?>(json['barcode']),
+      barcodeNormalized:
+          serializer.fromJson<String?>(json['barcodeNormalized']),
+      barcodeType: serializer.fromJson<String?>(json['barcodeType']),
+      suggestedName: serializer.fromJson<String?>(json['suggestedName']),
+      suggestedBrand: serializer.fromJson<String?>(json['suggestedBrand']),
+      suggestedManufacturer:
+          serializer.fromJson<String?>(json['suggestedManufacturer']),
+      suggestedCategoryName:
+          serializer.fromJson<String?>(json['suggestedCategoryName']),
+      suggestedSubcategoryName:
+          serializer.fromJson<String?>(json['suggestedSubcategoryName']),
+      suggestedPackageSize:
+          serializer.fromJson<double?>(json['suggestedPackageSize']),
+      suggestedPackageUnit:
+          serializer.fromJson<String?>(json['suggestedPackageUnit']),
+      suggestedUnitType:
+          serializer.fromJson<String?>(json['suggestedUnitType']),
+      suggestedImageUrl:
+          serializer.fromJson<String?>(json['suggestedImageUrl']),
+      suggestedImageThumbUrl:
+          serializer.fromJson<String?>(json['suggestedImageThumbUrl']),
+      suggestedImageHash:
+          serializer.fromJson<String?>(json['suggestedImageHash']),
+      source: serializer.fromJson<String>(json['source']),
+      confidenceScore: serializer.fromJson<double?>(json['confidenceScore']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      serverContributionId:
+          serializer.fromJson<String?>(json['serverContributionId']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
+      'localProductId': serializer.toJson<String?>(localProductId),
+      'masterProductId': serializer.toJson<String?>(masterProductId),
+      'contributionType': serializer.toJson<String>(contributionType),
+      'barcode': serializer.toJson<String?>(barcode),
+      'barcodeNormalized': serializer.toJson<String?>(barcodeNormalized),
+      'barcodeType': serializer.toJson<String?>(barcodeType),
+      'suggestedName': serializer.toJson<String?>(suggestedName),
+      'suggestedBrand': serializer.toJson<String?>(suggestedBrand),
+      'suggestedManufacturer':
+          serializer.toJson<String?>(suggestedManufacturer),
+      'suggestedCategoryName':
+          serializer.toJson<String?>(suggestedCategoryName),
+      'suggestedSubcategoryName':
+          serializer.toJson<String?>(suggestedSubcategoryName),
+      'suggestedPackageSize': serializer.toJson<double?>(suggestedPackageSize),
+      'suggestedPackageUnit': serializer.toJson<String?>(suggestedPackageUnit),
+      'suggestedUnitType': serializer.toJson<String?>(suggestedUnitType),
+      'suggestedImageUrl': serializer.toJson<String?>(suggestedImageUrl),
+      'suggestedImageThumbUrl':
+          serializer.toJson<String?>(suggestedImageThumbUrl),
+      'suggestedImageHash': serializer.toJson<String?>(suggestedImageHash),
+      'source': serializer.toJson<String>(source),
+      'confidenceScore': serializer.toJson<double?>(confidenceScore),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'serverContributionId': serializer.toJson<String?>(serverContributionId),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+    };
+  }
+
+  LocalCatalogContributionQueueData copyWith(
+          {String? id,
+          String? businessId,
+          Value<String?> branchId = const Value.absent(),
+          Value<String?> localProductId = const Value.absent(),
+          Value<String?> masterProductId = const Value.absent(),
+          String? contributionType,
+          Value<String?> barcode = const Value.absent(),
+          Value<String?> barcodeNormalized = const Value.absent(),
+          Value<String?> barcodeType = const Value.absent(),
+          Value<String?> suggestedName = const Value.absent(),
+          Value<String?> suggestedBrand = const Value.absent(),
+          Value<String?> suggestedManufacturer = const Value.absent(),
+          Value<String?> suggestedCategoryName = const Value.absent(),
+          Value<String?> suggestedSubcategoryName = const Value.absent(),
+          Value<double?> suggestedPackageSize = const Value.absent(),
+          Value<String?> suggestedPackageUnit = const Value.absent(),
+          Value<String?> suggestedUnitType = const Value.absent(),
+          Value<String?> suggestedImageUrl = const Value.absent(),
+          Value<String?> suggestedImageThumbUrl = const Value.absent(),
+          Value<String?> suggestedImageHash = const Value.absent(),
+          String? source,
+          Value<double?> confidenceScore = const Value.absent(),
+          Value<String?> metadataJson = const Value.absent(),
+          String? localStatus,
+          Value<String?> serverContributionId = const Value.absent(),
+          int? retryCount,
+          Value<String?> lastError = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> syncedAt = const Value.absent()}) =>
+      LocalCatalogContributionQueueData(
+        id: id ?? this.id,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
+        localProductId:
+            localProductId.present ? localProductId.value : this.localProductId,
+        masterProductId: masterProductId.present
+            ? masterProductId.value
+            : this.masterProductId,
+        contributionType: contributionType ?? this.contributionType,
+        barcode: barcode.present ? barcode.value : this.barcode,
+        barcodeNormalized: barcodeNormalized.present
+            ? barcodeNormalized.value
+            : this.barcodeNormalized,
+        barcodeType: barcodeType.present ? barcodeType.value : this.barcodeType,
+        suggestedName:
+            suggestedName.present ? suggestedName.value : this.suggestedName,
+        suggestedBrand:
+            suggestedBrand.present ? suggestedBrand.value : this.suggestedBrand,
+        suggestedManufacturer: suggestedManufacturer.present
+            ? suggestedManufacturer.value
+            : this.suggestedManufacturer,
+        suggestedCategoryName: suggestedCategoryName.present
+            ? suggestedCategoryName.value
+            : this.suggestedCategoryName,
+        suggestedSubcategoryName: suggestedSubcategoryName.present
+            ? suggestedSubcategoryName.value
+            : this.suggestedSubcategoryName,
+        suggestedPackageSize: suggestedPackageSize.present
+            ? suggestedPackageSize.value
+            : this.suggestedPackageSize,
+        suggestedPackageUnit: suggestedPackageUnit.present
+            ? suggestedPackageUnit.value
+            : this.suggestedPackageUnit,
+        suggestedUnitType: suggestedUnitType.present
+            ? suggestedUnitType.value
+            : this.suggestedUnitType,
+        suggestedImageUrl: suggestedImageUrl.present
+            ? suggestedImageUrl.value
+            : this.suggestedImageUrl,
+        suggestedImageThumbUrl: suggestedImageThumbUrl.present
+            ? suggestedImageThumbUrl.value
+            : this.suggestedImageThumbUrl,
+        suggestedImageHash: suggestedImageHash.present
+            ? suggestedImageHash.value
+            : this.suggestedImageHash,
+        source: source ?? this.source,
+        confidenceScore: confidenceScore.present
+            ? confidenceScore.value
+            : this.confidenceScore,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        localStatus: localStatus ?? this.localStatus,
+        serverContributionId: serverContributionId.present
+            ? serverContributionId.value
+            : this.serverContributionId,
+        retryCount: retryCount ?? this.retryCount,
+        lastError: lastError.present ? lastError.value : this.lastError,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+      );
+  LocalCatalogContributionQueueData copyWithCompanion(
+      LocalCatalogContributionQueueCompanion data) {
+    return LocalCatalogContributionQueueData(
+      id: data.id.present ? data.id.value : this.id,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      localProductId: data.localProductId.present
+          ? data.localProductId.value
+          : this.localProductId,
+      masterProductId: data.masterProductId.present
+          ? data.masterProductId.value
+          : this.masterProductId,
+      contributionType: data.contributionType.present
+          ? data.contributionType.value
+          : this.contributionType,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      barcodeNormalized: data.barcodeNormalized.present
+          ? data.barcodeNormalized.value
+          : this.barcodeNormalized,
+      barcodeType:
+          data.barcodeType.present ? data.barcodeType.value : this.barcodeType,
+      suggestedName: data.suggestedName.present
+          ? data.suggestedName.value
+          : this.suggestedName,
+      suggestedBrand: data.suggestedBrand.present
+          ? data.suggestedBrand.value
+          : this.suggestedBrand,
+      suggestedManufacturer: data.suggestedManufacturer.present
+          ? data.suggestedManufacturer.value
+          : this.suggestedManufacturer,
+      suggestedCategoryName: data.suggestedCategoryName.present
+          ? data.suggestedCategoryName.value
+          : this.suggestedCategoryName,
+      suggestedSubcategoryName: data.suggestedSubcategoryName.present
+          ? data.suggestedSubcategoryName.value
+          : this.suggestedSubcategoryName,
+      suggestedPackageSize: data.suggestedPackageSize.present
+          ? data.suggestedPackageSize.value
+          : this.suggestedPackageSize,
+      suggestedPackageUnit: data.suggestedPackageUnit.present
+          ? data.suggestedPackageUnit.value
+          : this.suggestedPackageUnit,
+      suggestedUnitType: data.suggestedUnitType.present
+          ? data.suggestedUnitType.value
+          : this.suggestedUnitType,
+      suggestedImageUrl: data.suggestedImageUrl.present
+          ? data.suggestedImageUrl.value
+          : this.suggestedImageUrl,
+      suggestedImageThumbUrl: data.suggestedImageThumbUrl.present
+          ? data.suggestedImageThumbUrl.value
+          : this.suggestedImageThumbUrl,
+      suggestedImageHash: data.suggestedImageHash.present
+          ? data.suggestedImageHash.value
+          : this.suggestedImageHash,
+      source: data.source.present ? data.source.value : this.source,
+      confidenceScore: data.confidenceScore.present
+          ? data.confidenceScore.value
+          : this.confidenceScore,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      serverContributionId: data.serverContributionId.present
+          ? data.serverContributionId.value
+          : this.serverContributionId,
+      retryCount:
+          data.retryCount.present ? data.retryCount.value : this.retryCount,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCatalogContributionQueueData(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('localProductId: $localProductId, ')
+          ..write('masterProductId: $masterProductId, ')
+          ..write('contributionType: $contributionType, ')
+          ..write('barcode: $barcode, ')
+          ..write('barcodeNormalized: $barcodeNormalized, ')
+          ..write('barcodeType: $barcodeType, ')
+          ..write('suggestedName: $suggestedName, ')
+          ..write('suggestedBrand: $suggestedBrand, ')
+          ..write('suggestedManufacturer: $suggestedManufacturer, ')
+          ..write('suggestedCategoryName: $suggestedCategoryName, ')
+          ..write('suggestedSubcategoryName: $suggestedSubcategoryName, ')
+          ..write('suggestedPackageSize: $suggestedPackageSize, ')
+          ..write('suggestedPackageUnit: $suggestedPackageUnit, ')
+          ..write('suggestedUnitType: $suggestedUnitType, ')
+          ..write('suggestedImageUrl: $suggestedImageUrl, ')
+          ..write('suggestedImageThumbUrl: $suggestedImageThumbUrl, ')
+          ..write('suggestedImageHash: $suggestedImageHash, ')
+          ..write('source: $source, ')
+          ..write('confidenceScore: $confidenceScore, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('serverContributionId: $serverContributionId, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        businessId,
+        branchId,
+        localProductId,
+        masterProductId,
+        contributionType,
+        barcode,
+        barcodeNormalized,
+        barcodeType,
+        suggestedName,
+        suggestedBrand,
+        suggestedManufacturer,
+        suggestedCategoryName,
+        suggestedSubcategoryName,
+        suggestedPackageSize,
+        suggestedPackageUnit,
+        suggestedUnitType,
+        suggestedImageUrl,
+        suggestedImageThumbUrl,
+        suggestedImageHash,
+        source,
+        confidenceScore,
+        metadataJson,
+        localStatus,
+        serverContributionId,
+        retryCount,
+        lastError,
+        createdAt,
+        updatedAt,
+        syncedAt
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalCatalogContributionQueueData &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.localProductId == this.localProductId &&
+          other.masterProductId == this.masterProductId &&
+          other.contributionType == this.contributionType &&
+          other.barcode == this.barcode &&
+          other.barcodeNormalized == this.barcodeNormalized &&
+          other.barcodeType == this.barcodeType &&
+          other.suggestedName == this.suggestedName &&
+          other.suggestedBrand == this.suggestedBrand &&
+          other.suggestedManufacturer == this.suggestedManufacturer &&
+          other.suggestedCategoryName == this.suggestedCategoryName &&
+          other.suggestedSubcategoryName == this.suggestedSubcategoryName &&
+          other.suggestedPackageSize == this.suggestedPackageSize &&
+          other.suggestedPackageUnit == this.suggestedPackageUnit &&
+          other.suggestedUnitType == this.suggestedUnitType &&
+          other.suggestedImageUrl == this.suggestedImageUrl &&
+          other.suggestedImageThumbUrl == this.suggestedImageThumbUrl &&
+          other.suggestedImageHash == this.suggestedImageHash &&
+          other.source == this.source &&
+          other.confidenceScore == this.confidenceScore &&
+          other.metadataJson == this.metadataJson &&
+          other.localStatus == this.localStatus &&
+          other.serverContributionId == this.serverContributionId &&
+          other.retryCount == this.retryCount &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt);
+}
+
+class LocalCatalogContributionQueueCompanion
+    extends UpdateCompanion<LocalCatalogContributionQueueData> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<String?> branchId;
+  final Value<String?> localProductId;
+  final Value<String?> masterProductId;
+  final Value<String> contributionType;
+  final Value<String?> barcode;
+  final Value<String?> barcodeNormalized;
+  final Value<String?> barcodeType;
+  final Value<String?> suggestedName;
+  final Value<String?> suggestedBrand;
+  final Value<String?> suggestedManufacturer;
+  final Value<String?> suggestedCategoryName;
+  final Value<String?> suggestedSubcategoryName;
+  final Value<double?> suggestedPackageSize;
+  final Value<String?> suggestedPackageUnit;
+  final Value<String?> suggestedUnitType;
+  final Value<String?> suggestedImageUrl;
+  final Value<String?> suggestedImageThumbUrl;
+  final Value<String?> suggestedImageHash;
+  final Value<String> source;
+  final Value<double?> confidenceScore;
+  final Value<String?> metadataJson;
+  final Value<String> localStatus;
+  final Value<String?> serverContributionId;
+  final Value<int> retryCount;
+  final Value<String?> lastError;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<int> rowid;
+  const LocalCatalogContributionQueueCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.localProductId = const Value.absent(),
+    this.masterProductId = const Value.absent(),
+    this.contributionType = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.barcodeNormalized = const Value.absent(),
+    this.barcodeType = const Value.absent(),
+    this.suggestedName = const Value.absent(),
+    this.suggestedBrand = const Value.absent(),
+    this.suggestedManufacturer = const Value.absent(),
+    this.suggestedCategoryName = const Value.absent(),
+    this.suggestedSubcategoryName = const Value.absent(),
+    this.suggestedPackageSize = const Value.absent(),
+    this.suggestedPackageUnit = const Value.absent(),
+    this.suggestedUnitType = const Value.absent(),
+    this.suggestedImageUrl = const Value.absent(),
+    this.suggestedImageThumbUrl = const Value.absent(),
+    this.suggestedImageHash = const Value.absent(),
+    this.source = const Value.absent(),
+    this.confidenceScore = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.serverContributionId = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalCatalogContributionQueueCompanion.insert({
+    required String id,
+    required String businessId,
+    this.branchId = const Value.absent(),
+    this.localProductId = const Value.absent(),
+    this.masterProductId = const Value.absent(),
+    required String contributionType,
+    this.barcode = const Value.absent(),
+    this.barcodeNormalized = const Value.absent(),
+    this.barcodeType = const Value.absent(),
+    this.suggestedName = const Value.absent(),
+    this.suggestedBrand = const Value.absent(),
+    this.suggestedManufacturer = const Value.absent(),
+    this.suggestedCategoryName = const Value.absent(),
+    this.suggestedSubcategoryName = const Value.absent(),
+    this.suggestedPackageSize = const Value.absent(),
+    this.suggestedPackageUnit = const Value.absent(),
+    this.suggestedUnitType = const Value.absent(),
+    this.suggestedImageUrl = const Value.absent(),
+    this.suggestedImageThumbUrl = const Value.absent(),
+    this.suggestedImageHash = const Value.absent(),
+    this.source = const Value.absent(),
+    this.confidenceScore = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.serverContributionId = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        businessId = Value(businessId),
+        contributionType = Value(contributionType);
+  static Insertable<LocalCatalogContributionQueueData> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? localProductId,
+    Expression<String>? masterProductId,
+    Expression<String>? contributionType,
+    Expression<String>? barcode,
+    Expression<String>? barcodeNormalized,
+    Expression<String>? barcodeType,
+    Expression<String>? suggestedName,
+    Expression<String>? suggestedBrand,
+    Expression<String>? suggestedManufacturer,
+    Expression<String>? suggestedCategoryName,
+    Expression<String>? suggestedSubcategoryName,
+    Expression<double>? suggestedPackageSize,
+    Expression<String>? suggestedPackageUnit,
+    Expression<String>? suggestedUnitType,
+    Expression<String>? suggestedImageUrl,
+    Expression<String>? suggestedImageThumbUrl,
+    Expression<String>? suggestedImageHash,
+    Expression<String>? source,
+    Expression<double>? confidenceScore,
+    Expression<String>? metadataJson,
+    Expression<String>? localStatus,
+    Expression<String>? serverContributionId,
+    Expression<int>? retryCount,
+    Expression<String>? lastError,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (localProductId != null) 'local_product_id': localProductId,
+      if (masterProductId != null) 'master_product_id': masterProductId,
+      if (contributionType != null) 'contribution_type': contributionType,
+      if (barcode != null) 'barcode': barcode,
+      if (barcodeNormalized != null) 'barcode_normalized': barcodeNormalized,
+      if (barcodeType != null) 'barcode_type': barcodeType,
+      if (suggestedName != null) 'suggested_name': suggestedName,
+      if (suggestedBrand != null) 'suggested_brand': suggestedBrand,
+      if (suggestedManufacturer != null)
+        'suggested_manufacturer': suggestedManufacturer,
+      if (suggestedCategoryName != null)
+        'suggested_category_name': suggestedCategoryName,
+      if (suggestedSubcategoryName != null)
+        'suggested_subcategory_name': suggestedSubcategoryName,
+      if (suggestedPackageSize != null)
+        'suggested_package_size': suggestedPackageSize,
+      if (suggestedPackageUnit != null)
+        'suggested_package_unit': suggestedPackageUnit,
+      if (suggestedUnitType != null) 'suggested_unit_type': suggestedUnitType,
+      if (suggestedImageUrl != null) 'suggested_image_url': suggestedImageUrl,
+      if (suggestedImageThumbUrl != null)
+        'suggested_image_thumb_url': suggestedImageThumbUrl,
+      if (suggestedImageHash != null)
+        'suggested_image_hash': suggestedImageHash,
+      if (source != null) 'source': source,
+      if (confidenceScore != null) 'confidence_score': confidenceScore,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (localStatus != null) 'local_status': localStatus,
+      if (serverContributionId != null)
+        'server_contribution_id': serverContributionId,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalCatalogContributionQueueCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? businessId,
+      Value<String?>? branchId,
+      Value<String?>? localProductId,
+      Value<String?>? masterProductId,
+      Value<String>? contributionType,
+      Value<String?>? barcode,
+      Value<String?>? barcodeNormalized,
+      Value<String?>? barcodeType,
+      Value<String?>? suggestedName,
+      Value<String?>? suggestedBrand,
+      Value<String?>? suggestedManufacturer,
+      Value<String?>? suggestedCategoryName,
+      Value<String?>? suggestedSubcategoryName,
+      Value<double?>? suggestedPackageSize,
+      Value<String?>? suggestedPackageUnit,
+      Value<String?>? suggestedUnitType,
+      Value<String?>? suggestedImageUrl,
+      Value<String?>? suggestedImageThumbUrl,
+      Value<String?>? suggestedImageHash,
+      Value<String>? source,
+      Value<double?>? confidenceScore,
+      Value<String?>? metadataJson,
+      Value<String>? localStatus,
+      Value<String?>? serverContributionId,
+      Value<int>? retryCount,
+      Value<String?>? lastError,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? syncedAt,
+      Value<int>? rowid}) {
+    return LocalCatalogContributionQueueCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      localProductId: localProductId ?? this.localProductId,
+      masterProductId: masterProductId ?? this.masterProductId,
+      contributionType: contributionType ?? this.contributionType,
+      barcode: barcode ?? this.barcode,
+      barcodeNormalized: barcodeNormalized ?? this.barcodeNormalized,
+      barcodeType: barcodeType ?? this.barcodeType,
+      suggestedName: suggestedName ?? this.suggestedName,
+      suggestedBrand: suggestedBrand ?? this.suggestedBrand,
+      suggestedManufacturer:
+          suggestedManufacturer ?? this.suggestedManufacturer,
+      suggestedCategoryName:
+          suggestedCategoryName ?? this.suggestedCategoryName,
+      suggestedSubcategoryName:
+          suggestedSubcategoryName ?? this.suggestedSubcategoryName,
+      suggestedPackageSize: suggestedPackageSize ?? this.suggestedPackageSize,
+      suggestedPackageUnit: suggestedPackageUnit ?? this.suggestedPackageUnit,
+      suggestedUnitType: suggestedUnitType ?? this.suggestedUnitType,
+      suggestedImageUrl: suggestedImageUrl ?? this.suggestedImageUrl,
+      suggestedImageThumbUrl:
+          suggestedImageThumbUrl ?? this.suggestedImageThumbUrl,
+      suggestedImageHash: suggestedImageHash ?? this.suggestedImageHash,
+      source: source ?? this.source,
+      confidenceScore: confidenceScore ?? this.confidenceScore,
+      metadataJson: metadataJson ?? this.metadataJson,
+      localStatus: localStatus ?? this.localStatus,
+      serverContributionId: serverContributionId ?? this.serverContributionId,
+      retryCount: retryCount ?? this.retryCount,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (localProductId.present) {
+      map['local_product_id'] = Variable<String>(localProductId.value);
+    }
+    if (masterProductId.present) {
+      map['master_product_id'] = Variable<String>(masterProductId.value);
+    }
+    if (contributionType.present) {
+      map['contribution_type'] = Variable<String>(contributionType.value);
+    }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
+    if (barcodeNormalized.present) {
+      map['barcode_normalized'] = Variable<String>(barcodeNormalized.value);
+    }
+    if (barcodeType.present) {
+      map['barcode_type'] = Variable<String>(barcodeType.value);
+    }
+    if (suggestedName.present) {
+      map['suggested_name'] = Variable<String>(suggestedName.value);
+    }
+    if (suggestedBrand.present) {
+      map['suggested_brand'] = Variable<String>(suggestedBrand.value);
+    }
+    if (suggestedManufacturer.present) {
+      map['suggested_manufacturer'] =
+          Variable<String>(suggestedManufacturer.value);
+    }
+    if (suggestedCategoryName.present) {
+      map['suggested_category_name'] =
+          Variable<String>(suggestedCategoryName.value);
+    }
+    if (suggestedSubcategoryName.present) {
+      map['suggested_subcategory_name'] =
+          Variable<String>(suggestedSubcategoryName.value);
+    }
+    if (suggestedPackageSize.present) {
+      map['suggested_package_size'] =
+          Variable<double>(suggestedPackageSize.value);
+    }
+    if (suggestedPackageUnit.present) {
+      map['suggested_package_unit'] =
+          Variable<String>(suggestedPackageUnit.value);
+    }
+    if (suggestedUnitType.present) {
+      map['suggested_unit_type'] = Variable<String>(suggestedUnitType.value);
+    }
+    if (suggestedImageUrl.present) {
+      map['suggested_image_url'] = Variable<String>(suggestedImageUrl.value);
+    }
+    if (suggestedImageThumbUrl.present) {
+      map['suggested_image_thumb_url'] =
+          Variable<String>(suggestedImageThumbUrl.value);
+    }
+    if (suggestedImageHash.present) {
+      map['suggested_image_hash'] = Variable<String>(suggestedImageHash.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (confidenceScore.present) {
+      map['confidence_score'] = Variable<double>(confidenceScore.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (serverContributionId.present) {
+      map['server_contribution_id'] =
+          Variable<String>(serverContributionId.value);
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCatalogContributionQueueCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('localProductId: $localProductId, ')
+          ..write('masterProductId: $masterProductId, ')
+          ..write('contributionType: $contributionType, ')
+          ..write('barcode: $barcode, ')
+          ..write('barcodeNormalized: $barcodeNormalized, ')
+          ..write('barcodeType: $barcodeType, ')
+          ..write('suggestedName: $suggestedName, ')
+          ..write('suggestedBrand: $suggestedBrand, ')
+          ..write('suggestedManufacturer: $suggestedManufacturer, ')
+          ..write('suggestedCategoryName: $suggestedCategoryName, ')
+          ..write('suggestedSubcategoryName: $suggestedSubcategoryName, ')
+          ..write('suggestedPackageSize: $suggestedPackageSize, ')
+          ..write('suggestedPackageUnit: $suggestedPackageUnit, ')
+          ..write('suggestedUnitType: $suggestedUnitType, ')
+          ..write('suggestedImageUrl: $suggestedImageUrl, ')
+          ..write('suggestedImageThumbUrl: $suggestedImageThumbUrl, ')
+          ..write('suggestedImageHash: $suggestedImageHash, ')
+          ..write('source: $source, ')
+          ..write('confidenceScore: $confidenceScore, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('serverContributionId: $serverContributionId, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalSyncBatchesTable extends LocalSyncBatches
+    with TableInfo<$LocalSyncBatchesTable, LocalSyncBatche> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalSyncBatchesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _serverSyncBatchIdMeta =
+      const VerificationMeta('serverSyncBatchId');
+  @override
+  late final GeneratedColumn<String> serverSyncBatchId =
+      GeneratedColumn<String>('server_sync_batch_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _clientBatchIdMeta =
+      const VerificationMeta('clientBatchId');
+  @override
+  late final GeneratedColumn<String> clientBatchId = GeneratedColumn<String>(
+      'client_batch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _appDeviceIdMeta =
+      const VerificationMeta('appDeviceId');
+  @override
+  late final GeneratedColumn<String> appDeviceId = GeneratedColumn<String>(
+      'app_device_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+      'domain', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _directionMeta =
+      const VerificationMeta('direction');
+  @override
+  late final GeneratedColumn<String> direction = GeneratedColumn<String>(
+      'direction', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('upload'));
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  static const VerificationMeta _mutationCountMeta =
+      const VerificationMeta('mutationCount');
+  @override
+  late final GeneratedColumn<int> mutationCount = GeneratedColumn<int>(
+      'mutation_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _appliedCountMeta =
+      const VerificationMeta('appliedCount');
+  @override
+  late final GeneratedColumn<int> appliedCount = GeneratedColumn<int>(
+      'applied_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _skippedCountMeta =
+      const VerificationMeta('skippedCount');
+  @override
+  late final GeneratedColumn<int> skippedCount = GeneratedColumn<int>(
+      'skipped_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _conflictCountMeta =
+      const VerificationMeta('conflictCount');
+  @override
+  late final GeneratedColumn<int> conflictCount = GeneratedColumn<int>(
+      'conflict_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _errorCountMeta =
+      const VerificationMeta('errorCount');
+  @override
+  late final GeneratedColumn<int> errorCount = GeneratedColumn<int>(
+      'error_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _lastErrorMeta =
+      const VerificationMeta('lastError');
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+      'last_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _uploadedAtMeta =
+      const VerificationMeta('uploadedAt');
+  @override
+  late final GeneratedColumn<DateTime> uploadedAt = GeneratedColumn<DateTime>(
+      'uploaded_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        serverSyncBatchId,
+        clientBatchId,
+        businessId,
+        branchId,
+        appDeviceId,
+        profileId,
+        domain,
+        direction,
+        status,
+        mutationCount,
+        appliedCount,
+        skippedCount,
+        conflictCount,
+        errorCount,
+        metadataJson,
+        lastError,
+        createdAt,
+        updatedAt,
+        uploadedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_sync_batches';
+  @override
+  VerificationContext validateIntegrity(Insertable<LocalSyncBatche> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('server_sync_batch_id')) {
+      context.handle(
+          _serverSyncBatchIdMeta,
+          serverSyncBatchId.isAcceptableOrUnknown(
+              data['server_sync_batch_id']!, _serverSyncBatchIdMeta));
+    }
+    if (data.containsKey('client_batch_id')) {
+      context.handle(
+          _clientBatchIdMeta,
+          clientBatchId.isAcceptableOrUnknown(
+              data['client_batch_id']!, _clientBatchIdMeta));
+    } else if (isInserting) {
+      context.missing(_clientBatchIdMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
+    if (data.containsKey('app_device_id')) {
+      context.handle(
+          _appDeviceIdMeta,
+          appDeviceId.isAcceptableOrUnknown(
+              data['app_device_id']!, _appDeviceIdMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    }
+    if (data.containsKey('domain')) {
+      context.handle(_domainMeta,
+          domain.isAcceptableOrUnknown(data['domain']!, _domainMeta));
+    } else if (isInserting) {
+      context.missing(_domainMeta);
+    }
+    if (data.containsKey('direction')) {
+      context.handle(_directionMeta,
+          direction.isAcceptableOrUnknown(data['direction']!, _directionMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('mutation_count')) {
+      context.handle(
+          _mutationCountMeta,
+          mutationCount.isAcceptableOrUnknown(
+              data['mutation_count']!, _mutationCountMeta));
+    }
+    if (data.containsKey('applied_count')) {
+      context.handle(
+          _appliedCountMeta,
+          appliedCount.isAcceptableOrUnknown(
+              data['applied_count']!, _appliedCountMeta));
+    }
+    if (data.containsKey('skipped_count')) {
+      context.handle(
+          _skippedCountMeta,
+          skippedCount.isAcceptableOrUnknown(
+              data['skipped_count']!, _skippedCountMeta));
+    }
+    if (data.containsKey('conflict_count')) {
+      context.handle(
+          _conflictCountMeta,
+          conflictCount.isAcceptableOrUnknown(
+              data['conflict_count']!, _conflictCountMeta));
+    }
+    if (data.containsKey('error_count')) {
+      context.handle(
+          _errorCountMeta,
+          errorCount.isAcceptableOrUnknown(
+              data['error_count']!, _errorCountMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(_lastErrorMeta,
+          lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('uploaded_at')) {
+      context.handle(
+          _uploadedAtMeta,
+          uploadedAt.isAcceptableOrUnknown(
+              data['uploaded_at']!, _uploadedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalSyncBatche map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalSyncBatche(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      serverSyncBatchId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}server_sync_batch_id']),
+      clientBatchId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}client_batch_id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
+      appDeviceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}app_device_id']),
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id']),
+      domain: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}domain'])!,
+      direction: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}direction'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      mutationCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}mutation_count'])!,
+      appliedCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}applied_count'])!,
+      skippedCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}skipped_count'])!,
+      conflictCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}conflict_count'])!,
+      errorCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}error_count'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      lastError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      uploadedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}uploaded_at']),
+    );
+  }
+
+  @override
+  $LocalSyncBatchesTable createAlias(String alias) {
+    return $LocalSyncBatchesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalSyncBatche extends DataClass implements Insertable<LocalSyncBatche> {
+  final String id;
+  final String? serverSyncBatchId;
+  final String clientBatchId;
+  final String businessId;
+  final String? branchId;
+  final String? appDeviceId;
+  final String? profileId;
+  final String domain;
+  final String direction;
+  final String status;
+  final int mutationCount;
+  final int appliedCount;
+  final int skippedCount;
+  final int conflictCount;
+  final int errorCount;
+  final String? metadataJson;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? uploadedAt;
+  const LocalSyncBatche(
+      {required this.id,
+      this.serverSyncBatchId,
+      required this.clientBatchId,
+      required this.businessId,
+      this.branchId,
+      this.appDeviceId,
+      this.profileId,
+      required this.domain,
+      required this.direction,
+      required this.status,
+      required this.mutationCount,
+      required this.appliedCount,
+      required this.skippedCount,
+      required this.conflictCount,
+      required this.errorCount,
+      this.metadataJson,
+      this.lastError,
+      required this.createdAt,
+      required this.updatedAt,
+      this.uploadedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || serverSyncBatchId != null) {
+      map['server_sync_batch_id'] = Variable<String>(serverSyncBatchId);
+    }
+    map['client_batch_id'] = Variable<String>(clientBatchId);
+    map['business_id'] = Variable<String>(businessId);
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
+    if (!nullToAbsent || appDeviceId != null) {
+      map['app_device_id'] = Variable<String>(appDeviceId);
+    }
+    if (!nullToAbsent || profileId != null) {
+      map['profile_id'] = Variable<String>(profileId);
+    }
+    map['domain'] = Variable<String>(domain);
+    map['direction'] = Variable<String>(direction);
+    map['status'] = Variable<String>(status);
+    map['mutation_count'] = Variable<int>(mutationCount);
+    map['applied_count'] = Variable<int>(appliedCount);
+    map['skipped_count'] = Variable<int>(skippedCount);
+    map['conflict_count'] = Variable<int>(conflictCount);
+    map['error_count'] = Variable<int>(errorCount);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || uploadedAt != null) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt);
+    }
+    return map;
+  }
+
+  LocalSyncBatchesCompanion toCompanion(bool nullToAbsent) {
+    return LocalSyncBatchesCompanion(
+      id: Value(id),
+      serverSyncBatchId: serverSyncBatchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverSyncBatchId),
+      clientBatchId: Value(clientBatchId),
+      businessId: Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
+      appDeviceId: appDeviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(appDeviceId),
+      profileId: profileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(profileId),
+      domain: Value(domain),
+      direction: Value(direction),
+      status: Value(status),
+      mutationCount: Value(mutationCount),
+      appliedCount: Value(appliedCount),
+      skippedCount: Value(skippedCount),
+      conflictCount: Value(conflictCount),
+      errorCount: Value(errorCount),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      uploadedAt: uploadedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uploadedAt),
+    );
+  }
+
+  factory LocalSyncBatche.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalSyncBatche(
+      id: serializer.fromJson<String>(json['id']),
+      serverSyncBatchId:
+          serializer.fromJson<String?>(json['serverSyncBatchId']),
+      clientBatchId: serializer.fromJson<String>(json['clientBatchId']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
+      appDeviceId: serializer.fromJson<String?>(json['appDeviceId']),
+      profileId: serializer.fromJson<String?>(json['profileId']),
+      domain: serializer.fromJson<String>(json['domain']),
+      direction: serializer.fromJson<String>(json['direction']),
+      status: serializer.fromJson<String>(json['status']),
+      mutationCount: serializer.fromJson<int>(json['mutationCount']),
+      appliedCount: serializer.fromJson<int>(json['appliedCount']),
+      skippedCount: serializer.fromJson<int>(json['skippedCount']),
+      conflictCount: serializer.fromJson<int>(json['conflictCount']),
+      errorCount: serializer.fromJson<int>(json['errorCount']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      uploadedAt: serializer.fromJson<DateTime?>(json['uploadedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'serverSyncBatchId': serializer.toJson<String?>(serverSyncBatchId),
+      'clientBatchId': serializer.toJson<String>(clientBatchId),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
+      'appDeviceId': serializer.toJson<String?>(appDeviceId),
+      'profileId': serializer.toJson<String?>(profileId),
+      'domain': serializer.toJson<String>(domain),
+      'direction': serializer.toJson<String>(direction),
+      'status': serializer.toJson<String>(status),
+      'mutationCount': serializer.toJson<int>(mutationCount),
+      'appliedCount': serializer.toJson<int>(appliedCount),
+      'skippedCount': serializer.toJson<int>(skippedCount),
+      'conflictCount': serializer.toJson<int>(conflictCount),
+      'errorCount': serializer.toJson<int>(errorCount),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'uploadedAt': serializer.toJson<DateTime?>(uploadedAt),
+    };
+  }
+
+  LocalSyncBatche copyWith(
+          {String? id,
+          Value<String?> serverSyncBatchId = const Value.absent(),
+          String? clientBatchId,
+          String? businessId,
+          Value<String?> branchId = const Value.absent(),
+          Value<String?> appDeviceId = const Value.absent(),
+          Value<String?> profileId = const Value.absent(),
+          String? domain,
+          String? direction,
+          String? status,
+          int? mutationCount,
+          int? appliedCount,
+          int? skippedCount,
+          int? conflictCount,
+          int? errorCount,
+          Value<String?> metadataJson = const Value.absent(),
+          Value<String?> lastError = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> uploadedAt = const Value.absent()}) =>
+      LocalSyncBatche(
+        id: id ?? this.id,
+        serverSyncBatchId: serverSyncBatchId.present
+            ? serverSyncBatchId.value
+            : this.serverSyncBatchId,
+        clientBatchId: clientBatchId ?? this.clientBatchId,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
+        appDeviceId: appDeviceId.present ? appDeviceId.value : this.appDeviceId,
+        profileId: profileId.present ? profileId.value : this.profileId,
+        domain: domain ?? this.domain,
+        direction: direction ?? this.direction,
+        status: status ?? this.status,
+        mutationCount: mutationCount ?? this.mutationCount,
+        appliedCount: appliedCount ?? this.appliedCount,
+        skippedCount: skippedCount ?? this.skippedCount,
+        conflictCount: conflictCount ?? this.conflictCount,
+        errorCount: errorCount ?? this.errorCount,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        lastError: lastError.present ? lastError.value : this.lastError,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        uploadedAt: uploadedAt.present ? uploadedAt.value : this.uploadedAt,
+      );
+  LocalSyncBatche copyWithCompanion(LocalSyncBatchesCompanion data) {
+    return LocalSyncBatche(
+      id: data.id.present ? data.id.value : this.id,
+      serverSyncBatchId: data.serverSyncBatchId.present
+          ? data.serverSyncBatchId.value
+          : this.serverSyncBatchId,
+      clientBatchId: data.clientBatchId.present
+          ? data.clientBatchId.value
+          : this.clientBatchId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      appDeviceId:
+          data.appDeviceId.present ? data.appDeviceId.value : this.appDeviceId,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      direction: data.direction.present ? data.direction.value : this.direction,
+      status: data.status.present ? data.status.value : this.status,
+      mutationCount: data.mutationCount.present
+          ? data.mutationCount.value
+          : this.mutationCount,
+      appliedCount: data.appliedCount.present
+          ? data.appliedCount.value
+          : this.appliedCount,
+      skippedCount: data.skippedCount.present
+          ? data.skippedCount.value
+          : this.skippedCount,
+      conflictCount: data.conflictCount.present
+          ? data.conflictCount.value
+          : this.conflictCount,
+      errorCount:
+          data.errorCount.present ? data.errorCount.value : this.errorCount,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      uploadedAt:
+          data.uploadedAt.present ? data.uploadedAt.value : this.uploadedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSyncBatche(')
+          ..write('id: $id, ')
+          ..write('serverSyncBatchId: $serverSyncBatchId, ')
+          ..write('clientBatchId: $clientBatchId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('appDeviceId: $appDeviceId, ')
+          ..write('profileId: $profileId, ')
+          ..write('domain: $domain, ')
+          ..write('direction: $direction, ')
+          ..write('status: $status, ')
+          ..write('mutationCount: $mutationCount, ')
+          ..write('appliedCount: $appliedCount, ')
+          ..write('skippedCount: $skippedCount, ')
+          ..write('conflictCount: $conflictCount, ')
+          ..write('errorCount: $errorCount, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('uploadedAt: $uploadedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      serverSyncBatchId,
+      clientBatchId,
+      businessId,
+      branchId,
+      appDeviceId,
+      profileId,
+      domain,
+      direction,
+      status,
+      mutationCount,
+      appliedCount,
+      skippedCount,
+      conflictCount,
+      errorCount,
+      metadataJson,
+      lastError,
+      createdAt,
+      updatedAt,
+      uploadedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalSyncBatche &&
+          other.id == this.id &&
+          other.serverSyncBatchId == this.serverSyncBatchId &&
+          other.clientBatchId == this.clientBatchId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.appDeviceId == this.appDeviceId &&
+          other.profileId == this.profileId &&
+          other.domain == this.domain &&
+          other.direction == this.direction &&
+          other.status == this.status &&
+          other.mutationCount == this.mutationCount &&
+          other.appliedCount == this.appliedCount &&
+          other.skippedCount == this.skippedCount &&
+          other.conflictCount == this.conflictCount &&
+          other.errorCount == this.errorCount &&
+          other.metadataJson == this.metadataJson &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.uploadedAt == this.uploadedAt);
+}
+
+class LocalSyncBatchesCompanion extends UpdateCompanion<LocalSyncBatche> {
+  final Value<String> id;
+  final Value<String?> serverSyncBatchId;
+  final Value<String> clientBatchId;
+  final Value<String> businessId;
+  final Value<String?> branchId;
+  final Value<String?> appDeviceId;
+  final Value<String?> profileId;
+  final Value<String> domain;
+  final Value<String> direction;
+  final Value<String> status;
+  final Value<int> mutationCount;
+  final Value<int> appliedCount;
+  final Value<int> skippedCount;
+  final Value<int> conflictCount;
+  final Value<int> errorCount;
+  final Value<String?> metadataJson;
+  final Value<String?> lastError;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> uploadedAt;
+  final Value<int> rowid;
+  const LocalSyncBatchesCompanion({
+    this.id = const Value.absent(),
+    this.serverSyncBatchId = const Value.absent(),
+    this.clientBatchId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.appDeviceId = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.direction = const Value.absent(),
+    this.status = const Value.absent(),
+    this.mutationCount = const Value.absent(),
+    this.appliedCount = const Value.absent(),
+    this.skippedCount = const Value.absent(),
+    this.conflictCount = const Value.absent(),
+    this.errorCount = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalSyncBatchesCompanion.insert({
+    required String id,
+    this.serverSyncBatchId = const Value.absent(),
+    required String clientBatchId,
+    required String businessId,
+    this.branchId = const Value.absent(),
+    this.appDeviceId = const Value.absent(),
+    this.profileId = const Value.absent(),
+    required String domain,
+    this.direction = const Value.absent(),
+    this.status = const Value.absent(),
+    this.mutationCount = const Value.absent(),
+    this.appliedCount = const Value.absent(),
+    this.skippedCount = const Value.absent(),
+    this.conflictCount = const Value.absent(),
+    this.errorCount = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        clientBatchId = Value(clientBatchId),
+        businessId = Value(businessId),
+        domain = Value(domain);
+  static Insertable<LocalSyncBatche> custom({
+    Expression<String>? id,
+    Expression<String>? serverSyncBatchId,
+    Expression<String>? clientBatchId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? appDeviceId,
+    Expression<String>? profileId,
+    Expression<String>? domain,
+    Expression<String>? direction,
+    Expression<String>? status,
+    Expression<int>? mutationCount,
+    Expression<int>? appliedCount,
+    Expression<int>? skippedCount,
+    Expression<int>? conflictCount,
+    Expression<int>? errorCount,
+    Expression<String>? metadataJson,
+    Expression<String>? lastError,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? uploadedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (serverSyncBatchId != null) 'server_sync_batch_id': serverSyncBatchId,
+      if (clientBatchId != null) 'client_batch_id': clientBatchId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (appDeviceId != null) 'app_device_id': appDeviceId,
+      if (profileId != null) 'profile_id': profileId,
+      if (domain != null) 'domain': domain,
+      if (direction != null) 'direction': direction,
+      if (status != null) 'status': status,
+      if (mutationCount != null) 'mutation_count': mutationCount,
+      if (appliedCount != null) 'applied_count': appliedCount,
+      if (skippedCount != null) 'skipped_count': skippedCount,
+      if (conflictCount != null) 'conflict_count': conflictCount,
+      if (errorCount != null) 'error_count': errorCount,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (uploadedAt != null) 'uploaded_at': uploadedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalSyncBatchesCompanion copyWith(
+      {Value<String>? id,
+      Value<String?>? serverSyncBatchId,
+      Value<String>? clientBatchId,
+      Value<String>? businessId,
+      Value<String?>? branchId,
+      Value<String?>? appDeviceId,
+      Value<String?>? profileId,
+      Value<String>? domain,
+      Value<String>? direction,
+      Value<String>? status,
+      Value<int>? mutationCount,
+      Value<int>? appliedCount,
+      Value<int>? skippedCount,
+      Value<int>? conflictCount,
+      Value<int>? errorCount,
+      Value<String?>? metadataJson,
+      Value<String?>? lastError,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? uploadedAt,
+      Value<int>? rowid}) {
+    return LocalSyncBatchesCompanion(
+      id: id ?? this.id,
+      serverSyncBatchId: serverSyncBatchId ?? this.serverSyncBatchId,
+      clientBatchId: clientBatchId ?? this.clientBatchId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      appDeviceId: appDeviceId ?? this.appDeviceId,
+      profileId: profileId ?? this.profileId,
+      domain: domain ?? this.domain,
+      direction: direction ?? this.direction,
+      status: status ?? this.status,
+      mutationCount: mutationCount ?? this.mutationCount,
+      appliedCount: appliedCount ?? this.appliedCount,
+      skippedCount: skippedCount ?? this.skippedCount,
+      conflictCount: conflictCount ?? this.conflictCount,
+      errorCount: errorCount ?? this.errorCount,
+      metadataJson: metadataJson ?? this.metadataJson,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (serverSyncBatchId.present) {
+      map['server_sync_batch_id'] = Variable<String>(serverSyncBatchId.value);
+    }
+    if (clientBatchId.present) {
+      map['client_batch_id'] = Variable<String>(clientBatchId.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (appDeviceId.present) {
+      map['app_device_id'] = Variable<String>(appDeviceId.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (direction.present) {
+      map['direction'] = Variable<String>(direction.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (mutationCount.present) {
+      map['mutation_count'] = Variable<int>(mutationCount.value);
+    }
+    if (appliedCount.present) {
+      map['applied_count'] = Variable<int>(appliedCount.value);
+    }
+    if (skippedCount.present) {
+      map['skipped_count'] = Variable<int>(skippedCount.value);
+    }
+    if (conflictCount.present) {
+      map['conflict_count'] = Variable<int>(conflictCount.value);
+    }
+    if (errorCount.present) {
+      map['error_count'] = Variable<int>(errorCount.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (uploadedAt.present) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSyncBatchesCompanion(')
+          ..write('id: $id, ')
+          ..write('serverSyncBatchId: $serverSyncBatchId, ')
+          ..write('clientBatchId: $clientBatchId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('appDeviceId: $appDeviceId, ')
+          ..write('profileId: $profileId, ')
+          ..write('domain: $domain, ')
+          ..write('direction: $direction, ')
+          ..write('status: $status, ')
+          ..write('mutationCount: $mutationCount, ')
+          ..write('appliedCount: $appliedCount, ')
+          ..write('skippedCount: $skippedCount, ')
+          ..write('conflictCount: $conflictCount, ')
+          ..write('errorCount: $errorCount, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalSyncMutationsTable extends LocalSyncMutations
+    with TableInfo<$LocalSyncMutationsTable, LocalSyncMutation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalSyncMutationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _serverSyncMutationIdMeta =
+      const VerificationMeta('serverSyncMutationId');
+  @override
+  late final GeneratedColumn<String> serverSyncMutationId =
+      GeneratedColumn<String>('server_sync_mutation_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localSyncBatchIdMeta =
+      const VerificationMeta('localSyncBatchId');
+  @override
+  late final GeneratedColumn<String> localSyncBatchId = GeneratedColumn<String>(
+      'local_sync_batch_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _clientBatchIdMeta =
+      const VerificationMeta('clientBatchId');
+  @override
+  late final GeneratedColumn<String> clientBatchId = GeneratedColumn<String>(
+      'client_batch_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _clientMutationIdMeta =
+      const VerificationMeta('clientMutationId');
+  @override
+  late final GeneratedColumn<String> clientMutationId = GeneratedColumn<String>(
+      'client_mutation_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _clientSequenceMeta =
+      const VerificationMeta('clientSequence');
+  @override
+  late final GeneratedColumn<int> clientSequence = GeneratedColumn<int>(
+      'client_sequence', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _appDeviceIdMeta =
+      const VerificationMeta('appDeviceId');
+  @override
+  late final GeneratedColumn<String> appDeviceId = GeneratedColumn<String>(
+      'app_device_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _entityTableMeta =
+      const VerificationMeta('entityTable');
+  @override
+  late final GeneratedColumn<String> entityTable = GeneratedColumn<String>(
+      'entity_table', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+      'entity_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _operationMeta =
+      const VerificationMeta('operation');
+  @override
+  late final GeneratedColumn<String> operation = GeneratedColumn<String>(
+      'operation', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _payloadJsonMeta =
+      const VerificationMeta('payloadJson');
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+      'payload_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _beforePayloadJsonMeta =
+      const VerificationMeta('beforePayloadJson');
+  @override
+  late final GeneratedColumn<String> beforePayloadJson =
+      GeneratedColumn<String>('before_payload_json', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _changedFieldsJsonMeta =
+      const VerificationMeta('changedFieldsJson');
+  @override
+  late final GeneratedColumn<String> changedFieldsJson =
+      GeneratedColumn<String>('changed_fields_json', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _baseVersionMeta =
+      const VerificationMeta('baseVersion');
+  @override
+  late final GeneratedColumn<int> baseVersion = GeneratedColumn<int>(
+      'base_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _baseUpdatedAtMeta =
+      const VerificationMeta('baseUpdatedAt');
+  @override
+  late final GeneratedColumn<DateTime> baseUpdatedAt =
+      GeneratedColumn<DateTime>('base_updated_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _idempotencyKeyMeta =
+      const VerificationMeta('idempotencyKey');
+  @override
+  late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
+      'idempotency_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  static const VerificationMeta _retryCountMeta =
+      const VerificationMeta('retryCount');
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+      'retry_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _lastErrorMeta =
+      const VerificationMeta('lastError');
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+      'last_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _errorCodeMeta =
+      const VerificationMeta('errorCode');
+  @override
+  late final GeneratedColumn<String> errorCode = GeneratedColumn<String>(
+      'error_code', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _uploadedAtMeta =
+      const VerificationMeta('uploadedAt');
+  @override
+  late final GeneratedColumn<DateTime> uploadedAt = GeneratedColumn<DateTime>(
+      'uploaded_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _resolvedAtMeta =
+      const VerificationMeta('resolvedAt');
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+      'resolved_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        serverSyncMutationId,
+        localSyncBatchId,
+        clientBatchId,
+        clientMutationId,
+        clientSequence,
+        businessId,
+        branchId,
+        appDeviceId,
+        profileId,
+        entityTable,
+        entityId,
+        operation,
+        payloadJson,
+        beforePayloadJson,
+        changedFieldsJson,
+        baseVersion,
+        baseUpdatedAt,
+        idempotencyKey,
+        status,
+        retryCount,
+        lastError,
+        errorCode,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        uploadedAt,
+        resolvedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_sync_mutations';
+  @override
+  VerificationContext validateIntegrity(Insertable<LocalSyncMutation> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('server_sync_mutation_id')) {
+      context.handle(
+          _serverSyncMutationIdMeta,
+          serverSyncMutationId.isAcceptableOrUnknown(
+              data['server_sync_mutation_id']!, _serverSyncMutationIdMeta));
+    }
+    if (data.containsKey('local_sync_batch_id')) {
+      context.handle(
+          _localSyncBatchIdMeta,
+          localSyncBatchId.isAcceptableOrUnknown(
+              data['local_sync_batch_id']!, _localSyncBatchIdMeta));
+    }
+    if (data.containsKey('client_batch_id')) {
+      context.handle(
+          _clientBatchIdMeta,
+          clientBatchId.isAcceptableOrUnknown(
+              data['client_batch_id']!, _clientBatchIdMeta));
+    }
+    if (data.containsKey('client_mutation_id')) {
+      context.handle(
+          _clientMutationIdMeta,
+          clientMutationId.isAcceptableOrUnknown(
+              data['client_mutation_id']!, _clientMutationIdMeta));
+    } else if (isInserting) {
+      context.missing(_clientMutationIdMeta);
+    }
+    if (data.containsKey('client_sequence')) {
+      context.handle(
+          _clientSequenceMeta,
+          clientSequence.isAcceptableOrUnknown(
+              data['client_sequence']!, _clientSequenceMeta));
+    } else if (isInserting) {
+      context.missing(_clientSequenceMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
+    if (data.containsKey('app_device_id')) {
+      context.handle(
+          _appDeviceIdMeta,
+          appDeviceId.isAcceptableOrUnknown(
+              data['app_device_id']!, _appDeviceIdMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    }
+    if (data.containsKey('entity_table')) {
+      context.handle(
+          _entityTableMeta,
+          entityTable.isAcceptableOrUnknown(
+              data['entity_table']!, _entityTableMeta));
+    } else if (isInserting) {
+      context.missing(_entityTableMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('operation')) {
+      context.handle(_operationMeta,
+          operation.isAcceptableOrUnknown(data['operation']!, _operationMeta));
+    } else if (isInserting) {
+      context.missing(_operationMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+          _payloadJsonMeta,
+          payloadJson.isAcceptableOrUnknown(
+              data['payload_json']!, _payloadJsonMeta));
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('before_payload_json')) {
+      context.handle(
+          _beforePayloadJsonMeta,
+          beforePayloadJson.isAcceptableOrUnknown(
+              data['before_payload_json']!, _beforePayloadJsonMeta));
+    }
+    if (data.containsKey('changed_fields_json')) {
+      context.handle(
+          _changedFieldsJsonMeta,
+          changedFieldsJson.isAcceptableOrUnknown(
+              data['changed_fields_json']!, _changedFieldsJsonMeta));
+    }
+    if (data.containsKey('base_version')) {
+      context.handle(
+          _baseVersionMeta,
+          baseVersion.isAcceptableOrUnknown(
+              data['base_version']!, _baseVersionMeta));
+    }
+    if (data.containsKey('base_updated_at')) {
+      context.handle(
+          _baseUpdatedAtMeta,
+          baseUpdatedAt.isAcceptableOrUnknown(
+              data['base_updated_at']!, _baseUpdatedAtMeta));
+    }
+    if (data.containsKey('idempotency_key')) {
+      context.handle(
+          _idempotencyKeyMeta,
+          idempotencyKey.isAcceptableOrUnknown(
+              data['idempotency_key']!, _idempotencyKeyMeta));
+    } else if (isInserting) {
+      context.missing(_idempotencyKeyMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+          _retryCountMeta,
+          retryCount.isAcceptableOrUnknown(
+              data['retry_count']!, _retryCountMeta));
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(_lastErrorMeta,
+          lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(_errorCodeMeta,
+          errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('uploaded_at')) {
+      context.handle(
+          _uploadedAtMeta,
+          uploadedAt.isAcceptableOrUnknown(
+              data['uploaded_at']!, _uploadedAtMeta));
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+          _resolvedAtMeta,
+          resolvedAt.isAcceptableOrUnknown(
+              data['resolved_at']!, _resolvedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalSyncMutation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalSyncMutation(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      serverSyncMutationId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}server_sync_mutation_id']),
+      localSyncBatchId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}local_sync_batch_id']),
+      clientBatchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}client_batch_id']),
+      clientMutationId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}client_mutation_id'])!,
+      clientSequence: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}client_sequence'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
+      appDeviceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}app_device_id']),
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id']),
+      entityTable: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_table'])!,
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_id'])!,
+      operation: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}operation'])!,
+      payloadJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}payload_json'])!,
+      beforePayloadJson: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}before_payload_json']),
+      changedFieldsJson: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}changed_fields_json']),
+      baseVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}base_version']),
+      baseUpdatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}base_updated_at']),
+      idempotencyKey: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}idempotency_key'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      retryCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}retry_count'])!,
+      lastError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      errorCode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}error_code']),
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      uploadedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}uploaded_at']),
+      resolvedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}resolved_at']),
+    );
+  }
+
+  @override
+  $LocalSyncMutationsTable createAlias(String alias) {
+    return $LocalSyncMutationsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalSyncMutation extends DataClass
+    implements Insertable<LocalSyncMutation> {
+  final String id;
+  final String? serverSyncMutationId;
+  final String? localSyncBatchId;
+  final String? clientBatchId;
+  final String clientMutationId;
+  final int clientSequence;
+  final String businessId;
+  final String? branchId;
+  final String? appDeviceId;
+  final String? profileId;
+  final String entityTable;
+  final String entityId;
+  final String operation;
+  final String payloadJson;
+  final String? beforePayloadJson;
+  final String? changedFieldsJson;
+  final int? baseVersion;
+  final DateTime? baseUpdatedAt;
+  final String idempotencyKey;
+  final String status;
+  final int retryCount;
+  final String? lastError;
+  final String? errorCode;
+  final String? metadataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? uploadedAt;
+  final DateTime? resolvedAt;
+  const LocalSyncMutation(
+      {required this.id,
+      this.serverSyncMutationId,
+      this.localSyncBatchId,
+      this.clientBatchId,
+      required this.clientMutationId,
+      required this.clientSequence,
+      required this.businessId,
+      this.branchId,
+      this.appDeviceId,
+      this.profileId,
+      required this.entityTable,
+      required this.entityId,
+      required this.operation,
+      required this.payloadJson,
+      this.beforePayloadJson,
+      this.changedFieldsJson,
+      this.baseVersion,
+      this.baseUpdatedAt,
+      required this.idempotencyKey,
+      required this.status,
+      required this.retryCount,
+      this.lastError,
+      this.errorCode,
+      this.metadataJson,
+      required this.createdAt,
+      required this.updatedAt,
+      this.uploadedAt,
+      this.resolvedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || serverSyncMutationId != null) {
+      map['server_sync_mutation_id'] = Variable<String>(serverSyncMutationId);
+    }
+    if (!nullToAbsent || localSyncBatchId != null) {
+      map['local_sync_batch_id'] = Variable<String>(localSyncBatchId);
+    }
+    if (!nullToAbsent || clientBatchId != null) {
+      map['client_batch_id'] = Variable<String>(clientBatchId);
+    }
+    map['client_mutation_id'] = Variable<String>(clientMutationId);
+    map['client_sequence'] = Variable<int>(clientSequence);
+    map['business_id'] = Variable<String>(businessId);
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
+    if (!nullToAbsent || appDeviceId != null) {
+      map['app_device_id'] = Variable<String>(appDeviceId);
+    }
+    if (!nullToAbsent || profileId != null) {
+      map['profile_id'] = Variable<String>(profileId);
+    }
+    map['entity_table'] = Variable<String>(entityTable);
+    map['entity_id'] = Variable<String>(entityId);
+    map['operation'] = Variable<String>(operation);
+    map['payload_json'] = Variable<String>(payloadJson);
+    if (!nullToAbsent || beforePayloadJson != null) {
+      map['before_payload_json'] = Variable<String>(beforePayloadJson);
+    }
+    if (!nullToAbsent || changedFieldsJson != null) {
+      map['changed_fields_json'] = Variable<String>(changedFieldsJson);
+    }
+    if (!nullToAbsent || baseVersion != null) {
+      map['base_version'] = Variable<int>(baseVersion);
+    }
+    if (!nullToAbsent || baseUpdatedAt != null) {
+      map['base_updated_at'] = Variable<DateTime>(baseUpdatedAt);
+    }
+    map['idempotency_key'] = Variable<String>(idempotencyKey);
+    map['status'] = Variable<String>(status);
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<String>(errorCode);
+    }
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || uploadedAt != null) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt);
+    }
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    return map;
+  }
+
+  LocalSyncMutationsCompanion toCompanion(bool nullToAbsent) {
+    return LocalSyncMutationsCompanion(
+      id: Value(id),
+      serverSyncMutationId: serverSyncMutationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverSyncMutationId),
+      localSyncBatchId: localSyncBatchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localSyncBatchId),
+      clientBatchId: clientBatchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clientBatchId),
+      clientMutationId: Value(clientMutationId),
+      clientSequence: Value(clientSequence),
+      businessId: Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
+      appDeviceId: appDeviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(appDeviceId),
+      profileId: profileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(profileId),
+      entityTable: Value(entityTable),
+      entityId: Value(entityId),
+      operation: Value(operation),
+      payloadJson: Value(payloadJson),
+      beforePayloadJson: beforePayloadJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(beforePayloadJson),
+      changedFieldsJson: changedFieldsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changedFieldsJson),
+      baseVersion: baseVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(baseVersion),
+      baseUpdatedAt: baseUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(baseUpdatedAt),
+      idempotencyKey: Value(idempotencyKey),
+      status: Value(status),
+      retryCount: Value(retryCount),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      uploadedAt: uploadedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uploadedAt),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+    );
+  }
+
+  factory LocalSyncMutation.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalSyncMutation(
+      id: serializer.fromJson<String>(json['id']),
+      serverSyncMutationId:
+          serializer.fromJson<String?>(json['serverSyncMutationId']),
+      localSyncBatchId: serializer.fromJson<String?>(json['localSyncBatchId']),
+      clientBatchId: serializer.fromJson<String?>(json['clientBatchId']),
+      clientMutationId: serializer.fromJson<String>(json['clientMutationId']),
+      clientSequence: serializer.fromJson<int>(json['clientSequence']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
+      appDeviceId: serializer.fromJson<String?>(json['appDeviceId']),
+      profileId: serializer.fromJson<String?>(json['profileId']),
+      entityTable: serializer.fromJson<String>(json['entityTable']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      operation: serializer.fromJson<String>(json['operation']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      beforePayloadJson:
+          serializer.fromJson<String?>(json['beforePayloadJson']),
+      changedFieldsJson:
+          serializer.fromJson<String?>(json['changedFieldsJson']),
+      baseVersion: serializer.fromJson<int?>(json['baseVersion']),
+      baseUpdatedAt: serializer.fromJson<DateTime?>(json['baseUpdatedAt']),
+      idempotencyKey: serializer.fromJson<String>(json['idempotencyKey']),
+      status: serializer.fromJson<String>(json['status']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      errorCode: serializer.fromJson<String?>(json['errorCode']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      uploadedAt: serializer.fromJson<DateTime?>(json['uploadedAt']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'serverSyncMutationId': serializer.toJson<String?>(serverSyncMutationId),
+      'localSyncBatchId': serializer.toJson<String?>(localSyncBatchId),
+      'clientBatchId': serializer.toJson<String?>(clientBatchId),
+      'clientMutationId': serializer.toJson<String>(clientMutationId),
+      'clientSequence': serializer.toJson<int>(clientSequence),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
+      'appDeviceId': serializer.toJson<String?>(appDeviceId),
+      'profileId': serializer.toJson<String?>(profileId),
+      'entityTable': serializer.toJson<String>(entityTable),
+      'entityId': serializer.toJson<String>(entityId),
+      'operation': serializer.toJson<String>(operation),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'beforePayloadJson': serializer.toJson<String?>(beforePayloadJson),
+      'changedFieldsJson': serializer.toJson<String?>(changedFieldsJson),
+      'baseVersion': serializer.toJson<int?>(baseVersion),
+      'baseUpdatedAt': serializer.toJson<DateTime?>(baseUpdatedAt),
+      'idempotencyKey': serializer.toJson<String>(idempotencyKey),
+      'status': serializer.toJson<String>(status),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'lastError': serializer.toJson<String?>(lastError),
+      'errorCode': serializer.toJson<String?>(errorCode),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'uploadedAt': serializer.toJson<DateTime?>(uploadedAt),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+    };
+  }
+
+  LocalSyncMutation copyWith(
+          {String? id,
+          Value<String?> serverSyncMutationId = const Value.absent(),
+          Value<String?> localSyncBatchId = const Value.absent(),
+          Value<String?> clientBatchId = const Value.absent(),
+          String? clientMutationId,
+          int? clientSequence,
+          String? businessId,
+          Value<String?> branchId = const Value.absent(),
+          Value<String?> appDeviceId = const Value.absent(),
+          Value<String?> profileId = const Value.absent(),
+          String? entityTable,
+          String? entityId,
+          String? operation,
+          String? payloadJson,
+          Value<String?> beforePayloadJson = const Value.absent(),
+          Value<String?> changedFieldsJson = const Value.absent(),
+          Value<int?> baseVersion = const Value.absent(),
+          Value<DateTime?> baseUpdatedAt = const Value.absent(),
+          String? idempotencyKey,
+          String? status,
+          int? retryCount,
+          Value<String?> lastError = const Value.absent(),
+          Value<String?> errorCode = const Value.absent(),
+          Value<String?> metadataJson = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> uploadedAt = const Value.absent(),
+          Value<DateTime?> resolvedAt = const Value.absent()}) =>
+      LocalSyncMutation(
+        id: id ?? this.id,
+        serverSyncMutationId: serverSyncMutationId.present
+            ? serverSyncMutationId.value
+            : this.serverSyncMutationId,
+        localSyncBatchId: localSyncBatchId.present
+            ? localSyncBatchId.value
+            : this.localSyncBatchId,
+        clientBatchId:
+            clientBatchId.present ? clientBatchId.value : this.clientBatchId,
+        clientMutationId: clientMutationId ?? this.clientMutationId,
+        clientSequence: clientSequence ?? this.clientSequence,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
+        appDeviceId: appDeviceId.present ? appDeviceId.value : this.appDeviceId,
+        profileId: profileId.present ? profileId.value : this.profileId,
+        entityTable: entityTable ?? this.entityTable,
+        entityId: entityId ?? this.entityId,
+        operation: operation ?? this.operation,
+        payloadJson: payloadJson ?? this.payloadJson,
+        beforePayloadJson: beforePayloadJson.present
+            ? beforePayloadJson.value
+            : this.beforePayloadJson,
+        changedFieldsJson: changedFieldsJson.present
+            ? changedFieldsJson.value
+            : this.changedFieldsJson,
+        baseVersion: baseVersion.present ? baseVersion.value : this.baseVersion,
+        baseUpdatedAt:
+            baseUpdatedAt.present ? baseUpdatedAt.value : this.baseUpdatedAt,
+        idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+        status: status ?? this.status,
+        retryCount: retryCount ?? this.retryCount,
+        lastError: lastError.present ? lastError.value : this.lastError,
+        errorCode: errorCode.present ? errorCode.value : this.errorCode,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        uploadedAt: uploadedAt.present ? uploadedAt.value : this.uploadedAt,
+        resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+      );
+  LocalSyncMutation copyWithCompanion(LocalSyncMutationsCompanion data) {
+    return LocalSyncMutation(
+      id: data.id.present ? data.id.value : this.id,
+      serverSyncMutationId: data.serverSyncMutationId.present
+          ? data.serverSyncMutationId.value
+          : this.serverSyncMutationId,
+      localSyncBatchId: data.localSyncBatchId.present
+          ? data.localSyncBatchId.value
+          : this.localSyncBatchId,
+      clientBatchId: data.clientBatchId.present
+          ? data.clientBatchId.value
+          : this.clientBatchId,
+      clientMutationId: data.clientMutationId.present
+          ? data.clientMutationId.value
+          : this.clientMutationId,
+      clientSequence: data.clientSequence.present
+          ? data.clientSequence.value
+          : this.clientSequence,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      appDeviceId:
+          data.appDeviceId.present ? data.appDeviceId.value : this.appDeviceId,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      entityTable:
+          data.entityTable.present ? data.entityTable.value : this.entityTable,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      operation: data.operation.present ? data.operation.value : this.operation,
+      payloadJson:
+          data.payloadJson.present ? data.payloadJson.value : this.payloadJson,
+      beforePayloadJson: data.beforePayloadJson.present
+          ? data.beforePayloadJson.value
+          : this.beforePayloadJson,
+      changedFieldsJson: data.changedFieldsJson.present
+          ? data.changedFieldsJson.value
+          : this.changedFieldsJson,
+      baseVersion:
+          data.baseVersion.present ? data.baseVersion.value : this.baseVersion,
+      baseUpdatedAt: data.baseUpdatedAt.present
+          ? data.baseUpdatedAt.value
+          : this.baseUpdatedAt,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
+      status: data.status.present ? data.status.value : this.status,
+      retryCount:
+          data.retryCount.present ? data.retryCount.value : this.retryCount,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      uploadedAt:
+          data.uploadedAt.present ? data.uploadedAt.value : this.uploadedAt,
+      resolvedAt:
+          data.resolvedAt.present ? data.resolvedAt.value : this.resolvedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSyncMutation(')
+          ..write('id: $id, ')
+          ..write('serverSyncMutationId: $serverSyncMutationId, ')
+          ..write('localSyncBatchId: $localSyncBatchId, ')
+          ..write('clientBatchId: $clientBatchId, ')
+          ..write('clientMutationId: $clientMutationId, ')
+          ..write('clientSequence: $clientSequence, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('appDeviceId: $appDeviceId, ')
+          ..write('profileId: $profileId, ')
+          ..write('entityTable: $entityTable, ')
+          ..write('entityId: $entityId, ')
+          ..write('operation: $operation, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('beforePayloadJson: $beforePayloadJson, ')
+          ..write('changedFieldsJson: $changedFieldsJson, ')
+          ..write('baseVersion: $baseVersion, ')
+          ..write('baseUpdatedAt: $baseUpdatedAt, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('status: $status, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('resolvedAt: $resolvedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        serverSyncMutationId,
+        localSyncBatchId,
+        clientBatchId,
+        clientMutationId,
+        clientSequence,
+        businessId,
+        branchId,
+        appDeviceId,
+        profileId,
+        entityTable,
+        entityId,
+        operation,
+        payloadJson,
+        beforePayloadJson,
+        changedFieldsJson,
+        baseVersion,
+        baseUpdatedAt,
+        idempotencyKey,
+        status,
+        retryCount,
+        lastError,
+        errorCode,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        uploadedAt,
+        resolvedAt
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalSyncMutation &&
+          other.id == this.id &&
+          other.serverSyncMutationId == this.serverSyncMutationId &&
+          other.localSyncBatchId == this.localSyncBatchId &&
+          other.clientBatchId == this.clientBatchId &&
+          other.clientMutationId == this.clientMutationId &&
+          other.clientSequence == this.clientSequence &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.appDeviceId == this.appDeviceId &&
+          other.profileId == this.profileId &&
+          other.entityTable == this.entityTable &&
+          other.entityId == this.entityId &&
+          other.operation == this.operation &&
+          other.payloadJson == this.payloadJson &&
+          other.beforePayloadJson == this.beforePayloadJson &&
+          other.changedFieldsJson == this.changedFieldsJson &&
+          other.baseVersion == this.baseVersion &&
+          other.baseUpdatedAt == this.baseUpdatedAt &&
+          other.idempotencyKey == this.idempotencyKey &&
+          other.status == this.status &&
+          other.retryCount == this.retryCount &&
+          other.lastError == this.lastError &&
+          other.errorCode == this.errorCode &&
+          other.metadataJson == this.metadataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.uploadedAt == this.uploadedAt &&
+          other.resolvedAt == this.resolvedAt);
+}
+
+class LocalSyncMutationsCompanion extends UpdateCompanion<LocalSyncMutation> {
+  final Value<String> id;
+  final Value<String?> serverSyncMutationId;
+  final Value<String?> localSyncBatchId;
+  final Value<String?> clientBatchId;
+  final Value<String> clientMutationId;
+  final Value<int> clientSequence;
+  final Value<String> businessId;
+  final Value<String?> branchId;
+  final Value<String?> appDeviceId;
+  final Value<String?> profileId;
+  final Value<String> entityTable;
+  final Value<String> entityId;
+  final Value<String> operation;
+  final Value<String> payloadJson;
+  final Value<String?> beforePayloadJson;
+  final Value<String?> changedFieldsJson;
+  final Value<int?> baseVersion;
+  final Value<DateTime?> baseUpdatedAt;
+  final Value<String> idempotencyKey;
+  final Value<String> status;
+  final Value<int> retryCount;
+  final Value<String?> lastError;
+  final Value<String?> errorCode;
+  final Value<String?> metadataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> uploadedAt;
+  final Value<DateTime?> resolvedAt;
+  final Value<int> rowid;
+  const LocalSyncMutationsCompanion({
+    this.id = const Value.absent(),
+    this.serverSyncMutationId = const Value.absent(),
+    this.localSyncBatchId = const Value.absent(),
+    this.clientBatchId = const Value.absent(),
+    this.clientMutationId = const Value.absent(),
+    this.clientSequence = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.appDeviceId = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.entityTable = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.operation = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.beforePayloadJson = const Value.absent(),
+    this.changedFieldsJson = const Value.absent(),
+    this.baseVersion = const Value.absent(),
+    this.baseUpdatedAt = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.status = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalSyncMutationsCompanion.insert({
+    required String id,
+    this.serverSyncMutationId = const Value.absent(),
+    this.localSyncBatchId = const Value.absent(),
+    this.clientBatchId = const Value.absent(),
+    required String clientMutationId,
+    required int clientSequence,
+    required String businessId,
+    this.branchId = const Value.absent(),
+    this.appDeviceId = const Value.absent(),
+    this.profileId = const Value.absent(),
+    required String entityTable,
+    required String entityId,
+    required String operation,
+    required String payloadJson,
+    this.beforePayloadJson = const Value.absent(),
+    this.changedFieldsJson = const Value.absent(),
+    this.baseVersion = const Value.absent(),
+    this.baseUpdatedAt = const Value.absent(),
+    required String idempotencyKey,
+    this.status = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        clientMutationId = Value(clientMutationId),
+        clientSequence = Value(clientSequence),
+        businessId = Value(businessId),
+        entityTable = Value(entityTable),
+        entityId = Value(entityId),
+        operation = Value(operation),
+        payloadJson = Value(payloadJson),
+        idempotencyKey = Value(idempotencyKey);
+  static Insertable<LocalSyncMutation> custom({
+    Expression<String>? id,
+    Expression<String>? serverSyncMutationId,
+    Expression<String>? localSyncBatchId,
+    Expression<String>? clientBatchId,
+    Expression<String>? clientMutationId,
+    Expression<int>? clientSequence,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? appDeviceId,
+    Expression<String>? profileId,
+    Expression<String>? entityTable,
+    Expression<String>? entityId,
+    Expression<String>? operation,
+    Expression<String>? payloadJson,
+    Expression<String>? beforePayloadJson,
+    Expression<String>? changedFieldsJson,
+    Expression<int>? baseVersion,
+    Expression<DateTime>? baseUpdatedAt,
+    Expression<String>? idempotencyKey,
+    Expression<String>? status,
+    Expression<int>? retryCount,
+    Expression<String>? lastError,
+    Expression<String>? errorCode,
+    Expression<String>? metadataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? uploadedAt,
+    Expression<DateTime>? resolvedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (serverSyncMutationId != null)
+        'server_sync_mutation_id': serverSyncMutationId,
+      if (localSyncBatchId != null) 'local_sync_batch_id': localSyncBatchId,
+      if (clientBatchId != null) 'client_batch_id': clientBatchId,
+      if (clientMutationId != null) 'client_mutation_id': clientMutationId,
+      if (clientSequence != null) 'client_sequence': clientSequence,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (appDeviceId != null) 'app_device_id': appDeviceId,
+      if (profileId != null) 'profile_id': profileId,
+      if (entityTable != null) 'entity_table': entityTable,
+      if (entityId != null) 'entity_id': entityId,
+      if (operation != null) 'operation': operation,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (beforePayloadJson != null) 'before_payload_json': beforePayloadJson,
+      if (changedFieldsJson != null) 'changed_fields_json': changedFieldsJson,
+      if (baseVersion != null) 'base_version': baseVersion,
+      if (baseUpdatedAt != null) 'base_updated_at': baseUpdatedAt,
+      if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
+      if (status != null) 'status': status,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (lastError != null) 'last_error': lastError,
+      if (errorCode != null) 'error_code': errorCode,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (uploadedAt != null) 'uploaded_at': uploadedAt,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalSyncMutationsCompanion copyWith(
+      {Value<String>? id,
+      Value<String?>? serverSyncMutationId,
+      Value<String?>? localSyncBatchId,
+      Value<String?>? clientBatchId,
+      Value<String>? clientMutationId,
+      Value<int>? clientSequence,
+      Value<String>? businessId,
+      Value<String?>? branchId,
+      Value<String?>? appDeviceId,
+      Value<String?>? profileId,
+      Value<String>? entityTable,
+      Value<String>? entityId,
+      Value<String>? operation,
+      Value<String>? payloadJson,
+      Value<String?>? beforePayloadJson,
+      Value<String?>? changedFieldsJson,
+      Value<int?>? baseVersion,
+      Value<DateTime?>? baseUpdatedAt,
+      Value<String>? idempotencyKey,
+      Value<String>? status,
+      Value<int>? retryCount,
+      Value<String?>? lastError,
+      Value<String?>? errorCode,
+      Value<String?>? metadataJson,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? uploadedAt,
+      Value<DateTime?>? resolvedAt,
+      Value<int>? rowid}) {
+    return LocalSyncMutationsCompanion(
+      id: id ?? this.id,
+      serverSyncMutationId: serverSyncMutationId ?? this.serverSyncMutationId,
+      localSyncBatchId: localSyncBatchId ?? this.localSyncBatchId,
+      clientBatchId: clientBatchId ?? this.clientBatchId,
+      clientMutationId: clientMutationId ?? this.clientMutationId,
+      clientSequence: clientSequence ?? this.clientSequence,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      appDeviceId: appDeviceId ?? this.appDeviceId,
+      profileId: profileId ?? this.profileId,
+      entityTable: entityTable ?? this.entityTable,
+      entityId: entityId ?? this.entityId,
+      operation: operation ?? this.operation,
+      payloadJson: payloadJson ?? this.payloadJson,
+      beforePayloadJson: beforePayloadJson ?? this.beforePayloadJson,
+      changedFieldsJson: changedFieldsJson ?? this.changedFieldsJson,
+      baseVersion: baseVersion ?? this.baseVersion,
+      baseUpdatedAt: baseUpdatedAt ?? this.baseUpdatedAt,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+      status: status ?? this.status,
+      retryCount: retryCount ?? this.retryCount,
+      lastError: lastError ?? this.lastError,
+      errorCode: errorCode ?? this.errorCode,
+      metadataJson: metadataJson ?? this.metadataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (serverSyncMutationId.present) {
+      map['server_sync_mutation_id'] =
+          Variable<String>(serverSyncMutationId.value);
+    }
+    if (localSyncBatchId.present) {
+      map['local_sync_batch_id'] = Variable<String>(localSyncBatchId.value);
+    }
+    if (clientBatchId.present) {
+      map['client_batch_id'] = Variable<String>(clientBatchId.value);
+    }
+    if (clientMutationId.present) {
+      map['client_mutation_id'] = Variable<String>(clientMutationId.value);
+    }
+    if (clientSequence.present) {
+      map['client_sequence'] = Variable<int>(clientSequence.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (appDeviceId.present) {
+      map['app_device_id'] = Variable<String>(appDeviceId.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (entityTable.present) {
+      map['entity_table'] = Variable<String>(entityTable.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (operation.present) {
+      map['operation'] = Variable<String>(operation.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (beforePayloadJson.present) {
+      map['before_payload_json'] = Variable<String>(beforePayloadJson.value);
+    }
+    if (changedFieldsJson.present) {
+      map['changed_fields_json'] = Variable<String>(changedFieldsJson.value);
+    }
+    if (baseVersion.present) {
+      map['base_version'] = Variable<int>(baseVersion.value);
+    }
+    if (baseUpdatedAt.present) {
+      map['base_updated_at'] = Variable<DateTime>(baseUpdatedAt.value);
+    }
+    if (idempotencyKey.present) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<String>(errorCode.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (uploadedAt.present) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSyncMutationsCompanion(')
+          ..write('id: $id, ')
+          ..write('serverSyncMutationId: $serverSyncMutationId, ')
+          ..write('localSyncBatchId: $localSyncBatchId, ')
+          ..write('clientBatchId: $clientBatchId, ')
+          ..write('clientMutationId: $clientMutationId, ')
+          ..write('clientSequence: $clientSequence, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('appDeviceId: $appDeviceId, ')
+          ..write('profileId: $profileId, ')
+          ..write('entityTable: $entityTable, ')
+          ..write('entityId: $entityId, ')
+          ..write('operation: $operation, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('beforePayloadJson: $beforePayloadJson, ')
+          ..write('changedFieldsJson: $changedFieldsJson, ')
+          ..write('baseVersion: $baseVersion, ')
+          ..write('baseUpdatedAt: $baseUpdatedAt, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('status: $status, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('uploadedAt: $uploadedAt, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $BusinessesTable extends Businesses
     with TableInfo<$BusinessesTable, Business> {
   @override
@@ -4970,6 +11589,18 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $LocalMasterProductsCatalogTable localMasterProductsCatalog =
+      $LocalMasterProductsCatalogTable(this);
+  late final $LocalProductBarcodesTable localProductBarcodes =
+      $LocalProductBarcodesTable(this);
+  late final $LocalCatalogSyncStateTable localCatalogSyncState =
+      $LocalCatalogSyncStateTable(this);
+  late final $LocalCatalogContributionQueueTable localCatalogContributionQueue =
+      $LocalCatalogContributionQueueTable(this);
+  late final $LocalSyncBatchesTable localSyncBatches =
+      $LocalSyncBatchesTable(this);
+  late final $LocalSyncMutationsTable localSyncMutations =
+      $LocalSyncMutationsTable(this);
   late final $BusinessesTable businesses = $BusinessesTable(this);
   late final $ProfilesTable profiles = $ProfilesTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
@@ -4991,6 +11622,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+        localMasterProductsCatalog,
+        localProductBarcodes,
+        localCatalogSyncState,
+        localCatalogContributionQueue,
+        localSyncBatches,
+        localSyncMutations,
         businesses,
         profiles,
         categories,
@@ -5003,6 +11640,2787 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ];
 }
 
+typedef $$LocalMasterProductsCatalogTableCreateCompanionBuilder
+    = LocalMasterProductsCatalogCompanion Function({
+  required String id,
+  Value<String?> barcode,
+  Value<String?> gtin,
+  Value<String?> barcodeNormalized,
+  Value<String?> name,
+  Value<String?> productName,
+  Value<String?> normalizedName,
+  Value<String?> brand,
+  Value<String?> manufacturer,
+  Value<String?> categoryName,
+  Value<String?> subcategoryName,
+  Value<double?> packageSize,
+  Value<String?> packageUnit,
+  Value<String?> unitType,
+  Value<bool> hasImage,
+  Value<String?> imageThumbUrl,
+  Value<String?> imageHash,
+  Value<String?> source,
+  Value<String?> verificationStatus,
+  Value<double?> confidenceScore,
+  Value<int> catalogVersion,
+  Value<String> syncStatus,
+  Value<String> localStatus,
+  Value<int> version,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<String?> metadataJson,
+  Value<int> rowid,
+});
+typedef $$LocalMasterProductsCatalogTableUpdateCompanionBuilder
+    = LocalMasterProductsCatalogCompanion Function({
+  Value<String> id,
+  Value<String?> barcode,
+  Value<String?> gtin,
+  Value<String?> barcodeNormalized,
+  Value<String?> name,
+  Value<String?> productName,
+  Value<String?> normalizedName,
+  Value<String?> brand,
+  Value<String?> manufacturer,
+  Value<String?> categoryName,
+  Value<String?> subcategoryName,
+  Value<double?> packageSize,
+  Value<String?> packageUnit,
+  Value<String?> unitType,
+  Value<bool> hasImage,
+  Value<String?> imageThumbUrl,
+  Value<String?> imageHash,
+  Value<String?> source,
+  Value<String?> verificationStatus,
+  Value<double?> confidenceScore,
+  Value<int> catalogVersion,
+  Value<String> syncStatus,
+  Value<String> localStatus,
+  Value<int> version,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<String?> metadataJson,
+  Value<int> rowid,
+});
+
+class $$LocalMasterProductsCatalogTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalMasterProductsCatalogTable> {
+  $$LocalMasterProductsCatalogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get gtin => $composableBuilder(
+      column: $table.gtin, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productName => $composableBuilder(
+      column: $table.productName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get normalizedName => $composableBuilder(
+      column: $table.normalizedName,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get brand => $composableBuilder(
+      column: $table.brand, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get manufacturer => $composableBuilder(
+      column: $table.manufacturer, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+      column: $table.categoryName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get subcategoryName => $composableBuilder(
+      column: $table.subcategoryName,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get packageSize => $composableBuilder(
+      column: $table.packageSize, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get packageUnit => $composableBuilder(
+      column: $table.packageUnit, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get unitType => $composableBuilder(
+      column: $table.unitType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hasImage => $composableBuilder(
+      column: $table.hasImage, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageThumbUrl => $composableBuilder(
+      column: $table.imageThumbUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageHash => $composableBuilder(
+      column: $table.imageHash, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get verificationStatus => $composableBuilder(
+      column: $table.verificationStatus,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get catalogVersion => $composableBuilder(
+      column: $table.catalogVersion,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalMasterProductsCatalogTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalMasterProductsCatalogTable> {
+  $$LocalMasterProductsCatalogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get gtin => $composableBuilder(
+      column: $table.gtin, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productName => $composableBuilder(
+      column: $table.productName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get normalizedName => $composableBuilder(
+      column: $table.normalizedName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get brand => $composableBuilder(
+      column: $table.brand, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get manufacturer => $composableBuilder(
+      column: $table.manufacturer,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+      column: $table.categoryName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get subcategoryName => $composableBuilder(
+      column: $table.subcategoryName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get packageSize => $composableBuilder(
+      column: $table.packageSize, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get packageUnit => $composableBuilder(
+      column: $table.packageUnit, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unitType => $composableBuilder(
+      column: $table.unitType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get hasImage => $composableBuilder(
+      column: $table.hasImage, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageThumbUrl => $composableBuilder(
+      column: $table.imageThumbUrl,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageHash => $composableBuilder(
+      column: $table.imageHash, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get verificationStatus => $composableBuilder(
+      column: $table.verificationStatus,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get catalogVersion => $composableBuilder(
+      column: $table.catalogVersion,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalMasterProductsCatalogTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalMasterProductsCatalogTable> {
+  $$LocalMasterProductsCatalogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get gtin =>
+      $composableBuilder(column: $table.gtin, builder: (column) => column);
+
+  GeneratedColumn<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get productName => $composableBuilder(
+      column: $table.productName, builder: (column) => column);
+
+  GeneratedColumn<String> get normalizedName => $composableBuilder(
+      column: $table.normalizedName, builder: (column) => column);
+
+  GeneratedColumn<String> get brand =>
+      $composableBuilder(column: $table.brand, builder: (column) => column);
+
+  GeneratedColumn<String> get manufacturer => $composableBuilder(
+      column: $table.manufacturer, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+      column: $table.categoryName, builder: (column) => column);
+
+  GeneratedColumn<String> get subcategoryName => $composableBuilder(
+      column: $table.subcategoryName, builder: (column) => column);
+
+  GeneratedColumn<double> get packageSize => $composableBuilder(
+      column: $table.packageSize, builder: (column) => column);
+
+  GeneratedColumn<String> get packageUnit => $composableBuilder(
+      column: $table.packageUnit, builder: (column) => column);
+
+  GeneratedColumn<String> get unitType =>
+      $composableBuilder(column: $table.unitType, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasImage =>
+      $composableBuilder(column: $table.hasImage, builder: (column) => column);
+
+  GeneratedColumn<String> get imageThumbUrl => $composableBuilder(
+      column: $table.imageThumbUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get imageHash =>
+      $composableBuilder(column: $table.imageHash, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get verificationStatus => $composableBuilder(
+      column: $table.verificationStatus, builder: (column) => column);
+
+  GeneratedColumn<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore, builder: (column) => column);
+
+  GeneratedColumn<int> get catalogVersion => $composableBuilder(
+      column: $table.catalogVersion, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+}
+
+class $$LocalMasterProductsCatalogTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalMasterProductsCatalogTable,
+    LocalMasterProductsCatalogData,
+    $$LocalMasterProductsCatalogTableFilterComposer,
+    $$LocalMasterProductsCatalogTableOrderingComposer,
+    $$LocalMasterProductsCatalogTableAnnotationComposer,
+    $$LocalMasterProductsCatalogTableCreateCompanionBuilder,
+    $$LocalMasterProductsCatalogTableUpdateCompanionBuilder,
+    (
+      LocalMasterProductsCatalogData,
+      BaseReferences<_$AppDatabase, $LocalMasterProductsCatalogTable,
+          LocalMasterProductsCatalogData>
+    ),
+    LocalMasterProductsCatalogData,
+    PrefetchHooks Function()> {
+  $$LocalMasterProductsCatalogTableTableManager(
+      _$AppDatabase db, $LocalMasterProductsCatalogTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalMasterProductsCatalogTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalMasterProductsCatalogTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalMasterProductsCatalogTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String?> barcode = const Value.absent(),
+            Value<String?> gtin = const Value.absent(),
+            Value<String?> barcodeNormalized = const Value.absent(),
+            Value<String?> name = const Value.absent(),
+            Value<String?> productName = const Value.absent(),
+            Value<String?> normalizedName = const Value.absent(),
+            Value<String?> brand = const Value.absent(),
+            Value<String?> manufacturer = const Value.absent(),
+            Value<String?> categoryName = const Value.absent(),
+            Value<String?> subcategoryName = const Value.absent(),
+            Value<double?> packageSize = const Value.absent(),
+            Value<String?> packageUnit = const Value.absent(),
+            Value<String?> unitType = const Value.absent(),
+            Value<bool> hasImage = const Value.absent(),
+            Value<String?> imageThumbUrl = const Value.absent(),
+            Value<String?> imageHash = const Value.absent(),
+            Value<String?> source = const Value.absent(),
+            Value<String?> verificationStatus = const Value.absent(),
+            Value<double?> confidenceScore = const Value.absent(),
+            Value<int> catalogVersion = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalMasterProductsCatalogCompanion(
+            id: id,
+            barcode: barcode,
+            gtin: gtin,
+            barcodeNormalized: barcodeNormalized,
+            name: name,
+            productName: productName,
+            normalizedName: normalizedName,
+            brand: brand,
+            manufacturer: manufacturer,
+            categoryName: categoryName,
+            subcategoryName: subcategoryName,
+            packageSize: packageSize,
+            packageUnit: packageUnit,
+            unitType: unitType,
+            hasImage: hasImage,
+            imageThumbUrl: imageThumbUrl,
+            imageHash: imageHash,
+            source: source,
+            verificationStatus: verificationStatus,
+            confidenceScore: confidenceScore,
+            catalogVersion: catalogVersion,
+            syncStatus: syncStatus,
+            localStatus: localStatus,
+            version: version,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            metadataJson: metadataJson,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String?> barcode = const Value.absent(),
+            Value<String?> gtin = const Value.absent(),
+            Value<String?> barcodeNormalized = const Value.absent(),
+            Value<String?> name = const Value.absent(),
+            Value<String?> productName = const Value.absent(),
+            Value<String?> normalizedName = const Value.absent(),
+            Value<String?> brand = const Value.absent(),
+            Value<String?> manufacturer = const Value.absent(),
+            Value<String?> categoryName = const Value.absent(),
+            Value<String?> subcategoryName = const Value.absent(),
+            Value<double?> packageSize = const Value.absent(),
+            Value<String?> packageUnit = const Value.absent(),
+            Value<String?> unitType = const Value.absent(),
+            Value<bool> hasImage = const Value.absent(),
+            Value<String?> imageThumbUrl = const Value.absent(),
+            Value<String?> imageHash = const Value.absent(),
+            Value<String?> source = const Value.absent(),
+            Value<String?> verificationStatus = const Value.absent(),
+            Value<double?> confidenceScore = const Value.absent(),
+            Value<int> catalogVersion = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalMasterProductsCatalogCompanion.insert(
+            id: id,
+            barcode: barcode,
+            gtin: gtin,
+            barcodeNormalized: barcodeNormalized,
+            name: name,
+            productName: productName,
+            normalizedName: normalizedName,
+            brand: brand,
+            manufacturer: manufacturer,
+            categoryName: categoryName,
+            subcategoryName: subcategoryName,
+            packageSize: packageSize,
+            packageUnit: packageUnit,
+            unitType: unitType,
+            hasImage: hasImage,
+            imageThumbUrl: imageThumbUrl,
+            imageHash: imageHash,
+            source: source,
+            verificationStatus: verificationStatus,
+            confidenceScore: confidenceScore,
+            catalogVersion: catalogVersion,
+            syncStatus: syncStatus,
+            localStatus: localStatus,
+            version: version,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            metadataJson: metadataJson,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalMasterProductsCatalogTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalMasterProductsCatalogTable,
+        LocalMasterProductsCatalogData,
+        $$LocalMasterProductsCatalogTableFilterComposer,
+        $$LocalMasterProductsCatalogTableOrderingComposer,
+        $$LocalMasterProductsCatalogTableAnnotationComposer,
+        $$LocalMasterProductsCatalogTableCreateCompanionBuilder,
+        $$LocalMasterProductsCatalogTableUpdateCompanionBuilder,
+        (
+          LocalMasterProductsCatalogData,
+          BaseReferences<_$AppDatabase, $LocalMasterProductsCatalogTable,
+              LocalMasterProductsCatalogData>
+        ),
+        LocalMasterProductsCatalogData,
+        PrefetchHooks Function()>;
+typedef $$LocalProductBarcodesTableCreateCompanionBuilder
+    = LocalProductBarcodesCompanion Function({
+  required String id,
+  required String scope,
+  Value<String?> businessId,
+  Value<String?> productId,
+  Value<String?> masterProductId,
+  required String barcode,
+  required String barcodeNormalized,
+  Value<String?> barcodeType,
+  Value<bool> isPrimary,
+  Value<String> status,
+  Value<String?> source,
+  Value<double?> confidenceScore,
+  Value<String> syncStatus,
+  Value<String> localStatus,
+  Value<int> version,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<String?> metadataJson,
+  Value<int> rowid,
+});
+typedef $$LocalProductBarcodesTableUpdateCompanionBuilder
+    = LocalProductBarcodesCompanion Function({
+  Value<String> id,
+  Value<String> scope,
+  Value<String?> businessId,
+  Value<String?> productId,
+  Value<String?> masterProductId,
+  Value<String> barcode,
+  Value<String> barcodeNormalized,
+  Value<String?> barcodeType,
+  Value<bool> isPrimary,
+  Value<String> status,
+  Value<String?> source,
+  Value<double?> confidenceScore,
+  Value<String> syncStatus,
+  Value<String> localStatus,
+  Value<int> version,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<String?> metadataJson,
+  Value<int> rowid,
+});
+
+class $$LocalProductBarcodesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalProductBarcodesTable> {
+  $$LocalProductBarcodesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get scope => $composableBuilder(
+      column: $table.scope, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcodeType => $composableBuilder(
+      column: $table.barcodeType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isPrimary => $composableBuilder(
+      column: $table.isPrimary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalProductBarcodesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalProductBarcodesTable> {
+  $$LocalProductBarcodesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get scope => $composableBuilder(
+      column: $table.scope, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcodeType => $composableBuilder(
+      column: $table.barcodeType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isPrimary => $composableBuilder(
+      column: $table.isPrimary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalProductBarcodesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalProductBarcodesTable> {
+  $$LocalProductBarcodesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get scope =>
+      $composableBuilder(column: $table.scope, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId, builder: (column) => column);
+
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized, builder: (column) => column);
+
+  GeneratedColumn<String> get barcodeType => $composableBuilder(
+      column: $table.barcodeType, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPrimary =>
+      $composableBuilder(column: $table.isPrimary, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+}
+
+class $$LocalProductBarcodesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalProductBarcodesTable,
+    LocalProductBarcode,
+    $$LocalProductBarcodesTableFilterComposer,
+    $$LocalProductBarcodesTableOrderingComposer,
+    $$LocalProductBarcodesTableAnnotationComposer,
+    $$LocalProductBarcodesTableCreateCompanionBuilder,
+    $$LocalProductBarcodesTableUpdateCompanionBuilder,
+    (
+      LocalProductBarcode,
+      BaseReferences<_$AppDatabase, $LocalProductBarcodesTable,
+          LocalProductBarcode>
+    ),
+    LocalProductBarcode,
+    PrefetchHooks Function()> {
+  $$LocalProductBarcodesTableTableManager(
+      _$AppDatabase db, $LocalProductBarcodesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalProductBarcodesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalProductBarcodesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalProductBarcodesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> scope = const Value.absent(),
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> productId = const Value.absent(),
+            Value<String?> masterProductId = const Value.absent(),
+            Value<String> barcode = const Value.absent(),
+            Value<String> barcodeNormalized = const Value.absent(),
+            Value<String?> barcodeType = const Value.absent(),
+            Value<bool> isPrimary = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> source = const Value.absent(),
+            Value<double?> confidenceScore = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalProductBarcodesCompanion(
+            id: id,
+            scope: scope,
+            businessId: businessId,
+            productId: productId,
+            masterProductId: masterProductId,
+            barcode: barcode,
+            barcodeNormalized: barcodeNormalized,
+            barcodeType: barcodeType,
+            isPrimary: isPrimary,
+            status: status,
+            source: source,
+            confidenceScore: confidenceScore,
+            syncStatus: syncStatus,
+            localStatus: localStatus,
+            version: version,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            metadataJson: metadataJson,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String scope,
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> productId = const Value.absent(),
+            Value<String?> masterProductId = const Value.absent(),
+            required String barcode,
+            required String barcodeNormalized,
+            Value<String?> barcodeType = const Value.absent(),
+            Value<bool> isPrimary = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> source = const Value.absent(),
+            Value<double?> confidenceScore = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalProductBarcodesCompanion.insert(
+            id: id,
+            scope: scope,
+            businessId: businessId,
+            productId: productId,
+            masterProductId: masterProductId,
+            barcode: barcode,
+            barcodeNormalized: barcodeNormalized,
+            barcodeType: barcodeType,
+            isPrimary: isPrimary,
+            status: status,
+            source: source,
+            confidenceScore: confidenceScore,
+            syncStatus: syncStatus,
+            localStatus: localStatus,
+            version: version,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            metadataJson: metadataJson,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalProductBarcodesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalProductBarcodesTable,
+        LocalProductBarcode,
+        $$LocalProductBarcodesTableFilterComposer,
+        $$LocalProductBarcodesTableOrderingComposer,
+        $$LocalProductBarcodesTableAnnotationComposer,
+        $$LocalProductBarcodesTableCreateCompanionBuilder,
+        $$LocalProductBarcodesTableUpdateCompanionBuilder,
+        (
+          LocalProductBarcode,
+          BaseReferences<_$AppDatabase, $LocalProductBarcodesTable,
+              LocalProductBarcode>
+        ),
+        LocalProductBarcode,
+        PrefetchHooks Function()>;
+typedef $$LocalCatalogSyncStateTableCreateCompanionBuilder
+    = LocalCatalogSyncStateCompanion Function({
+  required String id,
+  required String businessId,
+  Value<DateTime?> lastCatalogPullAt,
+  Value<DateTime?> lastServerTime,
+  Value<DateTime?> lastSinceUpdatedAt,
+  Value<int?> lastCatalogVersion,
+  Value<String?> lastPageToken,
+  Value<bool> isSyncing,
+  Value<String?> lastError,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$LocalCatalogSyncStateTableUpdateCompanionBuilder
+    = LocalCatalogSyncStateCompanion Function({
+  Value<String> id,
+  Value<String> businessId,
+  Value<DateTime?> lastCatalogPullAt,
+  Value<DateTime?> lastServerTime,
+  Value<DateTime?> lastSinceUpdatedAt,
+  Value<int?> lastCatalogVersion,
+  Value<String?> lastPageToken,
+  Value<bool> isSyncing,
+  Value<String?> lastError,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$LocalCatalogSyncStateTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalCatalogSyncStateTable> {
+  $$LocalCatalogSyncStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastCatalogPullAt => $composableBuilder(
+      column: $table.lastCatalogPullAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastServerTime => $composableBuilder(
+      column: $table.lastServerTime,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSinceUpdatedAt => $composableBuilder(
+      column: $table.lastSinceUpdatedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get lastCatalogVersion => $composableBuilder(
+      column: $table.lastCatalogVersion,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastPageToken => $composableBuilder(
+      column: $table.lastPageToken, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSyncing => $composableBuilder(
+      column: $table.isSyncing, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalCatalogSyncStateTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalCatalogSyncStateTable> {
+  $$LocalCatalogSyncStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastCatalogPullAt => $composableBuilder(
+      column: $table.lastCatalogPullAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastServerTime => $composableBuilder(
+      column: $table.lastServerTime,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSinceUpdatedAt => $composableBuilder(
+      column: $table.lastSinceUpdatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get lastCatalogVersion => $composableBuilder(
+      column: $table.lastCatalogVersion,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastPageToken => $composableBuilder(
+      column: $table.lastPageToken,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSyncing => $composableBuilder(
+      column: $table.isSyncing, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalCatalogSyncStateTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalCatalogSyncStateTable> {
+  $$LocalCatalogSyncStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastCatalogPullAt => $composableBuilder(
+      column: $table.lastCatalogPullAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastServerTime => $composableBuilder(
+      column: $table.lastServerTime, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSinceUpdatedAt => $composableBuilder(
+      column: $table.lastSinceUpdatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get lastCatalogVersion => $composableBuilder(
+      column: $table.lastCatalogVersion, builder: (column) => column);
+
+  GeneratedColumn<String> get lastPageToken => $composableBuilder(
+      column: $table.lastPageToken, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSyncing =>
+      $composableBuilder(column: $table.isSyncing, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalCatalogSyncStateTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalCatalogSyncStateTable,
+    LocalCatalogSyncStateData,
+    $$LocalCatalogSyncStateTableFilterComposer,
+    $$LocalCatalogSyncStateTableOrderingComposer,
+    $$LocalCatalogSyncStateTableAnnotationComposer,
+    $$LocalCatalogSyncStateTableCreateCompanionBuilder,
+    $$LocalCatalogSyncStateTableUpdateCompanionBuilder,
+    (
+      LocalCatalogSyncStateData,
+      BaseReferences<_$AppDatabase, $LocalCatalogSyncStateTable,
+          LocalCatalogSyncStateData>
+    ),
+    LocalCatalogSyncStateData,
+    PrefetchHooks Function()> {
+  $$LocalCatalogSyncStateTableTableManager(
+      _$AppDatabase db, $LocalCatalogSyncStateTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalCatalogSyncStateTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalCatalogSyncStateTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalCatalogSyncStateTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<DateTime?> lastCatalogPullAt = const Value.absent(),
+            Value<DateTime?> lastServerTime = const Value.absent(),
+            Value<DateTime?> lastSinceUpdatedAt = const Value.absent(),
+            Value<int?> lastCatalogVersion = const Value.absent(),
+            Value<String?> lastPageToken = const Value.absent(),
+            Value<bool> isSyncing = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalCatalogSyncStateCompanion(
+            id: id,
+            businessId: businessId,
+            lastCatalogPullAt: lastCatalogPullAt,
+            lastServerTime: lastServerTime,
+            lastSinceUpdatedAt: lastSinceUpdatedAt,
+            lastCatalogVersion: lastCatalogVersion,
+            lastPageToken: lastPageToken,
+            isSyncing: isSyncing,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String businessId,
+            Value<DateTime?> lastCatalogPullAt = const Value.absent(),
+            Value<DateTime?> lastServerTime = const Value.absent(),
+            Value<DateTime?> lastSinceUpdatedAt = const Value.absent(),
+            Value<int?> lastCatalogVersion = const Value.absent(),
+            Value<String?> lastPageToken = const Value.absent(),
+            Value<bool> isSyncing = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalCatalogSyncStateCompanion.insert(
+            id: id,
+            businessId: businessId,
+            lastCatalogPullAt: lastCatalogPullAt,
+            lastServerTime: lastServerTime,
+            lastSinceUpdatedAt: lastSinceUpdatedAt,
+            lastCatalogVersion: lastCatalogVersion,
+            lastPageToken: lastPageToken,
+            isSyncing: isSyncing,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalCatalogSyncStateTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalCatalogSyncStateTable,
+        LocalCatalogSyncStateData,
+        $$LocalCatalogSyncStateTableFilterComposer,
+        $$LocalCatalogSyncStateTableOrderingComposer,
+        $$LocalCatalogSyncStateTableAnnotationComposer,
+        $$LocalCatalogSyncStateTableCreateCompanionBuilder,
+        $$LocalCatalogSyncStateTableUpdateCompanionBuilder,
+        (
+          LocalCatalogSyncStateData,
+          BaseReferences<_$AppDatabase, $LocalCatalogSyncStateTable,
+              LocalCatalogSyncStateData>
+        ),
+        LocalCatalogSyncStateData,
+        PrefetchHooks Function()>;
+typedef $$LocalCatalogContributionQueueTableCreateCompanionBuilder
+    = LocalCatalogContributionQueueCompanion Function({
+  required String id,
+  required String businessId,
+  Value<String?> branchId,
+  Value<String?> localProductId,
+  Value<String?> masterProductId,
+  required String contributionType,
+  Value<String?> barcode,
+  Value<String?> barcodeNormalized,
+  Value<String?> barcodeType,
+  Value<String?> suggestedName,
+  Value<String?> suggestedBrand,
+  Value<String?> suggestedManufacturer,
+  Value<String?> suggestedCategoryName,
+  Value<String?> suggestedSubcategoryName,
+  Value<double?> suggestedPackageSize,
+  Value<String?> suggestedPackageUnit,
+  Value<String?> suggestedUnitType,
+  Value<String?> suggestedImageUrl,
+  Value<String?> suggestedImageThumbUrl,
+  Value<String?> suggestedImageHash,
+  Value<String> source,
+  Value<double?> confidenceScore,
+  Value<String?> metadataJson,
+  Value<String> localStatus,
+  Value<String?> serverContributionId,
+  Value<int> retryCount,
+  Value<String?> lastError,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+typedef $$LocalCatalogContributionQueueTableUpdateCompanionBuilder
+    = LocalCatalogContributionQueueCompanion Function({
+  Value<String> id,
+  Value<String> businessId,
+  Value<String?> branchId,
+  Value<String?> localProductId,
+  Value<String?> masterProductId,
+  Value<String> contributionType,
+  Value<String?> barcode,
+  Value<String?> barcodeNormalized,
+  Value<String?> barcodeType,
+  Value<String?> suggestedName,
+  Value<String?> suggestedBrand,
+  Value<String?> suggestedManufacturer,
+  Value<String?> suggestedCategoryName,
+  Value<String?> suggestedSubcategoryName,
+  Value<double?> suggestedPackageSize,
+  Value<String?> suggestedPackageUnit,
+  Value<String?> suggestedUnitType,
+  Value<String?> suggestedImageUrl,
+  Value<String?> suggestedImageThumbUrl,
+  Value<String?> suggestedImageHash,
+  Value<String> source,
+  Value<double?> confidenceScore,
+  Value<String?> metadataJson,
+  Value<String> localStatus,
+  Value<String?> serverContributionId,
+  Value<int> retryCount,
+  Value<String?> lastError,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+
+class $$LocalCatalogContributionQueueTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalCatalogContributionQueueTable> {
+  $$LocalCatalogContributionQueueTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localProductId => $composableBuilder(
+      column: $table.localProductId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get contributionType => $composableBuilder(
+      column: $table.contributionType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcodeType => $composableBuilder(
+      column: $table.barcodeType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedName => $composableBuilder(
+      column: $table.suggestedName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedBrand => $composableBuilder(
+      column: $table.suggestedBrand,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedManufacturer => $composableBuilder(
+      column: $table.suggestedManufacturer,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedCategoryName => $composableBuilder(
+      column: $table.suggestedCategoryName,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedSubcategoryName => $composableBuilder(
+      column: $table.suggestedSubcategoryName,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get suggestedPackageSize => $composableBuilder(
+      column: $table.suggestedPackageSize,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedPackageUnit => $composableBuilder(
+      column: $table.suggestedPackageUnit,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedUnitType => $composableBuilder(
+      column: $table.suggestedUnitType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedImageUrl => $composableBuilder(
+      column: $table.suggestedImageUrl,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedImageThumbUrl => $composableBuilder(
+      column: $table.suggestedImageThumbUrl,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suggestedImageHash => $composableBuilder(
+      column: $table.suggestedImageHash,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get serverContributionId => $composableBuilder(
+      column: $table.serverContributionId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalCatalogContributionQueueTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalCatalogContributionQueueTable> {
+  $$LocalCatalogContributionQueueTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localProductId => $composableBuilder(
+      column: $table.localProductId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get contributionType => $composableBuilder(
+      column: $table.contributionType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcodeType => $composableBuilder(
+      column: $table.barcodeType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedName => $composableBuilder(
+      column: $table.suggestedName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedBrand => $composableBuilder(
+      column: $table.suggestedBrand,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedManufacturer => $composableBuilder(
+      column: $table.suggestedManufacturer,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedCategoryName => $composableBuilder(
+      column: $table.suggestedCategoryName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedSubcategoryName => $composableBuilder(
+      column: $table.suggestedSubcategoryName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get suggestedPackageSize => $composableBuilder(
+      column: $table.suggestedPackageSize,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedPackageUnit => $composableBuilder(
+      column: $table.suggestedPackageUnit,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedUnitType => $composableBuilder(
+      column: $table.suggestedUnitType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedImageUrl => $composableBuilder(
+      column: $table.suggestedImageUrl,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedImageThumbUrl => $composableBuilder(
+      column: $table.suggestedImageThumbUrl,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suggestedImageHash => $composableBuilder(
+      column: $table.suggestedImageHash,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get serverContributionId => $composableBuilder(
+      column: $table.serverContributionId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalCatalogContributionQueueTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalCatalogContributionQueueTable> {
+  $$LocalCatalogContributionQueueTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get localProductId => $composableBuilder(
+      column: $table.localProductId, builder: (column) => column);
+
+  GeneratedColumn<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId, builder: (column) => column);
+
+  GeneratedColumn<String> get contributionType => $composableBuilder(
+      column: $table.contributionType, builder: (column) => column);
+
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get barcodeNormalized => $composableBuilder(
+      column: $table.barcodeNormalized, builder: (column) => column);
+
+  GeneratedColumn<String> get barcodeType => $composableBuilder(
+      column: $table.barcodeType, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedName => $composableBuilder(
+      column: $table.suggestedName, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedBrand => $composableBuilder(
+      column: $table.suggestedBrand, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedManufacturer => $composableBuilder(
+      column: $table.suggestedManufacturer, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedCategoryName => $composableBuilder(
+      column: $table.suggestedCategoryName, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedSubcategoryName => $composableBuilder(
+      column: $table.suggestedSubcategoryName, builder: (column) => column);
+
+  GeneratedColumn<double> get suggestedPackageSize => $composableBuilder(
+      column: $table.suggestedPackageSize, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedPackageUnit => $composableBuilder(
+      column: $table.suggestedPackageUnit, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedUnitType => $composableBuilder(
+      column: $table.suggestedUnitType, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedImageUrl => $composableBuilder(
+      column: $table.suggestedImageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedImageThumbUrl => $composableBuilder(
+      column: $table.suggestedImageThumbUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get suggestedImageHash => $composableBuilder(
+      column: $table.suggestedImageHash, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<double> get confidenceScore => $composableBuilder(
+      column: $table.confidenceScore, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get serverContributionId => $composableBuilder(
+      column: $table.serverContributionId, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$LocalCatalogContributionQueueTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalCatalogContributionQueueTable,
+    LocalCatalogContributionQueueData,
+    $$LocalCatalogContributionQueueTableFilterComposer,
+    $$LocalCatalogContributionQueueTableOrderingComposer,
+    $$LocalCatalogContributionQueueTableAnnotationComposer,
+    $$LocalCatalogContributionQueueTableCreateCompanionBuilder,
+    $$LocalCatalogContributionQueueTableUpdateCompanionBuilder,
+    (
+      LocalCatalogContributionQueueData,
+      BaseReferences<_$AppDatabase, $LocalCatalogContributionQueueTable,
+          LocalCatalogContributionQueueData>
+    ),
+    LocalCatalogContributionQueueData,
+    PrefetchHooks Function()> {
+  $$LocalCatalogContributionQueueTableTableManager(
+      _$AppDatabase db, $LocalCatalogContributionQueueTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalCatalogContributionQueueTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalCatalogContributionQueueTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalCatalogContributionQueueTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> localProductId = const Value.absent(),
+            Value<String?> masterProductId = const Value.absent(),
+            Value<String> contributionType = const Value.absent(),
+            Value<String?> barcode = const Value.absent(),
+            Value<String?> barcodeNormalized = const Value.absent(),
+            Value<String?> barcodeType = const Value.absent(),
+            Value<String?> suggestedName = const Value.absent(),
+            Value<String?> suggestedBrand = const Value.absent(),
+            Value<String?> suggestedManufacturer = const Value.absent(),
+            Value<String?> suggestedCategoryName = const Value.absent(),
+            Value<String?> suggestedSubcategoryName = const Value.absent(),
+            Value<double?> suggestedPackageSize = const Value.absent(),
+            Value<String?> suggestedPackageUnit = const Value.absent(),
+            Value<String?> suggestedUnitType = const Value.absent(),
+            Value<String?> suggestedImageUrl = const Value.absent(),
+            Value<String?> suggestedImageThumbUrl = const Value.absent(),
+            Value<String?> suggestedImageHash = const Value.absent(),
+            Value<String> source = const Value.absent(),
+            Value<double?> confidenceScore = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<String?> serverContributionId = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalCatalogContributionQueueCompanion(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            localProductId: localProductId,
+            masterProductId: masterProductId,
+            contributionType: contributionType,
+            barcode: barcode,
+            barcodeNormalized: barcodeNormalized,
+            barcodeType: barcodeType,
+            suggestedName: suggestedName,
+            suggestedBrand: suggestedBrand,
+            suggestedManufacturer: suggestedManufacturer,
+            suggestedCategoryName: suggestedCategoryName,
+            suggestedSubcategoryName: suggestedSubcategoryName,
+            suggestedPackageSize: suggestedPackageSize,
+            suggestedPackageUnit: suggestedPackageUnit,
+            suggestedUnitType: suggestedUnitType,
+            suggestedImageUrl: suggestedImageUrl,
+            suggestedImageThumbUrl: suggestedImageThumbUrl,
+            suggestedImageHash: suggestedImageHash,
+            source: source,
+            confidenceScore: confidenceScore,
+            metadataJson: metadataJson,
+            localStatus: localStatus,
+            serverContributionId: serverContributionId,
+            retryCount: retryCount,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String businessId,
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> localProductId = const Value.absent(),
+            Value<String?> masterProductId = const Value.absent(),
+            required String contributionType,
+            Value<String?> barcode = const Value.absent(),
+            Value<String?> barcodeNormalized = const Value.absent(),
+            Value<String?> barcodeType = const Value.absent(),
+            Value<String?> suggestedName = const Value.absent(),
+            Value<String?> suggestedBrand = const Value.absent(),
+            Value<String?> suggestedManufacturer = const Value.absent(),
+            Value<String?> suggestedCategoryName = const Value.absent(),
+            Value<String?> suggestedSubcategoryName = const Value.absent(),
+            Value<double?> suggestedPackageSize = const Value.absent(),
+            Value<String?> suggestedPackageUnit = const Value.absent(),
+            Value<String?> suggestedUnitType = const Value.absent(),
+            Value<String?> suggestedImageUrl = const Value.absent(),
+            Value<String?> suggestedImageThumbUrl = const Value.absent(),
+            Value<String?> suggestedImageHash = const Value.absent(),
+            Value<String> source = const Value.absent(),
+            Value<double?> confidenceScore = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<String?> serverContributionId = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalCatalogContributionQueueCompanion.insert(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            localProductId: localProductId,
+            masterProductId: masterProductId,
+            contributionType: contributionType,
+            barcode: barcode,
+            barcodeNormalized: barcodeNormalized,
+            barcodeType: barcodeType,
+            suggestedName: suggestedName,
+            suggestedBrand: suggestedBrand,
+            suggestedManufacturer: suggestedManufacturer,
+            suggestedCategoryName: suggestedCategoryName,
+            suggestedSubcategoryName: suggestedSubcategoryName,
+            suggestedPackageSize: suggestedPackageSize,
+            suggestedPackageUnit: suggestedPackageUnit,
+            suggestedUnitType: suggestedUnitType,
+            suggestedImageUrl: suggestedImageUrl,
+            suggestedImageThumbUrl: suggestedImageThumbUrl,
+            suggestedImageHash: suggestedImageHash,
+            source: source,
+            confidenceScore: confidenceScore,
+            metadataJson: metadataJson,
+            localStatus: localStatus,
+            serverContributionId: serverContributionId,
+            retryCount: retryCount,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalCatalogContributionQueueTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalCatalogContributionQueueTable,
+        LocalCatalogContributionQueueData,
+        $$LocalCatalogContributionQueueTableFilterComposer,
+        $$LocalCatalogContributionQueueTableOrderingComposer,
+        $$LocalCatalogContributionQueueTableAnnotationComposer,
+        $$LocalCatalogContributionQueueTableCreateCompanionBuilder,
+        $$LocalCatalogContributionQueueTableUpdateCompanionBuilder,
+        (
+          LocalCatalogContributionQueueData,
+          BaseReferences<_$AppDatabase, $LocalCatalogContributionQueueTable,
+              LocalCatalogContributionQueueData>
+        ),
+        LocalCatalogContributionQueueData,
+        PrefetchHooks Function()>;
+typedef $$LocalSyncBatchesTableCreateCompanionBuilder
+    = LocalSyncBatchesCompanion Function({
+  required String id,
+  Value<String?> serverSyncBatchId,
+  required String clientBatchId,
+  required String businessId,
+  Value<String?> branchId,
+  Value<String?> appDeviceId,
+  Value<String?> profileId,
+  required String domain,
+  Value<String> direction,
+  Value<String> status,
+  Value<int> mutationCount,
+  Value<int> appliedCount,
+  Value<int> skippedCount,
+  Value<int> conflictCount,
+  Value<int> errorCount,
+  Value<String?> metadataJson,
+  Value<String?> lastError,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> uploadedAt,
+  Value<int> rowid,
+});
+typedef $$LocalSyncBatchesTableUpdateCompanionBuilder
+    = LocalSyncBatchesCompanion Function({
+  Value<String> id,
+  Value<String?> serverSyncBatchId,
+  Value<String> clientBatchId,
+  Value<String> businessId,
+  Value<String?> branchId,
+  Value<String?> appDeviceId,
+  Value<String?> profileId,
+  Value<String> domain,
+  Value<String> direction,
+  Value<String> status,
+  Value<int> mutationCount,
+  Value<int> appliedCount,
+  Value<int> skippedCount,
+  Value<int> conflictCount,
+  Value<int> errorCount,
+  Value<String?> metadataJson,
+  Value<String?> lastError,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> uploadedAt,
+  Value<int> rowid,
+});
+
+class $$LocalSyncBatchesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalSyncBatchesTable> {
+  $$LocalSyncBatchesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get serverSyncBatchId => $composableBuilder(
+      column: $table.serverSyncBatchId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clientBatchId => $composableBuilder(
+      column: $table.clientBatchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get domain => $composableBuilder(
+      column: $table.domain, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get direction => $composableBuilder(
+      column: $table.direction, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get mutationCount => $composableBuilder(
+      column: $table.mutationCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get appliedCount => $composableBuilder(
+      column: $table.appliedCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get skippedCount => $composableBuilder(
+      column: $table.skippedCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get conflictCount => $composableBuilder(
+      column: $table.conflictCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get errorCount => $composableBuilder(
+      column: $table.errorCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get uploadedAt => $composableBuilder(
+      column: $table.uploadedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalSyncBatchesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalSyncBatchesTable> {
+  $$LocalSyncBatchesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get serverSyncBatchId => $composableBuilder(
+      column: $table.serverSyncBatchId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clientBatchId => $composableBuilder(
+      column: $table.clientBatchId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+      column: $table.domain, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get direction => $composableBuilder(
+      column: $table.direction, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get mutationCount => $composableBuilder(
+      column: $table.mutationCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get appliedCount => $composableBuilder(
+      column: $table.appliedCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get skippedCount => $composableBuilder(
+      column: $table.skippedCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get conflictCount => $composableBuilder(
+      column: $table.conflictCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get errorCount => $composableBuilder(
+      column: $table.errorCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get uploadedAt => $composableBuilder(
+      column: $table.uploadedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalSyncBatchesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalSyncBatchesTable> {
+  $$LocalSyncBatchesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get serverSyncBatchId => $composableBuilder(
+      column: $table.serverSyncBatchId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientBatchId => $composableBuilder(
+      column: $table.clientBatchId, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<String> get direction =>
+      $composableBuilder(column: $table.direction, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get mutationCount => $composableBuilder(
+      column: $table.mutationCount, builder: (column) => column);
+
+  GeneratedColumn<int> get appliedCount => $composableBuilder(
+      column: $table.appliedCount, builder: (column) => column);
+
+  GeneratedColumn<int> get skippedCount => $composableBuilder(
+      column: $table.skippedCount, builder: (column) => column);
+
+  GeneratedColumn<int> get conflictCount => $composableBuilder(
+      column: $table.conflictCount, builder: (column) => column);
+
+  GeneratedColumn<int> get errorCount => $composableBuilder(
+      column: $table.errorCount, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get uploadedAt => $composableBuilder(
+      column: $table.uploadedAt, builder: (column) => column);
+}
+
+class $$LocalSyncBatchesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalSyncBatchesTable,
+    LocalSyncBatche,
+    $$LocalSyncBatchesTableFilterComposer,
+    $$LocalSyncBatchesTableOrderingComposer,
+    $$LocalSyncBatchesTableAnnotationComposer,
+    $$LocalSyncBatchesTableCreateCompanionBuilder,
+    $$LocalSyncBatchesTableUpdateCompanionBuilder,
+    (
+      LocalSyncBatche,
+      BaseReferences<_$AppDatabase, $LocalSyncBatchesTable, LocalSyncBatche>
+    ),
+    LocalSyncBatche,
+    PrefetchHooks Function()> {
+  $$LocalSyncBatchesTableTableManager(
+      _$AppDatabase db, $LocalSyncBatchesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalSyncBatchesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalSyncBatchesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalSyncBatchesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String?> serverSyncBatchId = const Value.absent(),
+            Value<String> clientBatchId = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> appDeviceId = const Value.absent(),
+            Value<String?> profileId = const Value.absent(),
+            Value<String> domain = const Value.absent(),
+            Value<String> direction = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> mutationCount = const Value.absent(),
+            Value<int> appliedCount = const Value.absent(),
+            Value<int> skippedCount = const Value.absent(),
+            Value<int> conflictCount = const Value.absent(),
+            Value<int> errorCount = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> uploadedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalSyncBatchesCompanion(
+            id: id,
+            serverSyncBatchId: serverSyncBatchId,
+            clientBatchId: clientBatchId,
+            businessId: businessId,
+            branchId: branchId,
+            appDeviceId: appDeviceId,
+            profileId: profileId,
+            domain: domain,
+            direction: direction,
+            status: status,
+            mutationCount: mutationCount,
+            appliedCount: appliedCount,
+            skippedCount: skippedCount,
+            conflictCount: conflictCount,
+            errorCount: errorCount,
+            metadataJson: metadataJson,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            uploadedAt: uploadedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String?> serverSyncBatchId = const Value.absent(),
+            required String clientBatchId,
+            required String businessId,
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> appDeviceId = const Value.absent(),
+            Value<String?> profileId = const Value.absent(),
+            required String domain,
+            Value<String> direction = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> mutationCount = const Value.absent(),
+            Value<int> appliedCount = const Value.absent(),
+            Value<int> skippedCount = const Value.absent(),
+            Value<int> conflictCount = const Value.absent(),
+            Value<int> errorCount = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> uploadedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalSyncBatchesCompanion.insert(
+            id: id,
+            serverSyncBatchId: serverSyncBatchId,
+            clientBatchId: clientBatchId,
+            businessId: businessId,
+            branchId: branchId,
+            appDeviceId: appDeviceId,
+            profileId: profileId,
+            domain: domain,
+            direction: direction,
+            status: status,
+            mutationCount: mutationCount,
+            appliedCount: appliedCount,
+            skippedCount: skippedCount,
+            conflictCount: conflictCount,
+            errorCount: errorCount,
+            metadataJson: metadataJson,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            uploadedAt: uploadedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalSyncBatchesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LocalSyncBatchesTable,
+    LocalSyncBatche,
+    $$LocalSyncBatchesTableFilterComposer,
+    $$LocalSyncBatchesTableOrderingComposer,
+    $$LocalSyncBatchesTableAnnotationComposer,
+    $$LocalSyncBatchesTableCreateCompanionBuilder,
+    $$LocalSyncBatchesTableUpdateCompanionBuilder,
+    (
+      LocalSyncBatche,
+      BaseReferences<_$AppDatabase, $LocalSyncBatchesTable, LocalSyncBatche>
+    ),
+    LocalSyncBatche,
+    PrefetchHooks Function()>;
+typedef $$LocalSyncMutationsTableCreateCompanionBuilder
+    = LocalSyncMutationsCompanion Function({
+  required String id,
+  Value<String?> serverSyncMutationId,
+  Value<String?> localSyncBatchId,
+  Value<String?> clientBatchId,
+  required String clientMutationId,
+  required int clientSequence,
+  required String businessId,
+  Value<String?> branchId,
+  Value<String?> appDeviceId,
+  Value<String?> profileId,
+  required String entityTable,
+  required String entityId,
+  required String operation,
+  required String payloadJson,
+  Value<String?> beforePayloadJson,
+  Value<String?> changedFieldsJson,
+  Value<int?> baseVersion,
+  Value<DateTime?> baseUpdatedAt,
+  required String idempotencyKey,
+  Value<String> status,
+  Value<int> retryCount,
+  Value<String?> lastError,
+  Value<String?> errorCode,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> uploadedAt,
+  Value<DateTime?> resolvedAt,
+  Value<int> rowid,
+});
+typedef $$LocalSyncMutationsTableUpdateCompanionBuilder
+    = LocalSyncMutationsCompanion Function({
+  Value<String> id,
+  Value<String?> serverSyncMutationId,
+  Value<String?> localSyncBatchId,
+  Value<String?> clientBatchId,
+  Value<String> clientMutationId,
+  Value<int> clientSequence,
+  Value<String> businessId,
+  Value<String?> branchId,
+  Value<String?> appDeviceId,
+  Value<String?> profileId,
+  Value<String> entityTable,
+  Value<String> entityId,
+  Value<String> operation,
+  Value<String> payloadJson,
+  Value<String?> beforePayloadJson,
+  Value<String?> changedFieldsJson,
+  Value<int?> baseVersion,
+  Value<DateTime?> baseUpdatedAt,
+  Value<String> idempotencyKey,
+  Value<String> status,
+  Value<int> retryCount,
+  Value<String?> lastError,
+  Value<String?> errorCode,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> uploadedAt,
+  Value<DateTime?> resolvedAt,
+  Value<int> rowid,
+});
+
+class $$LocalSyncMutationsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalSyncMutationsTable> {
+  $$LocalSyncMutationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get serverSyncMutationId => $composableBuilder(
+      column: $table.serverSyncMutationId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localSyncBatchId => $composableBuilder(
+      column: $table.localSyncBatchId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clientBatchId => $composableBuilder(
+      column: $table.clientBatchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clientMutationId => $composableBuilder(
+      column: $table.clientMutationId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get clientSequence => $composableBuilder(
+      column: $table.clientSequence,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityTable => $composableBuilder(
+      column: $table.entityTable, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get operation => $composableBuilder(
+      column: $table.operation, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+      column: $table.payloadJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get beforePayloadJson => $composableBuilder(
+      column: $table.beforePayloadJson,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get changedFieldsJson => $composableBuilder(
+      column: $table.changedFieldsJson,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get baseVersion => $composableBuilder(
+      column: $table.baseVersion, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get baseUpdatedAt => $composableBuilder(
+      column: $table.baseUpdatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get errorCode => $composableBuilder(
+      column: $table.errorCode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get uploadedAt => $composableBuilder(
+      column: $table.uploadedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+      column: $table.resolvedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalSyncMutationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalSyncMutationsTable> {
+  $$LocalSyncMutationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get serverSyncMutationId => $composableBuilder(
+      column: $table.serverSyncMutationId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localSyncBatchId => $composableBuilder(
+      column: $table.localSyncBatchId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clientBatchId => $composableBuilder(
+      column: $table.clientBatchId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clientMutationId => $composableBuilder(
+      column: $table.clientMutationId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get clientSequence => $composableBuilder(
+      column: $table.clientSequence,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityTable => $composableBuilder(
+      column: $table.entityTable, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get operation => $composableBuilder(
+      column: $table.operation, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+      column: $table.payloadJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get beforePayloadJson => $composableBuilder(
+      column: $table.beforePayloadJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get changedFieldsJson => $composableBuilder(
+      column: $table.changedFieldsJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get baseVersion => $composableBuilder(
+      column: $table.baseVersion, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get baseUpdatedAt => $composableBuilder(
+      column: $table.baseUpdatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get errorCode => $composableBuilder(
+      column: $table.errorCode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get uploadedAt => $composableBuilder(
+      column: $table.uploadedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+      column: $table.resolvedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalSyncMutationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalSyncMutationsTable> {
+  $$LocalSyncMutationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get serverSyncMutationId => $composableBuilder(
+      column: $table.serverSyncMutationId, builder: (column) => column);
+
+  GeneratedColumn<String> get localSyncBatchId => $composableBuilder(
+      column: $table.localSyncBatchId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientBatchId => $composableBuilder(
+      column: $table.clientBatchId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientMutationId => $composableBuilder(
+      column: $table.clientMutationId, builder: (column) => column);
+
+  GeneratedColumn<int> get clientSequence => $composableBuilder(
+      column: $table.clientSequence, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get entityTable => $composableBuilder(
+      column: $table.entityTable, builder: (column) => column);
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get operation =>
+      $composableBuilder(column: $table.operation, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+      column: $table.payloadJson, builder: (column) => column);
+
+  GeneratedColumn<String> get beforePayloadJson => $composableBuilder(
+      column: $table.beforePayloadJson, builder: (column) => column);
+
+  GeneratedColumn<String> get changedFieldsJson => $composableBuilder(
+      column: $table.changedFieldsJson, builder: (column) => column);
+
+  GeneratedColumn<int> get baseVersion => $composableBuilder(
+      column: $table.baseVersion, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get baseUpdatedAt => $composableBuilder(
+      column: $table.baseUpdatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<String> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get uploadedAt => $composableBuilder(
+      column: $table.uploadedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+      column: $table.resolvedAt, builder: (column) => column);
+}
+
+class $$LocalSyncMutationsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalSyncMutationsTable,
+    LocalSyncMutation,
+    $$LocalSyncMutationsTableFilterComposer,
+    $$LocalSyncMutationsTableOrderingComposer,
+    $$LocalSyncMutationsTableAnnotationComposer,
+    $$LocalSyncMutationsTableCreateCompanionBuilder,
+    $$LocalSyncMutationsTableUpdateCompanionBuilder,
+    (
+      LocalSyncMutation,
+      BaseReferences<_$AppDatabase, $LocalSyncMutationsTable, LocalSyncMutation>
+    ),
+    LocalSyncMutation,
+    PrefetchHooks Function()> {
+  $$LocalSyncMutationsTableTableManager(
+      _$AppDatabase db, $LocalSyncMutationsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalSyncMutationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalSyncMutationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalSyncMutationsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String?> serverSyncMutationId = const Value.absent(),
+            Value<String?> localSyncBatchId = const Value.absent(),
+            Value<String?> clientBatchId = const Value.absent(),
+            Value<String> clientMutationId = const Value.absent(),
+            Value<int> clientSequence = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> appDeviceId = const Value.absent(),
+            Value<String?> profileId = const Value.absent(),
+            Value<String> entityTable = const Value.absent(),
+            Value<String> entityId = const Value.absent(),
+            Value<String> operation = const Value.absent(),
+            Value<String> payloadJson = const Value.absent(),
+            Value<String?> beforePayloadJson = const Value.absent(),
+            Value<String?> changedFieldsJson = const Value.absent(),
+            Value<int?> baseVersion = const Value.absent(),
+            Value<DateTime?> baseUpdatedAt = const Value.absent(),
+            Value<String> idempotencyKey = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<String?> errorCode = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> uploadedAt = const Value.absent(),
+            Value<DateTime?> resolvedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalSyncMutationsCompanion(
+            id: id,
+            serverSyncMutationId: serverSyncMutationId,
+            localSyncBatchId: localSyncBatchId,
+            clientBatchId: clientBatchId,
+            clientMutationId: clientMutationId,
+            clientSequence: clientSequence,
+            businessId: businessId,
+            branchId: branchId,
+            appDeviceId: appDeviceId,
+            profileId: profileId,
+            entityTable: entityTable,
+            entityId: entityId,
+            operation: operation,
+            payloadJson: payloadJson,
+            beforePayloadJson: beforePayloadJson,
+            changedFieldsJson: changedFieldsJson,
+            baseVersion: baseVersion,
+            baseUpdatedAt: baseUpdatedAt,
+            idempotencyKey: idempotencyKey,
+            status: status,
+            retryCount: retryCount,
+            lastError: lastError,
+            errorCode: errorCode,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            uploadedAt: uploadedAt,
+            resolvedAt: resolvedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String?> serverSyncMutationId = const Value.absent(),
+            Value<String?> localSyncBatchId = const Value.absent(),
+            Value<String?> clientBatchId = const Value.absent(),
+            required String clientMutationId,
+            required int clientSequence,
+            required String businessId,
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> appDeviceId = const Value.absent(),
+            Value<String?> profileId = const Value.absent(),
+            required String entityTable,
+            required String entityId,
+            required String operation,
+            required String payloadJson,
+            Value<String?> beforePayloadJson = const Value.absent(),
+            Value<String?> changedFieldsJson = const Value.absent(),
+            Value<int?> baseVersion = const Value.absent(),
+            Value<DateTime?> baseUpdatedAt = const Value.absent(),
+            required String idempotencyKey,
+            Value<String> status = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<String?> errorCode = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> uploadedAt = const Value.absent(),
+            Value<DateTime?> resolvedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalSyncMutationsCompanion.insert(
+            id: id,
+            serverSyncMutationId: serverSyncMutationId,
+            localSyncBatchId: localSyncBatchId,
+            clientBatchId: clientBatchId,
+            clientMutationId: clientMutationId,
+            clientSequence: clientSequence,
+            businessId: businessId,
+            branchId: branchId,
+            appDeviceId: appDeviceId,
+            profileId: profileId,
+            entityTable: entityTable,
+            entityId: entityId,
+            operation: operation,
+            payloadJson: payloadJson,
+            beforePayloadJson: beforePayloadJson,
+            changedFieldsJson: changedFieldsJson,
+            baseVersion: baseVersion,
+            baseUpdatedAt: baseUpdatedAt,
+            idempotencyKey: idempotencyKey,
+            status: status,
+            retryCount: retryCount,
+            lastError: lastError,
+            errorCode: errorCode,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            uploadedAt: uploadedAt,
+            resolvedAt: resolvedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalSyncMutationsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LocalSyncMutationsTable,
+    LocalSyncMutation,
+    $$LocalSyncMutationsTableFilterComposer,
+    $$LocalSyncMutationsTableOrderingComposer,
+    $$LocalSyncMutationsTableAnnotationComposer,
+    $$LocalSyncMutationsTableCreateCompanionBuilder,
+    $$LocalSyncMutationsTableUpdateCompanionBuilder,
+    (
+      LocalSyncMutation,
+      BaseReferences<_$AppDatabase, $LocalSyncMutationsTable, LocalSyncMutation>
+    ),
+    LocalSyncMutation,
+    PrefetchHooks Function()>;
 typedef $$BusinessesTableCreateCompanionBuilder = BusinessesCompanion Function({
   required String id,
   required String name,
@@ -9659,6 +19077,22 @@ typedef $$PurchaseItemsTableProcessedTableManager = ProcessedTableManager<
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$LocalMasterProductsCatalogTableTableManager
+      get localMasterProductsCatalog =>
+          $$LocalMasterProductsCatalogTableTableManager(
+              _db, _db.localMasterProductsCatalog);
+  $$LocalProductBarcodesTableTableManager get localProductBarcodes =>
+      $$LocalProductBarcodesTableTableManager(_db, _db.localProductBarcodes);
+  $$LocalCatalogSyncStateTableTableManager get localCatalogSyncState =>
+      $$LocalCatalogSyncStateTableTableManager(_db, _db.localCatalogSyncState);
+  $$LocalCatalogContributionQueueTableTableManager
+      get localCatalogContributionQueue =>
+          $$LocalCatalogContributionQueueTableTableManager(
+              _db, _db.localCatalogContributionQueue);
+  $$LocalSyncBatchesTableTableManager get localSyncBatches =>
+      $$LocalSyncBatchesTableTableManager(_db, _db.localSyncBatches);
+  $$LocalSyncMutationsTableTableManager get localSyncMutations =>
+      $$LocalSyncMutationsTableTableManager(_db, _db.localSyncMutations);
   $$BusinessesTableTableManager get businesses =>
       $$BusinessesTableTableManager(_db, _db.businesses);
   $$ProfilesTableTableManager get profiles =>
