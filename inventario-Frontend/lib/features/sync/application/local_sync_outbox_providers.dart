@@ -5,6 +5,9 @@ import '../../../core/supabase/supabase_client_provider.dart';
 import '../../catalog/application/catalog_local_providers.dart';
 import '../data/datasources/catalog_sync_remote_datasource.dart';
 import '../data/datasources/local_sync_outbox_dao.dart';
+import '../data/datasources/runtime_setup_remote_datasource.dart';
+import 'app_runtime_context_store.dart';
+import 'app_runtime_setup_service.dart';
 import 'catalog_sync_upload_service.dart';
 import 'local_sync_outbox_service.dart';
 import 'scheduled_sync_policy.dart';
@@ -50,5 +53,22 @@ final scheduledSyncServiceProvider = Provider<ScheduledSyncService>((ref) {
     catalogPullService: ref.watch(catalogSyncServiceProvider),
     policy: ref.watch(scheduledSyncPolicyProvider),
     stateStore: ref.watch(scheduledSyncStateStoreProvider),
+  );
+});
+
+final runtimeSetupRemoteDataSourceProvider =
+    Provider<RuntimeSetupRemoteDataSource>((ref) {
+  final supabase = ref.watch(supabaseClientProvider);
+  return RuntimeSetupRemoteDataSource(supabase);
+});
+
+final appRuntimeContextStoreProvider = Provider<AppRuntimeContextStore>((ref) {
+  return AppRuntimeContextStore();
+});
+
+final appRuntimeSetupServiceProvider = Provider<AppRuntimeSetupService>((ref) {
+  return AppRuntimeSetupService(
+    remoteDataSource: ref.watch(runtimeSetupRemoteDataSourceProvider),
+    contextStore: ref.watch(appRuntimeContextStoreProvider),
   );
 });
