@@ -152,6 +152,40 @@ class LocalSyncOutboxService {
     );
   }
 
+  Future<void> markMutationApplied({
+    required String localMutationId,
+    String? serverSyncMutationId,
+  }) {
+    return _dao.markMutationApplied(
+      localMutationId: localMutationId,
+      serverSyncMutationId: serverSyncMutationId,
+    );
+  }
+
+  Future<void> markMutationConflict({
+    required String localMutationId,
+    String? errorCode,
+    String? errorMessage,
+  }) {
+    return _dao.markMutationConflict(
+      localMutationId: localMutationId,
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+    );
+  }
+
+  Future<void> markMutationError({
+    required String localMutationId,
+    String? errorCode,
+    required Object error,
+  }) {
+    return _dao.markMutationError(
+      localMutationId: localMutationId,
+      errorCode: errorCode,
+      error: error,
+    );
+  }
+
   void _validateDomain(String domain) {
     const allowedDomains = {
       'catalog',
