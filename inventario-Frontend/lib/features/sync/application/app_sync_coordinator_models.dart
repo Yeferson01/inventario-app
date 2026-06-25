@@ -31,6 +31,27 @@ class AppSyncCoordinatorInput {
   final Map<String, dynamic>? metadata;
   final DateTime? now;
 
+  AppSyncCoordinatorInput copyWithMetadata(
+    Map<String, dynamic> additionalMetadata,
+  ) {
+    return AppSyncCoordinatorInput(
+      businessId: businessId,
+      branchId: branchId,
+      profileId: profileId,
+      installationId: installationId,
+      isOnline: isOnline,
+      deviceName: deviceName,
+      platform: platform,
+      appVersion: appVersion,
+      osVersion: osVersion,
+      metadata: {
+        if (metadata != null) ...metadata!,
+        ...additionalMetadata,
+      },
+      now: now,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'business_id': businessId,

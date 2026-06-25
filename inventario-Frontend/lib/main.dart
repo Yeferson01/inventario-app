@@ -7,6 +7,7 @@ import 'app/router/app_router.dart';
 import 'app/theme/dark_theme.dart';
 import 'app/theme/light_theme.dart';
 import 'core/config/app_config.dart';
+import 'features/sync/presentation/widgets/app_router_sync_shell_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,11 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp.router(
+          builder: (context, child) {
+            return AppRouterSyncShellGate(
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
           title: appName,
           debugShowCheckedModeBanner: false,
           theme: AppLightTheme.theme,

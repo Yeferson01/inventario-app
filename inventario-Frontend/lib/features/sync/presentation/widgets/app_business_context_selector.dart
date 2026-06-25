@@ -38,7 +38,7 @@ class AppBusinessContextSelector extends ConsumerWidget {
         );
 
         return DropdownButtonFormField<String>(
-          value: _selectedValue(selected, options),
+          initialValue: _selectedValue(selected, options),
           decoration: const InputDecoration(
             labelText: 'Negocio / Sucursal',
           ),
