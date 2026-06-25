@@ -63,26 +63,83 @@ class CreateProductFromMasterInput {
     required this.masterProduct,
     required this.barcodeRecord,
     required this.salePrice,
-    required this.purchasePrice,
+    this.purchasePrice = 0,
+    this.branchId,
+    this.profileId,
+    this.appDeviceId,
+    this.deviceInstallationId,
     this.categoryId,
     this.nameOverride,
     this.description,
-    this.initialStock = 0,
-    this.minimumStock = 0,
     this.unit,
+    this.clientSequenceStart = 1,
   });
 
   final String businessId;
+  final String? branchId;
+  final String? profileId;
+  final String? appDeviceId;
+  final String? deviceInstallationId;
+
   final Map<String, dynamic> masterProduct;
   final Map<String, dynamic> barcodeRecord;
+
   final double salePrice;
   final double purchasePrice;
   final String? categoryId;
   final String? nameOverride;
   final String? description;
-  final int initialStock;
-  final int minimumStock;
   final String? unit;
+
+  final int clientSequenceStart;
+}
+
+class PendingCatalogSyncMutationDraft {
+  const PendingCatalogSyncMutationDraft({
+    required this.clientMutationId,
+    required this.clientSequence,
+    required this.entityTable,
+    required this.entityId,
+    required this.operation,
+    required this.payload,
+    required this.changedFields,
+    required this.idempotencyKey,
+    this.businessId,
+    this.branchId,
+    this.profileId,
+    this.appDeviceId,
+  });
+
+  final String clientMutationId;
+  final int clientSequence;
+  final String entityTable;
+  final String entityId;
+  final String operation;
+  final Map<String, dynamic> payload;
+  final List<String> changedFields;
+  final String idempotencyKey;
+
+  final String? businessId;
+  final String? branchId;
+  final String? profileId;
+  final String? appDeviceId;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'client_mutation_id': clientMutationId,
+      'client_sequence': clientSequence,
+      'entity_table': entityTable,
+      'entity_id': entityId,
+      'operation': operation,
+      'payload': payload,
+      'changed_fields': changedFields,
+      'idempotency_key': idempotencyKey,
+      'business_id': businessId,
+      'branch_id': branchId,
+      'profile_id': profileId,
+      'app_device_id': appDeviceId,
+    };
+  }
 }
 
 class CreatedLocalProductResult {
@@ -93,7 +150,9 @@ class CreatedLocalProductResult {
     required this.barcode,
     required this.barcodeNormalized,
     required this.name,
-    required this.syncStatus,
+    required this.productPayload,
+    required this.businessBarcodePayload,
+    required this.pendingMutations,
   });
 
   final String productId;
@@ -102,7 +161,10 @@ class CreatedLocalProductResult {
   final String barcode;
   final String barcodeNormalized;
   final String name;
-  final String syncStatus;
+
+  final Map<String, dynamic> productPayload;
+  final Map<String, dynamic> businessBarcodePayload;
+  final List<PendingCatalogSyncMutationDraft> pendingMutations;
 
   Map<String, dynamic> toJson() {
     return {
@@ -112,7 +174,10 @@ class CreatedLocalProductResult {
       'barcode': barcode,
       'barcode_normalized': barcodeNormalized,
       'name': name,
-      'sync_status': syncStatus,
+      'product_payload': productPayload,
+      'business_barcode_payload': businessBarcodePayload,
+      'pending_mutations':
+          pendingMutations.map((item) => item.toJson()).toList(),
     };
   }
 }
