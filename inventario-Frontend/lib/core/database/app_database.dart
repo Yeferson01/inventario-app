@@ -509,8 +509,141 @@ class LocalSyncMutations extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+// === 6.18C.17 LOCAL APP CONTEXT TABLES ===
+
+class Branches extends Table {
+  @override
+  String get tableName => 'branches';
+
+  TextColumn get id => text()();
+  TextColumn get businessId =>
+      text().named('business_id').references(Businesses, #id)();
+
+  TextColumn get name => text()();
+  TextColumn get address => text().nullable()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  IntColumn get syncStatus =>
+      integer().withDefault(const Constant(0)).named('sync_status')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Roles extends Table {
+  @override
+  String get tableName => 'roles';
+
+  TextColumn get id => text()();
+  TextColumn get businessId => text().nullable().named('business_id')();
+
+  TextColumn get name => text()();
+  TextColumn get description => text().nullable()();
+  BoolColumn get isSystemRole =>
+      boolean().withDefault(const Constant(false)).named('is_system_role')();
+
+  IntColumn get syncStatus =>
+      integer().withDefault(const Constant(0)).named('sync_status')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Permissions extends Table {
+  @override
+  String get tableName => 'permissions';
+
+  TextColumn get id => text()();
+  TextColumn get key => text()();
+  TextColumn get description => text().nullable()();
+
+  IntColumn get syncStatus =>
+      integer().withDefault(const Constant(0)).named('sync_status')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class RolePermissions extends Table {
+  @override
+  String get tableName => 'role_permissions';
+
+  TextColumn get roleId => text().named('role_id').references(Roles, #id)();
+  TextColumn get permissionId =>
+      text().named('permission_id').references(Permissions, #id)();
+
+  IntColumn get syncStatus =>
+      integer().withDefault(const Constant(0)).named('sync_status')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+
+  @override
+  Set<Column> get primaryKey => {roleId, permissionId};
+}
+
+class BusinessMembers extends Table {
+  @override
+  String get tableName => 'business_members';
+
+  TextColumn get id => text()();
+
+  TextColumn get businessId =>
+      text().named('business_id').references(Businesses, #id)();
+  TextColumn get profileId =>
+      text().named('profile_id').references(Profiles, #id)();
+  TextColumn get branchId =>
+      text().nullable().named('branch_id').references(Branches, #id)();
+  TextColumn get roleId => text().named('role_id').references(Roles, #id)();
+
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  TextColumn get invitedBy => text().nullable().named('invited_by')();
+  DateTimeColumn get invitedAt => dateTime().nullable().named('invited_at')();
+  DateTimeColumn get acceptedAt => dateTime().nullable().named('accepted_at')();
+
+  IntColumn get syncStatus =>
+      integer().withDefault(const Constant(0)).named('sync_status')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
+    Branches,
+    Roles,
+    Permissions,
+    RolePermissions,
+    BusinessMembers,
     LocalMasterProductsCatalog,
     LocalProductBarcodes,
     LocalCatalogSyncState,
@@ -545,14 +678,46 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
+
+  Future<void> _createAppContextIndexes() async {
+    await customStatement(
+      'create index if not exists idx_branches_business_status on branches(business_id, status)',
+    );
+    await customStatement(
+      'create index if not exists idx_business_members_lookup on business_members(business_id, profile_id, branch_id, status)',
+    );
+    await customStatement(
+      'create index if not exists idx_roles_business_name on roles(business_id, name)',
+    );
+    await customStatement(
+      'create unique index if not exists idx_permissions_key on permissions(key)',
+    );
+    await customStatement(
+      'create index if not exists idx_role_permissions_role on role_permissions(role_id)',
+    );
+    await customStatement(
+      'create index if not exists idx_role_permissions_permission on role_permissions(permission_id)',
+    );
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+
+          await _createAppContextIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 3) {
+            await m.createTable(branches);
+            await m.createTable(roles);
+            await m.createTable(permissions);
+            await m.createTable(rolePermissions);
+            await m.createTable(businessMembers);
+            await _createAppContextIndexes();
+          }
+
           // Aquí manejarás tus futuras migraciones de forma estructurada
         },
       );

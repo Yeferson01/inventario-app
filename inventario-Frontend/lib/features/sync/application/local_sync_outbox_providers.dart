@@ -6,6 +6,7 @@ import '../../catalog/application/catalog_local_providers.dart';
 import '../data/datasources/catalog_sync_remote_datasource.dart';
 import '../data/datasources/local_sync_outbox_dao.dart';
 import '../data/datasources/runtime_setup_remote_datasource.dart';
+import 'app_context_service.dart';
 import 'app_runtime_context_store.dart';
 import 'app_runtime_setup_service.dart';
 import 'app_selected_sync_context_store.dart';
@@ -93,5 +94,13 @@ final cashCloseSyncTriggerServiceProvider =
     Provider<CashCloseSyncTriggerService>((ref) {
   return CashCloseSyncTriggerService(
     ref.watch(appSyncCoordinatorServiceProvider),
+  );
+});
+
+final appContextServiceProvider = Provider<AppContextService>((ref) {
+  return AppContextService(
+    database: ref.watch(appDatabaseProvider),
+    selectedContextStore: ref.watch(appSelectedSyncContextStoreProvider),
+    runtimeContextStore: ref.watch(appRuntimeContextStoreProvider),
   );
 });
