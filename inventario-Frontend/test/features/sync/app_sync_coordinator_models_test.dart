@@ -48,9 +48,10 @@ void main() {
       expect(json['did_prepare_runtime'], isFalse);
       expect(json['trigger'], equals('scheduled_1100'));
       expect(json['runtime_context'], isNull);
+      expect(json['operational_context_pull_result'], isNull);
     });
 
-    test('serializes result with runtime context', () {
+    test('serializes result with runtime and operational context', () {
       final result = AppSyncCoordinatorResult(
         didRun: true,
         didPrepareRuntime: true,
@@ -63,6 +64,11 @@ void main() {
           installationId: 'installation-1',
           appDeviceId: 'device-1',
         ),
+        operationalContextPullResult: const {
+          'business_id': 'business-1',
+          'profile_id': 'profile-1',
+          'total_applied': 25,
+        },
         scheduledSyncResult: ScheduledSyncRunResult(
           didRun: true,
           trigger: ScheduledSyncTrigger.cashClose,
@@ -84,6 +90,10 @@ void main() {
       expect(json['did_prepare_runtime'], isTrue);
       expect(json['trigger'], equals('cash_close'));
       expect(json['runtime_context'], isA<Map<String, dynamic>>());
+      expect(
+        json['operational_context_pull_result'],
+        isA<Map<String, dynamic>>(),
+      );
       expect(json['scheduled_sync_result'], isA<Map<String, dynamic>>());
     });
   });

@@ -1,6 +1,7 @@
 import '../../../core/logging/app_logger.dart';
 import 'app_runtime_setup_service.dart';
 import 'app_sync_coordinator_models.dart';
+import 'operational_context_pull_service.dart';
 import 'scheduled_sync_models.dart';
 import 'scheduled_sync_service.dart';
 
@@ -8,11 +9,14 @@ class AppSyncCoordinatorService {
   AppSyncCoordinatorService({
     required AppRuntimeSetupService runtimeSetupService,
     required ScheduledSyncService scheduledSyncService,
+    required OperationalContextPullService operationalContextPullService,
   })  : _runtimeSetupService = runtimeSetupService,
-        _scheduledSyncService = scheduledSyncService;
+        _scheduledSyncService = scheduledSyncService,
+        _operationalContextPullService = operationalContextPullService;
 
   final AppRuntimeSetupService _runtimeSetupService;
   final ScheduledSyncService _scheduledSyncService;
+  final OperationalContextPullService _operationalContextPullService;
 
   Future<AppSyncCoordinatorResult> runScheduledSyncIfDue(
     AppSyncCoordinatorInput input,
@@ -90,6 +94,12 @@ class AppSyncCoordinatorService {
       },
     );
 
+    final operationalContextPullResult =
+        await _pullOperationalContextIfPossible(
+      businessId: runtimeContext.businessId,
+      profileId: runtimeContext.profileId ?? input.profileId,
+    );
+
     final scheduledResult = await _scheduledSyncService.runIfDue(
       businessId: runtimeContext.businessId,
       forcedTrigger: forcedTrigger,
@@ -102,7 +112,30 @@ class AppSyncCoordinatorService {
       trigger: decision.trigger,
       reason: scheduledResult.reason,
       runtimeContext: runtimeContext,
+      operationalContextPullResult: operationalContextPullResult,
       scheduledSyncResult: scheduledResult,
     );
+  }
+
+  Future<Map<String, dynamic>?> _pullOperationalContextIfPossible({
+    required String businessId,
+    required String? profileId,
+  }) async {
+    final effectiveProfileId = profileId?.trim();
+
+    if (effectiveProfileId == null || effectiveProfileId.isEmpty) {
+      AppLogger.info(
+        'Operational context pull skipped: profileId is missing.',
+      );
+
+      return null;
+    }
+
+    final result = await _operationalContextPullService.pullAndApply(
+      businessId: businessId,
+      profileId: effectiveProfileId,
+    );
+
+    return result.toJson();
   }
 }

@@ -55,6 +55,7 @@ class AppSyncCoordinatorResult {
     required this.trigger,
     required this.reason,
     this.runtimeContext,
+    this.operationalContextPullResult,
     this.scheduledSyncResult,
   });
 
@@ -64,6 +65,7 @@ class AppSyncCoordinatorResult {
   final String reason;
 
   final AppRuntimeContext? runtimeContext;
+  final Map<String, dynamic>? operationalContextPullResult;
   final ScheduledSyncRunResult? scheduledSyncResult;
 
   Map<String, dynamic> toJson() {
@@ -73,6 +75,7 @@ class AppSyncCoordinatorResult {
       'trigger': trigger.code,
       'reason': reason,
       'runtime_context': runtimeContext?.toJson(),
+      'operational_context_pull_result': operationalContextPullResult,
       'scheduled_sync_result': scheduledSyncResult?.toJson(),
     };
   }

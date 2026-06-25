@@ -85,6 +85,8 @@ final appSyncCoordinatorServiceProvider =
   return AppSyncCoordinatorService(
     runtimeSetupService: ref.watch(appRuntimeSetupServiceProvider),
     scheduledSyncService: ref.watch(scheduledSyncServiceProvider),
+    operationalContextPullService:
+        ref.watch(operationalContextPullServiceProvider),
   );
 });
 
