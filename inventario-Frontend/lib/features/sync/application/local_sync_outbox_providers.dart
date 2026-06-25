@@ -5,6 +5,8 @@ import '../../../core/supabase/supabase_client_provider.dart';
 import '../../catalog/application/catalog_local_providers.dart';
 import '../data/datasources/catalog_sync_remote_datasource.dart';
 import '../data/datasources/local_sync_outbox_dao.dart';
+import '../data/datasources/operational_context_local_dao.dart';
+import '../data/datasources/operational_context_remote_datasource.dart';
 import '../data/datasources/runtime_setup_remote_datasource.dart';
 import 'app_context_service.dart';
 import 'app_runtime_context_store.dart';
@@ -14,6 +16,7 @@ import 'app_sync_coordinator_service.dart';
 import 'cash_close_sync_trigger_service.dart';
 import 'catalog_sync_upload_service.dart';
 import 'local_sync_outbox_service.dart';
+import 'operational_context_pull_service.dart';
 import 'scheduled_sync_policy.dart';
 import 'scheduled_sync_service.dart';
 import 'scheduled_sync_state_store.dart';
@@ -102,5 +105,25 @@ final appContextServiceProvider = Provider<AppContextService>((ref) {
     database: ref.watch(appDatabaseProvider),
     selectedContextStore: ref.watch(appSelectedSyncContextStoreProvider),
     runtimeContextStore: ref.watch(appRuntimeContextStoreProvider),
+  );
+});
+
+final operationalContextRemoteDataSourceProvider =
+    Provider<OperationalContextRemoteDataSource>((ref) {
+  final supabase = ref.watch(supabaseClientProvider);
+  return OperationalContextRemoteDataSource(supabase);
+});
+
+final operationalContextLocalDaoProvider =
+    Provider<OperationalContextLocalDao>((ref) {
+  final database = ref.watch(appDatabaseProvider);
+  return OperationalContextLocalDao(database);
+});
+
+final operationalContextPullServiceProvider =
+    Provider<OperationalContextPullService>((ref) {
+  return OperationalContextPullService(
+    remoteDataSource: ref.watch(operationalContextRemoteDataSourceProvider),
+    localDao: ref.watch(operationalContextLocalDaoProvider),
   );
 });
