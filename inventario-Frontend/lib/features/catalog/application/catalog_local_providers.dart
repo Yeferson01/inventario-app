@@ -6,6 +6,7 @@ import '../data/datasources/catalog_local_dao.dart';
 import '../data/datasources/catalog_remote_datasource.dart';
 import '../data/repositories/catalog_local_repository.dart';
 import 'catalog_sync_service.dart';
+import 'catalog_barcode_lookup_service.dart';
 
 final catalogLocalDaoProvider = Provider<CatalogLocalDao>((ref) {
   final database = ref.watch(appDatabaseProvider);
@@ -27,5 +28,14 @@ final catalogSyncServiceProvider = Provider<CatalogSyncService>((ref) {
   return CatalogSyncService(
     remoteDataSource: ref.watch(catalogRemoteDataSourceProvider),
     localRepository: ref.watch(catalogLocalRepositoryProvider),
+  );
+});
+
+final catalogBarcodeLookupServiceProvider =
+    Provider<CatalogBarcodeLookupService>((ref) {
+  final repository = ref.watch(catalogLocalRepositoryProvider);
+
+  return CatalogBarcodeLookupService(
+    lookupByBarcode: repository.lookupByBarcode,
   );
 });
