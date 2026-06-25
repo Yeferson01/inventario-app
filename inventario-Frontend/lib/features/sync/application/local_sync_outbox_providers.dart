@@ -8,6 +8,7 @@ import '../data/datasources/local_sync_outbox_dao.dart';
 import '../data/datasources/operational_context_local_dao.dart';
 import '../data/datasources/operational_context_remote_datasource.dart';
 import '../data/datasources/runtime_setup_remote_datasource.dart';
+import 'app_business_selection_service.dart';
 import 'app_context_service.dart';
 import 'app_runtime_context_store.dart';
 import 'app_runtime_setup_service.dart';
@@ -127,5 +128,13 @@ final operationalContextPullServiceProvider =
   return OperationalContextPullService(
     remoteDataSource: ref.watch(operationalContextRemoteDataSourceProvider),
     localDao: ref.watch(operationalContextLocalDaoProvider),
+  );
+});
+
+final appBusinessSelectionServiceProvider =
+    Provider<AppBusinessSelectionService>((ref) {
+  return AppBusinessSelectionService(
+    database: ref.watch(appDatabaseProvider),
+    selectedContextStore: ref.watch(appSelectedSyncContextStoreProvider),
   );
 });
