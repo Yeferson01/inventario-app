@@ -8,7 +8,9 @@ import '../data/datasources/local_sync_outbox_dao.dart';
 import '../data/datasources/runtime_setup_remote_datasource.dart';
 import 'app_runtime_context_store.dart';
 import 'app_runtime_setup_service.dart';
+import 'app_selected_sync_context_store.dart';
 import 'app_sync_coordinator_service.dart';
+import 'cash_close_sync_trigger_service.dart';
 import 'catalog_sync_upload_service.dart';
 import 'local_sync_outbox_service.dart';
 import 'scheduled_sync_policy.dart';
@@ -79,5 +81,17 @@ final appSyncCoordinatorServiceProvider =
   return AppSyncCoordinatorService(
     runtimeSetupService: ref.watch(appRuntimeSetupServiceProvider),
     scheduledSyncService: ref.watch(scheduledSyncServiceProvider),
+  );
+});
+
+final appSelectedSyncContextStoreProvider =
+    Provider<AppSelectedSyncContextStore>((ref) {
+  return AppSelectedSyncContextStore();
+});
+
+final cashCloseSyncTriggerServiceProvider =
+    Provider<CashCloseSyncTriggerService>((ref) {
+  return CashCloseSyncTriggerService(
+    ref.watch(appSyncCoordinatorServiceProvider),
   );
 });
