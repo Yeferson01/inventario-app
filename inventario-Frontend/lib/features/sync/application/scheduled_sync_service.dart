@@ -21,6 +21,20 @@ class ScheduledSyncService {
   final ScheduledSyncPolicy _policy;
   final ScheduledSyncStateStore _stateStore;
 
+  Future<ScheduledSyncDecision> evaluateRunDecision({
+    ScheduledSyncTrigger? forcedTrigger,
+    DateTime? now,
+  }) async {
+    final effectiveNow = now ?? DateTime.now();
+    final completedSlots = await _stateStore.getCompletedSlotKeys();
+
+    return _policy.evaluate(
+      now: effectiveNow,
+      completedSlotKeys: completedSlots,
+      forcedTrigger: forcedTrigger,
+    );
+  }
+
   Future<ScheduledSyncRunResult> runIfDue({
     required String businessId,
     ScheduledSyncTrigger? forcedTrigger,

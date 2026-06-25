@@ -8,6 +8,7 @@ import '../data/datasources/local_sync_outbox_dao.dart';
 import '../data/datasources/runtime_setup_remote_datasource.dart';
 import 'app_runtime_context_store.dart';
 import 'app_runtime_setup_service.dart';
+import 'app_sync_coordinator_service.dart';
 import 'catalog_sync_upload_service.dart';
 import 'local_sync_outbox_service.dart';
 import 'scheduled_sync_policy.dart';
@@ -70,5 +71,13 @@ final appRuntimeSetupServiceProvider = Provider<AppRuntimeSetupService>((ref) {
   return AppRuntimeSetupService(
     remoteDataSource: ref.watch(runtimeSetupRemoteDataSourceProvider),
     contextStore: ref.watch(appRuntimeContextStoreProvider),
+  );
+});
+
+final appSyncCoordinatorServiceProvider =
+    Provider<AppSyncCoordinatorService>((ref) {
+  return AppSyncCoordinatorService(
+    runtimeSetupService: ref.watch(appRuntimeSetupServiceProvider),
+    scheduledSyncService: ref.watch(scheduledSyncServiceProvider),
   );
 });
