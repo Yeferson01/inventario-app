@@ -1,5 +1,3 @@
-import 'package:drift/drift.dart';
-
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/app_uuid.dart';
 import '../../../core/utils/barcode_normalizer.dart';
@@ -270,7 +268,7 @@ class InventoryProductCreationService {
 
     await _db.customStatement(
       sql,
-      columnNames.map((column) => Variable<Object>(filtered[column])).toList(),
+      columnNames.map((column) => filtered[column]).toList(),
     );
   }
 

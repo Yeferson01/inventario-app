@@ -6,6 +6,7 @@ import 'app_e2e_local_flow_models.dart';
 import 'app_installation_id_store.dart';
 import 'app_sync_coordinator_models.dart';
 import 'app_sync_coordinator_service.dart';
+import 'operational_context_pull_service.dart';
 
 class AppE2ELocalFlowService {
   AppE2ELocalFlowService({
@@ -13,15 +14,18 @@ class AppE2ELocalFlowService {
     required AppContextService appContextService,
     required AppSyncCoordinatorService syncCoordinatorService,
     required AppInstallationIdStore installationIdStore,
+    required OperationalContextPullService operationalContextPullService,
   })  : _businessSelectionService = businessSelectionService,
         _appContextService = appContextService,
         _syncCoordinatorService = syncCoordinatorService,
-        _installationIdStore = installationIdStore;
+        _installationIdStore = installationIdStore,
+        _operationalContextPullService = operationalContextPullService;
 
   final AppBusinessSelectionService _businessSelectionService;
   final AppContextService _appContextService;
   final AppSyncCoordinatorService _syncCoordinatorService;
   final AppInstallationIdStore _installationIdStore;
+  final OperationalContextPullService _operationalContextPullService;
 
   Future<AppE2ELocalFlowResult> run(
     AppE2ELocalFlowInput input,
@@ -29,9 +33,49 @@ class AppE2ELocalFlowService {
     final installationId =
         await _installationIdStore.getOrCreateInstallationId();
 
-    final options = await _businessSelectionService.getAvailableContexts(
+    var options = await _businessSelectionService.getAvailableContexts(
       profileId: input.profileId,
     );
+
+    Map<String, dynamic>? preContextPullResult;
+
+    if (options.isEmpty &&
+        input.preferredBusinessId != null &&
+        input.preferredBusinessId!.trim().isNotEmpty) {
+      try {
+        final pullResult = await _operationalContextPullService.pullAndApply(
+          businessId: input.preferredBusinessId!.trim(),
+          profileId: input.profileId,
+        );
+
+        preContextPullResult = pullResult.toJson();
+
+        options = await _businessSelectionService.getAvailableContexts(
+          profileId: input.profileId,
+        );
+      } catch (error, stackTrace) {
+        AppLogger.error(
+          'Pre-context operational pull failed: $error',
+          error: error,
+          stackTrace: stackTrace,
+        );
+
+        return AppE2ELocalFlowResult(
+          installationId: installationId,
+          availableContextCount: 0,
+          didSelectContext: false,
+          didResolveCurrentContext: false,
+          didAttemptManualSync: input.runManualSync,
+          didRunManualSync: false,
+          reason:
+              'No hay contextos locales y falló el pull operativo previo: $error',
+          manualSyncResult: {
+            'pre_context_pull_error': error.toString(),
+            'pre_context_pull_stack_trace': stackTrace.toString(),
+          },
+        );
+      }
+    }
 
     if (options.isEmpty) {
       return AppE2ELocalFlowResult(
@@ -41,7 +85,13 @@ class AppE2ELocalFlowService {
         didResolveCurrentContext: false,
         didAttemptManualSync: input.runManualSync,
         didRunManualSync: false,
-        reason: 'No hay negocios/sucursales disponibles para el perfil actual.',
+        reason: 'No hay negocios/sucursales disponibles para el perfil actual. '
+            'Para una primera prueba real, informa preferredBusinessId.',
+        manualSyncResult: preContextPullResult == null
+            ? null
+            : {
+                'pre_context_pull_result': preContextPullResult,
+              },
       );
     }
 
@@ -108,7 +158,11 @@ class AppE2ELocalFlowService {
           : 'Validación local completada sin ejecutar sync manual.',
       selectedContext: selectedResult,
       currentContext: currentContext,
-      manualSyncResult: manualSyncResult,
+      manualSyncResult: {
+        if (preContextPullResult != null)
+          'pre_context_pull_result': preContextPullResult,
+        if (manualSyncResult != null) 'manual_sync_result': manualSyncResult,
+      },
     );
 
     AppLogger.info(

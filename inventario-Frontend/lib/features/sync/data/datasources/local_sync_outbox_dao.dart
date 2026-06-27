@@ -58,23 +58,23 @@ class LocalSyncOutboxDao {
           updated_at = excluded.updated_at
         ''',
         [
-          Variable<String>(localBatchId),
-          Variable<String>(clientBatchId),
-          Variable<String>(businessId),
-          Variable<String>(branchId),
-          Variable<String>(appDeviceId),
-          Variable<String>(profileId),
-          Variable<String>(domain),
-          const Variable<String>('upload'),
-          const Variable<String>('pending'),
-          Variable<int>(mutations.length),
-          const Variable<int>(0),
-          const Variable<int>(0),
-          const Variable<int>(0),
-          const Variable<int>(0),
-          Variable<String>(metadata == null ? null : jsonEncode(metadata)),
-          Variable<DateTime>(now),
-          Variable<DateTime>(now),
+          localBatchId,
+          clientBatchId,
+          businessId,
+          branchId,
+          appDeviceId,
+          profileId,
+          domain,
+          'upload',
+          'pending',
+          mutations.length,
+          0,
+          0,
+          0,
+          0,
+          metadata == null ? null : jsonEncode(metadata),
+          now,
+          now,
         ],
       );
 
@@ -146,29 +146,29 @@ class LocalSyncOutboxDao {
         updated_at = excluded.updated_at
       ''',
       [
-        Variable<String>(AppUuid.v7()),
-        Variable<String>(localBatchId),
-        Variable<String>(clientBatchId),
-        Variable<String>(mutation.clientMutationId),
-        Variable<int>(mutation.clientSequence),
-        Variable<String>(mutation.businessId ?? fallbackBusinessId),
-        Variable<String>(mutation.branchId ?? fallbackBranchId),
-        Variable<String>(mutation.appDeviceId ?? fallbackAppDeviceId),
-        Variable<String>(mutation.profileId ?? fallbackProfileId),
-        Variable<String>(mutation.entityTable),
-        Variable<String>(mutation.entityId),
-        Variable<String>(mutation.operation),
-        Variable<String>(mutation.payloadJson),
-        Variable<String>(mutation.beforePayloadJson),
-        Variable<String>(mutation.changedFieldsJson),
-        Variable<int>(mutation.baseVersion),
-        Variable<DateTime>(mutation.baseUpdatedAt),
-        Variable<String>(mutation.idempotencyKey),
-        const Variable<String>('pending'),
-        const Variable<int>(0),
-        Variable<String>(mutation.metadataJson),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
+        AppUuid.v7(),
+        localBatchId,
+        clientBatchId,
+        mutation.clientMutationId,
+        mutation.clientSequence,
+        mutation.businessId ?? fallbackBusinessId,
+        mutation.branchId ?? fallbackBranchId,
+        mutation.appDeviceId ?? fallbackAppDeviceId,
+        mutation.profileId ?? fallbackProfileId,
+        mutation.entityTable,
+        mutation.entityId,
+        mutation.operation,
+        mutation.payloadJson,
+        mutation.beforePayloadJson,
+        mutation.changedFieldsJson,
+        mutation.baseVersion,
+        mutation.baseUpdatedAt,
+        mutation.idempotencyKey,
+        'pending',
+        0,
+        mutation.metadataJson,
+        now,
+        now,
       ],
     );
   }
@@ -274,14 +274,14 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(serverSyncBatchId),
-        Variable<int>(appliedCount),
-        Variable<int>(skippedCount),
-        Variable<int>(conflictCount),
-        Variable<int>(errorCount),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-        Variable<String>(localBatchId),
+        serverSyncBatchId,
+        appliedCount,
+        skippedCount,
+        conflictCount,
+        errorCount,
+        now,
+        now,
+        localBatchId,
       ],
     );
   }
@@ -311,14 +311,14 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(serverSyncBatchId),
-        Variable<int>(appliedCount),
-        Variable<int>(skippedCount),
-        Variable<int>(conflictCount),
-        Variable<int>(errorCount),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-        Variable<String>(localBatchId),
+        serverSyncBatchId,
+        appliedCount,
+        skippedCount,
+        conflictCount,
+        errorCount,
+        now,
+        now,
+        localBatchId,
       ],
     );
   }
@@ -339,9 +339,9 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(error.toString()),
-        Variable<DateTime>(now),
-        Variable<String>(localBatchId),
+        error.toString(),
+        now,
+        localBatchId,
       ],
     );
   }
@@ -365,10 +365,10 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(serverSyncMutationId),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-        Variable<String>(localMutationId),
+        serverSyncMutationId,
+        now,
+        now,
+        localMutationId,
       ],
     );
   }
@@ -405,10 +405,10 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(errorCode),
-        Variable<String>(error.toString()),
-        Variable<DateTime>(now),
-        Variable<String>(localMutationId),
+        errorCode,
+        error.toString(),
+        now,
+        localMutationId,
       ],
     );
   }
@@ -432,11 +432,11 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(status),
-        Variable<String>(errorCode),
-        Variable<String>(errorMessage),
-        Variable<DateTime>(now),
-        Variable<String>(localMutationId),
+        status,
+        errorCode,
+        errorMessage,
+        now,
+        localMutationId,
       ],
     );
   }
@@ -453,9 +453,9 @@ class LocalSyncOutboxDao {
       where id = ?
       ''',
       [
-        Variable<String>(status),
-        Variable<DateTime>(now),
-        Variable<String>(localBatchId),
+        status,
+        now,
+        localBatchId,
       ],
     );
   }

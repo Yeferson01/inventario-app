@@ -11,6 +11,8 @@ final appE2ELocalFlowServiceProvider = Provider<AppE2ELocalFlowService>((ref) {
     appContextService: ref.watch(appContextServiceProvider),
     syncCoordinatorService: ref.watch(appSyncCoordinatorServiceProvider),
     installationIdStore: ref.watch(appInstallationIdStoreProvider),
+    operationalContextPullService:
+        ref.watch(operationalContextPullServiceProvider),
   );
 });
 

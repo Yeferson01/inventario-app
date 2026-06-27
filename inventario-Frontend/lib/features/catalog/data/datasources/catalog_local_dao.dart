@@ -192,7 +192,8 @@ class CatalogLocalDao {
     final id = _requiredString(payload, 'id');
     final updatedAt = _dateTime(payload['updated_at']) ?? now;
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       insert into local_master_products_catalog (
         id,
@@ -291,7 +292,8 @@ class CatalogLocalDao {
     final normalized = _string(payload['barcode_normalized']) ??
         BarcodeNormalizer.normalize(rawBarcode);
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       insert into local_product_barcodes (
         id,
@@ -364,7 +366,8 @@ class CatalogLocalDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       insert into local_catalog_sync_state (
         id,
@@ -409,7 +412,8 @@ class CatalogLocalDao {
   Future<void> markCatalogSyncStarted(String businessId) async {
     final now = DateTime.now().toUtc();
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       insert into local_catalog_sync_state (
         id,
@@ -439,7 +443,8 @@ class CatalogLocalDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       insert into local_catalog_sync_state (
         id,
@@ -512,7 +517,8 @@ class CatalogLocalDao {
     final normalizedBarcode =
         barcode == null ? null : BarcodeNormalizer.normalize(barcode);
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       insert into local_catalog_contribution_queue (
         id,
@@ -612,7 +618,8 @@ class CatalogLocalDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       update local_catalog_contribution_queue
       set
@@ -638,7 +645,8 @@ class CatalogLocalDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await db.customStatement(
+    await _customStatement(
+      db,
       '''
       update local_catalog_contribution_queue
       set
@@ -824,4 +832,38 @@ class CatalogLocalDao {
 
     return 0;
   }
+}
+
+Future<void> _customStatement(
+  AppDatabase db,
+  String sql, [
+  List<Object?> parameters = const [],
+]) {
+  final rawParameters =
+      parameters.map<Object?>(_rawStatementParameter).toList(growable: false);
+
+  return db.customStatement(
+    sql,
+    rawParameters,
+  );
+}
+
+Object? _rawStatementParameter(Object? value) {
+  if (value is Variable) {
+    return _normalizeStatementValue(value.value);
+  }
+
+  return _normalizeStatementValue(value);
+}
+
+Object? _normalizeStatementValue(Object? value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (value is DateTime) {
+    return value.toUtc().toIso8601String();
+  }
+
+  return value;
 }

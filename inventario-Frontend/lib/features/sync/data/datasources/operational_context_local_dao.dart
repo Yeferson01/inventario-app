@@ -1,5 +1,3 @@
-import 'package:drift/drift.dart';
-
 import '../../../../core/database/app_database.dart';
 import '../models/operational_context_pull_models.dart';
 
@@ -143,9 +141,13 @@ class OperationalContextLocalDao {
         $updateSet
     ''';
 
+    final parameters = columnNames
+        .map<Object?>((column) => filtered[column])
+        .toList(growable: false);
+
     await _db.customStatement(
       sql,
-      columnNames.map((column) => Variable<Object>(filtered[column])).toList(),
+      parameters,
     );
 
     return true;

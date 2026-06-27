@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'routes_constants.dart';
+import 'package:inventario_frontend/features/sync/presentation/screens/app_e2e_real_controlled_test_screen.dart';
+import 'package:inventario_frontend/features/debug/presentation/screens/debug_ping_screen.dart';
+import 'package:inventario_frontend/features/debug/presentation/screens/debug_supabase_login_screen.dart';
 
 // SIMULADOR TEMPORAL DE AUTH (Cambiar a 'true' para probar rutas privadas, 'false' para públicas)
 bool _isUserLoggedInSimulated = true;
@@ -11,16 +14,47 @@ class AppRouter {
   // Clave global para manejar el contexto de navegación a nivel raíz
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+  static String get _initialLocation {
+    const routeName = String.fromEnvironment(
+      'APP_INITIAL_ROUTE_NAME',
+      defaultValue: 'dashboard',
+    );
+
+    switch (routeName) {
+      case 'debug_login':
+        return '/debug/login';
+      case 'debug_ping':
+        return '/debug/ping';
+      case 'debug_e2e':
+        return '/debug/e2e-real-sync';
+      case 'login':
+        return AppRoutes.loginPath;
+      case 'register':
+        return AppRoutes.registerPath;
+      case 'inventory':
+        return AppRoutes.inventarioPath;
+      case 'dashboard':
+      default:
+        return AppRoutes.dashboardPath;
+    }
+  }
+
   static final GoRouter router = GoRouter(
+    initialLocation: _initialLocation,
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppRoutes.dashboardPath,
     debugLogDiagnostics:
         true, // Loguea en consola los cambios de ruta en desarrollo
 
     // 🛡️ GUARDS & REDIRECTS: Interceptor global de seguridad
     redirect: (BuildContext context, GoRouterState state) {
-      final isGoingToLogin = state.matchedLocation == AppRoutes.loginPath;
-      final isGoingToRegister = state.matchedLocation == AppRoutes.registerPath;
+      final location = state.matchedLocation;
+
+      if (location.startsWith('/debug')) {
+        return null;
+      }
+
+      final isGoingToLogin = location == AppRoutes.loginPath;
+      final isGoingToRegister = location == AppRoutes.registerPath;
 
       // Si está intentando ir a una ruta pública (como registro)
       final isGoingToPublic = isGoingToLogin || isGoingToRegister;
@@ -41,6 +75,21 @@ class AppRouter {
 
     // 🗺️ DEFINICIÓN DE RUTAS
     routes: [
+      GoRoute(
+        path: '/debug/login',
+        builder: (context, state) => const DebugSupabaseLoginScreen(),
+      ),
+
+      GoRoute(
+        path: '/debug/ping',
+        builder: (context, state) => const DebugPingScreen(),
+      ),
+
+      GoRoute(
+        path: '/debug/e2e-real-sync',
+        builder: (context, state) => const AppE2ERealControlledTestScreen(),
+      ),
+
       // --- RUTAS PÚBLICAS ---
       GoRoute(
         path: AppRoutes.loginPath,
@@ -67,8 +116,27 @@ class AppRouter {
     ],
 
     // Vista de error global por si se intenta acceder a una ruta inexistente
-    errorBuilder: (context, state) => const Scaffold(
-      body: Center(child: Text('404 - Página no encontrada')),
+    errorBuilder: (context, state) => Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SelectableText(
+              '404 - Página no encontrada\n\n'
+              'uri: ${state.uri}\n'
+              'matchedLocation: ${state.matchedLocation}\n'
+              'error: ${state.error}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
     ),
   );
 }
@@ -133,6 +201,16 @@ class TemporaryDashboardView extends StatelessWidget {
             ElevatedButton(
               onPressed: () => context.goNamed(AppRoutes.inventarioName),
               child: const Text('Ir a Gestión de Inventario'),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () => context.go('/debug/ping'),
+              child: const Text('Debug Ping'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => context.go('/debug/e2e-real-sync'),
+              child: const Text('Debug E2E real sync'),
             ),
           ],
         ),
