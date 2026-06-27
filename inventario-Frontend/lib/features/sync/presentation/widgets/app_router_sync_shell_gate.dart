@@ -51,7 +51,21 @@ class AppRouterSyncShellGate extends ConsumerWidget {
         );
       },
       loading: () => child,
-      error: (_, __) => child,
+      error: (error, stackTrace) {
+        return Material(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Text(
+                  'Error inicializando AppRouterSyncShellGate:\n\n$error',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
