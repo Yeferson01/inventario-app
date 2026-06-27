@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/database/utils/sqlite_parameter_utils.dart';
 import '../../../../core/utils/app_uuid.dart';
 import '../../../../core/utils/barcode_normalizer.dart';
 import '../models/catalog_local_models.dart';
@@ -251,37 +252,35 @@ class CatalogLocalDao {
         deleted_at = excluded.deleted_at,
         last_synced_at = excluded.last_synced_at
       ''',
-      [
-        Variable<String>(id),
-        Variable<String>(_string(payload['barcode'])),
-        Variable<String>(_string(payload['gtin'])),
-        Variable<String>(
-          _string(payload['barcode_normalized']) ??
-              BarcodeNormalizer.normalize(_string(payload['barcode']) ?? ''),
-        ),
-        Variable<String>(_string(payload['name'])),
-        Variable<String>(_string(payload['product_name'] ?? payload['name'])),
-        Variable<String>(_string(payload['normalized_name'])),
-        Variable<String>(_string(payload['brand'])),
-        Variable<String>(_string(payload['manufacturer'])),
-        Variable<String>(_string(payload['category_name'])),
-        Variable<String>(_string(payload['subcategory_name'])),
-        Variable<double>(_double(payload['package_size'])),
-        Variable<String>(_string(payload['package_unit'])),
-        Variable<String>(_string(payload['unit_type'])),
-        Variable<int>(_boolToInt(payload['has_image'])),
-        Variable<String>(_string(payload['image_thumb_url'])),
-        Variable<String>(_string(payload['image_hash'])),
-        Variable<String>(_string(payload['source'])),
-        Variable<String>(_string(payload['verification_status'])),
-        Variable<double>(_double(payload['confidence_score'])),
-        Variable<int>(_int(payload['catalog_version']) ?? 1),
-        Variable<String>(_string(payload['sync_status']) ?? 'synced'),
-        Variable<int>(_int(payload['version']) ?? 1),
-        Variable<DateTime>(updatedAt),
-        Variable<DateTime>(_dateTime(payload['deleted_at'])),
-        Variable<DateTime>(now),
-      ],
+      normalizeSqliteParameters([
+        id,
+        _string(payload['barcode']),
+        _string(payload['gtin']),
+        _string(payload['barcode_normalized']) ??
+            BarcodeNormalizer.normalize(_string(payload['barcode']) ?? ''),
+        _string(payload['name']),
+        _string(payload['product_name'] ?? payload['name']),
+        _string(payload['normalized_name']),
+        _string(payload['brand']),
+        _string(payload['manufacturer']),
+        _string(payload['category_name']),
+        _string(payload['subcategory_name']),
+        _double(payload['package_size']),
+        _string(payload['package_unit']),
+        _string(payload['unit_type']),
+        _boolToInt(payload['has_image']),
+        _string(payload['image_thumb_url']),
+        _string(payload['image_hash']),
+        _string(payload['source']),
+        _string(payload['verification_status']),
+        _double(payload['confidence_score']),
+        _int(payload['catalog_version']) ?? 1,
+        _string(payload['sync_status']) ?? 'synced',
+        _int(payload['version']) ?? 1,
+        updatedAt,
+        _dateTime(payload['deleted_at']),
+        now,
+      ]),
     );
   }
 
@@ -333,28 +332,26 @@ class CatalogLocalDao {
         deleted_at = excluded.deleted_at,
         last_synced_at = excluded.last_synced_at
       ''',
-      [
-        Variable<String>(id),
-        Variable<String>(_string(payload['scope']) ?? 'global'),
-        Variable<String>(_string(payload['business_id'])),
-        Variable<String>(_string(payload['product_id'])),
-        Variable<String>(_string(payload['master_product_id'])),
-        Variable<String>(rawBarcode),
-        Variable<String>(normalized),
-        Variable<String>(
-          _string(payload['barcode_type']) ??
-              BarcodeNormalizer.inferBarcodeType(rawBarcode),
-        ),
-        Variable<int>(_boolToInt(payload['is_primary'])),
-        Variable<String>(_string(payload['status']) ?? 'active'),
-        Variable<String>(_string(payload['source'])),
-        Variable<double>(_double(payload['confidence_score'])),
-        Variable<String>(_string(payload['sync_status']) ?? 'synced'),
-        Variable<int>(_int(payload['version']) ?? 1),
-        Variable<DateTime>(_dateTime(payload['updated_at']) ?? now),
-        Variable<DateTime>(_dateTime(payload['deleted_at'])),
-        Variable<DateTime>(now),
-      ],
+      normalizeSqliteParameters([
+        id,
+        _string(payload['scope']) ?? 'global',
+        _string(payload['business_id']),
+        _string(payload['product_id']),
+        _string(payload['master_product_id']),
+        rawBarcode,
+        normalized,
+        _string(payload['barcode_type']) ??
+            BarcodeNormalizer.inferBarcodeType(rawBarcode),
+        _boolToInt(payload['is_primary']),
+        _string(payload['status']) ?? 'active',
+        _string(payload['source']),
+        _double(payload['confidence_score']),
+        _string(payload['sync_status']) ?? 'synced',
+        _int(payload['version']) ?? 1,
+        _dateTime(payload['updated_at']) ?? now,
+        _dateTime(payload['deleted_at']),
+        now,
+      ]),
     );
   }
 
@@ -393,19 +390,19 @@ class CatalogLocalDao {
         last_error = excluded.last_error,
         updated_at = excluded.updated_at
       ''',
-      [
-        Variable<String>(businessId),
-        Variable<String>(businessId),
-        Variable<DateTime>(now),
-        Variable<DateTime>(serverTime.toUtc()),
-        Variable<DateTime>(serverTime.toUtc()),
-        Variable<int>(catalogVersion),
-        Variable<String>(pageToken == null ? null : jsonEncode(pageToken)),
-        Variable<int>(0),
-        const Variable<String>(null),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-      ],
+      normalizeSqliteParameters([
+        businessId,
+        businessId,
+        now,
+        serverTime.toUtc(),
+        serverTime.toUtc(),
+        catalogVersion,
+        pageToken == null ? null : jsonEncode(pageToken),
+        0,
+        null,
+        now,
+        now,
+      ]),
     );
   }
 
@@ -427,13 +424,13 @@ class CatalogLocalDao {
         is_syncing = excluded.is_syncing,
         updated_at = excluded.updated_at
       ''',
-      [
-        Variable<String>(businessId),
-        Variable<String>(businessId),
-        Variable<int>(1),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-      ],
+      normalizeSqliteParameters([
+        businessId,
+        businessId,
+        1,
+        now,
+        now,
+      ]),
     );
   }
 
@@ -460,14 +457,14 @@ class CatalogLocalDao {
         last_error = excluded.last_error,
         updated_at = excluded.updated_at
       ''',
-      [
-        Variable<String>(businessId),
-        Variable<String>(businessId),
-        Variable<int>(0),
-        Variable<String>(error.toString()),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-      ],
+      normalizeSqliteParameters([
+        businessId,
+        businessId,
+        0,
+        error.toString(),
+        now,
+        now,
+      ]),
     );
   }
 
@@ -551,40 +548,38 @@ class CatalogLocalDao {
       )
       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
-      [
-        Variable<String>(id),
-        Variable<String>(businessId),
-        Variable<String>(branchId),
-        Variable<String>(localProductId),
-        Variable<String>(masterProductId),
-        Variable<String>(contributionType),
-        Variable<String>(barcode),
-        Variable<String>(normalizedBarcode),
-        Variable<String>(
-          barcodeType ??
-              (barcode == null
-                  ? null
-                  : BarcodeNormalizer.inferBarcodeType(barcode)),
-        ),
-        Variable<String>(suggestedName),
-        Variable<String>(suggestedBrand),
-        Variable<String>(suggestedManufacturer),
-        Variable<String>(suggestedCategoryName),
-        Variable<String>(suggestedSubcategoryName),
-        Variable<double>(suggestedPackageSize),
-        Variable<String>(suggestedPackageUnit),
-        Variable<String>(suggestedUnitType),
-        Variable<String>(suggestedImageUrl),
-        Variable<String>(suggestedImageThumbUrl),
-        Variable<String>(suggestedImageHash),
-        Variable<String>(source),
-        Variable<double>(confidenceScore),
-        Variable<String>(metadata == null ? null : jsonEncode(metadata)),
-        Variable<String>('pending'),
-        Variable<int>(0),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-      ],
+      normalizeSqliteParameters([
+        id,
+        businessId,
+        branchId,
+        localProductId,
+        masterProductId,
+        contributionType,
+        barcode,
+        normalizedBarcode,
+        barcodeType ??
+            (barcode == null
+                ? null
+                : BarcodeNormalizer.inferBarcodeType(barcode)),
+        suggestedName,
+        suggestedBrand,
+        suggestedManufacturer,
+        suggestedCategoryName,
+        suggestedSubcategoryName,
+        suggestedPackageSize,
+        suggestedPackageUnit,
+        suggestedUnitType,
+        suggestedImageUrl,
+        suggestedImageThumbUrl,
+        suggestedImageHash,
+        source,
+        confidenceScore,
+        metadata == null ? null : jsonEncode(metadata),
+        'pending',
+        0,
+        now,
+        now,
+      ]),
     );
 
     return id;
@@ -630,12 +625,12 @@ class CatalogLocalDao {
         last_error = null
       where id = ?
       ''',
-      [
-        Variable<String>(serverContributionId),
-        Variable<DateTime>(now),
-        Variable<DateTime>(now),
-        Variable<String>(localContributionId),
-      ],
+      normalizeSqliteParameters([
+        serverContributionId,
+        now,
+        now,
+        localContributionId,
+      ]),
     );
   }
 
@@ -656,11 +651,11 @@ class CatalogLocalDao {
         updated_at = ?
       where id = ?
       ''',
-      [
-        Variable<String>(error.toString()),
-        Variable<DateTime>(now),
-        Variable<String>(localContributionId),
-      ],
+      normalizeSqliteParameters([
+        error.toString(),
+        now,
+        localContributionId,
+      ]),
     );
   }
 
@@ -839,31 +834,8 @@ Future<void> _customStatement(
   String sql, [
   List<Object?> parameters = const [],
 ]) {
-  final rawParameters =
-      parameters.map<Object?>(_rawStatementParameter).toList(growable: false);
-
   return db.customStatement(
     sql,
-    rawParameters,
+    normalizeSqliteParameters(parameters),
   );
-}
-
-Object? _rawStatementParameter(Object? value) {
-  if (value is Variable) {
-    return _normalizeStatementValue(value.value);
-  }
-
-  return _normalizeStatementValue(value);
-}
-
-Object? _normalizeStatementValue(Object? value) {
-  if (value == null) {
-    return null;
-  }
-
-  if (value is DateTime) {
-    return value.toUtc().toIso8601String();
-  }
-
-  return value;
 }
