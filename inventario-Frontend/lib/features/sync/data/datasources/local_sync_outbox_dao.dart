@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/utils/app_uuid.dart';
 import '../models/local_sync_outbox_models.dart';
+import '../../../../core/database/utils/sqlite_parameter_utils.dart';
 
 class LocalSyncOutboxDao {
   LocalSyncOutboxDao(this._db);
@@ -21,6 +22,8 @@ class LocalSyncOutboxDao {
     String? profileId,
     Map<String, dynamic>? metadata,
   }) async {
+    await _ensureOutboxUniqueIndexes();
+
     if (mutations.isEmpty) {
       throw ArgumentError('No se puede crear un batch sin mutaciones.');
     }
@@ -29,7 +32,8 @@ class LocalSyncOutboxDao {
     final now = DateTime.now().toUtc();
 
     await _db.transaction(() async {
-      await _db.customStatement(
+      await _customStatement(
+        _db,
         '''
         insert into local_sync_batches (
           id,
@@ -100,6 +104,32 @@ class LocalSyncOutboxDao {
     );
   }
 
+  Future<void> _ensureOutboxUniqueIndexes() async {
+    await _customStatement(
+      _db,
+      '''
+      create unique index if not exists ux_local_sync_batches_client_batch_id
+      on local_sync_batches(client_batch_id)
+      ''',
+    );
+
+    await _customStatement(
+      _db,
+      '''
+      create unique index if not exists ux_local_sync_mutations_idempotency_key
+      on local_sync_mutations(idempotency_key)
+      ''',
+    );
+
+    await _customStatement(
+      _db,
+      '''
+      create unique index if not exists ux_local_sync_mutations_client_mutation_id
+      on local_sync_mutations(client_mutation_id)
+      ''',
+    );
+  }
+
   Future<void> _insertMutation({
     required String localBatchId,
     required String clientBatchId,
@@ -110,7 +140,8 @@ class LocalSyncOutboxDao {
     required LocalSyncMutationDraft mutation,
     required DateTime now,
   }) async {
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       insert into local_sync_mutations (
         id,
@@ -259,7 +290,8 @@ class LocalSyncOutboxDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_batches
       set
@@ -296,7 +328,8 @@ class LocalSyncOutboxDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_batches
       set
@@ -329,7 +362,8 @@ class LocalSyncOutboxDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_batches
       set
@@ -352,7 +386,8 @@ class LocalSyncOutboxDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_mutations
       set
@@ -393,7 +428,8 @@ class LocalSyncOutboxDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_mutations
       set
@@ -421,7 +457,8 @@ class LocalSyncOutboxDao {
   }) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_mutations
       set
@@ -444,7 +481,8 @@ class LocalSyncOutboxDao {
   Future<void> _updateBatchStatus(String localBatchId, String status) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _customStatement(
+      _db,
       '''
       update local_sync_batches
       set
@@ -459,4 +497,15 @@ class LocalSyncOutboxDao {
       ],
     );
   }
+}
+
+Future<void> _customStatement(
+  AppDatabase db,
+  String sql, [
+  List<Object?> parameters = const [],
+]) {
+  return db.customStatement(
+    sql,
+    normalizeSqliteParameters(parameters),
+  );
 }

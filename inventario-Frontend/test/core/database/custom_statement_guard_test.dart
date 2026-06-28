@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('customStatement blocks must not pass Drift Variable parameters', () {
+  test('customStatement blocks must not pass unsafe raw parameters', () {
     final roots = [
       Directory('lib/core'),
       Directory('lib/features'),
@@ -34,7 +34,9 @@ void main() {
 
           final block = _extractFunctionCall(text, index);
 
-          if (block.contains('Variable<') || block.contains('Variable(')) {
+          if (block.contains('Variable<') ||
+              block.contains('Variable(') ||
+              block.contains('DateTime.now()')) {
             final line = '\n'.allMatches(text.substring(0, index)).length + 1;
             violations.add('${file.path}:$line');
           }

@@ -701,12 +701,45 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> ensureLocalSyncOutboxIndexes() async {
+    final outboxTable = await customSelect(
+      '''
+      select name
+      from sqlite_master
+      where type = 'table'
+        and name = ?
+      limit 1
+      ''',
+      variables: [Variable<String>('local_sync_outbox')],
+    ).getSingleOrNull();
+
+    if (outboxTable == null) {
+      return;
+    }
+
+    await customStatement(
+      'create index if not exists idx_local_sync_outbox_status_created_at '
+      'on local_sync_outbox(status, created_at)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_local_sync_outbox_business_status '
+      'on local_sync_outbox(business_id, status)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_local_sync_outbox_entity '
+      'on local_sync_outbox(entity_type, entity_id)',
+    );
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
 
           await _createAppContextIndexes();
+          await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
           if (from < 3) {
@@ -719,6 +752,9 @@ class AppDatabase extends _$AppDatabase {
           }
 
           // Aquí manejarás tus futuras migraciones de forma estructurada
+        },
+        beforeOpen: (details) async {
+          await ensureLocalSyncOutboxIndexes();
         },
       );
 }

@@ -25,24 +25,27 @@ class CatalogSyncRemoteDataSource {
 
     final now = DateTime.now().toUtc().toIso8601String();
 
-    await _client.from('sync_batches').upsert({
-      'id': serverBatchId,
-      'business_id': businessId,
-      'app_device_id': _string(localBatch['app_device_id']),
-      'profile_id': _string(localBatch['profile_id']),
-      'branch_id': _string(localBatch['branch_id']),
-      'client_batch_id': clientBatchId,
-      'direction': 'upload',
-      'status': 'pending',
-      'mutation_count': localMutations.length,
-      'metadata': _decodeNullableJson(localBatch['metadata_json']) ??
-          {
-            'source': 'flutter_catalog_upload',
-            'domain': 'catalog',
-          },
-      'created_at': now,
-      'updated_at': now,
-    });
+    await _client.from('sync_batches').upsert(
+      {
+        'id': serverBatchId,
+        'business_id': businessId,
+        'app_device_id': _string(localBatch['app_device_id']),
+        'profile_id': _string(localBatch['profile_id']),
+        'branch_id': _string(localBatch['branch_id']),
+        'client_batch_id': clientBatchId,
+        'direction': 'upload',
+        'status': 'pending',
+        'mutation_count': localMutations.length,
+        'metadata': _decodeNullableJson(localBatch['metadata_json']) ??
+            {
+              'source': 'flutter_catalog_upload',
+              'domain': 'catalog',
+            },
+        'created_at': now,
+        'updated_at': now,
+      },
+      onConflict: 'business_id,app_device_id,client_batch_id',
+    );
 
     final serverMutations = localMutations.map((mutation) {
       return {
@@ -73,7 +76,10 @@ class CatalogSyncRemoteDataSource {
       };
     }).toList();
 
-    await _client.from('sync_mutations').upsert(serverMutations);
+    await _client.from('sync_mutations').upsert(
+          serverMutations,
+          onConflict: 'business_id,idempotency_key',
+        );
 
     final processResult = await _client.rpc(
       'process_sync_batch',
