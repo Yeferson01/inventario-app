@@ -637,6 +637,55 @@ class BusinessMembers extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class LocalInventoryMovements extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().nullable().named('branch_id')();
+  TextColumn get productId => text().named('product_id')();
+
+  TextColumn get movementType => text().named('movement_type')();
+  IntColumn get quantityChange => integer().named('quantity_change')();
+
+  RealColumn get unitCost => real().nullable().named('unit_cost')();
+
+  TextColumn get sourceType => text().nullable().named('source_type')();
+  TextColumn get sourceId => text().nullable().named('source_id')();
+
+  TextColumn get referenceType => text().nullable().named('reference_type')();
+  TextColumn get referenceId => text().nullable().named('reference_id')();
+
+  TextColumn get notes => text().nullable()();
+
+  TextColumn get idempotencyKey => text().named('idempotency_key')();
+
+  IntColumn get syncStatus =>
+      integer().withDefault(const Constant(0)).named('sync_status')();
+
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('dirty')).named('local_status')();
+
+  IntColumn get version => integer().withDefault(const Constant(1))();
+
+  DateTimeColumn get occurredAt => dateTime().named('occurred_at')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+
+  DateTimeColumn get deletedAt => dateTime().nullable().named('deleted_at')();
+
+  DateTimeColumn get lastSyncedAt =>
+      dateTime().nullable().named('last_synced_at')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Branches,
@@ -650,6 +699,7 @@ class BusinessMembers extends Table {
     LocalCatalogContributionQueue,
     LocalSyncBatches,
     LocalSyncMutations,
+    LocalInventoryMovements,
     Businesses,
     Profiles,
     Categories,
@@ -678,7 +728,24 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
+
+  Future<void> _createInventoryMovementIndexes() async {
+    await customStatement(
+      'create unique index if not exists ux_local_inventory_movements_idempotency_key '
+      'on local_inventory_movements(idempotency_key)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_local_inventory_movements_business_product '
+      'on local_inventory_movements(business_id, branch_id, product_id)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_local_inventory_movements_sync_status '
+      'on local_inventory_movements(sync_status, local_status, created_at)',
+    );
+  }
 
   Future<void> _createAppContextIndexes() async {
     await customStatement(
@@ -739,6 +806,7 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
 
           await _createAppContextIndexes();
+          await _createInventoryMovementIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
@@ -751,9 +819,15 @@ class AppDatabase extends _$AppDatabase {
             await _createAppContextIndexes();
           }
 
+          if (from < 4) {
+            await m.createTable(localInventoryMovements);
+            await _createInventoryMovementIndexes();
+          }
+
           // Aquí manejarás tus futuras migraciones de forma estructurada
         },
         beforeOpen: (details) async {
+          await _createInventoryMovementIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
       );

@@ -28,6 +28,27 @@ class LocalSyncOutboxService {
     );
   }
 
+  Future<LocalSyncEnqueueResult> enqueueInventoryMutations({
+    required String businessId,
+    required List<LocalSyncMutationDraft> mutations,
+    String? branchId,
+    String? appDeviceId,
+    String? profileId,
+    String? deviceInstallationId,
+    Map<String, dynamic>? metadata,
+  }) {
+    return enqueueUploadBatch(
+      businessId: businessId,
+      domain: 'inventory',
+      mutations: mutations,
+      branchId: branchId,
+      appDeviceId: appDeviceId,
+      profileId: profileId,
+      deviceInstallationId: deviceInstallationId,
+      metadata: metadata,
+    );
+  }
+
   Future<LocalSyncEnqueueResult> enqueueUploadBatch({
     required String businessId,
     required String domain,
@@ -70,6 +91,17 @@ class LocalSyncOutboxService {
     return _dao.getPendingBatches(
       businessId: businessId,
       domain: 'catalog',
+      limit: limit,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingInventoryBatches({
+    required String businessId,
+    int limit = 20,
+  }) {
+    return _dao.getPendingBatches(
+      businessId: businessId,
+      domain: 'inventory',
       limit: limit,
     );
   }
@@ -187,10 +219,9 @@ class LocalSyncOutboxService {
   }
 
   void _validateDomain(String domain) {
-    const allowedDomains = {
+    const allowedDomains = <String>{
       'catalog',
-      'pos',
-      'purchases',
+      'inventory',
     };
 
     if (!allowedDomains.contains(domain)) {

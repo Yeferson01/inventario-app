@@ -9,6 +9,9 @@ import '../../application/app_e2e_local_flow_models.dart';
 import '../../application/app_e2e_local_flow_provider.dart';
 import '../../application/app_e2e_product_from_catalog_flow_models.dart';
 import '../../application/app_e2e_product_from_catalog_flow_provider.dart';
+import '../../../inventory/application/inventory_initial_stock_models.dart';
+import '../../../inventory/application/inventory_initial_stock_provider.dart';
+import '../../application/inventory_sync_upload_provider.dart';
 
 class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
   const AppE2ERealControlledTestScreen({
@@ -30,6 +33,11 @@ class _AppE2ERealControlledTestScreenState
   );
   final _salePriceController = TextEditingController(text: '3500');
   final _purchasePriceController = TextEditingController(text: '0');
+  final _initialStockQuantityController = TextEditingController(text: '10');
+  final _initialStockUnitCostController = TextEditingController(text: '1200');
+  final _syncedProductIdController = TextEditingController(
+    text: '019f0ba1-704e-7ed6-a420-4114debb9ffa',
+  );
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -136,12 +144,148 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
+  Future<void> _createInitialStock({
+    required bool runManualSyncAfterCreate,
+  }) async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final initialStockService =
+          ref.read(inventoryInitialStockServiceProvider);
+      final inventoryUploadService =
+          ref.read(inventorySyncUploadServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: true,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'initial_stock_preflight',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+      final preflightJson = preflight.toJson();
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final appDeviceId = _findStringDeep(
+        preflightJson,
+        const [
+          'app_device_id',
+          'appDeviceId',
+          'app_devices_id',
+          'appDevicesId',
+        ],
+      );
+
+      if (appDeviceId == null) {
+        setState(() {
+          _lastResult = {
+            'flow': 'initial_stock_preflight_debug',
+            'preflight_json': preflightJson,
+          };
+        });
+
+        throw StateError(
+          'No se pudo resolver app_device_id real. '
+          'El preflight sí corrió, pero la respuesta no expuso app_device_id '
+          'en una ruta conocida. Revisa preflight_json en el resultado.',
+        );
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError(
+            'No se pudo resolver branch_id para crear stock inicial.');
+      }
+
+      final result = await initialStockService.createInitialStockAndQueueSync(
+        CreateInitialStockInput(
+          businessId: businessId,
+          branchId: branchId,
+          productId: _requiredText(
+            _syncedProductIdController,
+            'Product ID sincronizado',
+          ),
+          quantity: _intFromController(_initialStockQuantityController),
+          unitCost: _doubleFromController(_initialStockUnitCostController),
+          profileId: user,
+          appDeviceId: appDeviceId,
+          deviceInstallationId: preflight.installationId,
+          clientSequenceStart: _safeClientSequenceStart(),
+        ),
+      );
+
+      Map<String, dynamic>? uploadResult;
+
+      if (runManualSyncAfterCreate) {
+        final uploaded =
+            await inventoryUploadService.uploadPendingInventoryBatches(
+          businessId: businessId,
+          batchLimit: 10,
+        );
+
+        uploadResult = uploaded.toJson();
+      }
+
+      setState(() {
+        _lastResult = {
+          'flow': 'initial_stock',
+          'app_device_id': appDeviceId,
+          'preflight_json': preflightJson,
+          'creation_result': result.toJson(),
+          'upload_result': uploadResult,
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _businessIdController.dispose();
     _branchIdController.dispose();
     _salePriceController.dispose();
     _purchasePriceController.dispose();
+    _initialStockQuantityController.dispose();
+    _initialStockUnitCostController.dispose();
+    _syncedProductIdController.dispose();
     super.dispose();
   }
 
@@ -186,6 +330,84 @@ class _AppE2ERealControlledTestScreenState
     }
 
     return value;
+  }
+
+  String _requiredText(
+    TextEditingController controller,
+    String fieldName,
+  ) {
+    final value = controller.text.trim();
+
+    if (value.isEmpty) {
+      throw StateError('El campo $fieldName es obligatorio.');
+    }
+
+    return value;
+  }
+
+  int _intFromController(TextEditingController controller) {
+    final value = int.tryParse(controller.text.trim());
+
+    if (value == null || value < 0) {
+      throw ArgumentError('Cantidad inválida: ${controller.text}');
+    }
+
+    return value;
+  }
+
+  int _safeClientSequenceStart() {
+    final value = DateTime.now().microsecondsSinceEpoch.remainder(2000000000);
+
+    if (value < 1) {
+      return 1;
+    }
+
+    return value;
+  }
+
+  String? _findStringDeep(
+    Object? value,
+    List<String> keys,
+  ) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is Map) {
+      for (final key in keys) {
+        final raw = value[key];
+
+        if (raw != null) {
+          final text = raw.toString().trim();
+
+          if (text.isNotEmpty) {
+            return text;
+          }
+        }
+      }
+
+      for (final entry in value.entries) {
+        final found = _findStringDeep(entry.value, keys);
+
+        if (found != null) {
+          return found;
+        }
+      }
+
+      return null;
+    }
+
+    if (value is Iterable) {
+      for (final item in value) {
+        final found = _findStringDeep(item, keys);
+
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+
+    return null;
   }
 
   String _deviceName() {
@@ -269,6 +491,32 @@ class _AppE2ERealControlledTestScreenState
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _syncedProductIdController,
+            decoration: const InputDecoration(
+              labelText: 'Product ID sincronizado para stock inicial',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _initialStockQuantityController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Cantidad inicial',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _initialStockUnitCostController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Costo unitario inicial',
+              border: OutlineInputBorder(),
+            ),
+          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _isRunning
@@ -311,6 +559,32 @@ class _AppE2ERealControlledTestScreenState
                   },
             child: const Text(
               '4. Crear producto desde catálogo + sync manual',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: _isRunning
+                ? null
+                : () {
+                    _createInitialStock(
+                      runManualSyncAfterCreate: false,
+                    );
+                  },
+            child: const Text(
+              '5. Crear stock inicial + encolar outbox',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning
+                ? null
+                : () {
+                    _createInitialStock(
+                      runManualSyncAfterCreate: true,
+                    );
+                  },
+            child: const Text(
+              '6. Crear stock inicial + sync inventario',
             ),
           ),
           if (_isRunning) ...[

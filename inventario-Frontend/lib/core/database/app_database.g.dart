@@ -10085,6 +10085,1041 @@ class LocalSyncMutationsCompanion extends UpdateCompanion<LocalSyncMutation> {
   }
 }
 
+class $LocalInventoryMovementsTable extends LocalInventoryMovements
+    with TableInfo<$LocalInventoryMovementsTable, LocalInventoryMovement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalInventoryMovementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _movementTypeMeta =
+      const VerificationMeta('movementType');
+  @override
+  late final GeneratedColumn<String> movementType = GeneratedColumn<String>(
+      'movement_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _quantityChangeMeta =
+      const VerificationMeta('quantityChange');
+  @override
+  late final GeneratedColumn<int> quantityChange = GeneratedColumn<int>(
+      'quantity_change', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _unitCostMeta =
+      const VerificationMeta('unitCost');
+  @override
+  late final GeneratedColumn<double> unitCost = GeneratedColumn<double>(
+      'unit_cost', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _sourceTypeMeta =
+      const VerificationMeta('sourceType');
+  @override
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+      'source_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sourceIdMeta =
+      const VerificationMeta('sourceId');
+  @override
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+      'source_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _referenceTypeMeta =
+      const VerificationMeta('referenceType');
+  @override
+  late final GeneratedColumn<String> referenceType = GeneratedColumn<String>(
+      'reference_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _referenceIdMeta =
+      const VerificationMeta('referenceId');
+  @override
+  late final GeneratedColumn<String> referenceId = GeneratedColumn<String>(
+      'reference_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _idempotencyKeyMeta =
+      const VerificationMeta('idempotencyKey');
+  @override
+  late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
+      'idempotency_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _syncStatusMeta =
+      const VerificationMeta('syncStatus');
+  @override
+  late final GeneratedColumn<int> syncStatus = GeneratedColumn<int>(
+      'sync_status', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('dirty'));
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _occurredAtMeta =
+      const VerificationMeta('occurredAt');
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+      'occurred_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        businessId,
+        branchId,
+        productId,
+        movementType,
+        quantityChange,
+        unitCost,
+        sourceType,
+        sourceId,
+        referenceType,
+        referenceId,
+        notes,
+        idempotencyKey,
+        syncStatus,
+        localStatus,
+        version,
+        occurredAt,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_inventory_movements';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalInventoryMovement> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('movement_type')) {
+      context.handle(
+          _movementTypeMeta,
+          movementType.isAcceptableOrUnknown(
+              data['movement_type']!, _movementTypeMeta));
+    } else if (isInserting) {
+      context.missing(_movementTypeMeta);
+    }
+    if (data.containsKey('quantity_change')) {
+      context.handle(
+          _quantityChangeMeta,
+          quantityChange.isAcceptableOrUnknown(
+              data['quantity_change']!, _quantityChangeMeta));
+    } else if (isInserting) {
+      context.missing(_quantityChangeMeta);
+    }
+    if (data.containsKey('unit_cost')) {
+      context.handle(_unitCostMeta,
+          unitCost.isAcceptableOrUnknown(data['unit_cost']!, _unitCostMeta));
+    }
+    if (data.containsKey('source_type')) {
+      context.handle(
+          _sourceTypeMeta,
+          sourceType.isAcceptableOrUnknown(
+              data['source_type']!, _sourceTypeMeta));
+    }
+    if (data.containsKey('source_id')) {
+      context.handle(_sourceIdMeta,
+          sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta));
+    }
+    if (data.containsKey('reference_type')) {
+      context.handle(
+          _referenceTypeMeta,
+          referenceType.isAcceptableOrUnknown(
+              data['reference_type']!, _referenceTypeMeta));
+    }
+    if (data.containsKey('reference_id')) {
+      context.handle(
+          _referenceIdMeta,
+          referenceId.isAcceptableOrUnknown(
+              data['reference_id']!, _referenceIdMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('idempotency_key')) {
+      context.handle(
+          _idempotencyKeyMeta,
+          idempotencyKey.isAcceptableOrUnknown(
+              data['idempotency_key']!, _idempotencyKeyMeta));
+    } else if (isInserting) {
+      context.missing(_idempotencyKeyMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+          _syncStatusMeta,
+          syncStatus.isAcceptableOrUnknown(
+              data['sync_status']!, _syncStatusMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+          _occurredAtMeta,
+          occurredAt.isAcceptableOrUnknown(
+              data['occurred_at']!, _occurredAtMeta));
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalInventoryMovement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalInventoryMovement(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      movementType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}movement_type'])!,
+      quantityChange: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}quantity_change'])!,
+      unitCost: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}unit_cost']),
+      sourceType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_type']),
+      sourceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_id']),
+      referenceType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reference_type']),
+      referenceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reference_id']),
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      idempotencyKey: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}idempotency_key'])!,
+      syncStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sync_status'])!,
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
+      occurredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}occurred_at'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
+    );
+  }
+
+  @override
+  $LocalInventoryMovementsTable createAlias(String alias) {
+    return $LocalInventoryMovementsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalInventoryMovement extends DataClass
+    implements Insertable<LocalInventoryMovement> {
+  final String id;
+  final String businessId;
+  final String? branchId;
+  final String productId;
+  final String movementType;
+  final int quantityChange;
+  final double? unitCost;
+  final String? sourceType;
+  final String? sourceId;
+  final String? referenceType;
+  final String? referenceId;
+  final String? notes;
+  final String idempotencyKey;
+  final int syncStatus;
+  final String localStatus;
+  final int version;
+  final DateTime occurredAt;
+  final String? metadataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
+  const LocalInventoryMovement(
+      {required this.id,
+      required this.businessId,
+      this.branchId,
+      required this.productId,
+      required this.movementType,
+      required this.quantityChange,
+      this.unitCost,
+      this.sourceType,
+      this.sourceId,
+      this.referenceType,
+      this.referenceId,
+      this.notes,
+      required this.idempotencyKey,
+      required this.syncStatus,
+      required this.localStatus,
+      required this.version,
+      required this.occurredAt,
+      this.metadataJson,
+      required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt,
+      this.lastSyncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
+    map['product_id'] = Variable<String>(productId);
+    map['movement_type'] = Variable<String>(movementType);
+    map['quantity_change'] = Variable<int>(quantityChange);
+    if (!nullToAbsent || unitCost != null) {
+      map['unit_cost'] = Variable<double>(unitCost);
+    }
+    if (!nullToAbsent || sourceType != null) {
+      map['source_type'] = Variable<String>(sourceType);
+    }
+    if (!nullToAbsent || sourceId != null) {
+      map['source_id'] = Variable<String>(sourceId);
+    }
+    if (!nullToAbsent || referenceType != null) {
+      map['reference_type'] = Variable<String>(referenceType);
+    }
+    if (!nullToAbsent || referenceId != null) {
+      map['reference_id'] = Variable<String>(referenceId);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['idempotency_key'] = Variable<String>(idempotencyKey);
+    map['sync_status'] = Variable<int>(syncStatus);
+    map['local_status'] = Variable<String>(localStatus);
+    map['version'] = Variable<int>(version);
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    return map;
+  }
+
+  LocalInventoryMovementsCompanion toCompanion(bool nullToAbsent) {
+    return LocalInventoryMovementsCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
+      productId: Value(productId),
+      movementType: Value(movementType),
+      quantityChange: Value(quantityChange),
+      unitCost: unitCost == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitCost),
+      sourceType: sourceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceType),
+      sourceId: sourceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceId),
+      referenceType: referenceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(referenceType),
+      referenceId: referenceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(referenceId),
+      notes:
+          notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      idempotencyKey: Value(idempotencyKey),
+      syncStatus: Value(syncStatus),
+      localStatus: Value(localStatus),
+      version: Value(version),
+      occurredAt: Value(occurredAt),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+    );
+  }
+
+  factory LocalInventoryMovement.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalInventoryMovement(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
+      productId: serializer.fromJson<String>(json['productId']),
+      movementType: serializer.fromJson<String>(json['movementType']),
+      quantityChange: serializer.fromJson<int>(json['quantityChange']),
+      unitCost: serializer.fromJson<double?>(json['unitCost']),
+      sourceType: serializer.fromJson<String?>(json['sourceType']),
+      sourceId: serializer.fromJson<String?>(json['sourceId']),
+      referenceType: serializer.fromJson<String?>(json['referenceType']),
+      referenceId: serializer.fromJson<String?>(json['referenceId']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      idempotencyKey: serializer.fromJson<String>(json['idempotencyKey']),
+      syncStatus: serializer.fromJson<int>(json['syncStatus']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      version: serializer.fromJson<int>(json['version']),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
+      'productId': serializer.toJson<String>(productId),
+      'movementType': serializer.toJson<String>(movementType),
+      'quantityChange': serializer.toJson<int>(quantityChange),
+      'unitCost': serializer.toJson<double?>(unitCost),
+      'sourceType': serializer.toJson<String?>(sourceType),
+      'sourceId': serializer.toJson<String?>(sourceId),
+      'referenceType': serializer.toJson<String?>(referenceType),
+      'referenceId': serializer.toJson<String?>(referenceId),
+      'notes': serializer.toJson<String?>(notes),
+      'idempotencyKey': serializer.toJson<String>(idempotencyKey),
+      'syncStatus': serializer.toJson<int>(syncStatus),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'version': serializer.toJson<int>(version),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+    };
+  }
+
+  LocalInventoryMovement copyWith(
+          {String? id,
+          String? businessId,
+          Value<String?> branchId = const Value.absent(),
+          String? productId,
+          String? movementType,
+          int? quantityChange,
+          Value<double?> unitCost = const Value.absent(),
+          Value<String?> sourceType = const Value.absent(),
+          Value<String?> sourceId = const Value.absent(),
+          Value<String?> referenceType = const Value.absent(),
+          Value<String?> referenceId = const Value.absent(),
+          Value<String?> notes = const Value.absent(),
+          String? idempotencyKey,
+          int? syncStatus,
+          String? localStatus,
+          int? version,
+          DateTime? occurredAt,
+          Value<String?> metadataJson = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent()}) =>
+      LocalInventoryMovement(
+        id: id ?? this.id,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
+        productId: productId ?? this.productId,
+        movementType: movementType ?? this.movementType,
+        quantityChange: quantityChange ?? this.quantityChange,
+        unitCost: unitCost.present ? unitCost.value : this.unitCost,
+        sourceType: sourceType.present ? sourceType.value : this.sourceType,
+        sourceId: sourceId.present ? sourceId.value : this.sourceId,
+        referenceType:
+            referenceType.present ? referenceType.value : this.referenceType,
+        referenceId: referenceId.present ? referenceId.value : this.referenceId,
+        notes: notes.present ? notes.value : this.notes,
+        idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+        syncStatus: syncStatus ?? this.syncStatus,
+        localStatus: localStatus ?? this.localStatus,
+        version: version ?? this.version,
+        occurredAt: occurredAt ?? this.occurredAt,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+      );
+  LocalInventoryMovement copyWithCompanion(
+      LocalInventoryMovementsCompanion data) {
+    return LocalInventoryMovement(
+      id: data.id.present ? data.id.value : this.id,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      movementType: data.movementType.present
+          ? data.movementType.value
+          : this.movementType,
+      quantityChange: data.quantityChange.present
+          ? data.quantityChange.value
+          : this.quantityChange,
+      unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
+      sourceType:
+          data.sourceType.present ? data.sourceType.value : this.sourceType,
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+      referenceType: data.referenceType.present
+          ? data.referenceType.value
+          : this.referenceType,
+      referenceId:
+          data.referenceId.present ? data.referenceId.value : this.referenceId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      version: data.version.present ? data.version.value : this.version,
+      occurredAt:
+          data.occurredAt.present ? data.occurredAt.value : this.occurredAt,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalInventoryMovement(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('productId: $productId, ')
+          ..write('movementType: $movementType, ')
+          ..write('quantityChange: $quantityChange, ')
+          ..write('unitCost: $unitCost, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('referenceType: $referenceType, ')
+          ..write('referenceId: $referenceId, ')
+          ..write('notes: $notes, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('version: $version, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        businessId,
+        branchId,
+        productId,
+        movementType,
+        quantityChange,
+        unitCost,
+        sourceType,
+        sourceId,
+        referenceType,
+        referenceId,
+        notes,
+        idempotencyKey,
+        syncStatus,
+        localStatus,
+        version,
+        occurredAt,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalInventoryMovement &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.productId == this.productId &&
+          other.movementType == this.movementType &&
+          other.quantityChange == this.quantityChange &&
+          other.unitCost == this.unitCost &&
+          other.sourceType == this.sourceType &&
+          other.sourceId == this.sourceId &&
+          other.referenceType == this.referenceType &&
+          other.referenceId == this.referenceId &&
+          other.notes == this.notes &&
+          other.idempotencyKey == this.idempotencyKey &&
+          other.syncStatus == this.syncStatus &&
+          other.localStatus == this.localStatus &&
+          other.version == this.version &&
+          other.occurredAt == this.occurredAt &&
+          other.metadataJson == this.metadataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt);
+}
+
+class LocalInventoryMovementsCompanion
+    extends UpdateCompanion<LocalInventoryMovement> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<String?> branchId;
+  final Value<String> productId;
+  final Value<String> movementType;
+  final Value<int> quantityChange;
+  final Value<double?> unitCost;
+  final Value<String?> sourceType;
+  final Value<String?> sourceId;
+  final Value<String?> referenceType;
+  final Value<String?> referenceId;
+  final Value<String?> notes;
+  final Value<String> idempotencyKey;
+  final Value<int> syncStatus;
+  final Value<String> localStatus;
+  final Value<int> version;
+  final Value<DateTime> occurredAt;
+  final Value<String?> metadataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<int> rowid;
+  const LocalInventoryMovementsCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.movementType = const Value.absent(),
+    this.quantityChange = const Value.absent(),
+    this.unitCost = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.sourceId = const Value.absent(),
+    this.referenceType = const Value.absent(),
+    this.referenceId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalInventoryMovementsCompanion.insert({
+    required String id,
+    required String businessId,
+    this.branchId = const Value.absent(),
+    required String productId,
+    required String movementType,
+    required int quantityChange,
+    this.unitCost = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.sourceId = const Value.absent(),
+    this.referenceType = const Value.absent(),
+    this.referenceId = const Value.absent(),
+    this.notes = const Value.absent(),
+    required String idempotencyKey,
+    this.syncStatus = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    required DateTime occurredAt,
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        businessId = Value(businessId),
+        productId = Value(productId),
+        movementType = Value(movementType),
+        quantityChange = Value(quantityChange),
+        idempotencyKey = Value(idempotencyKey),
+        occurredAt = Value(occurredAt);
+  static Insertable<LocalInventoryMovement> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? productId,
+    Expression<String>? movementType,
+    Expression<int>? quantityChange,
+    Expression<double>? unitCost,
+    Expression<String>? sourceType,
+    Expression<String>? sourceId,
+    Expression<String>? referenceType,
+    Expression<String>? referenceId,
+    Expression<String>? notes,
+    Expression<String>? idempotencyKey,
+    Expression<int>? syncStatus,
+    Expression<String>? localStatus,
+    Expression<int>? version,
+    Expression<DateTime>? occurredAt,
+    Expression<String>? metadataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (productId != null) 'product_id': productId,
+      if (movementType != null) 'movement_type': movementType,
+      if (quantityChange != null) 'quantity_change': quantityChange,
+      if (unitCost != null) 'unit_cost': unitCost,
+      if (sourceType != null) 'source_type': sourceType,
+      if (sourceId != null) 'source_id': sourceId,
+      if (referenceType != null) 'reference_type': referenceType,
+      if (referenceId != null) 'reference_id': referenceId,
+      if (notes != null) 'notes': notes,
+      if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (localStatus != null) 'local_status': localStatus,
+      if (version != null) 'version': version,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalInventoryMovementsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? businessId,
+      Value<String?>? branchId,
+      Value<String>? productId,
+      Value<String>? movementType,
+      Value<int>? quantityChange,
+      Value<double?>? unitCost,
+      Value<String?>? sourceType,
+      Value<String?>? sourceId,
+      Value<String?>? referenceType,
+      Value<String?>? referenceId,
+      Value<String?>? notes,
+      Value<String>? idempotencyKey,
+      Value<int>? syncStatus,
+      Value<String>? localStatus,
+      Value<int>? version,
+      Value<DateTime>? occurredAt,
+      Value<String?>? metadataJson,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
+      Value<int>? rowid}) {
+    return LocalInventoryMovementsCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      productId: productId ?? this.productId,
+      movementType: movementType ?? this.movementType,
+      quantityChange: quantityChange ?? this.quantityChange,
+      unitCost: unitCost ?? this.unitCost,
+      sourceType: sourceType ?? this.sourceType,
+      sourceId: sourceId ?? this.sourceId,
+      referenceType: referenceType ?? this.referenceType,
+      referenceId: referenceId ?? this.referenceId,
+      notes: notes ?? this.notes,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+      syncStatus: syncStatus ?? this.syncStatus,
+      localStatus: localStatus ?? this.localStatus,
+      version: version ?? this.version,
+      occurredAt: occurredAt ?? this.occurredAt,
+      metadataJson: metadataJson ?? this.metadataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (movementType.present) {
+      map['movement_type'] = Variable<String>(movementType.value);
+    }
+    if (quantityChange.present) {
+      map['quantity_change'] = Variable<int>(quantityChange.value);
+    }
+    if (unitCost.present) {
+      map['unit_cost'] = Variable<double>(unitCost.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
+    }
+    if (referenceType.present) {
+      map['reference_type'] = Variable<String>(referenceType.value);
+    }
+    if (referenceId.present) {
+      map['reference_id'] = Variable<String>(referenceId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (idempotencyKey.present) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(syncStatus.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalInventoryMovementsCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('productId: $productId, ')
+          ..write('movementType: $movementType, ')
+          ..write('quantityChange: $quantityChange, ')
+          ..write('unitCost: $unitCost, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('referenceType: $referenceType, ')
+          ..write('referenceId: $referenceId, ')
+          ..write('notes: $notes, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('version: $version, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CategoriesTable extends Categories
     with TableInfo<$CategoriesTable, Category> {
   @override
@@ -13995,6 +15030,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalSyncBatchesTable(this);
   late final $LocalSyncMutationsTable localSyncMutations =
       $LocalSyncMutationsTable(this);
+  late final $LocalInventoryMovementsTable localInventoryMovements =
+      $LocalInventoryMovementsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ProductsTable products = $ProductsTable(this);
@@ -14027,6 +15064,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localCatalogContributionQueue,
         localSyncBatches,
         localSyncMutations,
+        localInventoryMovements,
         categories,
         customers,
         products,
@@ -20366,6 +21404,449 @@ typedef $$LocalSyncMutationsTableProcessedTableManager = ProcessedTableManager<
     ),
     LocalSyncMutation,
     PrefetchHooks Function()>;
+typedef $$LocalInventoryMovementsTableCreateCompanionBuilder
+    = LocalInventoryMovementsCompanion Function({
+  required String id,
+  required String businessId,
+  Value<String?> branchId,
+  required String productId,
+  required String movementType,
+  required int quantityChange,
+  Value<double?> unitCost,
+  Value<String?> sourceType,
+  Value<String?> sourceId,
+  Value<String?> referenceType,
+  Value<String?> referenceId,
+  Value<String?> notes,
+  required String idempotencyKey,
+  Value<int> syncStatus,
+  Value<String> localStatus,
+  Value<int> version,
+  required DateTime occurredAt,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<int> rowid,
+});
+typedef $$LocalInventoryMovementsTableUpdateCompanionBuilder
+    = LocalInventoryMovementsCompanion Function({
+  Value<String> id,
+  Value<String> businessId,
+  Value<String?> branchId,
+  Value<String> productId,
+  Value<String> movementType,
+  Value<int> quantityChange,
+  Value<double?> unitCost,
+  Value<String?> sourceType,
+  Value<String?> sourceId,
+  Value<String?> referenceType,
+  Value<String?> referenceId,
+  Value<String?> notes,
+  Value<String> idempotencyKey,
+  Value<int> syncStatus,
+  Value<String> localStatus,
+  Value<int> version,
+  Value<DateTime> occurredAt,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<int> rowid,
+});
+
+class $$LocalInventoryMovementsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalInventoryMovementsTable> {
+  $$LocalInventoryMovementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get movementType => $composableBuilder(
+      column: $table.movementType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get quantityChange => $composableBuilder(
+      column: $table.quantityChange,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get unitCost => $composableBuilder(
+      column: $table.unitCost, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceId => $composableBuilder(
+      column: $table.sourceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get referenceType => $composableBuilder(
+      column: $table.referenceType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get referenceId => $composableBuilder(
+      column: $table.referenceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalInventoryMovementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalInventoryMovementsTable> {
+  $$LocalInventoryMovementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get movementType => $composableBuilder(
+      column: $table.movementType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get quantityChange => $composableBuilder(
+      column: $table.quantityChange,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get unitCost => $composableBuilder(
+      column: $table.unitCost, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceId => $composableBuilder(
+      column: $table.sourceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get referenceType => $composableBuilder(
+      column: $table.referenceType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get referenceId => $composableBuilder(
+      column: $table.referenceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalInventoryMovementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalInventoryMovementsTable> {
+  $$LocalInventoryMovementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get movementType => $composableBuilder(
+      column: $table.movementType, builder: (column) => column);
+
+  GeneratedColumn<int> get quantityChange => $composableBuilder(
+      column: $table.quantityChange, builder: (column) => column);
+
+  GeneratedColumn<double> get unitCost =>
+      $composableBuilder(column: $table.unitCost, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceId =>
+      $composableBuilder(column: $table.sourceId, builder: (column) => column);
+
+  GeneratedColumn<String> get referenceType => $composableBuilder(
+      column: $table.referenceType, builder: (column) => column);
+
+  GeneratedColumn<String> get referenceId => $composableBuilder(
+      column: $table.referenceId, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey, builder: (column) => column);
+
+  GeneratedColumn<int> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+}
+
+class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalInventoryMovementsTable,
+    LocalInventoryMovement,
+    $$LocalInventoryMovementsTableFilterComposer,
+    $$LocalInventoryMovementsTableOrderingComposer,
+    $$LocalInventoryMovementsTableAnnotationComposer,
+    $$LocalInventoryMovementsTableCreateCompanionBuilder,
+    $$LocalInventoryMovementsTableUpdateCompanionBuilder,
+    (
+      LocalInventoryMovement,
+      BaseReferences<_$AppDatabase, $LocalInventoryMovementsTable,
+          LocalInventoryMovement>
+    ),
+    LocalInventoryMovement,
+    PrefetchHooks Function()> {
+  $$LocalInventoryMovementsTableTableManager(
+      _$AppDatabase db, $LocalInventoryMovementsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalInventoryMovementsTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalInventoryMovementsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalInventoryMovementsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String> productId = const Value.absent(),
+            Value<String> movementType = const Value.absent(),
+            Value<int> quantityChange = const Value.absent(),
+            Value<double?> unitCost = const Value.absent(),
+            Value<String?> sourceType = const Value.absent(),
+            Value<String?> sourceId = const Value.absent(),
+            Value<String?> referenceType = const Value.absent(),
+            Value<String?> referenceId = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+            Value<String> idempotencyKey = const Value.absent(),
+            Value<int> syncStatus = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<DateTime> occurredAt = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalInventoryMovementsCompanion(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            productId: productId,
+            movementType: movementType,
+            quantityChange: quantityChange,
+            unitCost: unitCost,
+            sourceType: sourceType,
+            sourceId: sourceId,
+            referenceType: referenceType,
+            referenceId: referenceId,
+            notes: notes,
+            idempotencyKey: idempotencyKey,
+            syncStatus: syncStatus,
+            localStatus: localStatus,
+            version: version,
+            occurredAt: occurredAt,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String businessId,
+            Value<String?> branchId = const Value.absent(),
+            required String productId,
+            required String movementType,
+            required int quantityChange,
+            Value<double?> unitCost = const Value.absent(),
+            Value<String?> sourceType = const Value.absent(),
+            Value<String?> sourceId = const Value.absent(),
+            Value<String?> referenceType = const Value.absent(),
+            Value<String?> referenceId = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+            required String idempotencyKey,
+            Value<int> syncStatus = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            required DateTime occurredAt,
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalInventoryMovementsCompanion.insert(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            productId: productId,
+            movementType: movementType,
+            quantityChange: quantityChange,
+            unitCost: unitCost,
+            sourceType: sourceType,
+            sourceId: sourceId,
+            referenceType: referenceType,
+            referenceId: referenceId,
+            notes: notes,
+            idempotencyKey: idempotencyKey,
+            syncStatus: syncStatus,
+            localStatus: localStatus,
+            version: version,
+            occurredAt: occurredAt,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalInventoryMovementsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalInventoryMovementsTable,
+        LocalInventoryMovement,
+        $$LocalInventoryMovementsTableFilterComposer,
+        $$LocalInventoryMovementsTableOrderingComposer,
+        $$LocalInventoryMovementsTableAnnotationComposer,
+        $$LocalInventoryMovementsTableCreateCompanionBuilder,
+        $$LocalInventoryMovementsTableUpdateCompanionBuilder,
+        (
+          LocalInventoryMovement,
+          BaseReferences<_$AppDatabase, $LocalInventoryMovementsTable,
+              LocalInventoryMovement>
+        ),
+        LocalInventoryMovement,
+        PrefetchHooks Function()>;
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String id,
   Value<String?> businessId,
@@ -23837,6 +25318,9 @@ class $AppDatabaseManager {
       $$LocalSyncBatchesTableTableManager(_db, _db.localSyncBatches);
   $$LocalSyncMutationsTableTableManager get localSyncMutations =>
       $$LocalSyncMutationsTableTableManager(_db, _db.localSyncMutations);
+  $$LocalInventoryMovementsTableTableManager get localInventoryMovements =>
+      $$LocalInventoryMovementsTableTableManager(
+          _db, _db.localInventoryMovements);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
   $$CustomersTableTableManager get customers =>
