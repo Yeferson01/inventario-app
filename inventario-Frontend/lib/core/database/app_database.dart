@@ -686,6 +686,41 @@ class LocalInventoryMovements extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class LocalProductStockBalances extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get businessId => text()();
+
+  TextColumn get branchId => text()();
+
+  TextColumn get productId => text()();
+
+  IntColumn get quantityOnHand => integer().withDefault(const Constant(0))();
+
+  IntColumn get quantityReserved => integer().withDefault(const Constant(0))();
+
+  IntColumn get quantityAvailable => integer().withDefault(const Constant(0))();
+
+  RealColumn get averageCost => real().nullable()();
+
+  DateTimeColumn get lastMovementAt => dateTime().nullable()();
+
+  DateTimeColumn get remoteUpdatedAt => dateTime().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  TextColumn get syncStatus => text().withDefault(const Constant('synced'))();
+
+  TextColumn get metadataJson => text().nullable()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Branches,
@@ -700,6 +735,7 @@ class LocalInventoryMovements extends Table {
     LocalSyncBatches,
     LocalSyncMutations,
     LocalInventoryMovements,
+    LocalProductStockBalances,
     Businesses,
     Profiles,
     Categories,
@@ -728,7 +764,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   Future<void> _createInventoryMovementIndexes() async {
     await customStatement(
@@ -800,6 +836,28 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> _createProductStockBalanceIndexes() async {
+    await customStatement('''
+      create unique index if not exists ux_local_product_stock_balances_scope
+      on local_product_stock_balances (business_id, branch_id, product_id)
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_stock_balances_branch
+      on local_product_stock_balances (business_id, branch_id)
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_stock_balances_product
+      on local_product_stock_balances (product_id)
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_stock_balances_updated
+      on local_product_stock_balances (remote_updated_at)
+    ''');
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
@@ -807,9 +865,15 @@ class AppDatabase extends _$AppDatabase {
 
           await _createAppContextIndexes();
           await _createInventoryMovementIndexes();
+          await _createProductStockBalanceIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 5) {
+            await m.createTable(localProductStockBalances);
+            await _createProductStockBalanceIndexes();
+          }
+
           if (from < 3) {
             await m.createTable(branches);
             await m.createTable(roles);
@@ -827,6 +891,7 @@ class AppDatabase extends _$AppDatabase {
           // Aquí manejarás tus futuras migraciones de forma estructurada
         },
         beforeOpen: (details) async {
+          await _createProductStockBalanceIndexes();
           await _createInventoryMovementIndexes();
           await ensureLocalSyncOutboxIndexes();
         },

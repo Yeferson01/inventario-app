@@ -12,6 +12,7 @@ import '../../application/app_e2e_product_from_catalog_flow_provider.dart';
 import '../../../inventory/application/inventory_initial_stock_models.dart';
 import '../../../inventory/application/inventory_initial_stock_provider.dart';
 import '../../application/inventory_sync_upload_provider.dart';
+import '../../../inventory/application/product_stock_balance_providers.dart';
 
 class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
   const AppE2ERealControlledTestScreen({
@@ -130,6 +131,93 @@ class _AppE2ERealControlledTestScreenState
 
       setState(() {
         _lastResult = result.toJson();
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pullStockBalances() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final stockPullService = ref.read(productStockBalancePullServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'pull_stock_balances',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final productId = _requiredText(
+        _syncedProductIdController,
+        'Product ID sincronizado',
+      );
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError(
+            'No se pudo resolver branch_id para consultar saldos.');
+      }
+
+      final pullResult = await stockPullService.pullBranchBalances(
+        businessId: businessId,
+        branchId: branchId,
+      );
+
+      final localProductBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'pull_stock_balances',
+          'pull_result': pullResult.toJson(),
+          'local_product_balance': localProductBalance,
+        };
       });
     } catch (error) {
       setState(() {
@@ -585,6 +673,17 @@ class _AppE2ERealControlledTestScreenState
                   },
             child: const Text(
               '6. Crear stock inicial + sync inventario',
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: _isRunning
+                ? null
+                : () {
+                    _pullStockBalances();
+                  },
+            child: const Text(
+              '7. Descargar saldos de stock remoto',
             ),
           ),
           if (_isRunning) ...[

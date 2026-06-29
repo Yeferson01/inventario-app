@@ -11120,6 +11120,761 @@ class LocalInventoryMovementsCompanion
   }
 }
 
+class $LocalProductStockBalancesTable extends LocalProductStockBalances
+    with TableInfo<$LocalProductStockBalancesTable, LocalProductStockBalance> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalProductStockBalancesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _quantityOnHandMeta =
+      const VerificationMeta('quantityOnHand');
+  @override
+  late final GeneratedColumn<int> quantityOnHand = GeneratedColumn<int>(
+      'quantity_on_hand', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _quantityReservedMeta =
+      const VerificationMeta('quantityReserved');
+  @override
+  late final GeneratedColumn<int> quantityReserved = GeneratedColumn<int>(
+      'quantity_reserved', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _quantityAvailableMeta =
+      const VerificationMeta('quantityAvailable');
+  @override
+  late final GeneratedColumn<int> quantityAvailable = GeneratedColumn<int>(
+      'quantity_available', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _averageCostMeta =
+      const VerificationMeta('averageCost');
+  @override
+  late final GeneratedColumn<double> averageCost = GeneratedColumn<double>(
+      'average_cost', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _lastMovementAtMeta =
+      const VerificationMeta('lastMovementAt');
+  @override
+  late final GeneratedColumn<DateTime> lastMovementAt =
+      GeneratedColumn<DateTime>('last_movement_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _remoteUpdatedAtMeta =
+      const VerificationMeta('remoteUpdatedAt');
+  @override
+  late final GeneratedColumn<DateTime> remoteUpdatedAt =
+      GeneratedColumn<DateTime>('remote_updated_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _syncStatusMeta =
+      const VerificationMeta('syncStatus');
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+      'sync_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        businessId,
+        branchId,
+        productId,
+        quantityOnHand,
+        quantityReserved,
+        quantityAvailable,
+        averageCost,
+        lastMovementAt,
+        remoteUpdatedAt,
+        lastSyncedAt,
+        syncStatus,
+        metadataJson,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_product_stock_balances';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalProductStockBalance> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('quantity_on_hand')) {
+      context.handle(
+          _quantityOnHandMeta,
+          quantityOnHand.isAcceptableOrUnknown(
+              data['quantity_on_hand']!, _quantityOnHandMeta));
+    }
+    if (data.containsKey('quantity_reserved')) {
+      context.handle(
+          _quantityReservedMeta,
+          quantityReserved.isAcceptableOrUnknown(
+              data['quantity_reserved']!, _quantityReservedMeta));
+    }
+    if (data.containsKey('quantity_available')) {
+      context.handle(
+          _quantityAvailableMeta,
+          quantityAvailable.isAcceptableOrUnknown(
+              data['quantity_available']!, _quantityAvailableMeta));
+    }
+    if (data.containsKey('average_cost')) {
+      context.handle(
+          _averageCostMeta,
+          averageCost.isAcceptableOrUnknown(
+              data['average_cost']!, _averageCostMeta));
+    }
+    if (data.containsKey('last_movement_at')) {
+      context.handle(
+          _lastMovementAtMeta,
+          lastMovementAt.isAcceptableOrUnknown(
+              data['last_movement_at']!, _lastMovementAtMeta));
+    }
+    if (data.containsKey('remote_updated_at')) {
+      context.handle(
+          _remoteUpdatedAtMeta,
+          remoteUpdatedAt.isAcceptableOrUnknown(
+              data['remote_updated_at']!, _remoteUpdatedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+          _syncStatusMeta,
+          syncStatus.isAcceptableOrUnknown(
+              data['sync_status']!, _syncStatusMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalProductStockBalance map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalProductStockBalance(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      quantityOnHand: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}quantity_on_hand'])!,
+      quantityReserved: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}quantity_reserved'])!,
+      quantityAvailable: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}quantity_available'])!,
+      averageCost: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}average_cost']),
+      lastMovementAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_movement_at']),
+      remoteUpdatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}remote_updated_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
+      syncStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $LocalProductStockBalancesTable createAlias(String alias) {
+    return $LocalProductStockBalancesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalProductStockBalance extends DataClass
+    implements Insertable<LocalProductStockBalance> {
+  final String id;
+  final String businessId;
+  final String branchId;
+  final String productId;
+  final int quantityOnHand;
+  final int quantityReserved;
+  final int quantityAvailable;
+  final double? averageCost;
+  final DateTime? lastMovementAt;
+  final DateTime? remoteUpdatedAt;
+  final DateTime? lastSyncedAt;
+  final String syncStatus;
+  final String? metadataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalProductStockBalance(
+      {required this.id,
+      required this.businessId,
+      required this.branchId,
+      required this.productId,
+      required this.quantityOnHand,
+      required this.quantityReserved,
+      required this.quantityAvailable,
+      this.averageCost,
+      this.lastMovementAt,
+      this.remoteUpdatedAt,
+      this.lastSyncedAt,
+      required this.syncStatus,
+      this.metadataJson,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['product_id'] = Variable<String>(productId);
+    map['quantity_on_hand'] = Variable<int>(quantityOnHand);
+    map['quantity_reserved'] = Variable<int>(quantityReserved);
+    map['quantity_available'] = Variable<int>(quantityAvailable);
+    if (!nullToAbsent || averageCost != null) {
+      map['average_cost'] = Variable<double>(averageCost);
+    }
+    if (!nullToAbsent || lastMovementAt != null) {
+      map['last_movement_at'] = Variable<DateTime>(lastMovementAt);
+    }
+    if (!nullToAbsent || remoteUpdatedAt != null) {
+      map['remote_updated_at'] = Variable<DateTime>(remoteUpdatedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalProductStockBalancesCompanion toCompanion(bool nullToAbsent) {
+    return LocalProductStockBalancesCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      productId: Value(productId),
+      quantityOnHand: Value(quantityOnHand),
+      quantityReserved: Value(quantityReserved),
+      quantityAvailable: Value(quantityAvailable),
+      averageCost: averageCost == null && nullToAbsent
+          ? const Value.absent()
+          : Value(averageCost),
+      lastMovementAt: lastMovementAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastMovementAt),
+      remoteUpdatedAt: remoteUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteUpdatedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+      syncStatus: Value(syncStatus),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalProductStockBalance.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalProductStockBalance(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      productId: serializer.fromJson<String>(json['productId']),
+      quantityOnHand: serializer.fromJson<int>(json['quantityOnHand']),
+      quantityReserved: serializer.fromJson<int>(json['quantityReserved']),
+      quantityAvailable: serializer.fromJson<int>(json['quantityAvailable']),
+      averageCost: serializer.fromJson<double?>(json['averageCost']),
+      lastMovementAt: serializer.fromJson<DateTime?>(json['lastMovementAt']),
+      remoteUpdatedAt: serializer.fromJson<DateTime?>(json['remoteUpdatedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'productId': serializer.toJson<String>(productId),
+      'quantityOnHand': serializer.toJson<int>(quantityOnHand),
+      'quantityReserved': serializer.toJson<int>(quantityReserved),
+      'quantityAvailable': serializer.toJson<int>(quantityAvailable),
+      'averageCost': serializer.toJson<double?>(averageCost),
+      'lastMovementAt': serializer.toJson<DateTime?>(lastMovementAt),
+      'remoteUpdatedAt': serializer.toJson<DateTime?>(remoteUpdatedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalProductStockBalance copyWith(
+          {String? id,
+          String? businessId,
+          String? branchId,
+          String? productId,
+          int? quantityOnHand,
+          int? quantityReserved,
+          int? quantityAvailable,
+          Value<double?> averageCost = const Value.absent(),
+          Value<DateTime?> lastMovementAt = const Value.absent(),
+          Value<DateTime?> remoteUpdatedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent(),
+          String? syncStatus,
+          Value<String?> metadataJson = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      LocalProductStockBalance(
+        id: id ?? this.id,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        productId: productId ?? this.productId,
+        quantityOnHand: quantityOnHand ?? this.quantityOnHand,
+        quantityReserved: quantityReserved ?? this.quantityReserved,
+        quantityAvailable: quantityAvailable ?? this.quantityAvailable,
+        averageCost: averageCost.present ? averageCost.value : this.averageCost,
+        lastMovementAt:
+            lastMovementAt.present ? lastMovementAt.value : this.lastMovementAt,
+        remoteUpdatedAt: remoteUpdatedAt.present
+            ? remoteUpdatedAt.value
+            : this.remoteUpdatedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+        syncStatus: syncStatus ?? this.syncStatus,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  LocalProductStockBalance copyWithCompanion(
+      LocalProductStockBalancesCompanion data) {
+    return LocalProductStockBalance(
+      id: data.id.present ? data.id.value : this.id,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      quantityOnHand: data.quantityOnHand.present
+          ? data.quantityOnHand.value
+          : this.quantityOnHand,
+      quantityReserved: data.quantityReserved.present
+          ? data.quantityReserved.value
+          : this.quantityReserved,
+      quantityAvailable: data.quantityAvailable.present
+          ? data.quantityAvailable.value
+          : this.quantityAvailable,
+      averageCost:
+          data.averageCost.present ? data.averageCost.value : this.averageCost,
+      lastMovementAt: data.lastMovementAt.present
+          ? data.lastMovementAt.value
+          : this.lastMovementAt,
+      remoteUpdatedAt: data.remoteUpdatedAt.present
+          ? data.remoteUpdatedAt.value
+          : this.remoteUpdatedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalProductStockBalance(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('productId: $productId, ')
+          ..write('quantityOnHand: $quantityOnHand, ')
+          ..write('quantityReserved: $quantityReserved, ')
+          ..write('quantityAvailable: $quantityAvailable, ')
+          ..write('averageCost: $averageCost, ')
+          ..write('lastMovementAt: $lastMovementAt, ')
+          ..write('remoteUpdatedAt: $remoteUpdatedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      businessId,
+      branchId,
+      productId,
+      quantityOnHand,
+      quantityReserved,
+      quantityAvailable,
+      averageCost,
+      lastMovementAt,
+      remoteUpdatedAt,
+      lastSyncedAt,
+      syncStatus,
+      metadataJson,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalProductStockBalance &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.productId == this.productId &&
+          other.quantityOnHand == this.quantityOnHand &&
+          other.quantityReserved == this.quantityReserved &&
+          other.quantityAvailable == this.quantityAvailable &&
+          other.averageCost == this.averageCost &&
+          other.lastMovementAt == this.lastMovementAt &&
+          other.remoteUpdatedAt == this.remoteUpdatedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.metadataJson == this.metadataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalProductStockBalancesCompanion
+    extends UpdateCompanion<LocalProductStockBalance> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> productId;
+  final Value<int> quantityOnHand;
+  final Value<int> quantityReserved;
+  final Value<int> quantityAvailable;
+  final Value<double?> averageCost;
+  final Value<DateTime?> lastMovementAt;
+  final Value<DateTime?> remoteUpdatedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<String> syncStatus;
+  final Value<String?> metadataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalProductStockBalancesCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.quantityOnHand = const Value.absent(),
+    this.quantityReserved = const Value.absent(),
+    this.quantityAvailable = const Value.absent(),
+    this.averageCost = const Value.absent(),
+    this.lastMovementAt = const Value.absent(),
+    this.remoteUpdatedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalProductStockBalancesCompanion.insert({
+    required String id,
+    required String businessId,
+    required String branchId,
+    required String productId,
+    this.quantityOnHand = const Value.absent(),
+    this.quantityReserved = const Value.absent(),
+    this.quantityAvailable = const Value.absent(),
+    this.averageCost = const Value.absent(),
+    this.lastMovementAt = const Value.absent(),
+    this.remoteUpdatedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        businessId = Value(businessId),
+        branchId = Value(branchId),
+        productId = Value(productId);
+  static Insertable<LocalProductStockBalance> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? productId,
+    Expression<int>? quantityOnHand,
+    Expression<int>? quantityReserved,
+    Expression<int>? quantityAvailable,
+    Expression<double>? averageCost,
+    Expression<DateTime>? lastMovementAt,
+    Expression<DateTime>? remoteUpdatedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<String>? syncStatus,
+    Expression<String>? metadataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (productId != null) 'product_id': productId,
+      if (quantityOnHand != null) 'quantity_on_hand': quantityOnHand,
+      if (quantityReserved != null) 'quantity_reserved': quantityReserved,
+      if (quantityAvailable != null) 'quantity_available': quantityAvailable,
+      if (averageCost != null) 'average_cost': averageCost,
+      if (lastMovementAt != null) 'last_movement_at': lastMovementAt,
+      if (remoteUpdatedAt != null) 'remote_updated_at': remoteUpdatedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalProductStockBalancesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? productId,
+      Value<int>? quantityOnHand,
+      Value<int>? quantityReserved,
+      Value<int>? quantityAvailable,
+      Value<double?>? averageCost,
+      Value<DateTime?>? lastMovementAt,
+      Value<DateTime?>? remoteUpdatedAt,
+      Value<DateTime?>? lastSyncedAt,
+      Value<String>? syncStatus,
+      Value<String?>? metadataJson,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return LocalProductStockBalancesCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      productId: productId ?? this.productId,
+      quantityOnHand: quantityOnHand ?? this.quantityOnHand,
+      quantityReserved: quantityReserved ?? this.quantityReserved,
+      quantityAvailable: quantityAvailable ?? this.quantityAvailable,
+      averageCost: averageCost ?? this.averageCost,
+      lastMovementAt: lastMovementAt ?? this.lastMovementAt,
+      remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      metadataJson: metadataJson ?? this.metadataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (quantityOnHand.present) {
+      map['quantity_on_hand'] = Variable<int>(quantityOnHand.value);
+    }
+    if (quantityReserved.present) {
+      map['quantity_reserved'] = Variable<int>(quantityReserved.value);
+    }
+    if (quantityAvailable.present) {
+      map['quantity_available'] = Variable<int>(quantityAvailable.value);
+    }
+    if (averageCost.present) {
+      map['average_cost'] = Variable<double>(averageCost.value);
+    }
+    if (lastMovementAt.present) {
+      map['last_movement_at'] = Variable<DateTime>(lastMovementAt.value);
+    }
+    if (remoteUpdatedAt.present) {
+      map['remote_updated_at'] = Variable<DateTime>(remoteUpdatedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalProductStockBalancesCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('productId: $productId, ')
+          ..write('quantityOnHand: $quantityOnHand, ')
+          ..write('quantityReserved: $quantityReserved, ')
+          ..write('quantityAvailable: $quantityAvailable, ')
+          ..write('averageCost: $averageCost, ')
+          ..write('lastMovementAt: $lastMovementAt, ')
+          ..write('remoteUpdatedAt: $remoteUpdatedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CategoriesTable extends Categories
     with TableInfo<$CategoriesTable, Category> {
   @override
@@ -15032,6 +15787,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalSyncMutationsTable(this);
   late final $LocalInventoryMovementsTable localInventoryMovements =
       $LocalInventoryMovementsTable(this);
+  late final $LocalProductStockBalancesTable localProductStockBalances =
+      $LocalProductStockBalancesTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ProductsTable products = $ProductsTable(this);
@@ -15065,6 +15822,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localSyncBatches,
         localSyncMutations,
         localInventoryMovements,
+        localProductStockBalances,
         categories,
         customers,
         products,
@@ -21847,6 +22605,348 @@ typedef $$LocalInventoryMovementsTableProcessedTableManager
         ),
         LocalInventoryMovement,
         PrefetchHooks Function()>;
+typedef $$LocalProductStockBalancesTableCreateCompanionBuilder
+    = LocalProductStockBalancesCompanion Function({
+  required String id,
+  required String businessId,
+  required String branchId,
+  required String productId,
+  Value<int> quantityOnHand,
+  Value<int> quantityReserved,
+  Value<int> quantityAvailable,
+  Value<double?> averageCost,
+  Value<DateTime?> lastMovementAt,
+  Value<DateTime?> remoteUpdatedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<String> syncStatus,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$LocalProductStockBalancesTableUpdateCompanionBuilder
+    = LocalProductStockBalancesCompanion Function({
+  Value<String> id,
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> productId,
+  Value<int> quantityOnHand,
+  Value<int> quantityReserved,
+  Value<int> quantityAvailable,
+  Value<double?> averageCost,
+  Value<DateTime?> lastMovementAt,
+  Value<DateTime?> remoteUpdatedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<String> syncStatus,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$LocalProductStockBalancesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalProductStockBalancesTable> {
+  $$LocalProductStockBalancesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get quantityOnHand => $composableBuilder(
+      column: $table.quantityOnHand,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get quantityReserved => $composableBuilder(
+      column: $table.quantityReserved,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get quantityAvailable => $composableBuilder(
+      column: $table.quantityAvailable,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get averageCost => $composableBuilder(
+      column: $table.averageCost, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastMovementAt => $composableBuilder(
+      column: $table.lastMovementAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get remoteUpdatedAt => $composableBuilder(
+      column: $table.remoteUpdatedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalProductStockBalancesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalProductStockBalancesTable> {
+  $$LocalProductStockBalancesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get quantityOnHand => $composableBuilder(
+      column: $table.quantityOnHand,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get quantityReserved => $composableBuilder(
+      column: $table.quantityReserved,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get quantityAvailable => $composableBuilder(
+      column: $table.quantityAvailable,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get averageCost => $composableBuilder(
+      column: $table.averageCost, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastMovementAt => $composableBuilder(
+      column: $table.lastMovementAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get remoteUpdatedAt => $composableBuilder(
+      column: $table.remoteUpdatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalProductStockBalancesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalProductStockBalancesTable> {
+  $$LocalProductStockBalancesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<int> get quantityOnHand => $composableBuilder(
+      column: $table.quantityOnHand, builder: (column) => column);
+
+  GeneratedColumn<int> get quantityReserved => $composableBuilder(
+      column: $table.quantityReserved, builder: (column) => column);
+
+  GeneratedColumn<int> get quantityAvailable => $composableBuilder(
+      column: $table.quantityAvailable, builder: (column) => column);
+
+  GeneratedColumn<double> get averageCost => $composableBuilder(
+      column: $table.averageCost, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastMovementAt => $composableBuilder(
+      column: $table.lastMovementAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get remoteUpdatedAt => $composableBuilder(
+      column: $table.remoteUpdatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalProductStockBalancesTable,
+    LocalProductStockBalance,
+    $$LocalProductStockBalancesTableFilterComposer,
+    $$LocalProductStockBalancesTableOrderingComposer,
+    $$LocalProductStockBalancesTableAnnotationComposer,
+    $$LocalProductStockBalancesTableCreateCompanionBuilder,
+    $$LocalProductStockBalancesTableUpdateCompanionBuilder,
+    (
+      LocalProductStockBalance,
+      BaseReferences<_$AppDatabase, $LocalProductStockBalancesTable,
+          LocalProductStockBalance>
+    ),
+    LocalProductStockBalance,
+    PrefetchHooks Function()> {
+  $$LocalProductStockBalancesTableTableManager(
+      _$AppDatabase db, $LocalProductStockBalancesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalProductStockBalancesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalProductStockBalancesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalProductStockBalancesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> productId = const Value.absent(),
+            Value<int> quantityOnHand = const Value.absent(),
+            Value<int> quantityReserved = const Value.absent(),
+            Value<int> quantityAvailable = const Value.absent(),
+            Value<double?> averageCost = const Value.absent(),
+            Value<DateTime?> lastMovementAt = const Value.absent(),
+            Value<DateTime?> remoteUpdatedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalProductStockBalancesCompanion(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            productId: productId,
+            quantityOnHand: quantityOnHand,
+            quantityReserved: quantityReserved,
+            quantityAvailable: quantityAvailable,
+            averageCost: averageCost,
+            lastMovementAt: lastMovementAt,
+            remoteUpdatedAt: remoteUpdatedAt,
+            lastSyncedAt: lastSyncedAt,
+            syncStatus: syncStatus,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String businessId,
+            required String branchId,
+            required String productId,
+            Value<int> quantityOnHand = const Value.absent(),
+            Value<int> quantityReserved = const Value.absent(),
+            Value<int> quantityAvailable = const Value.absent(),
+            Value<double?> averageCost = const Value.absent(),
+            Value<DateTime?> lastMovementAt = const Value.absent(),
+            Value<DateTime?> remoteUpdatedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalProductStockBalancesCompanion.insert(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            productId: productId,
+            quantityOnHand: quantityOnHand,
+            quantityReserved: quantityReserved,
+            quantityAvailable: quantityAvailable,
+            averageCost: averageCost,
+            lastMovementAt: lastMovementAt,
+            remoteUpdatedAt: remoteUpdatedAt,
+            lastSyncedAt: lastSyncedAt,
+            syncStatus: syncStatus,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalProductStockBalancesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalProductStockBalancesTable,
+        LocalProductStockBalance,
+        $$LocalProductStockBalancesTableFilterComposer,
+        $$LocalProductStockBalancesTableOrderingComposer,
+        $$LocalProductStockBalancesTableAnnotationComposer,
+        $$LocalProductStockBalancesTableCreateCompanionBuilder,
+        $$LocalProductStockBalancesTableUpdateCompanionBuilder,
+        (
+          LocalProductStockBalance,
+          BaseReferences<_$AppDatabase, $LocalProductStockBalancesTable,
+              LocalProductStockBalance>
+        ),
+        LocalProductStockBalance,
+        PrefetchHooks Function()>;
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String id,
   Value<String?> businessId,
@@ -25321,6 +26421,9 @@ class $AppDatabaseManager {
   $$LocalInventoryMovementsTableTableManager get localInventoryMovements =>
       $$LocalInventoryMovementsTableTableManager(
           _db, _db.localInventoryMovements);
+  $$LocalProductStockBalancesTableTableManager get localProductStockBalances =>
+      $$LocalProductStockBalancesTableTableManager(
+          _db, _db.localProductStockBalances);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
   $$CustomersTableTableManager get customers =>
