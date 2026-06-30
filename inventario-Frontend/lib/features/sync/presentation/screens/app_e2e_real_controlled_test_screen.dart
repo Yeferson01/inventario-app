@@ -365,6 +365,85 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
+  Future<void> _previewProductsWithLocalStock() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final stockDao = ref.read(productStockBalanceLocalDaoProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'preview_products_with_local_stock',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError(
+            'No se pudo resolver branch_id para preview de stock.');
+      }
+
+      final products = await stockDao.getProductsWithLocalStock(
+        businessId: businessId,
+        branchId: branchId,
+        limit: 30,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'preview_products_with_local_stock',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'count': products.length,
+          'products': products,
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _businessIdController.dispose();
@@ -684,6 +763,13 @@ class _AppE2ERealControlledTestScreenState
                   },
             child: const Text(
               '7. Descargar saldos de stock remoto',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _previewProductsWithLocalStock,
+            child: const Text(
+              '8. Preview productos + stock local',
             ),
           ),
           if (_isRunning) ...[
