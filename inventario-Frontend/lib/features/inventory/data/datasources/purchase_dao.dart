@@ -24,34 +24,22 @@ class PurchaseDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
-  // Transacción local: Guardar Compra e incrementar Stock en caliente
+  // Transacción local legacy:
+  // Guarda la compra y sus ítems, pero NO modifica products.stock_quantity.
+  //
+  // Regla nueva:
+  // - El stock se mueve únicamente con inventory_movements.
+  // - El saldo visible se lee desde local_product_stock_balances.
+  // - products.stock_quantity queda como campo legacy/no autoritativo.
   Future<void> insertCompletePurchase({
     required Purchase purchaseRecord,
     required List<PurchaseItem> itemsList,
   }) async {
     await transaction(() async {
-      // 1. Insertar la cabecera de la orden de compra
       await into(purchases).insert(purchaseRecord);
 
-      // 2. Insertar cada ítem e incrementar el stock local del producto
       for (final item in itemsList) {
         await into(purchaseItems).insert(item);
-
-        // Buscar producto local para actualizar existencias y costos
-        final product = await (select(products)
-              ..where((t) => t.id.equals(item.productId!)))
-            .getSingle();
-        final newStock = product.stockQuantity + item.quantity;
-
-        await (update(products)..where((t) => t.id.equals(product.id))).write(
-          ProductsCompanion(
-            stockQuantity: Value(newStock),
-            // Opcional: Actualizar el precio de compra local con el último costo unitario
-            purchasePrice: Value(item.unitCost),
-            syncStatus: const Value(SyncStatus.pendingUpdate),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
       }
     });
   }

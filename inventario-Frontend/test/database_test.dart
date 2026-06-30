@@ -29,8 +29,7 @@ void main() {
       await db.close();
     });
 
-    test(
-        'Debería insertar un producto y luego descontar stock al realizar una venta',
+    test('Debería insertar una venta sin modificar stock legacy del producto',
         () async {
       // 1. Crear e insertar un producto inicial con 50 unidades en stock
       final productoInicial = Product(
@@ -78,7 +77,8 @@ void main() {
       );
 
       // 3. Ejecutar la venta usando la transacción atómica del DAO
-      print('🚀 Ejecutando transacción de venta en el POS local...');
+      print(
+          '🚀 Ejecutando transacción de venta legacy sin impacto directo a stock...');
       await saleDao.insertCompleteSale(
         saleRecord: ventaCabecera,
         itemsList: [detalleItem],
@@ -91,12 +91,12 @@ void main() {
 
       print('📊 Stock Inicial: 50 | Cantidad Vendida: 5');
       print(
-          '📊 Stock Actual en DB Local: ${productoActualizado.stockQuantity}');
+          '📊 Stock legacy actual en DB Local: ${productoActualizado.stockQuantity}');
 
-      expect(productoActualizado.stockQuantity, 45);
+      expect(productoActualizado.stockQuantity, 50);
 
       // Comparamos contra el índice numérico del enum (o contra el enum entero según corresponda)
-      expect(productoActualizado.syncStatus, SyncStatus.pendingUpdate);
+      expect(productoActualizado.syncStatus, SyncStatus.pendingInsert);
 
       print(
           '🎉 ¡Prueba superada con éxito! La persistencia local y la lógica de stock funcionan perfectamente.');

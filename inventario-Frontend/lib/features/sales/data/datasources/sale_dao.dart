@@ -21,32 +21,22 @@ class SaleDao extends DatabaseAccessor<AppDatabase> with _$SaleDaoMixin {
     return (select(saleItems)..where((t) => t.saleId.equals(saleId))).get();
   }
 
-  // Registro atómico de checkout local con impacto inmediato al Stock local
+  // Transacción local legacy:
+  // Guarda la venta y sus ítems, pero NO modifica products.stock_quantity.
+  //
+  // Regla nueva:
+  // - El descuento de stock debe modelarse con inventory_movements.
+  // - El saldo visible se lee desde local_product_stock_balances.
+  // - products.stock_quantity queda como campo legacy/no autoritativo.
   Future<void> insertCompleteSale({
     required Sale saleRecord,
     required List<SaleItem> itemsList,
   }) async {
     await transaction(() async {
-      // 1. Guardar cabecera de la venta
       await into(sales).insert(saleRecord);
 
-      // 2. Procesar ítems e impactar inventario
       for (final item in itemsList) {
         await into(saleItems).insert(item);
-
-        // Descontar inventario local inmediatamente para dar feedback ágil a la UI
-        final product = await (select(products)
-              ..where((t) => t.id.equals(item.productId!)))
-            .getSingle();
-        final newStock = product.stockQuantity - item.quantity;
-
-        await (update(products)..where((t) => t.id.equals(product.id))).write(
-          ProductsCompanion(
-            stockQuantity: Value(newStock),
-            syncStatus: const Value(SyncStatus.pendingUpdate),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
       }
     });
   }
