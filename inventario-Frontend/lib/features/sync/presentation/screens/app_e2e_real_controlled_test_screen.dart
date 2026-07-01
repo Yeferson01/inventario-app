@@ -13,6 +13,9 @@ import '../../../inventory/application/inventory_initial_stock_models.dart';
 import '../../../inventory/application/inventory_initial_stock_provider.dart';
 import '../../application/inventory_sync_upload_provider.dart';
 import '../../../inventory/application/product_stock_balance_providers.dart';
+import '../../../sales/application/pos_local_sale_models.dart';
+import '../../../sales/application/pos_local_sale_provider.dart';
+import '../../application/pos_sync_upload_provider.dart';
 
 class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
   const AppE2ERealControlledTestScreen({
@@ -39,6 +42,8 @@ class _AppE2ERealControlledTestScreenState
   final _syncedProductIdController = TextEditingController(
     text: '019f0ba1-704e-7ed6-a420-4114debb9ffa',
   );
+  final _saleQuantityController = TextEditingController(text: '1');
+  final _salePaymentMethodController = TextEditingController(text: 'cash');
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -365,6 +370,375 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
+  Future<void> _uploadPendingPosSales() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final posUploadService = ref.read(posSyncUploadServiceProvider);
+      final stockPullService = ref.read(productStockBalancePullServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: true,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'upload_pending_pos_sales',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError('No se pudo resolver branch_id para upload POS.');
+      }
+
+      final productId = _requiredText(
+        _syncedProductIdController,
+        'Product ID sincronizado',
+      );
+
+      final uploadResult = await posUploadService.uploadPendingPosBatches(
+        businessId: businessId,
+        batchLimit: 10,
+      );
+
+      final pullResult = await stockPullService.pullBranchBalances(
+        businessId: businessId,
+        branchId: branchId,
+      );
+
+      final localProductBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'upload_pending_pos_sales',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'product_id': productId,
+          'upload_result': uploadResult.toJson(),
+          'pull_after_upload': pullResult.toJson(),
+          'local_product_balance_after_pull': localProductBalance,
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _enqueuePendingPosSales() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final posOutboxService = ref.read(posSyncOutboxServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'enqueue_pending_pos_sales',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError(
+            'No se pudo resolver branch_id para encolar ventas POS.');
+      }
+
+      final preflightJson = preflight.toJson();
+
+      final appDeviceId = _findStringDeep(
+        preflightJson,
+        const [
+          'app_device_id',
+          'appDeviceId',
+          'app_devices_id',
+          'appDevicesId',
+        ],
+      );
+
+      if (appDeviceId == null || appDeviceId.trim().isEmpty) {
+        setState(() {
+          _lastResult = {
+            'flow': 'enqueue_pending_pos_sales_preflight_debug',
+            'preflight_json': preflightJson,
+          };
+        });
+
+        throw StateError(
+          'No se pudo resolver app_device_id real para encolar ventas POS.',
+        );
+      }
+
+      final result = await posOutboxService.enqueuePendingPosSales(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: user,
+        appDeviceId: appDeviceId,
+        deviceInstallationId: preflight.installationId,
+        limit: 10,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'enqueue_pending_pos_sales',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'app_device_id': appDeviceId,
+          'result': result.toJson(),
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _createOfflineLocalSale() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final posLocalSaleService = ref.read(posLocalSaleServiceProvider);
+      final stockPullService = ref.read(productStockBalancePullServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'pos_offline_local_sale',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError('No se pudo resolver branch_id para venta offline.');
+      }
+
+      final preflightJson = preflight.toJson();
+      final productId = _requiredText(
+        _syncedProductIdController,
+        'Product ID sincronizado',
+      );
+
+      final appDeviceId = _findStringDeep(
+        preflightJson,
+        const [
+          'app_device_id',
+          'appDeviceId',
+          'app_devices_id',
+          'appDevicesId',
+        ],
+      );
+
+      if (appDeviceId == null || appDeviceId.trim().isEmpty) {
+        setState(() {
+          _lastResult = {
+            'flow': 'pos_offline_local_sale_preflight_debug',
+            'preflight_json': preflightJson,
+          };
+        });
+
+        throw StateError(
+          'No se pudo resolver app_device_id real para venta offline.',
+        );
+      }
+
+      final beforeBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      final saleQuantity = _intFromController(_saleQuantityController);
+
+      final result = await posLocalSaleService.createLocalSale(
+        CreatePosLocalSaleInput(
+          businessId: businessId,
+          branchId: branchId,
+          profileId: user,
+          customerId: null,
+          cashRegisterId: _findStringDeep(
+            preflightJson,
+            const [
+              'cash_register_id',
+              'cashRegisterId',
+              'default_cash_register_id',
+            ],
+          ),
+          cashSessionId: _findStringDeep(
+            preflightJson,
+            const [
+              'cash_session_id',
+              'cashSessionId',
+              'current_cash_session_id',
+            ],
+          ),
+          appDeviceId: appDeviceId,
+          deviceInstallationId: preflight.installationId,
+          clientSequenceStart: _safeClientSequenceStart(),
+          items: [
+            PosLocalSaleItemInput(
+              productId: productId,
+              quantity: saleQuantity,
+            ),
+          ],
+          payments: const [],
+          metadata: {
+            'phase': '6.18C.33C',
+            'source': 'app_e2e_real_controlled_test_screen',
+            'payment_method': 'cash',
+          },
+        ),
+      );
+
+      final afterBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'pos_offline_local_sale',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'app_device_id': appDeviceId,
+          'product_id': productId,
+          'sale_quantity': saleQuantity,
+          'sale_result': result.toJson(),
+          'stock_before': beforeBalance,
+          'stock_after': afterBalance,
+          'expected': {
+            'quantity_before': 10,
+            'sale_quantity': saleQuantity,
+            'quantity_after': 10 - saleQuantity,
+            'legacy_stock_quantity_should_remain': 0,
+          },
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
   Future<void> _previewProductsWithLocalStock() async {
     setState(() {
       _isRunning = true;
@@ -453,6 +827,8 @@ class _AppE2ERealControlledTestScreenState
     _initialStockQuantityController.dispose();
     _initialStockUnitCostController.dispose();
     _syncedProductIdController.dispose();
+    _saleQuantityController.dispose();
+    _salePaymentMethodController.dispose();
     super.dispose();
   }
 
@@ -684,6 +1060,23 @@ class _AppE2ERealControlledTestScreenState
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _saleQuantityController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Cantidad venta offline local',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _salePaymentMethodController,
+            decoration: const InputDecoration(
+              labelText: 'Método de pago venta local',
+              border: OutlineInputBorder(),
+            ),
+          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _isRunning
@@ -770,6 +1163,27 @@ class _AppE2ERealControlledTestScreenState
             onPressed: _isRunning ? null : _previewProductsWithLocalStock,
             child: const Text(
               '8. Preview productos + stock local',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _createOfflineLocalSale,
+            child: const Text(
+              '9. Crear venta offline local',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _enqueuePendingPosSales,
+            child: const Text(
+              '10. Encolar ventas POS pendientes',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _uploadPendingPosSales,
+            child: const Text(
+              '11. Upload ventas POS pendientes',
             ),
           ),
           if (_isRunning) ...[

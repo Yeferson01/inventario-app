@@ -95,6 +95,17 @@ class LocalSyncOutboxService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPendingPosBatches({
+    required String businessId,
+    int limit = 10,
+  }) {
+    return getPendingBatches(
+      businessId: businessId,
+      domain: 'pos',
+      limit: limit,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getPendingInventoryBatches({
     required String businessId,
     int limit = 20,
@@ -222,6 +233,7 @@ class LocalSyncOutboxService {
     const allowedDomains = <String>{
       'catalog',
       'inventory',
+      'pos',
     };
 
     if (!allowedDomains.contains(domain)) {

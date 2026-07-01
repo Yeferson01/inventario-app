@@ -136,8 +136,37 @@ class Sales extends Table {
   TextColumn get businessId => text().nullable().references(Businesses, #id)();
   TextColumn get userId => text().nullable().references(Profiles, #id)();
   TextColumn get customerId => text().nullable().references(Customers, #id)();
+
+  TextColumn get branchId => text().nullable().references(Branches, #id)();
+
+  TextColumn get cashRegisterId =>
+      text().nullable().named('cash_register_id')();
+
+  TextColumn get cashSessionId => text().nullable().named('cash_session_id')();
+
+  RealColumn get subtotal => real().withDefault(const Constant(0))();
+
+  RealColumn get discountTotal =>
+      real().withDefault(const Constant(0)).named('discount_total')();
+
+  RealColumn get taxTotal =>
+      real().withDefault(const Constant(0)).named('tax_total')();
+
   RealColumn get total => real()();
+
+  // Campo legacy. Para POS profesional usar sale_payments.
   TextColumn get paymentMethod => text().nullable()();
+
+  TextColumn get paymentStatus =>
+      text().withDefault(const Constant('paid')).named('payment_status')();
+
+  TextColumn get idempotencyKey => text().nullable().named('idempotency_key')();
+
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('synced')).named('local_status')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
   TextColumn get status => text().withDefault(const Constant('completed'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -155,13 +184,74 @@ class SaleItems extends Table {
   TextColumn get id => text()();
   TextColumn get saleId => text().nullable().references(Sales, #id)();
   TextColumn get productId => text().nullable().references(Products, #id)();
+
+  TextColumn get productNameSnapshot =>
+      text().nullable().named('product_name_snapshot')();
+
+  TextColumn get barcodeSnapshot =>
+      text().nullable().named('barcode_snapshot')();
+
   IntColumn get quantity => integer()();
+
   RealColumn get unitPrice => real()();
+
+  RealColumn get discountTotal =>
+      real().withDefault(const Constant(0)).named('discount_total')();
+
+  RealColumn get taxTotal =>
+      real().withDefault(const Constant(0)).named('tax_total')();
+
   RealColumn get subtotal => real()();
+
+  RealColumn get lineTotal =>
+      real().withDefault(const Constant(0)).named('line_total')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   IntColumn get syncStatus =>
       intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('SalePayment')
+class SalePayments extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get businessId => text().named('business_id')();
+
+  TextColumn get branchId => text().nullable().named('branch_id')();
+
+  TextColumn get saleId => text().named('sale_id').references(Sales, #id)();
+
+  TextColumn get paymentMethod => text().named('payment_method')();
+
+  RealColumn get amount => real()();
+
+  TextColumn get currency => text().withDefault(const Constant('COP'))();
+
+  TextColumn get status => text().withDefault(const Constant('completed'))();
+
+  TextColumn get reference => text().nullable()();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
+
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('synced')).named('local_status')();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -743,6 +833,7 @@ class LocalProductStockBalances extends Table {
     Products,
     Sales,
     SaleItems,
+    SalePayments,
     Purchases,
     PurchaseItems,
   ],
@@ -764,7 +855,44 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
+
+  Future<void> _createPosIndexes() async {
+    await customStatement(
+      'create index if not exists idx_sales_business_branch_created '
+      'on sales(business_id, branch_id, created_at)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_sales_cash_session '
+      'on sales(cash_session_id, created_at)',
+    );
+
+    await customStatement(
+      'create unique index if not exists ux_sales_idempotency_key '
+      'on sales(idempotency_key) where idempotency_key is not null',
+    );
+
+    await customStatement(
+      'create index if not exists idx_sale_items_sale '
+      'on sale_items(sale_id)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_sale_items_product '
+      'on sale_items(product_id)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_sale_payments_sale '
+      'on sale_payments(sale_id)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_sale_payments_business_branch '
+      'on sale_payments(business_id, branch_id, created_at)',
+    );
+  }
 
   Future<void> _createInventoryMovementIndexes() async {
     await customStatement(
@@ -866,12 +994,37 @@ class AppDatabase extends _$AppDatabase {
           await _createAppContextIndexes();
           await _createInventoryMovementIndexes();
           await _createProductStockBalanceIndexes();
+          await _createPosIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 6) {
+            await m.addColumn(sales, sales.branchId);
+            await m.addColumn(sales, sales.cashRegisterId);
+            await m.addColumn(sales, sales.cashSessionId);
+            await m.addColumn(sales, sales.subtotal);
+            await m.addColumn(sales, sales.discountTotal);
+            await m.addColumn(sales, sales.taxTotal);
+            await m.addColumn(sales, sales.paymentStatus);
+            await m.addColumn(sales, sales.idempotencyKey);
+            await m.addColumn(sales, sales.localStatus);
+            await m.addColumn(sales, sales.metadataJson);
+
+            await m.addColumn(saleItems, saleItems.productNameSnapshot);
+            await m.addColumn(saleItems, saleItems.barcodeSnapshot);
+            await m.addColumn(saleItems, saleItems.discountTotal);
+            await m.addColumn(saleItems, saleItems.taxTotal);
+            await m.addColumn(saleItems, saleItems.lineTotal);
+            await m.addColumn(saleItems, saleItems.metadataJson);
+            await m.addColumn(saleItems, saleItems.updatedAt);
+
+            await m.createTable(salePayments);
+            await _createPosIndexes();
+          }
           if (from < 5) {
             await m.createTable(localProductStockBalances);
             await _createProductStockBalanceIndexes();
+            await _createPosIndexes();
           }
 
           if (from < 3) {
@@ -892,6 +1045,7 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await _createProductStockBalanceIndexes();
+          await _createPosIndexes();
           await _createInventoryMovementIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
