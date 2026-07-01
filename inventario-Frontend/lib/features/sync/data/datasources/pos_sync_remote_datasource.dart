@@ -89,15 +89,9 @@ class PosSyncRemoteDataSource {
       },
     );
 
-    // POS inventory is applied by the backend from sale_items.
-    // Do not upload local sale inventory movements separately, otherwise stock
-    // could be deducted twice.
-    await _client.rpc(
-      'apply_pos_batch_inventory_movements',
-      params: {
-        'p_sync_batch_id': serverBatchId,
-      },
-    );
+    // POS inventory is applied by the backend trigger when the POS sync batch
+    // transitions to completed. Flutter must not call the inventory RPC here.
+    // This keeps backend as the single source of truth for remote stock effects.
 
     return CatalogUploadBatchResult.fromProcessResult(
       localBatchId: localBatchId,
