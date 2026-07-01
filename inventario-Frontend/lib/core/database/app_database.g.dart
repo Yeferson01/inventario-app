@@ -16142,6 +16142,15 @@ class $PurchasesTable extends Purchases
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('REFERENCES businesses (id)'));
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES branches (id)'));
   static const VerificationMeta _supplierIdMeta =
       const VerificationMeta('supplierId');
   @override
@@ -16190,6 +16199,12 @@ class $PurchasesTable extends Purchases
   late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
       'deleted_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _invoicePhotoUrlMeta =
       const VerificationMeta('invoicePhotoUrl');
   @override
@@ -16210,6 +16225,34 @@ class $PurchasesTable extends Purchases
   late final GeneratedColumn<String> supplierName = GeneratedColumn<String>(
       'supplier_name', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _idempotencyKeyMeta =
+      const VerificationMeta('idempotencyKey');
+  @override
+  late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
+      'idempotency_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
   @override
   late final GeneratedColumnWithTypeConverter<SyncStatus, int> syncStatus =
       GeneratedColumn<int>('sync_status', aliasedName, false,
@@ -16221,6 +16264,7 @@ class $PurchasesTable extends Purchases
   List<GeneratedColumn> get $columns => [
         id,
         businessId,
+        branchId,
         supplierId,
         userId,
         total,
@@ -16228,9 +16272,14 @@ class $PurchasesTable extends Purchases
         createdAt,
         updatedAt,
         deletedAt,
+        lastSyncedAt,
         invoicePhotoUrl,
         processingStatus,
         supplierName,
+        idempotencyKey,
+        localStatus,
+        metadataJson,
+        version,
         syncStatus
       ];
   @override
@@ -16253,6 +16302,10 @@ class $PurchasesTable extends Purchases
           _businessIdMeta,
           businessId.isAcceptableOrUnknown(
               data['business_id']!, _businessIdMeta));
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
     }
     if (data.containsKey('supplier_id')) {
       context.handle(
@@ -16286,6 +16339,12 @@ class $PurchasesTable extends Purchases
       context.handle(_deletedAtMeta,
           deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
     }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
     if (data.containsKey('invoice_photo_url')) {
       context.handle(
           _invoicePhotoUrlMeta,
@@ -16304,6 +16363,28 @@ class $PurchasesTable extends Purchases
           supplierName.isAcceptableOrUnknown(
               data['supplier_name']!, _supplierNameMeta));
     }
+    if (data.containsKey('idempotency_key')) {
+      context.handle(
+          _idempotencyKeyMeta,
+          idempotencyKey.isAcceptableOrUnknown(
+              data['idempotency_key']!, _idempotencyKeyMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
     return context;
   }
 
@@ -16317,6 +16398,8 @@ class $PurchasesTable extends Purchases
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       businessId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}business_id']),
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
       supplierId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}supplier_id']),
       userId: attachedDatabase.typeMapping
@@ -16331,12 +16414,22 @@ class $PurchasesTable extends Purchases
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
       invoicePhotoUrl: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}invoice_photo_url']),
       processingStatus: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}processing_status'])!,
       supplierName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}supplier_name']),
+      idempotencyKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}idempotency_key']),
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
       syncStatus: $PurchasesTable.$convertersyncStatus.fromSql(attachedDatabase
           .typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}sync_status'])!),
@@ -16355,6 +16448,7 @@ class $PurchasesTable extends Purchases
 class Purchase extends DataClass implements Insertable<Purchase> {
   final String id;
   final String? businessId;
+  final String? branchId;
   final String? supplierId;
   final String? userId;
   final double total;
@@ -16362,13 +16456,19 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
   final String? invoicePhotoUrl;
   final String processingStatus;
   final String? supplierName;
+  final String? idempotencyKey;
+  final String localStatus;
+  final String? metadataJson;
+  final int version;
   final SyncStatus syncStatus;
   const Purchase(
       {required this.id,
       this.businessId,
+      this.branchId,
       this.supplierId,
       this.userId,
       required this.total,
@@ -16376,9 +16476,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       required this.createdAt,
       required this.updatedAt,
       this.deletedAt,
+      this.lastSyncedAt,
       this.invoicePhotoUrl,
       required this.processingStatus,
       this.supplierName,
+      this.idempotencyKey,
+      required this.localStatus,
+      this.metadataJson,
+      required this.version,
       required this.syncStatus});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -16386,6 +16491,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
     map['id'] = Variable<String>(id);
     if (!nullToAbsent || businessId != null) {
       map['business_id'] = Variable<String>(businessId);
+    }
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
     }
     if (!nullToAbsent || supplierId != null) {
       map['supplier_id'] = Variable<String>(supplierId);
@@ -16400,6 +16508,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
     if (!nullToAbsent || invoicePhotoUrl != null) {
       map['invoice_photo_url'] = Variable<String>(invoicePhotoUrl);
     }
@@ -16407,6 +16518,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
     if (!nullToAbsent || supplierName != null) {
       map['supplier_name'] = Variable<String>(supplierName);
     }
+    if (!nullToAbsent || idempotencyKey != null) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey);
+    }
+    map['local_status'] = Variable<String>(localStatus);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['version'] = Variable<int>(version);
     {
       map['sync_status'] =
           Variable<int>($PurchasesTable.$convertersyncStatus.toSql(syncStatus));
@@ -16420,6 +16539,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       businessId: businessId == null && nullToAbsent
           ? const Value.absent()
           : Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
       supplierId: supplierId == null && nullToAbsent
           ? const Value.absent()
           : Value(supplierId),
@@ -16432,6 +16554,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
       invoicePhotoUrl: invoicePhotoUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(invoicePhotoUrl),
@@ -16439,6 +16564,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       supplierName: supplierName == null && nullToAbsent
           ? const Value.absent()
           : Value(supplierName),
+      idempotencyKey: idempotencyKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idempotencyKey),
+      localStatus: Value(localStatus),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      version: Value(version),
       syncStatus: Value(syncStatus),
     );
   }
@@ -16449,6 +16582,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
     return Purchase(
       id: serializer.fromJson<String>(json['id']),
       businessId: serializer.fromJson<String?>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
       supplierId: serializer.fromJson<String?>(json['supplierId']),
       userId: serializer.fromJson<String?>(json['userId']),
       total: serializer.fromJson<double>(json['total']),
@@ -16456,9 +16590,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
       invoicePhotoUrl: serializer.fromJson<String?>(json['invoicePhotoUrl']),
       processingStatus: serializer.fromJson<String>(json['processingStatus']),
       supplierName: serializer.fromJson<String?>(json['supplierName']),
+      idempotencyKey: serializer.fromJson<String?>(json['idempotencyKey']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      version: serializer.fromJson<int>(json['version']),
       syncStatus: $PurchasesTable.$convertersyncStatus
           .fromJson(serializer.fromJson<int>(json['syncStatus'])),
     );
@@ -16469,6 +16608,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'businessId': serializer.toJson<String?>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
       'supplierId': serializer.toJson<String?>(supplierId),
       'userId': serializer.toJson<String?>(userId),
       'total': serializer.toJson<double>(total),
@@ -16476,9 +16616,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
       'invoicePhotoUrl': serializer.toJson<String?>(invoicePhotoUrl),
       'processingStatus': serializer.toJson<String>(processingStatus),
       'supplierName': serializer.toJson<String?>(supplierName),
+      'idempotencyKey': serializer.toJson<String?>(idempotencyKey),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'version': serializer.toJson<int>(version),
       'syncStatus': serializer
           .toJson<int>($PurchasesTable.$convertersyncStatus.toJson(syncStatus)),
     };
@@ -16487,6 +16632,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   Purchase copyWith(
           {String? id,
           Value<String?> businessId = const Value.absent(),
+          Value<String?> branchId = const Value.absent(),
           Value<String?> supplierId = const Value.absent(),
           Value<String?> userId = const Value.absent(),
           double? total,
@@ -16494,13 +16640,19 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           DateTime? createdAt,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent(),
           Value<String?> invoicePhotoUrl = const Value.absent(),
           String? processingStatus,
           Value<String?> supplierName = const Value.absent(),
+          Value<String?> idempotencyKey = const Value.absent(),
+          String? localStatus,
+          Value<String?> metadataJson = const Value.absent(),
+          int? version,
           SyncStatus? syncStatus}) =>
       Purchase(
         id: id ?? this.id,
         businessId: businessId.present ? businessId.value : this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
         supplierId: supplierId.present ? supplierId.value : this.supplierId,
         userId: userId.present ? userId.value : this.userId,
         total: total ?? this.total,
@@ -16508,12 +16660,20 @@ class Purchase extends DataClass implements Insertable<Purchase> {
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
         invoicePhotoUrl: invoicePhotoUrl.present
             ? invoicePhotoUrl.value
             : this.invoicePhotoUrl,
         processingStatus: processingStatus ?? this.processingStatus,
         supplierName:
             supplierName.present ? supplierName.value : this.supplierName,
+        idempotencyKey:
+            idempotencyKey.present ? idempotencyKey.value : this.idempotencyKey,
+        localStatus: localStatus ?? this.localStatus,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        version: version ?? this.version,
         syncStatus: syncStatus ?? this.syncStatus,
       );
   Purchase copyWithCompanion(PurchasesCompanion data) {
@@ -16521,6 +16681,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       id: data.id.present ? data.id.value : this.id,
       businessId:
           data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
       supplierId:
           data.supplierId.present ? data.supplierId.value : this.supplierId,
       userId: data.userId.present ? data.userId.value : this.userId,
@@ -16529,6 +16690,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
       invoicePhotoUrl: data.invoicePhotoUrl.present
           ? data.invoicePhotoUrl.value
           : this.invoicePhotoUrl,
@@ -16538,6 +16702,15 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       supplierName: data.supplierName.present
           ? data.supplierName.value
           : this.supplierName,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      version: data.version.present ? data.version.value : this.version,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
     );
@@ -16548,6 +16721,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
     return (StringBuffer('Purchase(')
           ..write('id: $id, ')
           ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
           ..write('supplierId: $supplierId, ')
           ..write('userId: $userId, ')
           ..write('total: $total, ')
@@ -16555,9 +16729,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('invoicePhotoUrl: $invoicePhotoUrl, ')
           ..write('processingStatus: $processingStatus, ')
           ..write('supplierName: $supplierName, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('version: $version, ')
           ..write('syncStatus: $syncStatus')
           ..write(')'))
         .toString();
@@ -16567,6 +16746,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   int get hashCode => Object.hash(
       id,
       businessId,
+      branchId,
       supplierId,
       userId,
       total,
@@ -16574,9 +16754,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       createdAt,
       updatedAt,
       deletedAt,
+      lastSyncedAt,
       invoicePhotoUrl,
       processingStatus,
       supplierName,
+      idempotencyKey,
+      localStatus,
+      metadataJson,
+      version,
       syncStatus);
   @override
   bool operator ==(Object other) =>
@@ -16584,6 +16769,7 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       (other is Purchase &&
           other.id == this.id &&
           other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
           other.supplierId == this.supplierId &&
           other.userId == this.userId &&
           other.total == this.total &&
@@ -16591,15 +16777,21 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
           other.invoicePhotoUrl == this.invoicePhotoUrl &&
           other.processingStatus == this.processingStatus &&
           other.supplierName == this.supplierName &&
+          other.idempotencyKey == this.idempotencyKey &&
+          other.localStatus == this.localStatus &&
+          other.metadataJson == this.metadataJson &&
+          other.version == this.version &&
           other.syncStatus == this.syncStatus);
 }
 
 class PurchasesCompanion extends UpdateCompanion<Purchase> {
   final Value<String> id;
   final Value<String?> businessId;
+  final Value<String?> branchId;
   final Value<String?> supplierId;
   final Value<String?> userId;
   final Value<double> total;
@@ -16607,14 +16799,20 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
   final Value<String?> invoicePhotoUrl;
   final Value<String> processingStatus;
   final Value<String?> supplierName;
+  final Value<String?> idempotencyKey;
+  final Value<String> localStatus;
+  final Value<String?> metadataJson;
+  final Value<int> version;
   final Value<SyncStatus> syncStatus;
   final Value<int> rowid;
   const PurchasesCompanion({
     this.id = const Value.absent(),
     this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.userId = const Value.absent(),
     this.total = const Value.absent(),
@@ -16622,15 +16820,21 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.invoicePhotoUrl = const Value.absent(),
     this.processingStatus = const Value.absent(),
     this.supplierName = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.version = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PurchasesCompanion.insert({
     required String id,
     this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.userId = const Value.absent(),
     required double total,
@@ -16638,9 +16842,14 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.invoicePhotoUrl = const Value.absent(),
     this.processingStatus = const Value.absent(),
     this.supplierName = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.version = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -16648,6 +16857,7 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
   static Insertable<Purchase> custom({
     Expression<String>? id,
     Expression<String>? businessId,
+    Expression<String>? branchId,
     Expression<String>? supplierId,
     Expression<String>? userId,
     Expression<double>? total,
@@ -16655,15 +16865,21 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
     Expression<String>? invoicePhotoUrl,
     Expression<String>? processingStatus,
     Expression<String>? supplierName,
+    Expression<String>? idempotencyKey,
+    Expression<String>? localStatus,
+    Expression<String>? metadataJson,
+    Expression<int>? version,
     Expression<int>? syncStatus,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
       if (supplierId != null) 'supplier_id': supplierId,
       if (userId != null) 'user_id': userId,
       if (total != null) 'total': total,
@@ -16671,9 +16887,14 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (invoicePhotoUrl != null) 'invoice_photo_url': invoicePhotoUrl,
       if (processingStatus != null) 'processing_status': processingStatus,
       if (supplierName != null) 'supplier_name': supplierName,
+      if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
+      if (localStatus != null) 'local_status': localStatus,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (version != null) 'version': version,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (rowid != null) 'rowid': rowid,
     });
@@ -16682,6 +16903,7 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
   PurchasesCompanion copyWith(
       {Value<String>? id,
       Value<String?>? businessId,
+      Value<String?>? branchId,
       Value<String?>? supplierId,
       Value<String?>? userId,
       Value<double>? total,
@@ -16689,14 +16911,20 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
       Value<String?>? invoicePhotoUrl,
       Value<String>? processingStatus,
       Value<String?>? supplierName,
+      Value<String?>? idempotencyKey,
+      Value<String>? localStatus,
+      Value<String?>? metadataJson,
+      Value<int>? version,
       Value<SyncStatus>? syncStatus,
       Value<int>? rowid}) {
     return PurchasesCompanion(
       id: id ?? this.id,
       businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
       supplierId: supplierId ?? this.supplierId,
       userId: userId ?? this.userId,
       total: total ?? this.total,
@@ -16704,9 +16932,14 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       invoicePhotoUrl: invoicePhotoUrl ?? this.invoicePhotoUrl,
       processingStatus: processingStatus ?? this.processingStatus,
       supplierName: supplierName ?? this.supplierName,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+      localStatus: localStatus ?? this.localStatus,
+      metadataJson: metadataJson ?? this.metadataJson,
+      version: version ?? this.version,
       syncStatus: syncStatus ?? this.syncStatus,
       rowid: rowid ?? this.rowid,
     );
@@ -16720,6 +16953,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     }
     if (businessId.present) {
       map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
     }
     if (supplierId.present) {
       map['supplier_id'] = Variable<String>(supplierId.value);
@@ -16742,6 +16978,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
     if (invoicePhotoUrl.present) {
       map['invoice_photo_url'] = Variable<String>(invoicePhotoUrl.value);
     }
@@ -16750,6 +16989,18 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     }
     if (supplierName.present) {
       map['supplier_name'] = Variable<String>(supplierName.value);
+    }
+    if (idempotencyKey.present) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
     }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(
@@ -16766,6 +17017,7 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     return (StringBuffer('PurchasesCompanion(')
           ..write('id: $id, ')
           ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
           ..write('supplierId: $supplierId, ')
           ..write('userId: $userId, ')
           ..write('total: $total, ')
@@ -16773,9 +17025,14 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('invoicePhotoUrl: $invoicePhotoUrl, ')
           ..write('processingStatus: $processingStatus, ')
           ..write('supplierName: $supplierName, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('version: $version, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -16803,6 +17060,24 @@ class $PurchaseItemsTable extends PurchaseItems
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('REFERENCES purchases (id)'));
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES businesses (id)'));
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES branches (id)'));
   static const VerificationMeta _productIdMeta =
       const VerificationMeta('productId');
   @override
@@ -16830,6 +17105,34 @@ class $PurchaseItemsTable extends PurchaseItems
   late final GeneratedColumn<double> subtotal = GeneratedColumn<double>(
       'subtotal', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _idempotencyKeyMeta =
+      const VerificationMeta('idempotencyKey');
+  @override
+  late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
+      'idempotency_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -16838,6 +17141,26 @@ class $PurchaseItemsTable extends PurchaseItems
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   late final GeneratedColumnWithTypeConverter<SyncStatus, int> syncStatus =
       GeneratedColumn<int>('sync_status', aliasedName, false,
@@ -16849,11 +17172,20 @@ class $PurchaseItemsTable extends PurchaseItems
   List<GeneratedColumn> get $columns => [
         id,
         purchaseId,
+        businessId,
+        branchId,
         productId,
         quantity,
         unitCost,
         subtotal,
+        idempotencyKey,
+        localStatus,
+        metadataJson,
+        version,
         createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt,
         syncStatus
       ];
   @override
@@ -16877,6 +17209,16 @@ class $PurchaseItemsTable extends PurchaseItems
           purchaseId.isAcceptableOrUnknown(
               data['purchase_id']!, _purchaseIdMeta));
     }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
     if (data.containsKey('product_id')) {
       context.handle(_productIdMeta,
           productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
@@ -16899,9 +17241,45 @@ class $PurchaseItemsTable extends PurchaseItems
     } else if (isInserting) {
       context.missing(_subtotalMeta);
     }
+    if (data.containsKey('idempotency_key')) {
+      context.handle(
+          _idempotencyKeyMeta,
+          idempotencyKey.isAcceptableOrUnknown(
+              data['idempotency_key']!, _idempotencyKeyMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
     }
     return context;
   }
@@ -16916,6 +17294,10 @@ class $PurchaseItemsTable extends PurchaseItems
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       purchaseId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}purchase_id']),
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id']),
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
       productId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}product_id']),
       quantity: attachedDatabase.typeMapping
@@ -16924,8 +17306,22 @@ class $PurchaseItemsTable extends PurchaseItems
           .read(DriftSqlType.double, data['${effectivePrefix}unit_cost'])!,
       subtotal: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}subtotal'])!,
+      idempotencyKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}idempotency_key']),
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
       syncStatus: $PurchaseItemsTable.$convertersyncStatus.fromSql(
           attachedDatabase.typeMapping
               .read(DriftSqlType.int, data['${effectivePrefix}sync_status'])!),
@@ -16944,20 +17340,38 @@ class $PurchaseItemsTable extends PurchaseItems
 class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
   final String id;
   final String? purchaseId;
+  final String? businessId;
+  final String? branchId;
   final String? productId;
   final int quantity;
   final double unitCost;
   final double subtotal;
+  final String? idempotencyKey;
+  final String localStatus;
+  final String? metadataJson;
+  final int version;
   final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
   final SyncStatus syncStatus;
   const PurchaseItem(
       {required this.id,
       this.purchaseId,
+      this.businessId,
+      this.branchId,
       this.productId,
       required this.quantity,
       required this.unitCost,
       required this.subtotal,
+      this.idempotencyKey,
+      required this.localStatus,
+      this.metadataJson,
+      required this.version,
       required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt,
+      this.lastSyncedAt,
       required this.syncStatus});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -16966,13 +17380,34 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
     if (!nullToAbsent || purchaseId != null) {
       map['purchase_id'] = Variable<String>(purchaseId);
     }
+    if (!nullToAbsent || businessId != null) {
+      map['business_id'] = Variable<String>(businessId);
+    }
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
     if (!nullToAbsent || productId != null) {
       map['product_id'] = Variable<String>(productId);
     }
     map['quantity'] = Variable<int>(quantity);
     map['unit_cost'] = Variable<double>(unitCost);
     map['subtotal'] = Variable<double>(subtotal);
+    if (!nullToAbsent || idempotencyKey != null) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey);
+    }
+    map['local_status'] = Variable<String>(localStatus);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['version'] = Variable<int>(version);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
     {
       map['sync_status'] = Variable<int>(
           $PurchaseItemsTable.$convertersyncStatus.toSql(syncStatus));
@@ -16986,13 +17421,34 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       purchaseId: purchaseId == null && nullToAbsent
           ? const Value.absent()
           : Value(purchaseId),
+      businessId: businessId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
       productId: productId == null && nullToAbsent
           ? const Value.absent()
           : Value(productId),
       quantity: Value(quantity),
       unitCost: Value(unitCost),
       subtotal: Value(subtotal),
+      idempotencyKey: idempotencyKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idempotencyKey),
+      localStatus: Value(localStatus),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      version: Value(version),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
       syncStatus: Value(syncStatus),
     );
   }
@@ -17003,11 +17459,20 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
     return PurchaseItem(
       id: serializer.fromJson<String>(json['id']),
       purchaseId: serializer.fromJson<String?>(json['purchaseId']),
+      businessId: serializer.fromJson<String?>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
       productId: serializer.fromJson<String?>(json['productId']),
       quantity: serializer.fromJson<int>(json['quantity']),
       unitCost: serializer.fromJson<double>(json['unitCost']),
       subtotal: serializer.fromJson<double>(json['subtotal']),
+      idempotencyKey: serializer.fromJson<String?>(json['idempotencyKey']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      version: serializer.fromJson<int>(json['version']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
       syncStatus: $PurchaseItemsTable.$convertersyncStatus
           .fromJson(serializer.fromJson<int>(json['syncStatus'])),
     );
@@ -17018,11 +17483,20 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'purchaseId': serializer.toJson<String?>(purchaseId),
+      'businessId': serializer.toJson<String?>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
       'productId': serializer.toJson<String?>(productId),
       'quantity': serializer.toJson<int>(quantity),
       'unitCost': serializer.toJson<double>(unitCost),
       'subtotal': serializer.toJson<double>(subtotal),
+      'idempotencyKey': serializer.toJson<String?>(idempotencyKey),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'version': serializer.toJson<int>(version),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
       'syncStatus': serializer.toJson<int>(
           $PurchaseItemsTable.$convertersyncStatus.toJson(syncStatus)),
     };
@@ -17031,20 +17505,41 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
   PurchaseItem copyWith(
           {String? id,
           Value<String?> purchaseId = const Value.absent(),
+          Value<String?> businessId = const Value.absent(),
+          Value<String?> branchId = const Value.absent(),
           Value<String?> productId = const Value.absent(),
           int? quantity,
           double? unitCost,
           double? subtotal,
+          Value<String?> idempotencyKey = const Value.absent(),
+          String? localStatus,
+          Value<String?> metadataJson = const Value.absent(),
+          int? version,
           DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent(),
           SyncStatus? syncStatus}) =>
       PurchaseItem(
         id: id ?? this.id,
         purchaseId: purchaseId.present ? purchaseId.value : this.purchaseId,
+        businessId: businessId.present ? businessId.value : this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
         productId: productId.present ? productId.value : this.productId,
         quantity: quantity ?? this.quantity,
         unitCost: unitCost ?? this.unitCost,
         subtotal: subtotal ?? this.subtotal,
+        idempotencyKey:
+            idempotencyKey.present ? idempotencyKey.value : this.idempotencyKey,
+        localStatus: localStatus ?? this.localStatus,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        version: version ?? this.version,
         createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
         syncStatus: syncStatus ?? this.syncStatus,
       );
   PurchaseItem copyWithCompanion(PurchaseItemsCompanion data) {
@@ -17052,11 +17547,28 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       id: data.id.present ? data.id.value : this.id,
       purchaseId:
           data.purchaseId.present ? data.purchaseId.value : this.purchaseId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
       productId: data.productId.present ? data.productId.value : this.productId,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
       subtotal: data.subtotal.present ? data.subtotal.value : this.subtotal,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      version: data.version.present ? data.version.value : this.version,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
     );
@@ -17067,62 +17579,123 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
     return (StringBuffer('PurchaseItem(')
           ..write('id: $id, ')
           ..write('purchaseId: $purchaseId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
           ..write('productId: $productId, ')
           ..write('quantity: $quantity, ')
           ..write('unitCost: $unitCost, ')
           ..write('subtotal: $subtotal, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('version: $version, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('syncStatus: $syncStatus')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, purchaseId, productId, quantity, unitCost,
-      subtotal, createdAt, syncStatus);
+  int get hashCode => Object.hash(
+      id,
+      purchaseId,
+      businessId,
+      branchId,
+      productId,
+      quantity,
+      unitCost,
+      subtotal,
+      idempotencyKey,
+      localStatus,
+      metadataJson,
+      version,
+      createdAt,
+      updatedAt,
+      deletedAt,
+      lastSyncedAt,
+      syncStatus);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PurchaseItem &&
           other.id == this.id &&
           other.purchaseId == this.purchaseId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
           other.productId == this.productId &&
           other.quantity == this.quantity &&
           other.unitCost == this.unitCost &&
           other.subtotal == this.subtotal &&
+          other.idempotencyKey == this.idempotencyKey &&
+          other.localStatus == this.localStatus &&
+          other.metadataJson == this.metadataJson &&
+          other.version == this.version &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
           other.syncStatus == this.syncStatus);
 }
 
 class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
   final Value<String> id;
   final Value<String?> purchaseId;
+  final Value<String?> businessId;
+  final Value<String?> branchId;
   final Value<String?> productId;
   final Value<int> quantity;
   final Value<double> unitCost;
   final Value<double> subtotal;
+  final Value<String?> idempotencyKey;
+  final Value<String> localStatus;
+  final Value<String?> metadataJson;
+  final Value<int> version;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
   final Value<SyncStatus> syncStatus;
   final Value<int> rowid;
   const PurchaseItemsCompanion({
     this.id = const Value.absent(),
     this.purchaseId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
     this.productId = const Value.absent(),
     this.quantity = const Value.absent(),
     this.unitCost = const Value.absent(),
     this.subtotal = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.version = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PurchaseItemsCompanion.insert({
     required String id,
     this.purchaseId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
     this.productId = const Value.absent(),
     required int quantity,
     required double unitCost,
     required double subtotal,
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.version = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -17132,22 +17705,40 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
   static Insertable<PurchaseItem> custom({
     Expression<String>? id,
     Expression<String>? purchaseId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
     Expression<String>? productId,
     Expression<int>? quantity,
     Expression<double>? unitCost,
     Expression<double>? subtotal,
+    Expression<String>? idempotencyKey,
+    Expression<String>? localStatus,
+    Expression<String>? metadataJson,
+    Expression<int>? version,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
     Expression<int>? syncStatus,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (purchaseId != null) 'purchase_id': purchaseId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
       if (productId != null) 'product_id': productId,
       if (quantity != null) 'quantity': quantity,
       if (unitCost != null) 'unit_cost': unitCost,
       if (subtotal != null) 'subtotal': subtotal,
+      if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
+      if (localStatus != null) 'local_status': localStatus,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (version != null) 'version': version,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (rowid != null) 'rowid': rowid,
     });
@@ -17156,21 +17747,39 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
   PurchaseItemsCompanion copyWith(
       {Value<String>? id,
       Value<String?>? purchaseId,
+      Value<String?>? businessId,
+      Value<String?>? branchId,
       Value<String?>? productId,
       Value<int>? quantity,
       Value<double>? unitCost,
       Value<double>? subtotal,
+      Value<String?>? idempotencyKey,
+      Value<String>? localStatus,
+      Value<String?>? metadataJson,
+      Value<int>? version,
       Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
       Value<SyncStatus>? syncStatus,
       Value<int>? rowid}) {
     return PurchaseItemsCompanion(
       id: id ?? this.id,
       purchaseId: purchaseId ?? this.purchaseId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
       productId: productId ?? this.productId,
       quantity: quantity ?? this.quantity,
       unitCost: unitCost ?? this.unitCost,
       subtotal: subtotal ?? this.subtotal,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+      localStatus: localStatus ?? this.localStatus,
+      metadataJson: metadataJson ?? this.metadataJson,
+      version: version ?? this.version,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       rowid: rowid ?? this.rowid,
     );
@@ -17185,6 +17794,12 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     if (purchaseId.present) {
       map['purchase_id'] = Variable<String>(purchaseId.value);
     }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
     if (productId.present) {
       map['product_id'] = Variable<String>(productId.value);
     }
@@ -17197,8 +17812,29 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     if (subtotal.present) {
       map['subtotal'] = Variable<double>(subtotal.value);
     }
+    if (idempotencyKey.present) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
     }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(
@@ -17215,11 +17851,20 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     return (StringBuffer('PurchaseItemsCompanion(')
           ..write('id: $id, ')
           ..write('purchaseId: $purchaseId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
           ..write('productId: $productId, ')
           ..write('quantity: $quantity, ')
           ..write('unitCost: $unitCost, ')
           ..write('subtotal: $subtotal, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('version: $version, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -17459,6 +18104,21 @@ final class $$BusinessesTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$PurchaseItemsTable, List<PurchaseItem>>
+      _purchaseItemsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.purchaseItems,
+              aliasName: $_aliasNameGenerator(
+                  db.businesses.id, db.purchaseItems.businessId));
+
+  $$PurchaseItemsTableProcessedTableManager get purchaseItemsRefs {
+    final manager = $$PurchaseItemsTableTableManager($_db, $_db.purchaseItems)
+        .filter((f) => f.businessId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_purchaseItemsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$BusinessesTableFilterComposer
@@ -17672,6 +18332,27 @@ class $$BusinessesTableFilterComposer
             $$PurchasesTableFilterComposer(
               $db: $db,
               $table: $db.purchases,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> purchaseItemsRefs(
+      Expression<bool> Function($$PurchaseItemsTableFilterComposer f) f) {
+    final $$PurchaseItemsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.purchaseItems,
+        getReferencedColumn: (t) => t.businessId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PurchaseItemsTableFilterComposer(
+              $db: $db,
+              $table: $db.purchaseItems,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -17948,6 +18629,27 @@ class $$BusinessesTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> purchaseItemsRefs<T extends Object>(
+      Expression<T> Function($$PurchaseItemsTableAnnotationComposer a) f) {
+    final $$PurchaseItemsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.purchaseItems,
+        getReferencedColumn: (t) => t.businessId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PurchaseItemsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.purchaseItems,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$BusinessesTableTableManager extends RootTableManager<
@@ -17969,7 +18671,8 @@ class $$BusinessesTableTableManager extends RootTableManager<
         bool customersRefs,
         bool productsRefs,
         bool salesRefs,
-        bool purchasesRefs})> {
+        bool purchasesRefs,
+        bool purchaseItemsRefs})> {
   $$BusinessesTableTableManager(_$AppDatabase db, $BusinessesTable table)
       : super(TableManagerState(
           db: db,
@@ -18058,7 +18761,8 @@ class $$BusinessesTableTableManager extends RootTableManager<
               customersRefs = false,
               productsRefs = false,
               salesRefs = false,
-              purchasesRefs = false}) {
+              purchasesRefs = false,
+              purchaseItemsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
@@ -18069,7 +18773,8 @@ class $$BusinessesTableTableManager extends RootTableManager<
                 if (customersRefs) db.customers,
                 if (productsRefs) db.products,
                 if (salesRefs) db.sales,
-                if (purchasesRefs) db.purchases
+                if (purchasesRefs) db.purchases,
+                if (purchaseItemsRefs) db.purchaseItems
               ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
@@ -18176,6 +18881,19 @@ class $$BusinessesTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.businessId == item.id),
+                        typedResults: items),
+                  if (purchaseItemsRefs)
+                    await $_getPrefetchedData<Business, $BusinessesTable,
+                            PurchaseItem>(
+                        currentTable: table,
+                        referencedTable: $$BusinessesTableReferences
+                            ._purchaseItemsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BusinessesTableReferences(db, table, p0)
+                                .purchaseItemsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.businessId == item.id),
                         typedResults: items)
                 ];
               },
@@ -18203,7 +18921,8 @@ typedef $$BusinessesTableProcessedTableManager = ProcessedTableManager<
         bool customersRefs,
         bool productsRefs,
         bool salesRefs,
-        bool purchasesRefs})>;
+        bool purchasesRefs,
+        bool purchaseItemsRefs})>;
 typedef $$BranchesTableCreateCompanionBuilder = BranchesCompanion Function({
   required String id,
   required String businessId,
@@ -18277,6 +18996,36 @@ final class $$BranchesTableReferences
         .filter((f) => f.branchId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_salesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$PurchasesTable, List<Purchase>>
+      _purchasesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.purchases,
+              aliasName:
+                  $_aliasNameGenerator(db.branches.id, db.purchases.branchId));
+
+  $$PurchasesTableProcessedTableManager get purchasesRefs {
+    final manager = $$PurchasesTableTableManager($_db, $_db.purchases)
+        .filter((f) => f.branchId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_purchasesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$PurchaseItemsTable, List<PurchaseItem>>
+      _purchaseItemsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.purchaseItems,
+              aliasName: $_aliasNameGenerator(
+                  db.branches.id, db.purchaseItems.branchId));
+
+  $$PurchaseItemsTableProcessedTableManager get purchaseItemsRefs {
+    final manager = $$PurchaseItemsTableTableManager($_db, $_db.purchaseItems)
+        .filter((f) => f.branchId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_purchaseItemsRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -18372,6 +19121,48 @@ class $$BranchesTableFilterComposer
             $$SalesTableFilterComposer(
               $db: $db,
               $table: $db.sales,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> purchasesRefs(
+      Expression<bool> Function($$PurchasesTableFilterComposer f) f) {
+    final $$PurchasesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.purchases,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PurchasesTableFilterComposer(
+              $db: $db,
+              $table: $db.purchases,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> purchaseItemsRefs(
+      Expression<bool> Function($$PurchaseItemsTableFilterComposer f) f) {
+    final $$PurchaseItemsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.purchaseItems,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PurchaseItemsTableFilterComposer(
+              $db: $db,
+              $table: $db.purchaseItems,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -18535,6 +19326,48 @@ class $$BranchesTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> purchasesRefs<T extends Object>(
+      Expression<T> Function($$PurchasesTableAnnotationComposer a) f) {
+    final $$PurchasesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.purchases,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PurchasesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.purchases,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> purchaseItemsRefs<T extends Object>(
+      Expression<T> Function($$PurchaseItemsTableAnnotationComposer a) f) {
+    final $$PurchaseItemsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.purchaseItems,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PurchaseItemsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.purchaseItems,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$BranchesTableTableManager extends RootTableManager<
@@ -18549,7 +19382,11 @@ class $$BranchesTableTableManager extends RootTableManager<
     (Branche, $$BranchesTableReferences),
     Branche,
     PrefetchHooks Function(
-        {bool businessId, bool businessMembersRefs, bool salesRefs})> {
+        {bool businessId,
+        bool businessMembersRefs,
+        bool salesRefs,
+        bool purchasesRefs,
+        bool purchaseItemsRefs})> {
   $$BranchesTableTableManager(_$AppDatabase db, $BranchesTable table)
       : super(TableManagerState(
           db: db,
@@ -18619,12 +19456,16 @@ class $$BranchesTableTableManager extends RootTableManager<
           prefetchHooksCallback: (
               {businessId = false,
               businessMembersRefs = false,
-              salesRefs = false}) {
+              salesRefs = false,
+              purchasesRefs = false,
+              purchaseItemsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (businessMembersRefs) db.businessMembers,
-                if (salesRefs) db.sales
+                if (salesRefs) db.sales,
+                if (purchasesRefs) db.purchases,
+                if (purchaseItemsRefs) db.purchaseItems
               ],
               addJoins: <
                   T extends TableManagerState<
@@ -18677,6 +19518,32 @@ class $$BranchesTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem: (item,
                                 referencedItems) =>
                             referencedItems.where((e) => e.branchId == item.id),
+                        typedResults: items),
+                  if (purchasesRefs)
+                    await $_getPrefetchedData<Branche, $BranchesTable,
+                            Purchase>(
+                        currentTable: table,
+                        referencedTable:
+                            $$BranchesTableReferences._purchasesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BranchesTableReferences(db, table, p0)
+                                .purchasesRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.branchId == item.id),
+                        typedResults: items),
+                  if (purchaseItemsRefs)
+                    await $_getPrefetchedData<Branche, $BranchesTable,
+                            PurchaseItem>(
+                        currentTable: table,
+                        referencedTable: $$BranchesTableReferences
+                            ._purchaseItemsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BranchesTableReferences(db, table, p0)
+                                .purchaseItemsRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.branchId == item.id),
                         typedResults: items)
                 ];
               },
@@ -18697,7 +19564,11 @@ typedef $$BranchesTableProcessedTableManager = ProcessedTableManager<
     (Branche, $$BranchesTableReferences),
     Branche,
     PrefetchHooks Function(
-        {bool businessId, bool businessMembersRefs, bool salesRefs})>;
+        {bool businessId,
+        bool businessMembersRefs,
+        bool salesRefs,
+        bool purchasesRefs,
+        bool purchaseItemsRefs})>;
 typedef $$RolesTableCreateCompanionBuilder = RolesCompanion Function({
   required String id,
   Value<String?> businessId,
@@ -27830,6 +28701,7 @@ typedef $$SalePaymentsTableProcessedTableManager = ProcessedTableManager<
 typedef $$PurchasesTableCreateCompanionBuilder = PurchasesCompanion Function({
   required String id,
   Value<String?> businessId,
+  Value<String?> branchId,
   Value<String?> supplierId,
   Value<String?> userId,
   required double total,
@@ -27837,15 +28709,21 @@ typedef $$PurchasesTableCreateCompanionBuilder = PurchasesCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
   Value<String?> invoicePhotoUrl,
   Value<String> processingStatus,
   Value<String?> supplierName,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<String?> metadataJson,
+  Value<int> version,
   Value<SyncStatus> syncStatus,
   Value<int> rowid,
 });
 typedef $$PurchasesTableUpdateCompanionBuilder = PurchasesCompanion Function({
   Value<String> id,
   Value<String?> businessId,
+  Value<String?> branchId,
   Value<String?> supplierId,
   Value<String?> userId,
   Value<double> total,
@@ -27853,9 +28731,14 @@ typedef $$PurchasesTableUpdateCompanionBuilder = PurchasesCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
   Value<String?> invoicePhotoUrl,
   Value<String> processingStatus,
   Value<String?> supplierName,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<String?> metadataJson,
+  Value<int> version,
   Value<SyncStatus> syncStatus,
   Value<int> rowid,
 });
@@ -27874,6 +28757,20 @@ final class $$PurchasesTableReferences
     final manager = $$BusinessesTableTableManager($_db, $_db.businesses)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_businessIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $BranchesTable _branchIdTable(_$AppDatabase db) => db.branches
+      .createAlias($_aliasNameGenerator(db.purchases.branchId, db.branches.id));
+
+  $$BranchesTableProcessedTableManager? get branchId {
+    final $_column = $_itemColumn<String>('branch_id');
+    if ($_column == null) return null;
+    final manager = $$BranchesTableTableManager($_db, $_db.branches)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_branchIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -27939,6 +28836,9 @@ class $$PurchasesTableFilterComposer
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
       column: $table.deletedAt, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get invoicePhotoUrl => $composableBuilder(
       column: $table.invoicePhotoUrl,
       builder: (column) => ColumnFilters(column));
@@ -27949,6 +28849,19 @@ class $$PurchasesTableFilterComposer
 
   ColumnFilters<String> get supplierName => $composableBuilder(
       column: $table.supplierName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<SyncStatus, SyncStatus, int> get syncStatus =>
       $composableBuilder(
@@ -27967,6 +28880,26 @@ class $$PurchasesTableFilterComposer
             $$BusinessesTableFilterComposer(
               $db: $db,
               $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableFilterComposer get branchId {
+    final $$BranchesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableFilterComposer(
+              $db: $db,
+              $table: $db.branches,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -28047,6 +28980,10 @@ class $$PurchasesTableOrderingComposer
   ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
       column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get invoicePhotoUrl => $composableBuilder(
       column: $table.invoicePhotoUrl,
       builder: (column) => ColumnOrderings(column));
@@ -28058,6 +28995,20 @@ class $$PurchasesTableOrderingComposer
   ColumnOrderings<String> get supplierName => $composableBuilder(
       column: $table.supplierName,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
@@ -28074,6 +29025,26 @@ class $$PurchasesTableOrderingComposer
             $$BusinessesTableOrderingComposer(
               $db: $db,
               $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableOrderingComposer get branchId {
+    final $$BranchesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableOrderingComposer(
+              $db: $db,
+              $table: $db.branches,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -28133,6 +29104,9 @@ class $$PurchasesTableAnnotationComposer
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+
   GeneratedColumn<String> get invoicePhotoUrl => $composableBuilder(
       column: $table.invoicePhotoUrl, builder: (column) => column);
 
@@ -28141,6 +29115,18 @@ class $$PurchasesTableAnnotationComposer
 
   GeneratedColumn<String> get supplierName => $composableBuilder(
       column: $table.supplierName, builder: (column) => column);
+
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<SyncStatus, int> get syncStatus =>
       $composableBuilder(
@@ -28158,6 +29144,26 @@ class $$PurchasesTableAnnotationComposer
             $$BusinessesTableAnnotationComposer(
               $db: $db,
               $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableAnnotationComposer get branchId {
+    final $$BranchesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.branches,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -28220,7 +29226,10 @@ class $$PurchasesTableTableManager extends RootTableManager<
     (Purchase, $$PurchasesTableReferences),
     Purchase,
     PrefetchHooks Function(
-        {bool businessId, bool userId, bool purchaseItemsRefs})> {
+        {bool businessId,
+        bool branchId,
+        bool userId,
+        bool purchaseItemsRefs})> {
   $$PurchasesTableTableManager(_$AppDatabase db, $PurchasesTable table)
       : super(TableManagerState(
           db: db,
@@ -28234,6 +29243,7 @@ class $$PurchasesTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
             Value<String?> supplierId = const Value.absent(),
             Value<String?> userId = const Value.absent(),
             Value<double> total = const Value.absent(),
@@ -28241,15 +29251,21 @@ class $$PurchasesTableTableManager extends RootTableManager<
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<String?> invoicePhotoUrl = const Value.absent(),
             Value<String> processingStatus = const Value.absent(),
             Value<String?> supplierName = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> version = const Value.absent(),
             Value<SyncStatus> syncStatus = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               PurchasesCompanion(
             id: id,
             businessId: businessId,
+            branchId: branchId,
             supplierId: supplierId,
             userId: userId,
             total: total,
@@ -28257,15 +29273,21 @@ class $$PurchasesTableTableManager extends RootTableManager<
             createdAt: createdAt,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
             invoicePhotoUrl: invoicePhotoUrl,
             processingStatus: processingStatus,
             supplierName: supplierName,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            metadataJson: metadataJson,
+            version: version,
             syncStatus: syncStatus,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
             Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
             Value<String?> supplierId = const Value.absent(),
             Value<String?> userId = const Value.absent(),
             required double total,
@@ -28273,15 +29295,21 @@ class $$PurchasesTableTableManager extends RootTableManager<
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<String?> invoicePhotoUrl = const Value.absent(),
             Value<String> processingStatus = const Value.absent(),
             Value<String?> supplierName = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> version = const Value.absent(),
             Value<SyncStatus> syncStatus = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               PurchasesCompanion.insert(
             id: id,
             businessId: businessId,
+            branchId: branchId,
             supplierId: supplierId,
             userId: userId,
             total: total,
@@ -28289,9 +29317,14 @@ class $$PurchasesTableTableManager extends RootTableManager<
             createdAt: createdAt,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
             invoicePhotoUrl: invoicePhotoUrl,
             processingStatus: processingStatus,
             supplierName: supplierName,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            metadataJson: metadataJson,
+            version: version,
             syncStatus: syncStatus,
             rowid: rowid,
           ),
@@ -28302,7 +29335,10 @@ class $$PurchasesTableTableManager extends RootTableManager<
                   ))
               .toList(),
           prefetchHooksCallback: (
-              {businessId = false, userId = false, purchaseItemsRefs = false}) {
+              {businessId = false,
+              branchId = false,
+              userId = false,
+              purchaseItemsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
@@ -28329,6 +29365,16 @@ class $$PurchasesTableTableManager extends RootTableManager<
                         $$PurchasesTableReferences._businessIdTable(db),
                     referencedColumn:
                         $$PurchasesTableReferences._businessIdTable(db).id,
+                  ) as T;
+                }
+                if (branchId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.branchId,
+                    referencedTable:
+                        $$PurchasesTableReferences._branchIdTable(db),
+                    referencedColumn:
+                        $$PurchasesTableReferences._branchIdTable(db).id,
                   ) as T;
                 }
                 if (userId) {
@@ -28378,16 +29424,25 @@ typedef $$PurchasesTableProcessedTableManager = ProcessedTableManager<
     (Purchase, $$PurchasesTableReferences),
     Purchase,
     PrefetchHooks Function(
-        {bool businessId, bool userId, bool purchaseItemsRefs})>;
+        {bool businessId, bool branchId, bool userId, bool purchaseItemsRefs})>;
 typedef $$PurchaseItemsTableCreateCompanionBuilder = PurchaseItemsCompanion
     Function({
   required String id,
   Value<String?> purchaseId,
+  Value<String?> businessId,
+  Value<String?> branchId,
   Value<String?> productId,
   required int quantity,
   required double unitCost,
   required double subtotal,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<String?> metadataJson,
+  Value<int> version,
   Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
   Value<SyncStatus> syncStatus,
   Value<int> rowid,
 });
@@ -28395,11 +29450,20 @@ typedef $$PurchaseItemsTableUpdateCompanionBuilder = PurchaseItemsCompanion
     Function({
   Value<String> id,
   Value<String?> purchaseId,
+  Value<String?> businessId,
+  Value<String?> branchId,
   Value<String?> productId,
   Value<int> quantity,
   Value<double> unitCost,
   Value<double> subtotal,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<String?> metadataJson,
+  Value<int> version,
   Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
   Value<SyncStatus> syncStatus,
   Value<int> rowid,
 });
@@ -28419,6 +29483,36 @@ final class $$PurchaseItemsTableReferences
     final manager = $$PurchasesTableTableManager($_db, $_db.purchases)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_purchaseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $BusinessesTable _businessIdTable(_$AppDatabase db) =>
+      db.businesses.createAlias(
+          $_aliasNameGenerator(db.purchaseItems.businessId, db.businesses.id));
+
+  $$BusinessesTableProcessedTableManager? get businessId {
+    final $_column = $_itemColumn<String>('business_id');
+    if ($_column == null) return null;
+    final manager = $$BusinessesTableTableManager($_db, $_db.businesses)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_businessIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $BranchesTable _branchIdTable(_$AppDatabase db) =>
+      db.branches.createAlias(
+          $_aliasNameGenerator(db.purchaseItems.branchId, db.branches.id));
+
+  $$BranchesTableProcessedTableManager? get branchId {
+    final $_column = $_itemColumn<String>('branch_id');
+    if ($_column == null) return null;
+    final manager = $$BranchesTableTableManager($_db, $_db.branches)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_branchIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -28461,8 +29555,30 @@ class $$PurchaseItemsTableFilterComposer
   ColumnFilters<double> get subtotal => $composableBuilder(
       column: $table.subtotal, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<SyncStatus, SyncStatus, int> get syncStatus =>
       $composableBuilder(
@@ -28481,6 +29597,46 @@ class $$PurchaseItemsTableFilterComposer
             $$PurchasesTableFilterComposer(
               $db: $db,
               $table: $db.purchases,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BusinessesTableFilterComposer get businessId {
+    final $$BusinessesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableFilterComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableFilterComposer get branchId {
+    final $$BranchesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableFilterComposer(
+              $db: $db,
+              $table: $db.branches,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -28531,8 +29687,32 @@ class $$PurchaseItemsTableOrderingComposer
   ColumnOrderings<double> get subtotal => $composableBuilder(
       column: $table.subtotal, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
@@ -28549,6 +29729,46 @@ class $$PurchaseItemsTableOrderingComposer
             $$PurchasesTableOrderingComposer(
               $db: $db,
               $table: $db.purchases,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BusinessesTableOrderingComposer get businessId {
+    final $$BusinessesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableOrderingComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableOrderingComposer get branchId {
+    final $$BranchesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableOrderingComposer(
+              $db: $db,
+              $table: $db.branches,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -28599,8 +29819,29 @@ class $$PurchaseItemsTableAnnotationComposer
   GeneratedColumn<double> get subtotal =>
       $composableBuilder(column: $table.subtotal, builder: (column) => column);
 
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<SyncStatus, int> get syncStatus =>
       $composableBuilder(
@@ -28618,6 +29859,46 @@ class $$PurchaseItemsTableAnnotationComposer
             $$PurchasesTableAnnotationComposer(
               $db: $db,
               $table: $db.purchases,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BusinessesTableAnnotationComposer get businessId {
+    final $$BusinessesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableAnnotationComposer get branchId {
+    final $$BranchesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.branches,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -28658,7 +29939,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
     $$PurchaseItemsTableUpdateCompanionBuilder,
     (PurchaseItem, $$PurchaseItemsTableReferences),
     PurchaseItem,
-    PrefetchHooks Function({bool purchaseId, bool productId})> {
+    PrefetchHooks Function(
+        {bool purchaseId, bool businessId, bool branchId, bool productId})> {
   $$PurchaseItemsTableTableManager(_$AppDatabase db, $PurchaseItemsTable table)
       : super(TableManagerState(
           db: db,
@@ -28672,44 +29954,80 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String?> purchaseId = const Value.absent(),
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
             Value<String?> productId = const Value.absent(),
             Value<int> quantity = const Value.absent(),
             Value<double> unitCost = const Value.absent(),
             Value<double> subtotal = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> version = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<SyncStatus> syncStatus = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               PurchaseItemsCompanion(
             id: id,
             purchaseId: purchaseId,
+            businessId: businessId,
+            branchId: branchId,
             productId: productId,
             quantity: quantity,
             unitCost: unitCost,
             subtotal: subtotal,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            metadataJson: metadataJson,
+            version: version,
             createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
             syncStatus: syncStatus,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
             Value<String?> purchaseId = const Value.absent(),
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
             Value<String?> productId = const Value.absent(),
             required int quantity,
             required double unitCost,
             required double subtotal,
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<int> version = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<SyncStatus> syncStatus = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               PurchaseItemsCompanion.insert(
             id: id,
             purchaseId: purchaseId,
+            businessId: businessId,
+            branchId: branchId,
             productId: productId,
             quantity: quantity,
             unitCost: unitCost,
             subtotal: subtotal,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            metadataJson: metadataJson,
+            version: version,
             createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
             syncStatus: syncStatus,
             rowid: rowid,
           ),
@@ -28719,7 +30037,11 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
                     $$PurchaseItemsTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({purchaseId = false, productId = false}) {
+          prefetchHooksCallback: (
+              {purchaseId = false,
+              businessId = false,
+              branchId = false,
+              productId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -28744,6 +30066,26 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
                         $$PurchaseItemsTableReferences._purchaseIdTable(db),
                     referencedColumn:
                         $$PurchaseItemsTableReferences._purchaseIdTable(db).id,
+                  ) as T;
+                }
+                if (businessId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.businessId,
+                    referencedTable:
+                        $$PurchaseItemsTableReferences._businessIdTable(db),
+                    referencedColumn:
+                        $$PurchaseItemsTableReferences._businessIdTable(db).id,
+                  ) as T;
+                }
+                if (branchId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.branchId,
+                    referencedTable:
+                        $$PurchaseItemsTableReferences._branchIdTable(db),
+                    referencedColumn:
+                        $$PurchaseItemsTableReferences._branchIdTable(db).id,
                   ) as T;
                 }
                 if (productId) {
@@ -28778,7 +30120,8 @@ typedef $$PurchaseItemsTableProcessedTableManager = ProcessedTableManager<
     $$PurchaseItemsTableUpdateCompanionBuilder,
     (PurchaseItem, $$PurchaseItemsTableReferences),
     PurchaseItem,
-    PrefetchHooks Function({bool purchaseId, bool productId})>;
+    PrefetchHooks Function(
+        {bool purchaseId, bool businessId, bool branchId, bool productId})>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -28947,6 +30290,7 @@ class SaleDaoManager {
 
 mixin _$PurchaseDaoMixin on DatabaseAccessor<AppDatabase> {
   $BusinessesTable get businesses => attachedDatabase.businesses;
+  $BranchesTable get branches => attachedDatabase.branches;
   $ProfilesTable get profiles => attachedDatabase.profiles;
   $PurchasesTable get purchases => attachedDatabase.purchases;
   $CategoriesTable get categories => attachedDatabase.categories;
@@ -28960,6 +30304,8 @@ class PurchaseDaoManager {
   PurchaseDaoManager(this._db);
   $$BusinessesTableTableManager get businesses =>
       $$BusinessesTableTableManager(_db.attachedDatabase, _db.businesses);
+  $$BranchesTableTableManager get branches =>
+      $$BranchesTableTableManager(_db.attachedDatabase, _db.branches);
   $$ProfilesTableTableManager get profiles =>
       $$ProfilesTableTableManager(_db.attachedDatabase, _db.profiles);
   $$PurchasesTableTableManager get purchases =>

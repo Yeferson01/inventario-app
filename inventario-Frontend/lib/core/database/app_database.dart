@@ -261,18 +261,42 @@ class SalePayments extends Table {
 class Purchases extends Table {
   TextColumn get id => text()(); // UUID mapeado como String
   TextColumn get businessId => text().nullable().references(Businesses, #id)();
+
+  TextColumn get branchId => text().nullable().references(Branches, #id)();
+
   TextColumn get supplierId => text()
       .nullable()(); // Puede apuntar a un catálogo de proveedores si lo añades luego
+
   TextColumn get userId => text().nullable().references(Profiles, #id)();
+
   RealColumn get total => real()();
+
   TextColumn get status => text().withDefault(const Constant('completed'))();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
   DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  DateTimeColumn get lastSyncedAt =>
+      dateTime().nullable().named('last_synced_at')();
+
   TextColumn get invoicePhotoUrl => text().nullable()();
+
   TextColumn get processingStatus =>
       text().withDefault(const Constant('pending'))();
+
   TextColumn get supplierName => text().nullable()();
+
+  TextColumn get idempotencyKey => text().nullable().named('idempotency_key')();
+
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('synced')).named('local_status')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  IntColumn get version => integer().withDefault(const Constant(1))();
 
   // Control Local Offline-First
   IntColumn get syncStatus =>
@@ -286,11 +310,36 @@ class Purchases extends Table {
 class PurchaseItems extends Table {
   TextColumn get id => text()();
   TextColumn get purchaseId => text().nullable().references(Purchases, #id)();
+
+  TextColumn get businessId => text().nullable().references(Businesses, #id)();
+
+  TextColumn get branchId => text().nullable().references(Branches, #id)();
+
   TextColumn get productId => text().nullable().references(Products, #id)();
+
   IntColumn get quantity => integer()();
+
   RealColumn get unitCost => real()();
+
   RealColumn get subtotal => real()();
+
+  TextColumn get idempotencyKey => text().nullable().named('idempotency_key')();
+
+  TextColumn get localStatus =>
+      text().withDefault(const Constant('synced')).named('local_status')();
+
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+
+  IntColumn get version => integer().withDefault(const Constant(1))();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  DateTimeColumn get lastSyncedAt =>
+      dateTime().nullable().named('last_synced_at')();
 
   IntColumn get syncStatus =>
       intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
@@ -855,7 +904,34 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
+
+  Future<void> _createPurchaseIndexes() async {
+    await customStatement(
+      'create index if not exists idx_purchases_business_branch_created '
+      'on purchases(business_id, branch_id, created_at)',
+    );
+
+    await customStatement(
+      'create unique index if not exists ux_purchases_idempotency_key '
+      'on purchases(idempotency_key) where idempotency_key is not null',
+    );
+
+    await customStatement(
+      'create index if not exists idx_purchase_items_purchase '
+      'on purchase_items(purchase_id)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_purchase_items_business_branch_product '
+      'on purchase_items(business_id, branch_id, product_id)',
+    );
+
+    await customStatement(
+      'create unique index if not exists ux_purchase_items_idempotency_key '
+      'on purchase_items(idempotency_key) where idempotency_key is not null',
+    );
+  }
 
   Future<void> _createPosIndexes() async {
     await customStatement(
@@ -995,9 +1071,30 @@ class AppDatabase extends _$AppDatabase {
           await _createInventoryMovementIndexes();
           await _createProductStockBalanceIndexes();
           await _createPosIndexes();
+          await _createPurchaseIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 7) {
+            await m.addColumn(purchases, purchases.branchId);
+            await m.addColumn(purchases, purchases.lastSyncedAt);
+            await m.addColumn(purchases, purchases.idempotencyKey);
+            await m.addColumn(purchases, purchases.localStatus);
+            await m.addColumn(purchases, purchases.metadataJson);
+            await m.addColumn(purchases, purchases.version);
+
+            await m.addColumn(purchaseItems, purchaseItems.businessId);
+            await m.addColumn(purchaseItems, purchaseItems.branchId);
+            await m.addColumn(purchaseItems, purchaseItems.idempotencyKey);
+            await m.addColumn(purchaseItems, purchaseItems.localStatus);
+            await m.addColumn(purchaseItems, purchaseItems.metadataJson);
+            await m.addColumn(purchaseItems, purchaseItems.version);
+            await m.addColumn(purchaseItems, purchaseItems.updatedAt);
+            await m.addColumn(purchaseItems, purchaseItems.deletedAt);
+            await m.addColumn(purchaseItems, purchaseItems.lastSyncedAt);
+
+            await _createPurchaseIndexes();
+          }
           if (from < 6) {
             await m.addColumn(sales, sales.branchId);
             await m.addColumn(sales, sales.cashRegisterId);

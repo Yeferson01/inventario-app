@@ -16,6 +16,9 @@ import '../../../inventory/application/product_stock_balance_providers.dart';
 import '../../../sales/application/pos_local_sale_models.dart';
 import '../../../sales/application/pos_local_sale_provider.dart';
 import '../../application/pos_sync_upload_provider.dart';
+import '../../../inventory/application/purchase_local_models.dart';
+import '../../../inventory/application/purchase_local_provider.dart';
+import '../../application/purchases_sync_upload_provider.dart';
 
 class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
   const AppE2ERealControlledTestScreen({
@@ -29,6 +32,8 @@ class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
 
 class _AppE2ERealControlledTestScreenState
     extends ConsumerState<AppE2ERealControlledTestScreen> {
+  static const bool _showLegacyE2EDebugButtons = false;
+
   final _businessIdController = TextEditingController(
     text: 'e56ea013-c8e1-4d38-86d0-ef5bc67b072b',
   );
@@ -44,6 +49,11 @@ class _AppE2ERealControlledTestScreenState
   );
   final _saleQuantityController = TextEditingController(text: '1');
   final _salePaymentMethodController = TextEditingController(text: 'cash');
+  final _purchaseQuantityController = TextEditingController(text: '5');
+  final _purchaseUnitCostController = TextEditingController(text: '1000');
+  final _purchaseSupplierNameController = TextEditingController(
+    text: 'Proveedor E2E Local',
+  );
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -573,6 +583,354 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
+  Future<void> _uploadPendingPurchases() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final purchasesUploadService =
+          ref.read(purchasesSyncUploadServiceProvider);
+      final stockPullService = ref.read(productStockBalancePullServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: true,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'upload_pending_purchases',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError(
+            'No se pudo resolver branch_id para upload de compras.');
+      }
+
+      final productId = _requiredText(
+        _syncedProductIdController,
+        'Product ID sincronizado',
+      );
+
+      final uploadResult =
+          await purchasesUploadService.uploadPendingPurchasesBatches(
+        businessId: businessId,
+        batchLimit: 10,
+      );
+
+      final pullResult = await stockPullService.pullBranchBalances(
+        businessId: businessId,
+        branchId: branchId,
+      );
+
+      final localProductBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'upload_pending_purchases',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'product_id': productId,
+          'upload_result': uploadResult.toJson(),
+          'pull_after_upload': pullResult.toJson(),
+          'local_product_balance_after_pull': localProductBalance,
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _enqueuePendingPurchases() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final purchaseOutboxService = ref.read(purchaseSyncOutboxServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'enqueue_pending_purchases',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError('No se pudo resolver branch_id para encolar compras.');
+      }
+
+      final preflightJson = preflight.toJson();
+
+      final appDeviceId = _findStringDeep(
+        preflightJson,
+        const [
+          'app_device_id',
+          'appDeviceId',
+          'app_devices_id',
+          'appDevicesId',
+        ],
+      );
+
+      if (appDeviceId == null || appDeviceId.trim().isEmpty) {
+        setState(() {
+          _lastResult = {
+            'flow': 'enqueue_pending_purchases_preflight_debug',
+            'preflight_json': preflightJson,
+          };
+        });
+
+        throw StateError(
+          'No se pudo resolver app_device_id real para encolar compras.',
+        );
+      }
+
+      final result = await purchaseOutboxService.enqueuePendingPurchases(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: user,
+        appDeviceId: appDeviceId,
+        deviceInstallationId: preflight.installationId,
+        limit: 10,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'enqueue_pending_purchases',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'app_device_id': appDeviceId,
+          'result': result.toJson(),
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _createOfflineLocalPurchase() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final purchaseLocalService = ref.read(purchaseLocalServiceProvider);
+      final stockPullService = ref.read(productStockBalancePullServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'purchase_offline_local',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError('No se pudo resolver branch_id para compra offline.');
+      }
+
+      final preflightJson = preflight.toJson();
+      final appDeviceId = _findStringDeep(
+        preflightJson,
+        const [
+          'app_device_id',
+          'appDeviceId',
+          'app_devices_id',
+          'appDevicesId',
+        ],
+      );
+
+      if (appDeviceId == null || appDeviceId.trim().isEmpty) {
+        setState(() {
+          _lastResult = {
+            'flow': 'purchase_offline_local_preflight_debug',
+            'preflight_json': preflightJson,
+          };
+        });
+
+        throw StateError(
+          'No se pudo resolver app_device_id real para compra offline.',
+        );
+      }
+
+      final productId = _requiredText(
+        _syncedProductIdController,
+        'Product ID sincronizado',
+      );
+
+      final beforeBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      final result = await purchaseLocalService.createLocalPurchase(
+        CreatePurchaseLocalInput(
+          businessId: businessId,
+          branchId: branchId,
+          profileId: user,
+          supplierName: _optionalText(_purchaseSupplierNameController),
+          appDeviceId: appDeviceId,
+          deviceInstallationId: preflight.installationId,
+          clientSequenceStart: _safeClientSequenceStart(),
+          items: [
+            PurchaseLocalItemInput(
+              productId: productId,
+              quantity: _intFromController(_purchaseQuantityController),
+              unitCost: _doubleFromController(_purchaseUnitCostController),
+            ),
+          ],
+          metadata: {
+            'phase': '6.18C.37C.2',
+            'source': 'app_e2e_real_controlled_test_screen',
+          },
+        ),
+      );
+
+      final afterBalance = await stockPullService.getLocalProductBalance(
+        businessId: businessId,
+        branchId: branchId,
+        productId: productId,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'purchase_offline_local',
+          'purchase_result': result.toJson(),
+          'stock_before': beforeBalance,
+          'stock_after': afterBalance,
+          'expected': {
+            'purchase_quantity':
+                _intFromController(_purchaseQuantityController),
+            'unit_cost': _doubleFromController(_purchaseUnitCostController),
+            'remote_should_not_change_yet': true,
+            'legacy_stock_quantity_should_remain': 0,
+          },
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
   Future<void> _createOfflineLocalSale() async {
     setState(() {
       _isRunning = true;
@@ -829,6 +1187,9 @@ class _AppE2ERealControlledTestScreenState
     _syncedProductIdController.dispose();
     _saleQuantityController.dispose();
     _salePaymentMethodController.dispose();
+    _purchaseQuantityController.dispose();
+    _purchaseUnitCostController.dispose();
+    _purchaseSupplierNameController.dispose();
     super.dispose();
   }
 
@@ -1077,15 +1438,42 @@ class _AppE2ERealControlledTestScreenState
               border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _run(runManualSync: false);
-                  },
-            child: const Text('1. Validar contexto local sin sync manual'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _purchaseQuantityController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Cantidad compra offline local',
+              border: OutlineInputBorder(),
+            ),
           ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _purchaseUnitCostController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Costo unitario compra local',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _purchaseSupplierNameController,
+            decoration: const InputDecoration(
+              labelText: 'Proveedor compra local',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_showLegacyE2EDebugButtons)
+            FilledButton(
+              onPressed: _isRunning
+                  ? null
+                  : () {
+                      _run(runManualSync: false);
+                    },
+              child: const Text('1. Validar contexto local sin sync manual'),
+            ),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _isRunning
@@ -1109,18 +1497,19 @@ class _AppE2ERealControlledTestScreenState
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _createProductFromCatalog(
-                      runManualSyncAfterCreate: true,
-                    );
-                  },
-            child: const Text(
-              '4. Crear producto desde catálogo + sync manual',
+          if (_showLegacyE2EDebugButtons)
+            FilledButton(
+              onPressed: _isRunning
+                  ? null
+                  : () {
+                      _createProductFromCatalog(
+                        runManualSyncAfterCreate: true,
+                      );
+                    },
+              child: const Text(
+                '4. Crear producto desde catálogo + sync manual',
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           FilledButton.tonal(
             onPressed: _isRunning
@@ -1135,18 +1524,19 @@ class _AppE2ERealControlledTestScreenState
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _createInitialStock(
-                      runManualSyncAfterCreate: true,
-                    );
-                  },
-            child: const Text(
-              '6. Crear stock inicial + sync inventario',
+          if (_showLegacyE2EDebugButtons)
+            FilledButton(
+              onPressed: _isRunning
+                  ? null
+                  : () {
+                      _createInitialStock(
+                        runManualSyncAfterCreate: true,
+                      );
+                    },
+              child: const Text(
+                '6. Crear stock inicial + sync inventario',
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _isRunning
@@ -1184,6 +1574,27 @@ class _AppE2ERealControlledTestScreenState
             onPressed: _isRunning ? null : _uploadPendingPosSales,
             child: const Text(
               '11. Upload ventas POS pendientes',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _createOfflineLocalPurchase,
+            child: const Text(
+              '12. Crear compra offline local',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _enqueuePendingPurchases,
+            child: const Text(
+              '13. Encolar compras pendientes',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _uploadPendingPurchases,
+            child: const Text(
+              '14. Upload compras pendientes',
             ),
           ),
           if (_isRunning) ...[
