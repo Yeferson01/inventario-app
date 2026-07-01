@@ -52,28 +52,47 @@ void main() {
       print('✅ Producto insertado con éxito localmente.');
 
       // 2. Crear una venta de 5 unidades de ese producto
+      final now = DateTime.now();
+
       final ventaCabecera = Sale(
-        id: saleId,
-        businessId: businessId,
-        total: 7500.0, // 1500 * 5
-        paymentMethod: 'efectivo',
-        status: 'completed',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        syncStatus: SyncStatus
-            .pendingInsert, // .index si tu DB mapea el Enum como Integer
+  	id: saleId,
+  	businessId: businessId,
+  	customerId: null,
+  	branchId: null,
+  	cashRegisterId: null,
+  	cashSessionId: null,
+  	subtotal: 7500.0,
+  	discountTotal: 0,
+  	taxTotal: 0,
+  	total: 7500.0,
+  	paymentMethod: 'efectivo',
+  	paymentStatus: 'paid',
+  	idempotencyKey: null,
+  	localStatus: 'synced',
+  	metadataJson: null,
+  	status: 'completed',
+  	createdAt: now,
+  	updatedAt: now,
+  	deletedAt: null,
+  	syncStatus: SyncStatus.pendingInsert,
       );
 
       final detalleItem = SaleItem(
-        id: const Uuid().v4(),
-        saleId: saleId,
-        productId:
-            productId, // Como esta columna espera un String no nulo o usamos '!', aquí va directo
-        quantity: 5, // Compramos 5 unidades
-        unitPrice: 1500.0,
-        subtotal: 7500.0,
-        createdAt: DateTime.now(),
-        syncStatus: SyncStatus.pendingInsert, // .index
+  	id: const Uuid().v4(),
+  	saleId: saleId,
+  	productId: productId,
+  	productNameSnapshot: null,
+  	barcodeSnapshot: null,
+  	quantity: 5,
+  	unitPrice: 1500.0,
+  	discountTotal: 0,
+  	taxTotal: 0,
+  	subtotal: 7500.0,
+  	lineTotal: 7500.0,
+  	metadataJson: null,
+  	createdAt: now,
+  	updatedAt: now,
+  	syncStatus: SyncStatus.pendingInsert,
       );
 
       // 3. Ejecutar la venta usando la transacción atómica del DAO
