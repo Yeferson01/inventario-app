@@ -15394,6 +15394,1816 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
   }
 }
 
+class $CashRegistersTable extends CashRegisters
+    with TableInfo<$CashRegistersTable, CashRegister> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CashRegistersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES businesses (id)'));
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES branches (id)'));
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('Caja principal'));
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+      'code', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('active'));
+  static const VerificationMeta _idempotencyKeyMeta =
+      const VerificationMeta('idempotencyKey');
+  @override
+  late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
+      'idempotency_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncStatus, int> syncStatus =
+      GeneratedColumn<int>('sync_status', aliasedName, false,
+              type: DriftSqlType.int,
+              requiredDuringInsert: false,
+              defaultValue: Constant(SyncStatus.synced.index))
+          .withConverter<SyncStatus>($CashRegistersTable.$convertersyncStatus);
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        businessId,
+        branchId,
+        name,
+        code,
+        status,
+        idempotencyKey,
+        localStatus,
+        syncStatus,
+        version,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cash_registers';
+  @override
+  VerificationContext validateIntegrity(Insertable<CashRegister> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+          _codeMeta, code.isAcceptableOrUnknown(data['code']!, _codeMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('idempotency_key')) {
+      context.handle(
+          _idempotencyKeyMeta,
+          idempotencyKey.isAcceptableOrUnknown(
+              data['idempotency_key']!, _idempotencyKeyMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CashRegister map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CashRegister(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id']),
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      code: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}code']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      idempotencyKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}idempotency_key']),
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      syncStatus: $CashRegistersTable.$convertersyncStatus.fromSql(
+          attachedDatabase.typeMapping
+              .read(DriftSqlType.int, data['${effectivePrefix}sync_status'])!),
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
+    );
+  }
+
+  @override
+  $CashRegistersTable createAlias(String alias) {
+    return $CashRegistersTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncStatus, int, int> $convertersyncStatus =
+      const EnumIndexConverter<SyncStatus>(SyncStatus.values);
+}
+
+class CashRegister extends DataClass implements Insertable<CashRegister> {
+  final String id;
+  final String? businessId;
+  final String? branchId;
+  final String name;
+  final String? code;
+  final String status;
+  final String? idempotencyKey;
+  final String localStatus;
+  final SyncStatus syncStatus;
+  final int version;
+  final String? metadataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
+  const CashRegister(
+      {required this.id,
+      this.businessId,
+      this.branchId,
+      required this.name,
+      this.code,
+      required this.status,
+      this.idempotencyKey,
+      required this.localStatus,
+      required this.syncStatus,
+      required this.version,
+      this.metadataJson,
+      required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt,
+      this.lastSyncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || businessId != null) {
+      map['business_id'] = Variable<String>(businessId);
+    }
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || code != null) {
+      map['code'] = Variable<String>(code);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || idempotencyKey != null) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey);
+    }
+    map['local_status'] = Variable<String>(localStatus);
+    {
+      map['sync_status'] = Variable<int>(
+          $CashRegistersTable.$convertersyncStatus.toSql(syncStatus));
+    }
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    return map;
+  }
+
+  CashRegistersCompanion toCompanion(bool nullToAbsent) {
+    return CashRegistersCompanion(
+      id: Value(id),
+      businessId: businessId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
+      name: Value(name),
+      code: code == null && nullToAbsent ? const Value.absent() : Value(code),
+      status: Value(status),
+      idempotencyKey: idempotencyKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idempotencyKey),
+      localStatus: Value(localStatus),
+      syncStatus: Value(syncStatus),
+      version: Value(version),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+    );
+  }
+
+  factory CashRegister.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CashRegister(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String?>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
+      name: serializer.fromJson<String>(json['name']),
+      code: serializer.fromJson<String?>(json['code']),
+      status: serializer.fromJson<String>(json['status']),
+      idempotencyKey: serializer.fromJson<String?>(json['idempotencyKey']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      syncStatus: $CashRegistersTable.$convertersyncStatus
+          .fromJson(serializer.fromJson<int>(json['syncStatus'])),
+      version: serializer.fromJson<int>(json['version']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String?>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
+      'name': serializer.toJson<String>(name),
+      'code': serializer.toJson<String?>(code),
+      'status': serializer.toJson<String>(status),
+      'idempotencyKey': serializer.toJson<String?>(idempotencyKey),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'syncStatus': serializer.toJson<int>(
+          $CashRegistersTable.$convertersyncStatus.toJson(syncStatus)),
+      'version': serializer.toJson<int>(version),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+    };
+  }
+
+  CashRegister copyWith(
+          {String? id,
+          Value<String?> businessId = const Value.absent(),
+          Value<String?> branchId = const Value.absent(),
+          String? name,
+          Value<String?> code = const Value.absent(),
+          String? status,
+          Value<String?> idempotencyKey = const Value.absent(),
+          String? localStatus,
+          SyncStatus? syncStatus,
+          int? version,
+          Value<String?> metadataJson = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent()}) =>
+      CashRegister(
+        id: id ?? this.id,
+        businessId: businessId.present ? businessId.value : this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
+        name: name ?? this.name,
+        code: code.present ? code.value : this.code,
+        status: status ?? this.status,
+        idempotencyKey:
+            idempotencyKey.present ? idempotencyKey.value : this.idempotencyKey,
+        localStatus: localStatus ?? this.localStatus,
+        syncStatus: syncStatus ?? this.syncStatus,
+        version: version ?? this.version,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+      );
+  CashRegister copyWithCompanion(CashRegistersCompanion data) {
+    return CashRegister(
+      id: data.id.present ? data.id.value : this.id,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      name: data.name.present ? data.name.value : this.name,
+      code: data.code.present ? data.code.value : this.code,
+      status: data.status.present ? data.status.value : this.status,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      version: data.version.present ? data.version.value : this.version,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashRegister(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('name: $name, ')
+          ..write('code: $code, ')
+          ..write('status: $status, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      businessId,
+      branchId,
+      name,
+      code,
+      status,
+      idempotencyKey,
+      localStatus,
+      syncStatus,
+      version,
+      metadataJson,
+      createdAt,
+      updatedAt,
+      deletedAt,
+      lastSyncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CashRegister &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.name == this.name &&
+          other.code == this.code &&
+          other.status == this.status &&
+          other.idempotencyKey == this.idempotencyKey &&
+          other.localStatus == this.localStatus &&
+          other.syncStatus == this.syncStatus &&
+          other.version == this.version &&
+          other.metadataJson == this.metadataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt);
+}
+
+class CashRegistersCompanion extends UpdateCompanion<CashRegister> {
+  final Value<String> id;
+  final Value<String?> businessId;
+  final Value<String?> branchId;
+  final Value<String> name;
+  final Value<String?> code;
+  final Value<String> status;
+  final Value<String?> idempotencyKey;
+  final Value<String> localStatus;
+  final Value<SyncStatus> syncStatus;
+  final Value<int> version;
+  final Value<String?> metadataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<int> rowid;
+  const CashRegistersCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.code = const Value.absent(),
+    this.status = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CashRegistersCompanion.insert({
+    required String id,
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.code = const Value.absent(),
+    this.status = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<CashRegister> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? name,
+    Expression<String>? code,
+    Expression<String>? status,
+    Expression<String>? idempotencyKey,
+    Expression<String>? localStatus,
+    Expression<int>? syncStatus,
+    Expression<int>? version,
+    Expression<String>? metadataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (name != null) 'name': name,
+      if (code != null) 'code': code,
+      if (status != null) 'status': status,
+      if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
+      if (localStatus != null) 'local_status': localStatus,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (version != null) 'version': version,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CashRegistersCompanion copyWith(
+      {Value<String>? id,
+      Value<String?>? businessId,
+      Value<String?>? branchId,
+      Value<String>? name,
+      Value<String?>? code,
+      Value<String>? status,
+      Value<String?>? idempotencyKey,
+      Value<String>? localStatus,
+      Value<SyncStatus>? syncStatus,
+      Value<int>? version,
+      Value<String?>? metadataJson,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
+      Value<int>? rowid}) {
+    return CashRegistersCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      name: name ?? this.name,
+      code: code ?? this.code,
+      status: status ?? this.status,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+      localStatus: localStatus ?? this.localStatus,
+      syncStatus: syncStatus ?? this.syncStatus,
+      version: version ?? this.version,
+      metadataJson: metadataJson ?? this.metadataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (idempotencyKey.present) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(
+          $CashRegistersTable.$convertersyncStatus.toSql(syncStatus.value));
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashRegistersCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('name: $name, ')
+          ..write('code: $code, ')
+          ..write('status: $status, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CashSessionsTable extends CashSessions
+    with TableInfo<$CashSessionsTable, CashSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CashSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES businesses (id)'));
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES branches (id)'));
+  static const VerificationMeta _cashRegisterIdMeta =
+      const VerificationMeta('cashRegisterId');
+  @override
+  late final GeneratedColumn<String> cashRegisterId = GeneratedColumn<String>(
+      'cash_register_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES cash_registers (id)'));
+  static const VerificationMeta _openedByProfileIdMeta =
+      const VerificationMeta('openedByProfileId');
+  @override
+  late final GeneratedColumn<String> openedByProfileId =
+      GeneratedColumn<String>('opened_by_profile_id', aliasedName, true,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultConstraints:
+              GeneratedColumn.constraintIsAlways('REFERENCES profiles (id)'));
+  static const VerificationMeta _closedByProfileIdMeta =
+      const VerificationMeta('closedByProfileId');
+  @override
+  late final GeneratedColumn<String> closedByProfileId =
+      GeneratedColumn<String>('closed_by_profile_id', aliasedName, true,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultConstraints:
+              GeneratedColumn.constraintIsAlways('REFERENCES profiles (id)'));
+  static const VerificationMeta _openedAtMeta =
+      const VerificationMeta('openedAt');
+  @override
+  late final GeneratedColumn<DateTime> openedAt = GeneratedColumn<DateTime>(
+      'opened_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _closedAtMeta =
+      const VerificationMeta('closedAt');
+  @override
+  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
+      'closed_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _openingCashAmountMeta =
+      const VerificationMeta('openingCashAmount');
+  @override
+  late final GeneratedColumn<double> openingCashAmount =
+      GeneratedColumn<double>('opening_cash_amount', aliasedName, false,
+          type: DriftSqlType.double,
+          requiredDuringInsert: false,
+          defaultValue: const Constant(0));
+  static const VerificationMeta _closingCashAmountMeta =
+      const VerificationMeta('closingCashAmount');
+  @override
+  late final GeneratedColumn<double> closingCashAmount =
+      GeneratedColumn<double>('closing_cash_amount', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _expectedCashAmountMeta =
+      const VerificationMeta('expectedCashAmount');
+  @override
+  late final GeneratedColumn<double> expectedCashAmount =
+      GeneratedColumn<double>('expected_cash_amount', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _differenceAmountMeta =
+      const VerificationMeta('differenceAmount');
+  @override
+  late final GeneratedColumn<double> differenceAmount = GeneratedColumn<double>(
+      'difference_amount', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('open'));
+  static const VerificationMeta _idempotencyKeyMeta =
+      const VerificationMeta('idempotencyKey');
+  @override
+  late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
+      'idempotency_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _localStatusMeta =
+      const VerificationMeta('localStatus');
+  @override
+  late final GeneratedColumn<String> localStatus = GeneratedColumn<String>(
+      'local_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('synced'));
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncStatus, int> syncStatus =
+      GeneratedColumn<int>('sync_status', aliasedName, false,
+              type: DriftSqlType.int,
+              requiredDuringInsert: false,
+              defaultValue: Constant(SyncStatus.synced.index))
+          .withConverter<SyncStatus>($CashSessionsTable.$convertersyncStatus);
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        businessId,
+        branchId,
+        cashRegisterId,
+        openedByProfileId,
+        closedByProfileId,
+        openedAt,
+        closedAt,
+        openingCashAmount,
+        closingCashAmount,
+        expectedCashAmount,
+        differenceAmount,
+        status,
+        idempotencyKey,
+        localStatus,
+        syncStatus,
+        version,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cash_sessions';
+  @override
+  VerificationContext validateIntegrity(Insertable<CashSession> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    }
+    if (data.containsKey('cash_register_id')) {
+      context.handle(
+          _cashRegisterIdMeta,
+          cashRegisterId.isAcceptableOrUnknown(
+              data['cash_register_id']!, _cashRegisterIdMeta));
+    }
+    if (data.containsKey('opened_by_profile_id')) {
+      context.handle(
+          _openedByProfileIdMeta,
+          openedByProfileId.isAcceptableOrUnknown(
+              data['opened_by_profile_id']!, _openedByProfileIdMeta));
+    }
+    if (data.containsKey('closed_by_profile_id')) {
+      context.handle(
+          _closedByProfileIdMeta,
+          closedByProfileId.isAcceptableOrUnknown(
+              data['closed_by_profile_id']!, _closedByProfileIdMeta));
+    }
+    if (data.containsKey('opened_at')) {
+      context.handle(_openedAtMeta,
+          openedAt.isAcceptableOrUnknown(data['opened_at']!, _openedAtMeta));
+    }
+    if (data.containsKey('closed_at')) {
+      context.handle(_closedAtMeta,
+          closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta));
+    }
+    if (data.containsKey('opening_cash_amount')) {
+      context.handle(
+          _openingCashAmountMeta,
+          openingCashAmount.isAcceptableOrUnknown(
+              data['opening_cash_amount']!, _openingCashAmountMeta));
+    }
+    if (data.containsKey('closing_cash_amount')) {
+      context.handle(
+          _closingCashAmountMeta,
+          closingCashAmount.isAcceptableOrUnknown(
+              data['closing_cash_amount']!, _closingCashAmountMeta));
+    }
+    if (data.containsKey('expected_cash_amount')) {
+      context.handle(
+          _expectedCashAmountMeta,
+          expectedCashAmount.isAcceptableOrUnknown(
+              data['expected_cash_amount']!, _expectedCashAmountMeta));
+    }
+    if (data.containsKey('difference_amount')) {
+      context.handle(
+          _differenceAmountMeta,
+          differenceAmount.isAcceptableOrUnknown(
+              data['difference_amount']!, _differenceAmountMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('idempotency_key')) {
+      context.handle(
+          _idempotencyKeyMeta,
+          idempotencyKey.isAcceptableOrUnknown(
+              data['idempotency_key']!, _idempotencyKeyMeta));
+    }
+    if (data.containsKey('local_status')) {
+      context.handle(
+          _localStatusMeta,
+          localStatus.isAcceptableOrUnknown(
+              data['local_status']!, _localStatusMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CashSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CashSession(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id']),
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id']),
+      cashRegisterId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}cash_register_id']),
+      openedByProfileId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}opened_by_profile_id']),
+      closedByProfileId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}closed_by_profile_id']),
+      openedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}opened_at'])!,
+      closedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}closed_at']),
+      openingCashAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}opening_cash_amount'])!,
+      closingCashAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}closing_cash_amount']),
+      expectedCashAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}expected_cash_amount']),
+      differenceAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}difference_amount']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      idempotencyKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}idempotency_key']),
+      localStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_status'])!,
+      syncStatus: $CashSessionsTable.$convertersyncStatus.fromSql(
+          attachedDatabase.typeMapping
+              .read(DriftSqlType.int, data['${effectivePrefix}sync_status'])!),
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
+    );
+  }
+
+  @override
+  $CashSessionsTable createAlias(String alias) {
+    return $CashSessionsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncStatus, int, int> $convertersyncStatus =
+      const EnumIndexConverter<SyncStatus>(SyncStatus.values);
+}
+
+class CashSession extends DataClass implements Insertable<CashSession> {
+  final String id;
+  final String? businessId;
+  final String? branchId;
+  final String? cashRegisterId;
+  final String? openedByProfileId;
+  final String? closedByProfileId;
+  final DateTime openedAt;
+  final DateTime? closedAt;
+  final double openingCashAmount;
+  final double? closingCashAmount;
+  final double? expectedCashAmount;
+  final double? differenceAmount;
+  final String status;
+  final String? idempotencyKey;
+  final String localStatus;
+  final SyncStatus syncStatus;
+  final int version;
+  final String? metadataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
+  const CashSession(
+      {required this.id,
+      this.businessId,
+      this.branchId,
+      this.cashRegisterId,
+      this.openedByProfileId,
+      this.closedByProfileId,
+      required this.openedAt,
+      this.closedAt,
+      required this.openingCashAmount,
+      this.closingCashAmount,
+      this.expectedCashAmount,
+      this.differenceAmount,
+      required this.status,
+      this.idempotencyKey,
+      required this.localStatus,
+      required this.syncStatus,
+      required this.version,
+      this.metadataJson,
+      required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt,
+      this.lastSyncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || businessId != null) {
+      map['business_id'] = Variable<String>(businessId);
+    }
+    if (!nullToAbsent || branchId != null) {
+      map['branch_id'] = Variable<String>(branchId);
+    }
+    if (!nullToAbsent || cashRegisterId != null) {
+      map['cash_register_id'] = Variable<String>(cashRegisterId);
+    }
+    if (!nullToAbsent || openedByProfileId != null) {
+      map['opened_by_profile_id'] = Variable<String>(openedByProfileId);
+    }
+    if (!nullToAbsent || closedByProfileId != null) {
+      map['closed_by_profile_id'] = Variable<String>(closedByProfileId);
+    }
+    map['opened_at'] = Variable<DateTime>(openedAt);
+    if (!nullToAbsent || closedAt != null) {
+      map['closed_at'] = Variable<DateTime>(closedAt);
+    }
+    map['opening_cash_amount'] = Variable<double>(openingCashAmount);
+    if (!nullToAbsent || closingCashAmount != null) {
+      map['closing_cash_amount'] = Variable<double>(closingCashAmount);
+    }
+    if (!nullToAbsent || expectedCashAmount != null) {
+      map['expected_cash_amount'] = Variable<double>(expectedCashAmount);
+    }
+    if (!nullToAbsent || differenceAmount != null) {
+      map['difference_amount'] = Variable<double>(differenceAmount);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || idempotencyKey != null) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey);
+    }
+    map['local_status'] = Variable<String>(localStatus);
+    {
+      map['sync_status'] = Variable<int>(
+          $CashSessionsTable.$convertersyncStatus.toSql(syncStatus));
+    }
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    return map;
+  }
+
+  CashSessionsCompanion toCompanion(bool nullToAbsent) {
+    return CashSessionsCompanion(
+      id: Value(id),
+      businessId: businessId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(businessId),
+      branchId: branchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(branchId),
+      cashRegisterId: cashRegisterId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cashRegisterId),
+      openedByProfileId: openedByProfileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(openedByProfileId),
+      closedByProfileId: closedByProfileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedByProfileId),
+      openedAt: Value(openedAt),
+      closedAt: closedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedAt),
+      openingCashAmount: Value(openingCashAmount),
+      closingCashAmount: closingCashAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closingCashAmount),
+      expectedCashAmount: expectedCashAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expectedCashAmount),
+      differenceAmount: differenceAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(differenceAmount),
+      status: Value(status),
+      idempotencyKey: idempotencyKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idempotencyKey),
+      localStatus: Value(localStatus),
+      syncStatus: Value(syncStatus),
+      version: Value(version),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+    );
+  }
+
+  factory CashSession.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CashSession(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String?>(json['businessId']),
+      branchId: serializer.fromJson<String?>(json['branchId']),
+      cashRegisterId: serializer.fromJson<String?>(json['cashRegisterId']),
+      openedByProfileId:
+          serializer.fromJson<String?>(json['openedByProfileId']),
+      closedByProfileId:
+          serializer.fromJson<String?>(json['closedByProfileId']),
+      openedAt: serializer.fromJson<DateTime>(json['openedAt']),
+      closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
+      openingCashAmount: serializer.fromJson<double>(json['openingCashAmount']),
+      closingCashAmount:
+          serializer.fromJson<double?>(json['closingCashAmount']),
+      expectedCashAmount:
+          serializer.fromJson<double?>(json['expectedCashAmount']),
+      differenceAmount: serializer.fromJson<double?>(json['differenceAmount']),
+      status: serializer.fromJson<String>(json['status']),
+      idempotencyKey: serializer.fromJson<String?>(json['idempotencyKey']),
+      localStatus: serializer.fromJson<String>(json['localStatus']),
+      syncStatus: $CashSessionsTable.$convertersyncStatus
+          .fromJson(serializer.fromJson<int>(json['syncStatus'])),
+      version: serializer.fromJson<int>(json['version']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String?>(businessId),
+      'branchId': serializer.toJson<String?>(branchId),
+      'cashRegisterId': serializer.toJson<String?>(cashRegisterId),
+      'openedByProfileId': serializer.toJson<String?>(openedByProfileId),
+      'closedByProfileId': serializer.toJson<String?>(closedByProfileId),
+      'openedAt': serializer.toJson<DateTime>(openedAt),
+      'closedAt': serializer.toJson<DateTime?>(closedAt),
+      'openingCashAmount': serializer.toJson<double>(openingCashAmount),
+      'closingCashAmount': serializer.toJson<double?>(closingCashAmount),
+      'expectedCashAmount': serializer.toJson<double?>(expectedCashAmount),
+      'differenceAmount': serializer.toJson<double?>(differenceAmount),
+      'status': serializer.toJson<String>(status),
+      'idempotencyKey': serializer.toJson<String?>(idempotencyKey),
+      'localStatus': serializer.toJson<String>(localStatus),
+      'syncStatus': serializer.toJson<int>(
+          $CashSessionsTable.$convertersyncStatus.toJson(syncStatus)),
+      'version': serializer.toJson<int>(version),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+    };
+  }
+
+  CashSession copyWith(
+          {String? id,
+          Value<String?> businessId = const Value.absent(),
+          Value<String?> branchId = const Value.absent(),
+          Value<String?> cashRegisterId = const Value.absent(),
+          Value<String?> openedByProfileId = const Value.absent(),
+          Value<String?> closedByProfileId = const Value.absent(),
+          DateTime? openedAt,
+          Value<DateTime?> closedAt = const Value.absent(),
+          double? openingCashAmount,
+          Value<double?> closingCashAmount = const Value.absent(),
+          Value<double?> expectedCashAmount = const Value.absent(),
+          Value<double?> differenceAmount = const Value.absent(),
+          String? status,
+          Value<String?> idempotencyKey = const Value.absent(),
+          String? localStatus,
+          SyncStatus? syncStatus,
+          int? version,
+          Value<String?> metadataJson = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
+          Value<DateTime?> lastSyncedAt = const Value.absent()}) =>
+      CashSession(
+        id: id ?? this.id,
+        businessId: businessId.present ? businessId.value : this.businessId,
+        branchId: branchId.present ? branchId.value : this.branchId,
+        cashRegisterId:
+            cashRegisterId.present ? cashRegisterId.value : this.cashRegisterId,
+        openedByProfileId: openedByProfileId.present
+            ? openedByProfileId.value
+            : this.openedByProfileId,
+        closedByProfileId: closedByProfileId.present
+            ? closedByProfileId.value
+            : this.closedByProfileId,
+        openedAt: openedAt ?? this.openedAt,
+        closedAt: closedAt.present ? closedAt.value : this.closedAt,
+        openingCashAmount: openingCashAmount ?? this.openingCashAmount,
+        closingCashAmount: closingCashAmount.present
+            ? closingCashAmount.value
+            : this.closingCashAmount,
+        expectedCashAmount: expectedCashAmount.present
+            ? expectedCashAmount.value
+            : this.expectedCashAmount,
+        differenceAmount: differenceAmount.present
+            ? differenceAmount.value
+            : this.differenceAmount,
+        status: status ?? this.status,
+        idempotencyKey:
+            idempotencyKey.present ? idempotencyKey.value : this.idempotencyKey,
+        localStatus: localStatus ?? this.localStatus,
+        syncStatus: syncStatus ?? this.syncStatus,
+        version: version ?? this.version,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+      );
+  CashSession copyWithCompanion(CashSessionsCompanion data) {
+    return CashSession(
+      id: data.id.present ? data.id.value : this.id,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      cashRegisterId: data.cashRegisterId.present
+          ? data.cashRegisterId.value
+          : this.cashRegisterId,
+      openedByProfileId: data.openedByProfileId.present
+          ? data.openedByProfileId.value
+          : this.openedByProfileId,
+      closedByProfileId: data.closedByProfileId.present
+          ? data.closedByProfileId.value
+          : this.closedByProfileId,
+      openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
+      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+      openingCashAmount: data.openingCashAmount.present
+          ? data.openingCashAmount.value
+          : this.openingCashAmount,
+      closingCashAmount: data.closingCashAmount.present
+          ? data.closingCashAmount.value
+          : this.closingCashAmount,
+      expectedCashAmount: data.expectedCashAmount.present
+          ? data.expectedCashAmount.value
+          : this.expectedCashAmount,
+      differenceAmount: data.differenceAmount.present
+          ? data.differenceAmount.value
+          : this.differenceAmount,
+      status: data.status.present ? data.status.value : this.status,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
+      localStatus:
+          data.localStatus.present ? data.localStatus.value : this.localStatus,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      version: data.version.present ? data.version.value : this.version,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashSession(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('cashRegisterId: $cashRegisterId, ')
+          ..write('openedByProfileId: $openedByProfileId, ')
+          ..write('closedByProfileId: $closedByProfileId, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('openingCashAmount: $openingCashAmount, ')
+          ..write('closingCashAmount: $closingCashAmount, ')
+          ..write('expectedCashAmount: $expectedCashAmount, ')
+          ..write('differenceAmount: $differenceAmount, ')
+          ..write('status: $status, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        businessId,
+        branchId,
+        cashRegisterId,
+        openedByProfileId,
+        closedByProfileId,
+        openedAt,
+        closedAt,
+        openingCashAmount,
+        closingCashAmount,
+        expectedCashAmount,
+        differenceAmount,
+        status,
+        idempotencyKey,
+        localStatus,
+        syncStatus,
+        version,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CashSession &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.cashRegisterId == this.cashRegisterId &&
+          other.openedByProfileId == this.openedByProfileId &&
+          other.closedByProfileId == this.closedByProfileId &&
+          other.openedAt == this.openedAt &&
+          other.closedAt == this.closedAt &&
+          other.openingCashAmount == this.openingCashAmount &&
+          other.closingCashAmount == this.closingCashAmount &&
+          other.expectedCashAmount == this.expectedCashAmount &&
+          other.differenceAmount == this.differenceAmount &&
+          other.status == this.status &&
+          other.idempotencyKey == this.idempotencyKey &&
+          other.localStatus == this.localStatus &&
+          other.syncStatus == this.syncStatus &&
+          other.version == this.version &&
+          other.metadataJson == this.metadataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt);
+}
+
+class CashSessionsCompanion extends UpdateCompanion<CashSession> {
+  final Value<String> id;
+  final Value<String?> businessId;
+  final Value<String?> branchId;
+  final Value<String?> cashRegisterId;
+  final Value<String?> openedByProfileId;
+  final Value<String?> closedByProfileId;
+  final Value<DateTime> openedAt;
+  final Value<DateTime?> closedAt;
+  final Value<double> openingCashAmount;
+  final Value<double?> closingCashAmount;
+  final Value<double?> expectedCashAmount;
+  final Value<double?> differenceAmount;
+  final Value<String> status;
+  final Value<String?> idempotencyKey;
+  final Value<String> localStatus;
+  final Value<SyncStatus> syncStatus;
+  final Value<int> version;
+  final Value<String?> metadataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<int> rowid;
+  const CashSessionsCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.cashRegisterId = const Value.absent(),
+    this.openedByProfileId = const Value.absent(),
+    this.closedByProfileId = const Value.absent(),
+    this.openedAt = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.openingCashAmount = const Value.absent(),
+    this.closingCashAmount = const Value.absent(),
+    this.expectedCashAmount = const Value.absent(),
+    this.differenceAmount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CashSessionsCompanion.insert({
+    required String id,
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.cashRegisterId = const Value.absent(),
+    this.openedByProfileId = const Value.absent(),
+    this.closedByProfileId = const Value.absent(),
+    this.openedAt = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.openingCashAmount = const Value.absent(),
+    this.closingCashAmount = const Value.absent(),
+    this.expectedCashAmount = const Value.absent(),
+    this.differenceAmount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.idempotencyKey = const Value.absent(),
+    this.localStatus = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<CashSession> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? cashRegisterId,
+    Expression<String>? openedByProfileId,
+    Expression<String>? closedByProfileId,
+    Expression<DateTime>? openedAt,
+    Expression<DateTime>? closedAt,
+    Expression<double>? openingCashAmount,
+    Expression<double>? closingCashAmount,
+    Expression<double>? expectedCashAmount,
+    Expression<double>? differenceAmount,
+    Expression<String>? status,
+    Expression<String>? idempotencyKey,
+    Expression<String>? localStatus,
+    Expression<int>? syncStatus,
+    Expression<int>? version,
+    Expression<String>? metadataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (cashRegisterId != null) 'cash_register_id': cashRegisterId,
+      if (openedByProfileId != null) 'opened_by_profile_id': openedByProfileId,
+      if (closedByProfileId != null) 'closed_by_profile_id': closedByProfileId,
+      if (openedAt != null) 'opened_at': openedAt,
+      if (closedAt != null) 'closed_at': closedAt,
+      if (openingCashAmount != null) 'opening_cash_amount': openingCashAmount,
+      if (closingCashAmount != null) 'closing_cash_amount': closingCashAmount,
+      if (expectedCashAmount != null)
+        'expected_cash_amount': expectedCashAmount,
+      if (differenceAmount != null) 'difference_amount': differenceAmount,
+      if (status != null) 'status': status,
+      if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
+      if (localStatus != null) 'local_status': localStatus,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (version != null) 'version': version,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CashSessionsCompanion copyWith(
+      {Value<String>? id,
+      Value<String?>? businessId,
+      Value<String?>? branchId,
+      Value<String?>? cashRegisterId,
+      Value<String?>? openedByProfileId,
+      Value<String?>? closedByProfileId,
+      Value<DateTime>? openedAt,
+      Value<DateTime?>? closedAt,
+      Value<double>? openingCashAmount,
+      Value<double?>? closingCashAmount,
+      Value<double?>? expectedCashAmount,
+      Value<double?>? differenceAmount,
+      Value<String>? status,
+      Value<String?>? idempotencyKey,
+      Value<String>? localStatus,
+      Value<SyncStatus>? syncStatus,
+      Value<int>? version,
+      Value<String?>? metadataJson,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<DateTime?>? lastSyncedAt,
+      Value<int>? rowid}) {
+    return CashSessionsCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      cashRegisterId: cashRegisterId ?? this.cashRegisterId,
+      openedByProfileId: openedByProfileId ?? this.openedByProfileId,
+      closedByProfileId: closedByProfileId ?? this.closedByProfileId,
+      openedAt: openedAt ?? this.openedAt,
+      closedAt: closedAt ?? this.closedAt,
+      openingCashAmount: openingCashAmount ?? this.openingCashAmount,
+      closingCashAmount: closingCashAmount ?? this.closingCashAmount,
+      expectedCashAmount: expectedCashAmount ?? this.expectedCashAmount,
+      differenceAmount: differenceAmount ?? this.differenceAmount,
+      status: status ?? this.status,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
+      localStatus: localStatus ?? this.localStatus,
+      syncStatus: syncStatus ?? this.syncStatus,
+      version: version ?? this.version,
+      metadataJson: metadataJson ?? this.metadataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (cashRegisterId.present) {
+      map['cash_register_id'] = Variable<String>(cashRegisterId.value);
+    }
+    if (openedByProfileId.present) {
+      map['opened_by_profile_id'] = Variable<String>(openedByProfileId.value);
+    }
+    if (closedByProfileId.present) {
+      map['closed_by_profile_id'] = Variable<String>(closedByProfileId.value);
+    }
+    if (openedAt.present) {
+      map['opened_at'] = Variable<DateTime>(openedAt.value);
+    }
+    if (closedAt.present) {
+      map['closed_at'] = Variable<DateTime>(closedAt.value);
+    }
+    if (openingCashAmount.present) {
+      map['opening_cash_amount'] = Variable<double>(openingCashAmount.value);
+    }
+    if (closingCashAmount.present) {
+      map['closing_cash_amount'] = Variable<double>(closingCashAmount.value);
+    }
+    if (expectedCashAmount.present) {
+      map['expected_cash_amount'] = Variable<double>(expectedCashAmount.value);
+    }
+    if (differenceAmount.present) {
+      map['difference_amount'] = Variable<double>(differenceAmount.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (idempotencyKey.present) {
+      map['idempotency_key'] = Variable<String>(idempotencyKey.value);
+    }
+    if (localStatus.present) {
+      map['local_status'] = Variable<String>(localStatus.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<int>(
+          $CashSessionsTable.$convertersyncStatus.toSql(syncStatus.value));
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('cashRegisterId: $cashRegisterId, ')
+          ..write('openedByProfileId: $openedByProfileId, ')
+          ..write('closedByProfileId: $closedByProfileId, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('openingCashAmount: $openingCashAmount, ')
+          ..write('closingCashAmount: $closingCashAmount, ')
+          ..write('expectedCashAmount: $expectedCashAmount, ')
+          ..write('differenceAmount: $differenceAmount, ')
+          ..write('status: $status, ')
+          ..write('idempotencyKey: $idempotencyKey, ')
+          ..write('localStatus: $localStatus, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SalePaymentsTable extends SalePayments
     with TableInfo<$SalePaymentsTable, SalePayment> {
   @override
@@ -17905,6 +19715,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ProductsTable products = $ProductsTable(this);
   late final $SalesTable sales = $SalesTable(this);
   late final $SaleItemsTable saleItems = $SaleItemsTable(this);
+  late final $CashRegistersTable cashRegisters = $CashRegistersTable(this);
+  late final $CashSessionsTable cashSessions = $CashSessionsTable(this);
   late final $SalePaymentsTable salePayments = $SalePaymentsTable(this);
   late final $PurchasesTable purchases = $PurchasesTable(this);
   late final $PurchaseItemsTable purchaseItems = $PurchaseItemsTable(this);
@@ -17940,6 +19752,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         products,
         sales,
         saleItems,
+        cashRegisters,
+        cashSessions,
         salePayments,
         purchases,
         purchaseItems
@@ -18086,6 +19900,36 @@ final class $$BusinessesTableReferences
         .filter((f) => f.businessId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_salesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$CashRegistersTable, List<CashRegister>>
+      _cashRegistersRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.cashRegisters,
+              aliasName: $_aliasNameGenerator(
+                  db.businesses.id, db.cashRegisters.businessId));
+
+  $$CashRegistersTableProcessedTableManager get cashRegistersRefs {
+    final manager = $$CashRegistersTableTableManager($_db, $_db.cashRegisters)
+        .filter((f) => f.businessId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_cashRegistersRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$CashSessionsTable, List<CashSession>>
+      _cashSessionsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.cashSessions,
+              aliasName: $_aliasNameGenerator(
+                  db.businesses.id, db.cashSessions.businessId));
+
+  $$CashSessionsTableProcessedTableManager get cashSessionsRefs {
+    final manager = $$CashSessionsTableTableManager($_db, $_db.cashSessions)
+        .filter((f) => f.businessId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_cashSessionsRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -18311,6 +20155,48 @@ class $$BusinessesTableFilterComposer
             $$SalesTableFilterComposer(
               $db: $db,
               $table: $db.sales,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> cashRegistersRefs(
+      Expression<bool> Function($$CashRegistersTableFilterComposer f) f) {
+    final $$CashRegistersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.businessId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableFilterComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> cashSessionsRefs(
+      Expression<bool> Function($$CashSessionsTableFilterComposer f) f) {
+    final $$CashSessionsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashSessions,
+        getReferencedColumn: (t) => t.businessId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashSessionsTableFilterComposer(
+              $db: $db,
+              $table: $db.cashSessions,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -18609,6 +20495,48 @@ class $$BusinessesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> cashRegistersRefs<T extends Object>(
+      Expression<T> Function($$CashRegistersTableAnnotationComposer a) f) {
+    final $$CashRegistersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.businessId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> cashSessionsRefs<T extends Object>(
+      Expression<T> Function($$CashSessionsTableAnnotationComposer a) f) {
+    final $$CashSessionsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashSessions,
+        getReferencedColumn: (t) => t.businessId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashSessionsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.cashSessions,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<T> purchasesRefs<T extends Object>(
       Expression<T> Function($$PurchasesTableAnnotationComposer a) f) {
     final $$PurchasesTableAnnotationComposer composer = $composerBuilder(
@@ -18671,6 +20599,8 @@ class $$BusinessesTableTableManager extends RootTableManager<
         bool customersRefs,
         bool productsRefs,
         bool salesRefs,
+        bool cashRegistersRefs,
+        bool cashSessionsRefs,
         bool purchasesRefs,
         bool purchaseItemsRefs})> {
   $$BusinessesTableTableManager(_$AppDatabase db, $BusinessesTable table)
@@ -18761,6 +20691,8 @@ class $$BusinessesTableTableManager extends RootTableManager<
               customersRefs = false,
               productsRefs = false,
               salesRefs = false,
+              cashRegistersRefs = false,
+              cashSessionsRefs = false,
               purchasesRefs = false,
               purchaseItemsRefs = false}) {
             return PrefetchHooks(
@@ -18773,6 +20705,8 @@ class $$BusinessesTableTableManager extends RootTableManager<
                 if (customersRefs) db.customers,
                 if (productsRefs) db.products,
                 if (salesRefs) db.sales,
+                if (cashRegistersRefs) db.cashRegisters,
+                if (cashSessionsRefs) db.cashSessions,
                 if (purchasesRefs) db.purchases,
                 if (purchaseItemsRefs) db.purchaseItems
               ],
@@ -18869,6 +20803,32 @@ class $$BusinessesTableTableManager extends RootTableManager<
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.businessId == item.id),
                         typedResults: items),
+                  if (cashRegistersRefs)
+                    await $_getPrefetchedData<Business, $BusinessesTable,
+                            CashRegister>(
+                        currentTable: table,
+                        referencedTable: $$BusinessesTableReferences
+                            ._cashRegistersRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BusinessesTableReferences(db, table, p0)
+                                .cashRegistersRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.businessId == item.id),
+                        typedResults: items),
+                  if (cashSessionsRefs)
+                    await $_getPrefetchedData<Business, $BusinessesTable,
+                            CashSession>(
+                        currentTable: table,
+                        referencedTable: $$BusinessesTableReferences
+                            ._cashSessionsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BusinessesTableReferences(db, table, p0)
+                                .cashSessionsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.businessId == item.id),
+                        typedResults: items),
                   if (purchasesRefs)
                     await $_getPrefetchedData<Business, $BusinessesTable,
                             Purchase>(
@@ -18921,6 +20881,8 @@ typedef $$BusinessesTableProcessedTableManager = ProcessedTableManager<
         bool customersRefs,
         bool productsRefs,
         bool salesRefs,
+        bool cashRegistersRefs,
+        bool cashSessionsRefs,
         bool purchasesRefs,
         bool purchaseItemsRefs})>;
 typedef $$BranchesTableCreateCompanionBuilder = BranchesCompanion Function({
@@ -18996,6 +20958,36 @@ final class $$BranchesTableReferences
         .filter((f) => f.branchId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_salesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$CashRegistersTable, List<CashRegister>>
+      _cashRegistersRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.cashRegisters,
+              aliasName: $_aliasNameGenerator(
+                  db.branches.id, db.cashRegisters.branchId));
+
+  $$CashRegistersTableProcessedTableManager get cashRegistersRefs {
+    final manager = $$CashRegistersTableTableManager($_db, $_db.cashRegisters)
+        .filter((f) => f.branchId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_cashRegistersRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$CashSessionsTable, List<CashSession>>
+      _cashSessionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.cashSessions,
+          aliasName:
+              $_aliasNameGenerator(db.branches.id, db.cashSessions.branchId));
+
+  $$CashSessionsTableProcessedTableManager get cashSessionsRefs {
+    final manager = $$CashSessionsTableTableManager($_db, $_db.cashSessions)
+        .filter((f) => f.branchId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_cashSessionsRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -19121,6 +21113,48 @@ class $$BranchesTableFilterComposer
             $$SalesTableFilterComposer(
               $db: $db,
               $table: $db.sales,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> cashRegistersRefs(
+      Expression<bool> Function($$CashRegistersTableFilterComposer f) f) {
+    final $$CashRegistersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableFilterComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> cashSessionsRefs(
+      Expression<bool> Function($$CashSessionsTableFilterComposer f) f) {
+    final $$CashSessionsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashSessions,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashSessionsTableFilterComposer(
+              $db: $db,
+              $table: $db.cashSessions,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -19327,6 +21361,48 @@ class $$BranchesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> cashRegistersRefs<T extends Object>(
+      Expression<T> Function($$CashRegistersTableAnnotationComposer a) f) {
+    final $$CashRegistersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> cashSessionsRefs<T extends Object>(
+      Expression<T> Function($$CashSessionsTableAnnotationComposer a) f) {
+    final $$CashSessionsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashSessions,
+        getReferencedColumn: (t) => t.branchId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashSessionsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.cashSessions,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<T> purchasesRefs<T extends Object>(
       Expression<T> Function($$PurchasesTableAnnotationComposer a) f) {
     final $$PurchasesTableAnnotationComposer composer = $composerBuilder(
@@ -19385,6 +21461,8 @@ class $$BranchesTableTableManager extends RootTableManager<
         {bool businessId,
         bool businessMembersRefs,
         bool salesRefs,
+        bool cashRegistersRefs,
+        bool cashSessionsRefs,
         bool purchasesRefs,
         bool purchaseItemsRefs})> {
   $$BranchesTableTableManager(_$AppDatabase db, $BranchesTable table)
@@ -19457,6 +21535,8 @@ class $$BranchesTableTableManager extends RootTableManager<
               {businessId = false,
               businessMembersRefs = false,
               salesRefs = false,
+              cashRegistersRefs = false,
+              cashSessionsRefs = false,
               purchasesRefs = false,
               purchaseItemsRefs = false}) {
             return PrefetchHooks(
@@ -19464,6 +21544,8 @@ class $$BranchesTableTableManager extends RootTableManager<
               explicitlyWatchedTables: [
                 if (businessMembersRefs) db.businessMembers,
                 if (salesRefs) db.sales,
+                if (cashRegistersRefs) db.cashRegisters,
+                if (cashSessionsRefs) db.cashSessions,
                 if (purchasesRefs) db.purchases,
                 if (purchaseItemsRefs) db.purchaseItems
               ],
@@ -19519,6 +21601,32 @@ class $$BranchesTableTableManager extends RootTableManager<
                                 referencedItems) =>
                             referencedItems.where((e) => e.branchId == item.id),
                         typedResults: items),
+                  if (cashRegistersRefs)
+                    await $_getPrefetchedData<Branche, $BranchesTable,
+                            CashRegister>(
+                        currentTable: table,
+                        referencedTable: $$BranchesTableReferences
+                            ._cashRegistersRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BranchesTableReferences(db, table, p0)
+                                .cashRegistersRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.branchId == item.id),
+                        typedResults: items),
+                  if (cashSessionsRefs)
+                    await $_getPrefetchedData<Branche, $BranchesTable,
+                            CashSession>(
+                        currentTable: table,
+                        referencedTable: $$BranchesTableReferences
+                            ._cashSessionsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BranchesTableReferences(db, table, p0)
+                                .cashSessionsRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.branchId == item.id),
+                        typedResults: items),
                   if (purchasesRefs)
                     await $_getPrefetchedData<Branche, $BranchesTable,
                             Purchase>(
@@ -19567,6 +21675,8 @@ typedef $$BranchesTableProcessedTableManager = ProcessedTableManager<
         {bool businessId,
         bool businessMembersRefs,
         bool salesRefs,
+        bool cashRegistersRefs,
+        bool cashSessionsRefs,
         bool purchasesRefs,
         bool purchaseItemsRefs})>;
 typedef $$RolesTableCreateCompanionBuilder = RolesCompanion Function({
@@ -28269,6 +30379,1459 @@ typedef $$SaleItemsTableProcessedTableManager = ProcessedTableManager<
     (SaleItem, $$SaleItemsTableReferences),
     SaleItem,
     PrefetchHooks Function({bool saleId, bool productId})>;
+typedef $$CashRegistersTableCreateCompanionBuilder = CashRegistersCompanion
+    Function({
+  required String id,
+  Value<String?> businessId,
+  Value<String?> branchId,
+  Value<String> name,
+  Value<String?> code,
+  Value<String> status,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<SyncStatus> syncStatus,
+  Value<int> version,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<int> rowid,
+});
+typedef $$CashRegistersTableUpdateCompanionBuilder = CashRegistersCompanion
+    Function({
+  Value<String> id,
+  Value<String?> businessId,
+  Value<String?> branchId,
+  Value<String> name,
+  Value<String?> code,
+  Value<String> status,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<SyncStatus> syncStatus,
+  Value<int> version,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<int> rowid,
+});
+
+final class $$CashRegistersTableReferences
+    extends BaseReferences<_$AppDatabase, $CashRegistersTable, CashRegister> {
+  $$CashRegistersTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $BusinessesTable _businessIdTable(_$AppDatabase db) =>
+      db.businesses.createAlias(
+          $_aliasNameGenerator(db.cashRegisters.businessId, db.businesses.id));
+
+  $$BusinessesTableProcessedTableManager? get businessId {
+    final $_column = $_itemColumn<String>('business_id');
+    if ($_column == null) return null;
+    final manager = $$BusinessesTableTableManager($_db, $_db.businesses)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_businessIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $BranchesTable _branchIdTable(_$AppDatabase db) =>
+      db.branches.createAlias(
+          $_aliasNameGenerator(db.cashRegisters.branchId, db.branches.id));
+
+  $$BranchesTableProcessedTableManager? get branchId {
+    final $_column = $_itemColumn<String>('branch_id');
+    if ($_column == null) return null;
+    final manager = $$BranchesTableTableManager($_db, $_db.branches)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_branchIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$CashSessionsTable, List<CashSession>>
+      _cashSessionsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.cashSessions,
+              aliasName: $_aliasNameGenerator(
+                  db.cashRegisters.id, db.cashSessions.cashRegisterId));
+
+  $$CashSessionsTableProcessedTableManager get cashSessionsRefs {
+    final manager = $$CashSessionsTableTableManager($_db, $_db.cashSessions)
+        .filter(
+            (f) => f.cashRegisterId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_cashSessionsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$CashRegistersTableFilterComposer
+    extends Composer<_$AppDatabase, $CashRegistersTable> {
+  $$CashRegistersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get code => $composableBuilder(
+      column: $table.code, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<SyncStatus, SyncStatus, int> get syncStatus =>
+      $composableBuilder(
+          column: $table.syncStatus,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+
+  $$BusinessesTableFilterComposer get businessId {
+    final $$BusinessesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableFilterComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableFilterComposer get branchId {
+    final $$BranchesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableFilterComposer(
+              $db: $db,
+              $table: $db.branches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> cashSessionsRefs(
+      Expression<bool> Function($$CashSessionsTableFilterComposer f) f) {
+    final $$CashSessionsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashSessions,
+        getReferencedColumn: (t) => t.cashRegisterId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashSessionsTableFilterComposer(
+              $db: $db,
+              $table: $db.cashSessions,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$CashRegistersTableOrderingComposer
+    extends Composer<_$AppDatabase, $CashRegistersTable> {
+  $$CashRegistersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get code => $composableBuilder(
+      column: $table.code, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  $$BusinessesTableOrderingComposer get businessId {
+    final $$BusinessesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableOrderingComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableOrderingComposer get branchId {
+    final $$BranchesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableOrderingComposer(
+              $db: $db,
+              $table: $db.branches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$CashRegistersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CashRegistersTable> {
+  $$CashRegistersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<SyncStatus, int> get syncStatus =>
+      $composableBuilder(
+          column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+
+  $$BusinessesTableAnnotationComposer get businessId {
+    final $$BusinessesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableAnnotationComposer get branchId {
+    final $$BranchesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.branches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<T> cashSessionsRefs<T extends Object>(
+      Expression<T> Function($$CashSessionsTableAnnotationComposer a) f) {
+    final $$CashSessionsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.cashSessions,
+        getReferencedColumn: (t) => t.cashRegisterId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashSessionsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.cashSessions,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$CashRegistersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $CashRegistersTable,
+    CashRegister,
+    $$CashRegistersTableFilterComposer,
+    $$CashRegistersTableOrderingComposer,
+    $$CashRegistersTableAnnotationComposer,
+    $$CashRegistersTableCreateCompanionBuilder,
+    $$CashRegistersTableUpdateCompanionBuilder,
+    (CashRegister, $$CashRegistersTableReferences),
+    CashRegister,
+    PrefetchHooks Function(
+        {bool businessId, bool branchId, bool cashSessionsRefs})> {
+  $$CashRegistersTableTableManager(_$AppDatabase db, $CashRegistersTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CashRegistersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CashRegistersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CashRegistersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> code = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<SyncStatus> syncStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CashRegistersCompanion(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            name: name,
+            code: code,
+            status: status,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            syncStatus: syncStatus,
+            version: version,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> code = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<SyncStatus> syncStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CashRegistersCompanion.insert(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            name: name,
+            code: code,
+            status: status,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            syncStatus: syncStatus,
+            version: version,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$CashRegistersTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {businessId = false,
+              branchId = false,
+              cashSessionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (cashSessionsRefs) db.cashSessions],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (businessId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.businessId,
+                    referencedTable:
+                        $$CashRegistersTableReferences._businessIdTable(db),
+                    referencedColumn:
+                        $$CashRegistersTableReferences._businessIdTable(db).id,
+                  ) as T;
+                }
+                if (branchId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.branchId,
+                    referencedTable:
+                        $$CashRegistersTableReferences._branchIdTable(db),
+                    referencedColumn:
+                        $$CashRegistersTableReferences._branchIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (cashSessionsRefs)
+                    await $_getPrefetchedData<CashRegister, $CashRegistersTable,
+                            CashSession>(
+                        currentTable: table,
+                        referencedTable: $$CashRegistersTableReferences
+                            ._cashSessionsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$CashRegistersTableReferences(db, table, p0)
+                                .cashSessionsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.cashRegisterId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$CashRegistersTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $CashRegistersTable,
+    CashRegister,
+    $$CashRegistersTableFilterComposer,
+    $$CashRegistersTableOrderingComposer,
+    $$CashRegistersTableAnnotationComposer,
+    $$CashRegistersTableCreateCompanionBuilder,
+    $$CashRegistersTableUpdateCompanionBuilder,
+    (CashRegister, $$CashRegistersTableReferences),
+    CashRegister,
+    PrefetchHooks Function(
+        {bool businessId, bool branchId, bool cashSessionsRefs})>;
+typedef $$CashSessionsTableCreateCompanionBuilder = CashSessionsCompanion
+    Function({
+  required String id,
+  Value<String?> businessId,
+  Value<String?> branchId,
+  Value<String?> cashRegisterId,
+  Value<String?> openedByProfileId,
+  Value<String?> closedByProfileId,
+  Value<DateTime> openedAt,
+  Value<DateTime?> closedAt,
+  Value<double> openingCashAmount,
+  Value<double?> closingCashAmount,
+  Value<double?> expectedCashAmount,
+  Value<double?> differenceAmount,
+  Value<String> status,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<SyncStatus> syncStatus,
+  Value<int> version,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<int> rowid,
+});
+typedef $$CashSessionsTableUpdateCompanionBuilder = CashSessionsCompanion
+    Function({
+  Value<String> id,
+  Value<String?> businessId,
+  Value<String?> branchId,
+  Value<String?> cashRegisterId,
+  Value<String?> openedByProfileId,
+  Value<String?> closedByProfileId,
+  Value<DateTime> openedAt,
+  Value<DateTime?> closedAt,
+  Value<double> openingCashAmount,
+  Value<double?> closingCashAmount,
+  Value<double?> expectedCashAmount,
+  Value<double?> differenceAmount,
+  Value<String> status,
+  Value<String?> idempotencyKey,
+  Value<String> localStatus,
+  Value<SyncStatus> syncStatus,
+  Value<int> version,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<DateTime?> lastSyncedAt,
+  Value<int> rowid,
+});
+
+final class $$CashSessionsTableReferences
+    extends BaseReferences<_$AppDatabase, $CashSessionsTable, CashSession> {
+  $$CashSessionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BusinessesTable _businessIdTable(_$AppDatabase db) =>
+      db.businesses.createAlias(
+          $_aliasNameGenerator(db.cashSessions.businessId, db.businesses.id));
+
+  $$BusinessesTableProcessedTableManager? get businessId {
+    final $_column = $_itemColumn<String>('business_id');
+    if ($_column == null) return null;
+    final manager = $$BusinessesTableTableManager($_db, $_db.businesses)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_businessIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $BranchesTable _branchIdTable(_$AppDatabase db) =>
+      db.branches.createAlias(
+          $_aliasNameGenerator(db.cashSessions.branchId, db.branches.id));
+
+  $$BranchesTableProcessedTableManager? get branchId {
+    final $_column = $_itemColumn<String>('branch_id');
+    if ($_column == null) return null;
+    final manager = $$BranchesTableTableManager($_db, $_db.branches)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_branchIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $CashRegistersTable _cashRegisterIdTable(_$AppDatabase db) =>
+      db.cashRegisters.createAlias($_aliasNameGenerator(
+          db.cashSessions.cashRegisterId, db.cashRegisters.id));
+
+  $$CashRegistersTableProcessedTableManager? get cashRegisterId {
+    final $_column = $_itemColumn<String>('cash_register_id');
+    if ($_column == null) return null;
+    final manager = $$CashRegistersTableTableManager($_db, $_db.cashRegisters)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_cashRegisterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $ProfilesTable _openedByProfileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias($_aliasNameGenerator(
+          db.cashSessions.openedByProfileId, db.profiles.id));
+
+  $$ProfilesTableProcessedTableManager? get openedByProfileId {
+    final $_column = $_itemColumn<String>('opened_by_profile_id');
+    if ($_column == null) return null;
+    final manager = $$ProfilesTableTableManager($_db, $_db.profiles)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_openedByProfileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $ProfilesTable _closedByProfileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias($_aliasNameGenerator(
+          db.cashSessions.closedByProfileId, db.profiles.id));
+
+  $$ProfilesTableProcessedTableManager? get closedByProfileId {
+    final $_column = $_itemColumn<String>('closed_by_profile_id');
+    if ($_column == null) return null;
+    final manager = $$ProfilesTableTableManager($_db, $_db.profiles)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_closedByProfileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$CashSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CashSessionsTable> {
+  $$CashSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get openedAt => $composableBuilder(
+      column: $table.openedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get closedAt => $composableBuilder(
+      column: $table.closedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get openingCashAmount => $composableBuilder(
+      column: $table.openingCashAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get closingCashAmount => $composableBuilder(
+      column: $table.closingCashAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get expectedCashAmount => $composableBuilder(
+      column: $table.expectedCashAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get differenceAmount => $composableBuilder(
+      column: $table.differenceAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<SyncStatus, SyncStatus, int> get syncStatus =>
+      $composableBuilder(
+          column: $table.syncStatus,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
+
+  $$BusinessesTableFilterComposer get businessId {
+    final $$BusinessesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableFilterComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableFilterComposer get branchId {
+    final $$BranchesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableFilterComposer(
+              $db: $db,
+              $table: $db.branches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$CashRegistersTableFilterComposer get cashRegisterId {
+    final $$CashRegistersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.cashRegisterId,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableFilterComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$ProfilesTableFilterComposer get openedByProfileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.openedByProfileId,
+        referencedTable: $db.profiles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProfilesTableFilterComposer(
+              $db: $db,
+              $table: $db.profiles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$ProfilesTableFilterComposer get closedByProfileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.closedByProfileId,
+        referencedTable: $db.profiles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProfilesTableFilterComposer(
+              $db: $db,
+              $table: $db.profiles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$CashSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CashSessionsTable> {
+  $$CashSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get openedAt => $composableBuilder(
+      column: $table.openedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get closedAt => $composableBuilder(
+      column: $table.closedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get openingCashAmount => $composableBuilder(
+      column: $table.openingCashAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get closingCashAmount => $composableBuilder(
+      column: $table.closingCashAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get expectedCashAmount => $composableBuilder(
+      column: $table.expectedCashAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get differenceAmount => $composableBuilder(
+      column: $table.differenceAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  $$BusinessesTableOrderingComposer get businessId {
+    final $$BusinessesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableOrderingComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableOrderingComposer get branchId {
+    final $$BranchesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableOrderingComposer(
+              $db: $db,
+              $table: $db.branches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$CashRegistersTableOrderingComposer get cashRegisterId {
+    final $$CashRegistersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.cashRegisterId,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableOrderingComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$ProfilesTableOrderingComposer get openedByProfileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.openedByProfileId,
+        referencedTable: $db.profiles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProfilesTableOrderingComposer(
+              $db: $db,
+              $table: $db.profiles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$ProfilesTableOrderingComposer get closedByProfileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.closedByProfileId,
+        referencedTable: $db.profiles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProfilesTableOrderingComposer(
+              $db: $db,
+              $table: $db.profiles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$CashSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CashSessionsTable> {
+  $$CashSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get openedAt =>
+      $composableBuilder(column: $table.openedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get closedAt =>
+      $composableBuilder(column: $table.closedAt, builder: (column) => column);
+
+  GeneratedColumn<double> get openingCashAmount => $composableBuilder(
+      column: $table.openingCashAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get closingCashAmount => $composableBuilder(
+      column: $table.closingCashAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get expectedCashAmount => $composableBuilder(
+      column: $table.expectedCashAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get differenceAmount => $composableBuilder(
+      column: $table.differenceAmount, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+      column: $table.idempotencyKey, builder: (column) => column);
+
+  GeneratedColumn<String> get localStatus => $composableBuilder(
+      column: $table.localStatus, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<SyncStatus, int> get syncStatus =>
+      $composableBuilder(
+          column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
+
+  $$BusinessesTableAnnotationComposer get businessId {
+    final $$BusinessesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.businessId,
+        referencedTable: $db.businesses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BusinessesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.businesses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BranchesTableAnnotationComposer get branchId {
+    final $$BranchesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.branchId,
+        referencedTable: $db.branches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BranchesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.branches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$CashRegistersTableAnnotationComposer get cashRegisterId {
+    final $$CashRegistersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.cashRegisterId,
+        referencedTable: $db.cashRegisters,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CashRegistersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.cashRegisters,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$ProfilesTableAnnotationComposer get openedByProfileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.openedByProfileId,
+        referencedTable: $db.profiles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProfilesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.profiles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$ProfilesTableAnnotationComposer get closedByProfileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.closedByProfileId,
+        referencedTable: $db.profiles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProfilesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.profiles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$CashSessionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $CashSessionsTable,
+    CashSession,
+    $$CashSessionsTableFilterComposer,
+    $$CashSessionsTableOrderingComposer,
+    $$CashSessionsTableAnnotationComposer,
+    $$CashSessionsTableCreateCompanionBuilder,
+    $$CashSessionsTableUpdateCompanionBuilder,
+    (CashSession, $$CashSessionsTableReferences),
+    CashSession,
+    PrefetchHooks Function(
+        {bool businessId,
+        bool branchId,
+        bool cashRegisterId,
+        bool openedByProfileId,
+        bool closedByProfileId})> {
+  $$CashSessionsTableTableManager(_$AppDatabase db, $CashSessionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CashSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CashSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CashSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> cashRegisterId = const Value.absent(),
+            Value<String?> openedByProfileId = const Value.absent(),
+            Value<String?> closedByProfileId = const Value.absent(),
+            Value<DateTime> openedAt = const Value.absent(),
+            Value<DateTime?> closedAt = const Value.absent(),
+            Value<double> openingCashAmount = const Value.absent(),
+            Value<double?> closingCashAmount = const Value.absent(),
+            Value<double?> expectedCashAmount = const Value.absent(),
+            Value<double?> differenceAmount = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<SyncStatus> syncStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CashSessionsCompanion(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            cashRegisterId: cashRegisterId,
+            openedByProfileId: openedByProfileId,
+            closedByProfileId: closedByProfileId,
+            openedAt: openedAt,
+            closedAt: closedAt,
+            openingCashAmount: openingCashAmount,
+            closingCashAmount: closingCashAmount,
+            expectedCashAmount: expectedCashAmount,
+            differenceAmount: differenceAmount,
+            status: status,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            syncStatus: syncStatus,
+            version: version,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String?> businessId = const Value.absent(),
+            Value<String?> branchId = const Value.absent(),
+            Value<String?> cashRegisterId = const Value.absent(),
+            Value<String?> openedByProfileId = const Value.absent(),
+            Value<String?> closedByProfileId = const Value.absent(),
+            Value<DateTime> openedAt = const Value.absent(),
+            Value<DateTime?> closedAt = const Value.absent(),
+            Value<double> openingCashAmount = const Value.absent(),
+            Value<double?> closingCashAmount = const Value.absent(),
+            Value<double?> expectedCashAmount = const Value.absent(),
+            Value<double?> differenceAmount = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> idempotencyKey = const Value.absent(),
+            Value<String> localStatus = const Value.absent(),
+            Value<SyncStatus> syncStatus = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CashSessionsCompanion.insert(
+            id: id,
+            businessId: businessId,
+            branchId: branchId,
+            cashRegisterId: cashRegisterId,
+            openedByProfileId: openedByProfileId,
+            closedByProfileId: closedByProfileId,
+            openedAt: openedAt,
+            closedAt: closedAt,
+            openingCashAmount: openingCashAmount,
+            closingCashAmount: closingCashAmount,
+            expectedCashAmount: expectedCashAmount,
+            differenceAmount: differenceAmount,
+            status: status,
+            idempotencyKey: idempotencyKey,
+            localStatus: localStatus,
+            syncStatus: syncStatus,
+            version: version,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            lastSyncedAt: lastSyncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$CashSessionsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {businessId = false,
+              branchId = false,
+              cashRegisterId = false,
+              openedByProfileId = false,
+              closedByProfileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (businessId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.businessId,
+                    referencedTable:
+                        $$CashSessionsTableReferences._businessIdTable(db),
+                    referencedColumn:
+                        $$CashSessionsTableReferences._businessIdTable(db).id,
+                  ) as T;
+                }
+                if (branchId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.branchId,
+                    referencedTable:
+                        $$CashSessionsTableReferences._branchIdTable(db),
+                    referencedColumn:
+                        $$CashSessionsTableReferences._branchIdTable(db).id,
+                  ) as T;
+                }
+                if (cashRegisterId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.cashRegisterId,
+                    referencedTable:
+                        $$CashSessionsTableReferences._cashRegisterIdTable(db),
+                    referencedColumn: $$CashSessionsTableReferences
+                        ._cashRegisterIdTable(db)
+                        .id,
+                  ) as T;
+                }
+                if (openedByProfileId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.openedByProfileId,
+                    referencedTable: $$CashSessionsTableReferences
+                        ._openedByProfileIdTable(db),
+                    referencedColumn: $$CashSessionsTableReferences
+                        ._openedByProfileIdTable(db)
+                        .id,
+                  ) as T;
+                }
+                if (closedByProfileId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.closedByProfileId,
+                    referencedTable: $$CashSessionsTableReferences
+                        ._closedByProfileIdTable(db),
+                    referencedColumn: $$CashSessionsTableReferences
+                        ._closedByProfileIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$CashSessionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $CashSessionsTable,
+    CashSession,
+    $$CashSessionsTableFilterComposer,
+    $$CashSessionsTableOrderingComposer,
+    $$CashSessionsTableAnnotationComposer,
+    $$CashSessionsTableCreateCompanionBuilder,
+    $$CashSessionsTableUpdateCompanionBuilder,
+    (CashSession, $$CashSessionsTableReferences),
+    CashSession,
+    PrefetchHooks Function(
+        {bool businessId,
+        bool branchId,
+        bool cashRegisterId,
+        bool openedByProfileId,
+        bool closedByProfileId})>;
 typedef $$SalePaymentsTableCreateCompanionBuilder = SalePaymentsCompanion
     Function({
   required String id,
@@ -30172,6 +33735,10 @@ class $AppDatabaseManager {
       $$SalesTableTableManager(_db, _db.sales);
   $$SaleItemsTableTableManager get saleItems =>
       $$SaleItemsTableTableManager(_db, _db.saleItems);
+  $$CashRegistersTableTableManager get cashRegisters =>
+      $$CashRegistersTableTableManager(_db, _db.cashRegisters);
+  $$CashSessionsTableTableManager get cashSessions =>
+      $$CashSessionsTableTableManager(_db, _db.cashSessions);
   $$SalePaymentsTableTableManager get salePayments =>
       $$SalePaymentsTableTableManager(_db, _db.salePayments);
   $$PurchasesTableTableManager get purchases =>

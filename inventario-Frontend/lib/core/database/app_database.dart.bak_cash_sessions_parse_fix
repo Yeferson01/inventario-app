@@ -348,6 +348,7 @@ class PurchaseItems extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+
 @DataClassName('CashRegister')
 class CashRegisters extends Table {
   TextColumn get id => text()();
@@ -362,7 +363,8 @@ class CashRegisters extends Table {
 
   TextColumn get status => text().withDefault(const Constant('active'))();
 
-  TextColumn get idempotencyKey => text().nullable().named('idempotency_key')();
+  TextColumn get idempotencyKey =>
+      text().nullable().named('idempotency_key')();
 
   TextColumn get localStatus =>
       text().withDefault(const Constant('synced')).named('local_status')();
@@ -395,20 +397,14 @@ class CashSessions extends Table {
 
   TextColumn get branchId => text().nullable().references(Branches, #id)();
 
-  TextColumn get cashRegisterId => text()
-      .nullable()
-      .references(CashRegisters, #id)
-      .named('cash_register_id')();
+  TextColumn get cashRegisterId =>
+      text().nullable().references(CashRegisters, #id).named('cash_register_id')();
 
-  TextColumn get openedByProfileId => text()
-      .nullable()
-      .references(Profiles, #id)
-      .named('opened_by_profile_id')();
+  TextColumn get openedByProfileId =>
+      text().nullable().references(Profiles, #id).named('opened_by_profile_id')();
 
-  TextColumn get closedByProfileId => text()
-      .nullable()
-      .references(Profiles, #id)
-      .named('closed_by_profile_id')();
+  TextColumn get closedByProfileId =>
+      text().nullable().references(Profiles, #id).named('closed_by_profile_id')();
 
   DateTimeColumn get openedAt =>
       dateTime().withDefault(currentDateAndTime).named('opened_at')();
@@ -429,7 +425,8 @@ class CashSessions extends Table {
 
   TextColumn get status => text().withDefault(const Constant('open'))();
 
-  TextColumn get idempotencyKey => text().nullable().named('idempotency_key')();
+  TextColumn get idempotencyKey =>
+      text().nullable().named('idempotency_key')();
 
   TextColumn get localStatus =>
       text().withDefault(const Constant('synced')).named('local_status')();
@@ -988,8 +985,6 @@ class LocalProductStockBalances extends Table {
     Products,
     Sales,
     SaleItems,
-    CashRegisters,
-    CashSessions,
     SalePayments,
     Purchases,
     PurchaseItems,
@@ -1013,6 +1008,7 @@ class AppDatabase extends _$AppDatabase {
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
   int get schemaVersion => 8;
+
 
   Future<void> _createCashSessionIndexes() async {
     final cashRegistersTable = await customSelect(
@@ -1223,7 +1219,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
-          await _createCashSessionIndexes();
+            await _createCashSessionIndexes();
 
           await _createAppContextIndexes();
           await _createInventoryMovementIndexes();
@@ -1233,12 +1229,6 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
-          if (from < 8) {
-            await m.createTable(cashRegisters);
-            await m.createTable(cashSessions);
-            await _createCashSessionIndexes();
-          }
-
           if (from < 7) {
             await m.addColumn(purchases, purchases.branchId);
             await m.addColumn(purchases, purchases.lastSyncedAt);
@@ -1304,6 +1294,12 @@ class AppDatabase extends _$AppDatabase {
 
           // Aquí manejarás tus futuras migraciones de forma estructurada
         },
+          if (from < 8) {
+            await m.createTable(cashRegisters);
+            await m.createTable(cashSessions);
+            await _createCashSessionIndexes();
+          }
+
         beforeOpen: (details) async {
           await _createCashSessionIndexes();
           await _createProductStockBalanceIndexes();

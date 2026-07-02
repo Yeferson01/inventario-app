@@ -1086,7 +1086,6 @@ class _AppE2ERealControlledTestScreenState
 
       final preflightService = ref.read(appE2ELocalFlowServiceProvider);
       final posLocalSaleService = ref.read(posLocalSaleServiceProvider);
-      final cashSessionService = ref.read(cashSessionLocalServiceProvider);
       final stockPullService = ref.read(productStockBalancePullServiceProvider);
 
       final preflight = await preflightService.run(
@@ -1126,18 +1125,6 @@ class _AppE2ERealControlledTestScreenState
       }
 
       final preflightJson = preflight.toJson();
-
-      final openCashSession = await cashSessionService.getOpenCashSession(
-        businessId: businessId,
-        branchId: branchId,
-      );
-
-      if (openCashSession == null) {
-        throw StateError(
-          'No hay caja abierta para esta sucursal. Usa primero el botón 15. Abrir caja local.',
-        );
-      }
-
       final productId = _requiredText(
         _syncedProductIdController,
         'Product ID sincronizado',
@@ -1180,8 +1167,22 @@ class _AppE2ERealControlledTestScreenState
           branchId: branchId,
           profileId: user,
           customerId: null,
-          cashRegisterId: openCashSession.cashRegisterId,
-          cashSessionId: openCashSession.id,
+          cashRegisterId: _findStringDeep(
+            preflightJson,
+            const [
+              'cash_register_id',
+              'cashRegisterId',
+              'default_cash_register_id',
+            ],
+          ),
+          cashSessionId: _findStringDeep(
+            preflightJson,
+            const [
+              'cash_session_id',
+              'cashSessionId',
+              'current_cash_session_id',
+            ],
+          ),
           appDeviceId: appDeviceId,
           deviceInstallationId: preflight.installationId,
           clientSequenceStart: _safeClientSequenceStart(),
@@ -1215,7 +1216,6 @@ class _AppE2ERealControlledTestScreenState
           'product_id': productId,
           'sale_quantity': saleQuantity,
           'sale_result': result.toJson(),
-          'cash_session_used': openCashSession.toJson(),
           'stock_before': beforeBalance,
           'stock_after': afterBalance,
           'expected': {

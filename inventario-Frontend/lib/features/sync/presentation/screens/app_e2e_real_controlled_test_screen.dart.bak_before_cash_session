@@ -19,8 +19,6 @@ import '../../application/pos_sync_upload_provider.dart';
 import '../../../inventory/application/purchase_local_models.dart';
 import '../../../inventory/application/purchase_local_provider.dart';
 import '../../application/purchases_sync_upload_provider.dart';
-import '../../../cash/application/cash_session_local_models.dart';
-import '../../../cash/application/cash_session_local_provider.dart';
 
 class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
   const AppE2ERealControlledTestScreen({
@@ -56,11 +54,6 @@ class _AppE2ERealControlledTestScreenState
   final _purchaseSupplierNameController = TextEditingController(
     text: 'Proveedor E2E Local',
   );
-  final _cashRegisterNameController = TextEditingController(
-    text: 'Caja E2E Principal',
-  );
-  final _cashRegisterCodeController = TextEditingController(text: 'MAIN');
-  final _cashOpeningAmountController = TextEditingController(text: '50000');
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -590,141 +583,6 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
-  Future<void> _openLocalCashSession() async {
-    setState(() {
-      _isRunning = true;
-      _lastError = null;
-    });
-
-    try {
-      final user = _requireCurrentUserId();
-      final isOnline = await _isOnline();
-      final packageInfo = await PackageInfo.fromPlatform();
-
-      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
-      final cashSessionService = ref.read(cashSessionLocalServiceProvider);
-
-      final preflight = await preflightService.run(
-        AppE2ELocalFlowInput(
-          profileId: user,
-          preferredBusinessId: _optionalText(_businessIdController),
-          preferredBranchId: _optionalText(_branchIdController),
-          isOnline: isOnline,
-          runManualSync: false,
-          deviceName: _deviceName(),
-          platform: defaultTargetPlatform.name,
-          appVersion: packageInfo.version,
-          osVersion: null,
-          metadata: {
-            'source': 'app_e2e_real_controlled_test_screen',
-            'flow': 'open_local_cash_session',
-          },
-        ),
-      );
-
-      final context = preflight.selectedContext;
-
-      if (context == null) {
-        throw StateError('No se pudo resolver selectedContext.');
-      }
-
-      final businessId = context.savedBusinessId.trim().isNotEmpty
-          ? context.savedBusinessId
-          : context.selected.businessId;
-
-      final branchId = context.savedBranchId?.trim().isNotEmpty == true
-          ? context.savedBranchId!
-          : context.selected.branchId;
-
-      if (branchId == null || branchId.trim().isEmpty) {
-        throw StateError(
-            'No se pudo resolver branch_id para abrir caja local.');
-      }
-
-      final preflightJson = preflight.toJson();
-
-      final appDeviceId = _findStringDeep(
-        preflightJson,
-        const [
-          'app_device_id',
-          'appDeviceId',
-          'app_devices_id',
-          'appDevicesId',
-        ],
-      );
-
-      if (appDeviceId == null || appDeviceId.trim().isEmpty) {
-        setState(() {
-          _lastResult = {
-            'flow': 'open_local_cash_session_preflight_debug',
-            'preflight_json': preflightJson,
-          };
-        });
-
-        throw StateError(
-          'No se pudo resolver app_device_id real para abrir caja local.',
-        );
-      }
-
-      final result = await cashSessionService.openCashSession(
-        OpenCashSessionInput(
-          businessId: businessId,
-          branchId: branchId,
-          profileId: user,
-          cashRegisterName: _requiredText(
-            _cashRegisterNameController,
-            'Nombre de caja',
-          ),
-          cashRegisterCode: _requiredText(
-            _cashRegisterCodeController,
-            'Código de caja',
-          ),
-          openingCashAmount: _doubleFromController(
-            _cashOpeningAmountController,
-          ),
-          appDeviceId: appDeviceId,
-          deviceInstallationId: preflight.installationId,
-          metadata: {
-            'phase': '6.18C.38C',
-            'source': 'app_e2e_real_controlled_test_screen',
-          },
-        ),
-      );
-
-      final openSession = await cashSessionService.getOpenCashSession(
-        businessId: businessId,
-        branchId: branchId,
-      );
-
-      setState(() {
-        _lastResult = {
-          'flow': 'open_local_cash_session',
-          'business_id': businessId,
-          'branch_id': branchId,
-          'app_device_id': appDeviceId,
-          'result': result.toJson(),
-          'open_session_after': openSession?.toJson(),
-          'expected': {
-            'cash_register_created_first_time': true,
-            'cash_session_status': 'open',
-            'reusing_same_open_session_on_repeat': true,
-            'remote_should_not_change_yet': true,
-          },
-        };
-      });
-    } catch (error) {
-      setState(() {
-        _lastError = error;
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRunning = false;
-        });
-      }
-    }
-  }
-
   Future<void> _uploadPendingPurchases() async {
     setState(() {
       _isRunning = true;
@@ -1086,7 +944,6 @@ class _AppE2ERealControlledTestScreenState
 
       final preflightService = ref.read(appE2ELocalFlowServiceProvider);
       final posLocalSaleService = ref.read(posLocalSaleServiceProvider);
-      final cashSessionService = ref.read(cashSessionLocalServiceProvider);
       final stockPullService = ref.read(productStockBalancePullServiceProvider);
 
       final preflight = await preflightService.run(
@@ -1126,18 +983,6 @@ class _AppE2ERealControlledTestScreenState
       }
 
       final preflightJson = preflight.toJson();
-
-      final openCashSession = await cashSessionService.getOpenCashSession(
-        businessId: businessId,
-        branchId: branchId,
-      );
-
-      if (openCashSession == null) {
-        throw StateError(
-          'No hay caja abierta para esta sucursal. Usa primero el botón 15. Abrir caja local.',
-        );
-      }
-
       final productId = _requiredText(
         _syncedProductIdController,
         'Product ID sincronizado',
@@ -1180,8 +1025,22 @@ class _AppE2ERealControlledTestScreenState
           branchId: branchId,
           profileId: user,
           customerId: null,
-          cashRegisterId: openCashSession.cashRegisterId,
-          cashSessionId: openCashSession.id,
+          cashRegisterId: _findStringDeep(
+            preflightJson,
+            const [
+              'cash_register_id',
+              'cashRegisterId',
+              'default_cash_register_id',
+            ],
+          ),
+          cashSessionId: _findStringDeep(
+            preflightJson,
+            const [
+              'cash_session_id',
+              'cashSessionId',
+              'current_cash_session_id',
+            ],
+          ),
           appDeviceId: appDeviceId,
           deviceInstallationId: preflight.installationId,
           clientSequenceStart: _safeClientSequenceStart(),
@@ -1215,7 +1074,6 @@ class _AppE2ERealControlledTestScreenState
           'product_id': productId,
           'sale_quantity': saleQuantity,
           'sale_result': result.toJson(),
-          'cash_session_used': openCashSession.toJson(),
           'stock_before': beforeBalance,
           'stock_after': afterBalance,
           'expected': {
@@ -1332,9 +1190,6 @@ class _AppE2ERealControlledTestScreenState
     _purchaseQuantityController.dispose();
     _purchaseUnitCostController.dispose();
     _purchaseSupplierNameController.dispose();
-    _cashRegisterNameController.dispose();
-    _cashRegisterCodeController.dispose();
-    _cashOpeningAmountController.dispose();
     super.dispose();
   }
 
@@ -1609,31 +1464,6 @@ class _AppE2ERealControlledTestScreenState
               border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _cashRegisterNameController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre caja local',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _cashRegisterCodeController,
-            decoration: const InputDecoration(
-              labelText: 'Código caja local',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _cashOpeningAmountController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Monto apertura caja local',
-              border: OutlineInputBorder(),
-            ),
-          ),
           const SizedBox(height: 16),
           if (_showLegacyE2EDebugButtons)
             FilledButton(
@@ -1765,13 +1595,6 @@ class _AppE2ERealControlledTestScreenState
             onPressed: _isRunning ? null : _uploadPendingPurchases,
             child: const Text(
               '14. Upload compras pendientes',
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _openLocalCashSession,
-            child: const Text(
-              '15. Abrir caja local',
             ),
           ),
           if (_isRunning) ...[

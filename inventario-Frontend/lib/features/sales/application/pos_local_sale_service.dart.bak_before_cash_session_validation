@@ -14,7 +14,6 @@ class PosLocalSaleService {
     CreatePosLocalSaleInput input,
   ) async {
     _validateInput(input);
-    _validateCashSession(input);
 
     final now = DateTime.now().toUtc();
     final saleId = AppUuid.v7();
@@ -241,20 +240,6 @@ class PosLocalSaleService {
       paymentCount: paymentDrafts.length,
       lines: lineResults,
     );
-  }
-
-  void _validateCashSession(CreatePosLocalSaleInput input) {
-    if (input.cashRegisterId == null || input.cashRegisterId!.trim().isEmpty) {
-      throw StateError(
-        'No hay caja abierta. Abre una caja antes de registrar ventas.',
-      );
-    }
-
-    if (input.cashSessionId == null || input.cashSessionId!.trim().isEmpty) {
-      throw StateError(
-        'No hay sesión de caja abierta. Abre una caja antes de registrar ventas.',
-      );
-    }
   }
 
   void _validateInput(CreatePosLocalSaleInput input) {
