@@ -1,4 +1,5 @@
 import '../../../core/logging/app_logger.dart';
+import '../../cash/data/datasources/cash_session_local_dao.dart';
 import '../../sales/data/datasources/pos_local_sale_dao.dart';
 import '../data/datasources/pos_sync_remote_datasource.dart';
 import '../data/models/catalog_upload_models.dart';
@@ -9,12 +10,15 @@ class PosSyncUploadService {
     required LocalSyncOutboxService outboxService,
     required PosSyncRemoteDataSource remoteDataSource,
     required PosLocalSaleDao posLocalSaleDao,
+    required CashSessionLocalDao cashSessionLocalDao,
   })  : _outboxService = outboxService,
         _remoteDataSource = remoteDataSource,
-        _posLocalSaleDao = posLocalSaleDao;
+        _posLocalSaleDao = posLocalSaleDao,
+        _cashSessionLocalDao = cashSessionLocalDao;
 
   final LocalSyncOutboxService _outboxService;
   final PosSyncRemoteDataSource _remoteDataSource;
+  final CashSessionLocalDao _cashSessionLocalDao;
   final PosLocalSaleDao _posLocalSaleDao;
 
   Future<CatalogUploadRunResult> uploadPendingPosBatches({
@@ -40,6 +44,8 @@ class PosSyncUploadService {
       final localBatchId = _requiredString(batch, 'id');
 
       try {
+        await _assertCashReadyForPosBatch(batch);
+
         await _outboxService.markBatchUploading(localBatchId);
 
         final mutations =
@@ -114,6 +120,26 @@ class PosSyncUploadService {
       batchesFailed: failed,
       mutationsUploaded: mutationsUploaded,
     );
+  }
+
+  Future<void> _assertCashReadyForPosBatch(
+    Map<String, dynamic> batch,
+  ) async {
+    final businessId = _requiredString(batch, 'business_id');
+    final branchId = _requiredString(batch, 'branch_id');
+
+    final summary = await _cashSessionLocalDao.getPosCashReadinessSummary(
+      businessId: businessId,
+      branchId: branchId,
+    );
+
+    final blockedReason = summary['pos_upload_blocked_reason'];
+
+    if (blockedReason != null && blockedReason.toString().trim().isNotEmpty) {
+      throw StateError(
+        'Upload POS bloqueado: ${blockedReason.toString()}',
+      );
+    }
   }
 
   Future<void> _markLocalPosEntitiesSynced({

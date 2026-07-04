@@ -54,6 +54,11 @@ class CashSyncOutboxService {
     String? deviceInstallationId,
     int limit = 10,
   }) async {
+    await _dao.deleteOrphanCashOutboxBatches(
+      businessId: businessId,
+      branchId: branchId,
+    );
+
     final registers = await _dao.getPendingDirtyCashRegisters(
       businessId: businessId,
       branchId: branchId,
@@ -119,22 +124,23 @@ class CashSyncOutboxService {
 
       mutations.add(
         LocalSyncMutationDraft(
-          clientMutationId: _clientMutationId(
-            deviceInstallationId: deviceInstallationId,
+          clientMutationId: _cashSessionClientMutationId(
+            session,
             profileId: profileId,
-            entityTable: 'cash_sessions',
-            entityId: id,
+            deviceInstallationId: deviceInstallationId,
+            id: id,
           ),
           clientSequence: sequence++,
           entityTable: 'cash_sessions',
           entityId: id,
-          operation: 'insert',
+          operation: _cashSessionOperation(session),
           payload: payload,
           changedFields: payload.keys.toList(),
-          idempotencyKey: _idempotencyKey(
+          idempotencyKey: _cashSessionIdempotencyKey(
             session,
-            fallback:
-                '${deviceInstallationId ?? profileId}:cash_sessions:$id:insert',
+            profileId: profileId,
+            deviceInstallationId: deviceInstallationId,
+            id: id,
           ),
           businessId: businessId,
           branchId: branchId,
@@ -210,6 +216,72 @@ class CashSyncOutboxService {
       batchesCreated: 1,
       mutationsEnqueued: mutations.length,
       results: results,
+    );
+  }
+
+  String _cashSessionClientMutationId(
+    Map<String, dynamic> session, {
+    required String profileId,
+    required String? deviceInstallationId,
+    required String id,
+  }) {
+    final status = _nullableString(session['status']);
+    final lastSyncedAt = _nullableString(session['last_synced_at']);
+    final version = _int(session['version'], fallback: 1);
+    final base = deviceInstallationId ?? profileId;
+
+    // Si nunca se ha sincronizado al servidor, sigue siendo una mutación insert,
+    // aunque localmente la sesión ya esté cerrada.
+    if (lastSyncedAt == null || lastSyncedAt.trim().isEmpty) {
+      return '$base:cash_sessions:$id:insert:v$version';
+    }
+
+    // Si ya existía en servidor y ahora se cerró/canceló, es mutación de cierre.
+    if (status == 'closed' || status == 'cancelled') {
+      return '$base:cash_sessions:$id:close:v$version';
+    }
+
+    return '$base:cash_sessions:$id:insert:v$version';
+  }
+
+  String _cashSessionOperation(Map<String, dynamic> session) {
+    final status = _nullableString(session['status']);
+    final lastSyncedAt = _nullableString(session['last_synced_at']);
+
+    // Si nunca se ha sincronizado al servidor, debe ir como insert,
+    // aunque localmente ya esté cerrada.
+    if (lastSyncedAt == null || lastSyncedAt.trim().isEmpty) {
+      return 'insert';
+    }
+
+    // Si ya existía en servidor y ahora está cerrada/cancelada, es update.
+    if (status == 'closed' || status == 'cancelled') {
+      return 'update';
+    }
+
+    return 'insert';
+  }
+
+  String _cashSessionIdempotencyKey(
+    Map<String, dynamic> session, {
+    required String profileId,
+    required String? deviceInstallationId,
+    required String id,
+  }) {
+    final status = _nullableString(session['status']);
+    final lastSyncedAt = _nullableString(session['last_synced_at']);
+    final version = _int(session['version'], fallback: 1);
+    final base = deviceInstallationId ?? profileId;
+
+    if ((status == 'closed' || status == 'cancelled') &&
+        lastSyncedAt != null &&
+        lastSyncedAt.trim().isNotEmpty) {
+      return '$base:cash_sessions:$id:close:v$version';
+    }
+
+    return _idempotencyKey(
+      session,
+      fallback: '$base:cash_sessions:$id:insert',
     );
   }
 

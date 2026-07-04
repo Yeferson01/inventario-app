@@ -8,6 +8,68 @@ class CashSessionLocalService {
 
   final CashSessionLocalDao _dao;
 
+  Future<Map<String, dynamic>> getLatestCashSessionSummaryForBranch({
+    required String businessId,
+    required String branchId,
+  }) {
+    return _dao.getLatestCashSessionSummaryForBranch(
+      businessId: businessId,
+      branchId: branchId,
+    );
+  }
+
+  Future<CloseCashSessionResult> closeCashSession(
+    CloseCashSessionInput input,
+  ) async {
+    if (input.actualClosingAmount < 0) {
+      throw ArgumentError('El monto de cierre no puede ser negativo.');
+    }
+
+    final openSession = await _dao.getOpenCashSessionForBranch(
+      businessId: input.businessId,
+      branchId: input.branchId,
+    );
+
+    if (openSession == null) {
+      throw StateError('No hay una sesión de caja abierta para cerrar.');
+    }
+
+    final cashSessionId = (openSession['id'] ?? '').toString().trim();
+    final cashRegisterId =
+        (openSession['cash_register_id'] ?? '').toString().trim();
+
+    if (cashSessionId.isEmpty) {
+      throw StateError('La sesión abierta no tiene id local válido.');
+    }
+
+    if (cashRegisterId.isEmpty) {
+      throw StateError('La sesión abierta no tiene cash_register_id válido.');
+    }
+
+    final expectedCashAmount = await _dao.calculateExpectedCashAmountForSession(
+      cashSessionId: cashSessionId,
+    );
+
+    await _dao.closeCashSession(
+      cashSessionId: cashSessionId,
+      closedByProfileId: input.profileId,
+      expectedCashAmount: expectedCashAmount,
+      closingCashAmount: input.actualClosingAmount,
+      notes: input.notes,
+    );
+
+    return CloseCashSessionResult(
+      cashSessionId: cashSessionId,
+      cashRegisterId: cashRegisterId,
+      businessId: input.businessId,
+      branchId: input.branchId,
+      expectedCashAmount: expectedCashAmount,
+      actualClosingAmount: input.actualClosingAmount,
+      differenceAmount: input.actualClosingAmount - expectedCashAmount,
+      status: 'closed',
+    );
+  }
+
   Future<Map<String, dynamic>> getPosCashReadinessSummary({
     required String businessId,
     required String branchId,

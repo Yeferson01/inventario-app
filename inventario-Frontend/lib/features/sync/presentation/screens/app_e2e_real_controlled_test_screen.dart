@@ -35,7 +35,7 @@ class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
 
 class _AppE2ERealControlledTestScreenState
     extends ConsumerState<AppE2ERealControlledTestScreen> {
-  static const bool _showLegacyE2EDebugButtons = false;
+  static const bool _showLegacyE2EDebugButtons = true;
 
   final _businessIdController = TextEditingController(
     text: 'e56ea013-c8e1-4d38-86d0-ef5bc67b072b',
@@ -62,6 +62,7 @@ class _AppE2ERealControlledTestScreenState
   );
   final _cashRegisterCodeController = TextEditingController(text: 'MAIN');
   final _cashOpeningAmountController = TextEditingController(text: '50000');
+  final _cashClosingAmountController = TextEditingController(text: '50000');
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -890,6 +891,200 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
+  Future<void> _showCashCloseSummary() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final cashSessionService = ref.read(cashSessionLocalServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'show_cash_close_summary',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError(
+          'No se pudo resolver branch_id para resumen de cierre de caja.',
+        );
+      }
+
+      final summary =
+          await cashSessionService.getLatestCashSessionSummaryForBranch(
+        businessId: businessId,
+        branchId: branchId,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'show_cash_close_summary',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'summary': summary,
+          'expected_meaning': {
+            'opening_cash_amount': 'Monto inicial de caja',
+            'cash_payments': 'Pagos en efectivo de ventas de la sesión',
+            'calculated_expected_cash_amount':
+                'opening_cash_amount + cash_payments',
+            'closing_cash_amount': 'Monto contado al cerrar',
+            'difference_amount': 'closing_cash_amount - expected_cash_amount',
+          },
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _closeLocalCashSession() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+
+    try {
+      final user = _requireCurrentUserId();
+      final isOnline = await _isOnline();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      final preflightService = ref.read(appE2ELocalFlowServiceProvider);
+      final cashSessionService = ref.read(cashSessionLocalServiceProvider);
+
+      final preflight = await preflightService.run(
+        AppE2ELocalFlowInput(
+          profileId: user,
+          preferredBusinessId: _optionalText(_businessIdController),
+          preferredBranchId: _optionalText(_branchIdController),
+          isOnline: isOnline,
+          runManualSync: false,
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          osVersion: null,
+          metadata: {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'close_local_cash_session',
+          },
+        ),
+      );
+
+      final context = preflight.selectedContext;
+
+      if (context == null) {
+        throw StateError('No se pudo resolver selectedContext.');
+      }
+
+      final businessId = context.savedBusinessId.trim().isNotEmpty
+          ? context.savedBusinessId
+          : context.selected.businessId;
+
+      final branchId = context.savedBranchId?.trim().isNotEmpty == true
+          ? context.savedBranchId!
+          : context.selected.branchId;
+
+      if (branchId == null || branchId.trim().isEmpty) {
+        throw StateError('No se pudo resolver branch_id para cerrar caja.');
+      }
+
+      final closingAmount = double.tryParse(
+        _cashClosingAmountController.text.trim(),
+      );
+
+      if (closingAmount == null) {
+        throw StateError('Monto de cierre inválido.');
+      }
+
+      final result = await cashSessionService.closeCashSession(
+        CloseCashSessionInput(
+          businessId: businessId,
+          branchId: branchId,
+          profileId: user,
+          actualClosingAmount: closingAmount,
+          notes: 'Cierre local E2E desde debug screen',
+        ),
+      );
+
+      final summary = await cashSessionService.getPosCashReadinessSummary(
+        businessId: businessId,
+        branchId: branchId,
+      );
+
+      final preview = await cashSessionService.getSalesCashAssociationPreview(
+        businessId: businessId,
+        branchId: branchId,
+        limit: 10,
+      );
+
+      setState(() {
+        _lastResult = {
+          'flow': 'close_local_cash_session',
+          'business_id': businessId,
+          'branch_id': branchId,
+          'result': result.toJson(),
+          'cash_readiness_after_close': summary,
+          'sales_cash_preview_after_close': preview,
+          'next_steps': [
+            '17. Encolar cash pendiente',
+            '18. Upload cash pendiente',
+            '16. Verificar POS/caja',
+          ],
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
   Future<void> _openLocalCashSession() async {
     setState(() {
       _isRunning = true;
@@ -1635,6 +1830,7 @@ class _AppE2ERealControlledTestScreenState
     _cashRegisterNameController.dispose();
     _cashRegisterCodeController.dispose();
     _cashOpeningAmountController.dispose();
+    _cashClosingAmountController.dispose();
     super.dispose();
   }
 
@@ -1801,6 +1997,18 @@ class _AppE2ERealControlledTestScreenState
             'y creación de producto local desde catálogo con outbox.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                'Laboratorio interno E2E. No es UI final. '
+                'Usar solo para pruebas controladas de catálogo, inventario, '
+                'POS, compras y caja.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           _InfoTile(
             title: 'Usuario autenticado',
@@ -1928,125 +2136,111 @@ class _AppE2ERealControlledTestScreenState
           const SizedBox(height: 12),
           TextField(
             controller: _cashOpeningAmountController,
-            keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: 'Monto apertura caja local',
               border: OutlineInputBorder(),
             ),
+            keyboardType: TextInputType.number,
           ),
-          const SizedBox(height: 16),
-          if (_showLegacyE2EDebugButtons)
+          const SizedBox(height: 12),
+          TextField(
+            controller: _cashClosingAmountController,
+            decoration: const InputDecoration(
+              labelText: 'Monto cierre caja local',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          if (_showLegacyE2EDebugButtons) ...[
+            const SizedBox(height: 12),
             FilledButton(
               onPressed: _isRunning
                   ? null
                   : () {
                       _run(runManualSync: false);
                     },
-              child: const Text('1. Validar contexto local sin sync manual'),
+              child: const Text(
+                '1. Ejecutar flujo base E2E',
+              ),
             ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _run(runManualSync: true);
-                  },
-            child: const Text('2. Ejecutar sync manual controlado'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.tonal(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _createProductFromCatalog(
-                      runManualSyncAfterCreate: false,
-                    );
-                  },
-            child: const Text(
-              '3. Crear producto desde catálogo + encolar outbox',
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (_showLegacyE2EDebugButtons)
+            const SizedBox(height: 12),
             FilledButton(
               onPressed: _isRunning
                   ? null
                   : () {
                       _createProductFromCatalog(
-                        runManualSyncAfterCreate: true,
+                        runManualSyncAfterCreate: false,
                       );
                     },
               child: const Text(
-                '4. Crear producto desde catálogo + sync manual',
+                '2. Crear producto desde catálogo',
               ),
             ),
-          const SizedBox(height: 12),
-          FilledButton.tonal(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _createInitialStock(
-                      runManualSyncAfterCreate: false,
-                    );
-                  },
-            child: const Text(
-              '5. Crear stock inicial + encolar outbox',
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _pullStockBalances,
+              child: const Text(
+                '3. Pull stock balances',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          if (_showLegacyE2EDebugButtons)
+            const SizedBox(height: 12),
             FilledButton(
               onPressed: _isRunning
                   ? null
                   : () {
                       _createInitialStock(
-                        runManualSyncAfterCreate: true,
+                        runManualSyncAfterCreate: false,
                       );
                     },
               child: const Text(
-                '6. Crear stock inicial + sync inventario',
+                '4. Crear stock inicial',
               ),
             ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _isRunning
-                ? null
-                : () {
-                    _pullStockBalances();
-                  },
-            child: const Text(
-              '7. Descargar saldos de stock remoto',
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _previewProductsWithLocalStock,
+              child: const Text(
+                '5. Preview productos con stock local',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _previewProductsWithLocalStock,
-            child: const Text(
-              '8. Preview productos + stock local',
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _previewProductsWithLocalStock,
+              child: const Text(
+                '7. Ver productos con stock local',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _createOfflineLocalSale,
-            child: const Text(
-              '9. Crear venta offline local',
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _pullStockBalances,
+              child: const Text(
+                '8. Refrescar stock local',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _enqueuePendingPosSales,
-            child: const Text(
-              '10. Encolar ventas POS pendientes',
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _createOfflineLocalSale,
+              child: const Text(
+                '9. Crear venta POS offline local',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _uploadPendingPosSales,
-            child: const Text(
-              '11. Upload ventas POS pendientes',
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _enqueuePendingPosSales,
+              child: const Text(
+                '10. Encolar ventas POS pendientes',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _uploadPendingPosSales,
+              child: const Text(
+                '11. Upload ventas POS pendientes',
+              ),
+            ),
+          ],
+          // legacy_debug_buttons_restored
           FilledButton(
             onPressed: _isRunning ? null : _createOfflineLocalPurchase,
             child: const Text(
@@ -2072,6 +2266,20 @@ class _AppE2ERealControlledTestScreenState
             onPressed: _isRunning ? null : _openLocalCashSession,
             child: const Text(
               '15. Abrir caja local',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _closeLocalCashSession,
+            child: const Text(
+              '19. Cerrar caja local',
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isRunning ? null : _showCashCloseSummary,
+            child: const Text(
+              '20. Resumen cierre caja',
             ),
           ),
           const SizedBox(height: 12),

@@ -21,6 +21,10 @@ class CashSyncUploadService {
     required String businessId,
     int batchLimit = 10,
   }) async {
+    await _cashSessionLocalDao.deleteOrphanCashOutboxBatches(
+      businessId: businessId,
+    );
+
     await _cashSessionLocalDao.resetRetryableCashOutboxBatches(
       businessId: businessId,
     );

@@ -110,3 +110,55 @@ class OpenCashSessionResult {
     };
   }
 }
+
+class CloseCashSessionInput {
+  const CloseCashSessionInput({
+    required this.businessId,
+    required this.branchId,
+    required this.profileId,
+    required this.actualClosingAmount,
+    this.notes,
+  });
+
+  final String businessId;
+  final String branchId;
+  final String profileId;
+  final double actualClosingAmount;
+  final String? notes;
+}
+
+class CloseCashSessionResult {
+  const CloseCashSessionResult({
+    required this.cashSessionId,
+    required this.cashRegisterId,
+    required this.businessId,
+    required this.branchId,
+    required this.expectedCashAmount,
+    required this.actualClosingAmount,
+    required this.differenceAmount,
+    required this.status,
+  });
+
+  final String cashSessionId;
+  final String cashRegisterId;
+  final String businessId;
+  final String branchId;
+  final double expectedCashAmount;
+  final double actualClosingAmount;
+  final double differenceAmount;
+  final String status;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'cash_session_id': cashSessionId,
+      'cash_register_id': cashRegisterId,
+      'business_id': businessId,
+      'branch_id': branchId,
+      'expected_cash_amount': expectedCashAmount,
+      'closing_cash_amount': actualClosingAmount,
+      'actual_closing_amount': actualClosingAmount,
+      'difference_amount': differenceAmount,
+      'status': status,
+    };
+  }
+}
