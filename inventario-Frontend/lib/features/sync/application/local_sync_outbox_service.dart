@@ -95,6 +95,17 @@ class LocalSyncOutboxService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPendingCashBatches({
+    required String businessId,
+    int limit = 10,
+  }) {
+    return getPendingBatches(
+      businessId: businessId,
+      domain: 'cash',
+      limit: limit,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getPendingPurchasesBatches({
     required String businessId,
     int limit = 10,
@@ -246,6 +257,7 @@ class LocalSyncOutboxService {
       'inventory',
       'pos',
       'purchases',
+      'cash',
     };
 
     if (!allowedDomains.contains(domain)) {

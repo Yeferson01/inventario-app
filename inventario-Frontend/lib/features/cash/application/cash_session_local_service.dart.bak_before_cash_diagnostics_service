@@ -8,44 +8,6 @@ class CashSessionLocalService {
 
   final CashSessionLocalDao _dao;
 
-  Future<Map<String, dynamic>> getPosCashReadinessSummary({
-    required String businessId,
-    required String branchId,
-  }) {
-    return _dao.getPosCashReadinessSummary(
-      businessId: businessId,
-      branchId: branchId,
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> getSalesCashAssociationPreview({
-    required String businessId,
-    required String branchId,
-    int limit = 10,
-  }) {
-    return _dao.getSalesCashAssociationPreview(
-      businessId: businessId,
-      branchId: branchId,
-      limit: limit,
-    );
-  }
-
-  Future<void> assertPosUploadCashReady({
-    required String businessId,
-    required String branchId,
-  }) async {
-    final summary = await getPosCashReadinessSummary(
-      businessId: businessId,
-      branchId: branchId,
-    );
-
-    final blockedReason = summary['pos_upload_blocked_reason'];
-
-    if (blockedReason != null && blockedReason.toString().trim().isNotEmpty) {
-      throw StateError(blockedReason.toString());
-    }
-  }
-
   Future<OpenCashSessionResult> openCashSession(
     OpenCashSessionInput input,
   ) async {
