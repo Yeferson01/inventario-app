@@ -35,7 +35,7 @@ class AppE2ERealControlledTestScreen extends ConsumerStatefulWidget {
 
 class _AppE2ERealControlledTestScreenState
     extends ConsumerState<AppE2ERealControlledTestScreen> {
-  static const bool _showLegacyE2EDebugButtons = false;
+  static const bool _showLegacyE2EDebugButtons = true;
 
   final _businessIdController = TextEditingController(
     text: 'e56ea013-c8e1-4d38-86d0-ef5bc67b072b',
@@ -2204,44 +2204,43 @@ class _AppE2ERealControlledTestScreenState
                 '5. Preview productos con stock local',
               ),
             ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _previewProductsWithLocalStock,
+              child: const Text(
+                '7. Ver productos con stock local',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _pullStockBalances,
+              child: const Text(
+                '8. Refrescar stock local',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _createOfflineLocalSale,
+              child: const Text(
+                '9. Crear venta POS offline local',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _enqueuePendingPosSales,
+              child: const Text(
+                '10. Encolar ventas POS pendientes',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _isRunning ? null : _uploadPendingPosSales,
+              child: const Text(
+                '11. Upload ventas POS pendientes',
+              ),
+            ),
           ],
-          // legacy_debug_buttons_restored_hidden_1_to_6
-
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _pullStockBalances,
-            child: const Text(
-              '7. Pull stock remoto',
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _previewProductsWithLocalStock,
-            child: const Text(
-              '8. Preview productos con stock local',
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _createOfflineLocalSale,
-            child: const Text(
-              '9. Crear venta POS offline local',
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _enqueuePendingPosSales,
-            child: const Text(
-              '10. Encolar ventas POS pendientes',
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _isRunning ? null : _uploadPendingPosSales,
-            child: const Text(
-              '11. Upload ventas POS pendientes',
-            ),
-          ),
+          // legacy_debug_buttons_restored
           FilledButton(
             onPressed: _isRunning ? null : _createOfflineLocalPurchase,
             child: const Text(
