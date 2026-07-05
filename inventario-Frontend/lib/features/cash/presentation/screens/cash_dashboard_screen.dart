@@ -6,6 +6,9 @@ import '../../application/cash_session_local_models.dart';
 import '../../application/cash_session_local_provider.dart';
 import '../widgets/cash_metric_tile.dart';
 import '../widgets/cash_status_card.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../shared/presentation/widgets/app_animated_entrance.dart';
+import '../../../../shared/presentation/widgets/app_gradient_background.dart';
 
 class CashDashboardScreen extends ConsumerStatefulWidget {
   const CashDashboardScreen({
@@ -101,9 +104,13 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   }
 
   Future<void> _openCashSessionDialog() async {
+    final suggestedOpeningAmount = _suggestedOpeningAmount(_summary);
+
     final nameController = TextEditingController(text: 'Caja Principal');
     final codeController = TextEditingController(text: 'MAIN');
-    final amountController = TextEditingController(text: '50000');
+    final amountController = TextEditingController(
+      text: suggestedOpeningAmount.toStringAsFixed(2),
+    );
 
     final result = await showDialog<_OpenCashDialogResult>(
       context: context,
@@ -133,6 +140,8 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                 controller: amountController,
                 decoration: const InputDecoration(
                   labelText: 'Monto apertura',
+                  helperText:
+                      'Sugerido desde el último cierre. Puedes cambiarlo.',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -395,48 +404,67 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_isBusy) const LinearProgressIndicator(),
-            if (_error != null) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    'Error cargando caja: $_error',
-                  ),
+      body: AppGradientBackground(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(CronosSpacing.md),
+            children: [
+              AppAnimatedEntrance(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Centro de caja',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: CronosSpacing.xs),
+                    Text(
+                      'Controla apertura, cierre, sincronización y resumen de efectivo.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: CronosSpacing.md),
+              if (_isBusy) const LinearProgressIndicator(),
+              if (_error != null) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      'Error cargando caja: $_error',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              CashStatusCard(
+                summary: summary,
+                readiness: readiness,
+              ),
               const SizedBox(height: 12),
+              _CashActionsSection(
+                summary: summary,
+                readiness: readiness,
+                isBusy: _isBusy,
+                onOpenCash: _openCashSessionDialog,
+                onSyncCash: _syncCash,
+                onCloseCash: _closeCashSessionDialog,
+                onRefresh: _load,
+              ),
+              const SizedBox(height: 12),
+              _CashIdentitySection(summary: summary),
+              const SizedBox(height: 12),
+              _CashAmountsSection(summary: summary),
+              const SizedBox(height: 12),
+              _CashSyncSection(readiness: readiness),
+              const SizedBox(height: 12),
+              _PaymentsByMethodSection(summary: summary),
+              const SizedBox(height: 12),
+              _NextActionsSection(summary: summary, readiness: readiness),
             ],
-            CashStatusCard(
-              summary: summary,
-              readiness: readiness,
-            ),
-            const SizedBox(height: 12),
-            _CashActionsSection(
-              summary: summary,
-              readiness: readiness,
-              isBusy: _isBusy,
-              onOpenCash: _openCashSessionDialog,
-              onSyncCash: _syncCash,
-              onCloseCash: _closeCashSessionDialog,
-              onRefresh: _load,
-            ),
-            const SizedBox(height: 12),
-            _CashIdentitySection(summary: summary),
-            const SizedBox(height: 12),
-            _CashAmountsSection(summary: summary),
-            const SizedBox(height: 12),
-            _CashSyncSection(readiness: readiness),
-            const SizedBox(height: 12),
-            _PaymentsByMethodSection(summary: summary),
-            const SizedBox(height: 12),
-            _NextActionsSection(summary: summary, readiness: readiness),
-          ],
+          ),
         ),
       ),
     );
@@ -730,6 +758,46 @@ class _CloseCashDialogResult {
 
   final double actualClosingAmount;
   final String? notes;
+}
+
+double _suggestedOpeningAmount(Map<String, dynamic>? summary) {
+  if (summary == null) {
+    return 50000;
+  }
+
+  final status = summary['status']?.toString();
+
+  if (status == 'closed') {
+    final closingCashAmount = _num(summary['closing_cash_amount']);
+
+    if (closingCashAmount > 0) {
+      return closingCashAmount;
+    }
+
+    final storedExpectedCashAmount = _num(
+      summary['stored_expected_cash_amount'],
+    );
+
+    if (storedExpectedCashAmount > 0) {
+      return storedExpectedCashAmount;
+    }
+
+    final calculatedExpectedCashAmount = _num(
+      summary['calculated_expected_cash_amount'],
+    );
+
+    if (calculatedExpectedCashAmount > 0) {
+      return calculatedExpectedCashAmount;
+    }
+  }
+
+  final openingCashAmount = _num(summary['opening_cash_amount']);
+
+  if (openingCashAmount > 0) {
+    return openingCashAmount;
+  }
+
+  return 50000;
 }
 
 String _money(Object? value) {
