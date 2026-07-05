@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../sync/application/cash_sync_upload_provider.dart';
+import '../../application/cash_session_local_models.dart';
 import '../../application/cash_session_local_provider.dart';
 import '../widgets/cash_metric_tile.dart';
 import '../widgets/cash_status_card.dart';
@@ -10,10 +12,16 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
     super.key,
     required this.businessId,
     required this.branchId,
+    required this.profileId,
+    this.appDeviceId,
+    this.deviceInstallationId,
   });
 
   final String businessId;
   final String branchId;
+  final String profileId;
+  final String? appDeviceId;
+  final String? deviceInstallationId;
 
   @override
   ConsumerState<CashDashboardScreen> createState() =>
@@ -25,6 +33,9 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   Map<String, dynamic>? _readiness;
   Object? _error;
   bool _isLoading = false;
+  bool _isRunningAction = false;
+
+  bool get _isBusy => _isLoading || _isRunningAction;
 
   @override
   void initState() {
@@ -89,6 +100,285 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
     }
   }
 
+  Future<void> _openCashSessionDialog() async {
+    final nameController = TextEditingController(text: 'Caja Principal');
+    final codeController = TextEditingController(text: 'MAIN');
+    final amountController = TextEditingController(text: '50000');
+
+    final result = await showDialog<_OpenCashDialogResult>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Abrir caja'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de caja',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: codeController,
+                decoration: const InputDecoration(
+                  labelText: 'Código',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                decoration: const InputDecoration(
+                  labelText: 'Monto apertura',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final amount = double.tryParse(
+                  amountController.text.trim(),
+                );
+
+                if (amount == null || amount < 0) {
+                  return;
+                }
+
+                Navigator.of(context).pop(
+                  _OpenCashDialogResult(
+                    registerName: nameController.text.trim().isEmpty
+                        ? 'Caja Principal'
+                        : nameController.text.trim(),
+                    registerCode: codeController.text.trim().isEmpty
+                        ? 'MAIN'
+                        : codeController.text.trim(),
+                    openingAmount: amount,
+                  ),
+                );
+              },
+              child: const Text('Abrir'),
+            ),
+          ],
+        );
+      },
+    );
+
+    nameController.dispose();
+    codeController.dispose();
+    amountController.dispose();
+
+    if (result == null) {
+      return;
+    }
+
+    await _runAction(
+      successMessage: 'Caja abierta localmente.',
+      action: () async {
+        final service = ref.read(cashSessionLocalServiceProvider);
+
+        await service.openCashSession(
+          OpenCashSessionInput(
+            businessId: widget.businessId,
+            branchId: widget.branchId,
+            profileId: widget.profileId,
+            cashRegisterName: result.registerName,
+            cashRegisterCode: result.registerCode,
+            openingCashAmount: result.openingAmount,
+            appDeviceId: widget.appDeviceId,
+            deviceInstallationId: widget.deviceInstallationId,
+            metadata: {
+              'source': 'cash_dashboard_screen',
+              'flow': 'open_cash_session',
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _syncCash() async {
+    await _runAction(
+      successMessage: 'Cash sincronizado.',
+      action: () async {
+        final outboxService = ref.read(cashSyncOutboxServiceProvider);
+        final uploadService = ref.read(cashSyncUploadServiceProvider);
+
+        await outboxService.enqueuePendingCash(
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+          profileId: widget.profileId,
+          appDeviceId: widget.appDeviceId,
+          deviceInstallationId: widget.deviceInstallationId,
+        );
+
+        final uploadResult = await uploadService.uploadPendingCashBatches(
+          businessId: widget.businessId,
+        );
+
+        if (uploadResult.batchesFailed > 0 || uploadResult.batchesPartial > 0) {
+          throw StateError(
+            'La sincronización de cash no completó totalmente. '
+            'Parciales: ${uploadResult.batchesPartial}, '
+            'fallidos: ${uploadResult.batchesFailed}.',
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _closeCashSessionDialog() async {
+    final summary = _summary;
+    final expected = _num(summary?['calculated_expected_cash_amount']);
+
+    final amountController = TextEditingController(
+      text: expected.toStringAsFixed(2),
+    );
+    final notesController = TextEditingController();
+
+    final result = await showDialog<_CloseCashDialogResult>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cerrar caja'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CashMetricTile(
+                label: 'Efectivo esperado',
+                value: _money(expected),
+                helper: 'Apertura + pagos en efectivo.',
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                decoration: const InputDecoration(
+                  labelText: 'Monto contado',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notas',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final amount = double.tryParse(
+                  amountController.text.trim(),
+                );
+
+                if (amount == null || amount < 0) {
+                  return;
+                }
+
+                Navigator.of(context).pop(
+                  _CloseCashDialogResult(
+                    actualClosingAmount: amount,
+                    notes: notesController.text.trim().isEmpty
+                        ? null
+                        : notesController.text.trim(),
+                  ),
+                );
+              },
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    amountController.dispose();
+    notesController.dispose();
+
+    if (result == null) {
+      return;
+    }
+
+    await _runAction(
+      successMessage: 'Caja cerrada localmente.',
+      action: () async {
+        final service = ref.read(cashSessionLocalServiceProvider);
+
+        await service.closeCashSession(
+          CloseCashSessionInput(
+            businessId: widget.businessId,
+            branchId: widget.branchId,
+            profileId: widget.profileId,
+            actualClosingAmount: result.actualClosingAmount,
+            notes: result.notes,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _runAction({
+    required String successMessage,
+    required Future<void> Function() action,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isRunningAction = true;
+      _error = null;
+    });
+
+    try {
+      await action();
+      await _load();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(successMessage)),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error = error;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunningAction = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final summary = _summary;
@@ -99,7 +389,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         title: const Text('Caja'),
         actions: [
           IconButton(
-            onPressed: _isLoading ? null : _load,
+            onPressed: _isBusy ? null : _load,
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
           ),
@@ -110,7 +400,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (_isLoading) const LinearProgressIndicator(),
+            if (_isBusy) const LinearProgressIndicator(),
             if (_error != null) ...[
               Card(
                 child: Padding(
@@ -127,6 +417,16 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
               readiness: readiness,
             ),
             const SizedBox(height: 12),
+            _CashActionsSection(
+              summary: summary,
+              readiness: readiness,
+              isBusy: _isBusy,
+              onOpenCash: _openCashSessionDialog,
+              onSyncCash: _syncCash,
+              onCloseCash: _closeCashSessionDialog,
+              onRefresh: _load,
+            ),
+            const SizedBox(height: 12),
             _CashIdentitySection(summary: summary),
             const SizedBox(height: 12),
             _CashAmountsSection(summary: summary),
@@ -136,6 +436,69 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
             _PaymentsByMethodSection(summary: summary),
             const SizedBox(height: 12),
             _NextActionsSection(summary: summary, readiness: readiness),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CashActionsSection extends StatelessWidget {
+  const _CashActionsSection({
+    required this.summary,
+    required this.readiness,
+    required this.isBusy,
+    required this.onOpenCash,
+    required this.onSyncCash,
+    required this.onCloseCash,
+    required this.onRefresh,
+  });
+
+  final Map<String, dynamic>? summary;
+  final Map<String, dynamic>? readiness;
+  final bool isBusy;
+  final VoidCallback onOpenCash;
+  final VoidCallback onSyncCash;
+  final VoidCallback onCloseCash;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = summary?['status']?.toString();
+    final isOpen = status == 'open';
+    final isClosed = status == 'closed';
+    final hasDirtyCash = _int(readiness?['dirty_cash_register_count']) > 0 ||
+        _int(readiness?['dirty_cash_session_count']) > 0;
+    final canClose = isOpen;
+    final canOpen = summary == null || isClosed;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: isBusy || !canOpen ? null : onOpenCash,
+              icon: const Icon(Icons.lock_open_outlined),
+              label: Text(isClosed ? 'Abrir nueva caja' : 'Abrir caja'),
+            ),
+            FilledButton.icon(
+              onPressed: isBusy || !hasDirtyCash ? null : onSyncCash,
+              icon: const Icon(Icons.sync),
+              label: const Text('Sincronizar cash'),
+            ),
+            FilledButton.icon(
+              onPressed: isBusy || !canClose ? null : onCloseCash,
+              icon: const Icon(Icons.lock_outline),
+              label: const Text('Cerrar caja'),
+            ),
+            OutlinedButton.icon(
+              onPressed: isBusy ? null : onRefresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Actualizar'),
+            ),
           ],
         ),
       ),
@@ -342,15 +705,36 @@ class _NextActionsSection extends StatelessWidget {
     return CashMetricTile(
       label: 'Siguiente acción sugerida',
       value: nextAction,
-      helper:
-          'Esta pantalla todavía es base visual. Las acciones reales se conectan en la siguiente subfase.',
+      helper: 'La navegación a POS se conecta en la siguiente subfase.',
     );
   }
 }
 
+class _OpenCashDialogResult {
+  const _OpenCashDialogResult({
+    required this.registerName,
+    required this.registerCode,
+    required this.openingAmount,
+  });
+
+  final String registerName;
+  final String registerCode;
+  final double openingAmount;
+}
+
+class _CloseCashDialogResult {
+  const _CloseCashDialogResult({
+    required this.actualClosingAmount,
+    this.notes,
+  });
+
+  final double actualClosingAmount;
+  final String? notes;
+}
+
 String _money(Object? value) {
   if (value == null) {
-    return r'$0';
+    return r'$0.00';
   }
 
   final number = value is num ? value : num.tryParse(value.toString()) ?? 0;
@@ -366,4 +750,28 @@ String _text(Object? value, {required String? fallback}) {
   }
 
   return text;
+}
+
+double _num(Object? value) {
+  if (value is double) {
+    return value;
+  }
+
+  if (value is num) {
+    return value.toDouble();
+  }
+
+  return double.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+int _int(Object? value) {
+  if (value is int) {
+    return value;
+  }
+
+  if (value is num) {
+    return value.toInt();
+  }
+
+  return int.tryParse(value?.toString() ?? '') ?? 0;
 }
