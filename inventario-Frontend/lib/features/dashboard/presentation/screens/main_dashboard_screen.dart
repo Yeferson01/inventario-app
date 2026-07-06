@@ -8,6 +8,7 @@ import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
+import '../../../sales/presentation/sales_presentation.dart';
 
 class MainDashboardScreen extends ConsumerStatefulWidget {
   const MainDashboardScreen({super.key});
