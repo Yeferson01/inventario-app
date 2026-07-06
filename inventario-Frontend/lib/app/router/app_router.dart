@@ -4,6 +4,7 @@ import 'routes_constants.dart';
 import 'package:inventario_frontend/features/sync/presentation/screens/app_e2e_real_controlled_test_screen.dart';
 import 'package:inventario_frontend/features/debug/presentation/screens/debug_ping_screen.dart';
 import 'package:inventario_frontend/features/debug/presentation/screens/debug_supabase_login_screen.dart';
+import '../../features/dashboard/presentation/dashboard_presentation.dart';
 
 // SIMULADOR TEMPORAL DE AUTH (Cambiar a 'true' para probar rutas privadas, 'false' para públicas)
 bool _isUserLoggedInSimulated = true;
@@ -106,7 +107,7 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.dashboardPath,
         name: AppRoutes.dashboardName,
-        builder: (context, state) => const TemporaryDashboardView(),
+        builder: (context, state) => const MainDashboardScreen(),
       ),
       GoRoute(
         path: AppRoutes.inventarioPath,
