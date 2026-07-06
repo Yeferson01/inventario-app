@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme.dart';
@@ -24,30 +22,24 @@ class AppGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(borderRadius);
 
-    final card = ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: CronosColors.surface.withValues(alpha: 0.82),
-            borderRadius: radius,
-            border: Border.all(
-              color: CronosColors.surface.withValues(alpha: 0.78),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: CronosColors.primaryDark.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
+    final card = DecoratedBox(
+      decoration: BoxDecoration(
+        color: CronosColors.surface,
+        borderRadius: radius,
+        border: Border.all(
+          color: CronosColors.border,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: CronosColors.primaryDark.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: padding,
+        child: child,
       ),
     );
 
@@ -55,6 +47,8 @@ class AppGlassCard extends StatelessWidget {
       padding: margin,
       child: Material(
         color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           borderRadius: radius,

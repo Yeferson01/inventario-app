@@ -50,15 +50,11 @@ class _AppAnimatedEntranceState extends State<AppAnimatedEntrance>
       ),
     );
 
-    if (widget.delay == Duration.zero) {
-      _controller.forward();
-    } else {
-      _delayTimer = Timer(widget.delay, () {
-        if (mounted) {
-          _controller.forward();
-        }
-      });
-    }
+    Future<void>.delayed(widget.delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
   }
 
   @override

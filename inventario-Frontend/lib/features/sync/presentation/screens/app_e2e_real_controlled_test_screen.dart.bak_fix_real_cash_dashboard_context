@@ -929,20 +929,6 @@ class _AppE2ERealControlledTestScreenState
         throw StateError('No se pudo resolver selectedContext.');
       }
 
-      final businessId = selectedContext.savedBusinessId.trim().isNotEmpty
-          ? selectedContext.savedBusinessId
-          : selectedContext.selected.businessId;
-
-      final branchId = selectedContext.savedBranchId?.trim().isNotEmpty == true
-          ? selectedContext.savedBranchId!
-          : selectedContext.selected.branchId;
-
-      if (branchId == null || branchId.trim().isEmpty) {
-        throw StateError(
-          'No se pudo resolver branch_id para abrir UI real de caja.',
-        );
-      }
-
       final preflightJson = preflight.toJson();
 
       final appDeviceId = _findStringDeep(
@@ -961,8 +947,8 @@ class _AppE2ERealControlledTestScreenState
         MaterialPageRoute<void>(
           builder: (_) {
             return CashDashboardScreen(
-              businessId: businessId,
-              branchId: branchId,
+              businessId: selectedContext.businessId,
+              branchId: selectedContext.branchId,
               profileId: user,
               appDeviceId: appDeviceId,
               deviceInstallationId: preflight.installationId,
@@ -979,8 +965,8 @@ class _AppE2ERealControlledTestScreenState
         _lastResult = {
           'flow': 'open_real_cash_dashboard',
           'status': 'returned_from_cash_dashboard',
-          'business_id': businessId,
-          'branch_id': branchId,
+          'business_id': selectedContext.businessId,
+          'branch_id': selectedContext.branchId,
           'profile_id': user,
           'app_device_id': appDeviceId,
           'device_installation_id': preflight.installationId,

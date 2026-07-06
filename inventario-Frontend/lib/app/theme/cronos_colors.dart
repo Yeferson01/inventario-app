@@ -42,9 +42,9 @@ class CronosColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
+      Color(0xFFEAF2FF),
       Color(0xFFF8FAFC),
-      Color(0xFFEFF6FF),
-      Color(0xFFF5F3FF),
+      Color(0xFFF3EFFF),
     ],
   );
 

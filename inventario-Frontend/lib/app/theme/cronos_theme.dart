@@ -127,9 +127,9 @@ class CronosTheme {
         ),
         labelMedium: TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0.2,
-          color: CronosColors.textMuted,
+          color: CronosColors.textSecondary,
         ),
       ),
     );

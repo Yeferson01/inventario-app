@@ -106,85 +106,14 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   Future<void> _openCashSessionDialog() async {
     final suggestedOpeningAmount = _suggestedOpeningAmount(_summary);
 
-    final nameController = TextEditingController(text: 'Caja Principal');
-    final codeController = TextEditingController(text: 'MAIN');
-    final amountController = TextEditingController(
-      text: suggestedOpeningAmount.toStringAsFixed(2),
-    );
-
     final result = await showDialog<_OpenCashDialogResult>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Abrir caja'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre de caja',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Código',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Monto apertura',
-                  helperText:
-                      'Sugerido desde el último cierre. Puedes cambiarlo.',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final amount = double.tryParse(
-                  amountController.text.trim(),
-                );
-
-                if (amount == null || amount < 0) {
-                  return;
-                }
-
-                Navigator.of(context).pop(
-                  _OpenCashDialogResult(
-                    registerName: nameController.text.trim().isEmpty
-                        ? 'Caja Principal'
-                        : nameController.text.trim(),
-                    registerCode: codeController.text.trim().isEmpty
-                        ? 'MAIN'
-                        : codeController.text.trim(),
-                    openingAmount: amount,
-                  ),
-                );
-              },
-              child: const Text('Abrir'),
-            ),
-          ],
+      builder: (_) {
+        return _OpenCashSessionDialog(
+          suggestedOpeningAmount: suggestedOpeningAmount,
         );
       },
     );
-
-    nameController.dispose();
-    codeController.dispose();
-    amountController.dispose();
 
     if (result == null) {
       return;
@@ -393,77 +322,80 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
     final summary = _summary;
     final readiness = _readiness;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Caja'),
-        actions: [
-          IconButton(
-            onPressed: _isBusy ? null : _load,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-          ),
-        ],
-      ),
-      body: AppGradientBackground(
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(
-            padding: const EdgeInsets.all(CronosSpacing.md),
-            children: [
-              AppAnimatedEntrance(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Centro de caja',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: CronosSpacing.xs),
-                    Text(
-                      'Controla apertura, cierre, sincronización y resumen de efectivo.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: CronosSpacing.md),
-              if (_isBusy) const LinearProgressIndicator(),
-              if (_error != null) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
-                      'Error cargando caja: $_error',
-                    ),
+    return Theme(
+      data: CronosTheme.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Caja'),
+          actions: [
+            IconButton(
+              onPressed: _isBusy ? null : _load,
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Actualizar',
+            ),
+          ],
+        ),
+        body: AppGradientBackground(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              padding: const EdgeInsets.all(CronosSpacing.md),
+              children: [
+                AppAnimatedEntrance(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Centro de caja',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: CronosSpacing.xs),
+                      Text(
+                        'Controla apertura, cierre, sincronización y resumen de efectivo.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: CronosSpacing.md),
+                if (_isBusy) const LinearProgressIndicator(),
+                if (_error != null) ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        'Error cargando caja: $_error',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                CashStatusCard(
+                  summary: summary,
+                  readiness: readiness,
+                ),
                 const SizedBox(height: 12),
+                _CashActionsSection(
+                  summary: summary,
+                  readiness: readiness,
+                  isBusy: _isBusy,
+                  onOpenCash: _openCashSessionDialog,
+                  onSyncCash: _syncCash,
+                  onCloseCash: _closeCashSessionDialog,
+                  onRefresh: _load,
+                ),
+                const SizedBox(height: 12),
+                _CashIdentitySection(summary: summary),
+                const SizedBox(height: 12),
+                _CashAmountsSection(summary: summary),
+                const SizedBox(height: 12),
+                _CashSyncSection(readiness: readiness),
+                const SizedBox(height: 12),
+                _PaymentsByMethodSection(summary: summary),
+                const SizedBox(height: 12),
+                _NextActionsSection(summary: summary, readiness: readiness),
               ],
-              CashStatusCard(
-                summary: summary,
-                readiness: readiness,
-              ),
-              const SizedBox(height: 12),
-              _CashActionsSection(
-                summary: summary,
-                readiness: readiness,
-                isBusy: _isBusy,
-                onOpenCash: _openCashSessionDialog,
-                onSyncCash: _syncCash,
-                onCloseCash: _closeCashSessionDialog,
-                onRefresh: _load,
-              ),
-              const SizedBox(height: 12),
-              _CashIdentitySection(summary: summary),
-              const SizedBox(height: 12),
-              _CashAmountsSection(summary: summary),
-              const SizedBox(height: 12),
-              _CashSyncSection(readiness: readiness),
-              const SizedBox(height: 12),
-              _PaymentsByMethodSection(summary: summary),
-              const SizedBox(height: 12),
-              _NextActionsSection(summary: summary, readiness: readiness),
-            ],
+            ),
           ),
         ),
       ),
@@ -734,6 +666,118 @@ class _NextActionsSection extends StatelessWidget {
       label: 'Siguiente acción sugerida',
       value: nextAction,
       helper: 'La navegación a POS se conecta en la siguiente subfase.',
+    );
+  }
+}
+
+class _OpenCashSessionDialog extends StatefulWidget {
+  const _OpenCashSessionDialog({
+    required this.suggestedOpeningAmount,
+  });
+
+  final double suggestedOpeningAmount;
+
+  @override
+  State<_OpenCashSessionDialog> createState() => _OpenCashSessionDialogState();
+}
+
+class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _codeController;
+  late final TextEditingController _amountController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nameController = TextEditingController(text: 'Caja Principal');
+    _codeController = TextEditingController(text: 'MAIN');
+    _amountController = TextEditingController(
+      text: widget.suggestedOpeningAmount.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _codeController.dispose();
+    _amountController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Abrir caja'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Nombre de caja',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _codeController,
+              decoration: const InputDecoration(
+                labelText: 'Código',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _amountController,
+              decoration: const InputDecoration(
+                labelText: 'Monto apertura',
+                helperText:
+                    'Sugerido desde el último cierre. Puedes cambiarlo.',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final amount = double.tryParse(
+              _amountController.text.trim(),
+            );
+
+            if (amount == null || amount < 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Monto de apertura inválido.'),
+                ),
+              );
+              return;
+            }
+
+            Navigator.of(context).pop(
+              _OpenCashDialogResult(
+                registerName: _nameController.text.trim().isEmpty
+                    ? 'Caja Principal'
+                    : _nameController.text.trim(),
+                registerCode: _codeController.text.trim().isEmpty
+                    ? 'MAIN'
+                    : _codeController.text.trim(),
+                openingAmount: amount,
+              ),
+            );
+          },
+          child: const Text('Abrir'),
+        ),
+      ],
     );
   }
 }

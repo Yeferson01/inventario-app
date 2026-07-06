@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme.dart';
@@ -21,7 +20,6 @@ class AppAnimatedEntrance extends StatefulWidget {
 
 class _AppAnimatedEntranceState extends State<AppAnimatedEntrance>
     with SingleTickerProviderStateMixin {
-  Timer? _delayTimer;
   late final AnimationController _controller;
   late final Animation<double> _opacity;
   late final Animation<Offset> _slide;
@@ -50,20 +48,15 @@ class _AppAnimatedEntranceState extends State<AppAnimatedEntrance>
       ),
     );
 
-    if (widget.delay == Duration.zero) {
-      _controller.forward();
-    } else {
-      _delayTimer = Timer(widget.delay, () {
-        if (mounted) {
-          _controller.forward();
-        }
-      });
-    }
+    Future<void>.delayed(widget.delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _delayTimer?.cancel();
     _controller.dispose();
 
     super.dispose();
