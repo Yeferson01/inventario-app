@@ -137,14 +137,34 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
   }
 
   void _openPosGate() {
-    final blockedReason = _cashReadiness?['pos_upload_blocked_reason'];
-    final canOpenPos = blockedReason == null;
+    final appContext = _appContext;
 
-    if (!canOpenPos) {
+    if (appContext == null) {
+      _showInfoSheet(
+        title: 'Falta contexto',
+        message: 'Selecciona un negocio y una sucursal antes de abrir el POS.',
+      );
+      return;
+    }
+
+    final branchId = appContext.branchId;
+    final profileId = appContext.profileId;
+
+    if (branchId == null || profileId == null) {
+      _showInfoSheet(
+        title: 'Contexto incompleto',
+        message: 'El POS necesita negocio, sucursal y perfil operativo activo.',
+      );
+      return;
+    }
+
+    final blockedReason = _cashReadiness?['pos_upload_blocked_reason'];
+
+    if (blockedReason != null) {
       _showInfoSheet(
         title: 'POS bloqueado',
         message:
-            'Para vender primero debes tener caja abierta y sin pendientes críticos de cash.\n\nMotivo: ${blockedReason ?? 'Caja no lista.'}',
+            'Para vender primero debes tener caja abierta y sin pendientes críticos de cash.\n\nMotivo: $blockedReason',
         primaryLabel: 'Ir a Caja',
         onPrimary: () {
           Navigator.of(context).pop();
@@ -154,11 +174,24 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       return;
     }
 
-    _showInfoSheet(
-      title: 'POS',
-      message:
-          'La caja está lista. La pantalla POS real se construye en la fase 6.18C.40.',
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => PosSaleScreen(
+              businessId: appContext.businessId,
+              branchId: branchId,
+              profileId: profileId,
+              appDeviceId: appContext.appDeviceId,
+              deviceInstallationId: appContext.installationId,
+              cashRegisterId: _string(_cashSummary?['cash_register_id']) ??
+                  appContext.cashRegisterId,
+              cashSessionId: _string(_cashSummary?['cash_session_id']) ??
+                  appContext.cashSessionId,
+              cashRegisterName: _string(_cashSummary?['cash_register_name']),
+            ),
+          ),
+        )
+        .then((_) => _load());
   }
 
   void _showInfoSheet({
@@ -723,6 +756,20 @@ class _DashboardModule {
   final String statusLabel;
   final AppStatusTone statusTone;
   final VoidCallback onTap;
+}
+
+String? _string(Object? value) {
+  if (value == null) {
+    return null;
+  }
+
+  final text = value.toString().trim();
+
+  if (text.isEmpty) {
+    return null;
+  }
+
+  return text;
 }
 
 int _int(Object? value) {
