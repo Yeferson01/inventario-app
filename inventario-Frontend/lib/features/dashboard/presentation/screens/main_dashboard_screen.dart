@@ -158,6 +158,27 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       return;
     }
 
+    final cashStatus = _string(_cashSummary?['status']);
+    final activeCashSessionId =
+        cashStatus == 'open' ? _string(_cashSummary?['cash_session_id']) : null;
+    final activeCashRegisterId = cashStatus == 'open'
+        ? _string(_cashSummary?['cash_register_id'])
+        : null;
+
+    if (activeCashSessionId == null || activeCashRegisterId == null) {
+      _showInfoSheet(
+        title: 'POS bloqueado',
+        message:
+            'Para vender primero debes abrir caja. Esto aplica aunque el usuario sea admin; el admin puede usar el dashboard, pero POS requiere caja abierta.',
+        primaryLabel: 'Ir a Caja',
+        onPrimary: () {
+          Navigator.of(context).pop();
+          _openCashDashboard();
+        },
+      );
+      return;
+    }
+
     final blockedReason = _cashReadiness?['pos_upload_blocked_reason'];
 
     if (blockedReason != null) {
@@ -183,10 +204,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
               profileId: profileId,
               appDeviceId: appContext.appDeviceId,
               deviceInstallationId: appContext.installationId,
-              cashRegisterId: _string(_cashSummary?['cash_register_id']) ??
-                  appContext.cashRegisterId,
-              cashSessionId: _string(_cashSummary?['cash_session_id']) ??
-                  appContext.cashSessionId,
+              cashRegisterId: activeCashRegisterId,
+              cashSessionId: activeCashSessionId,
               cashRegisterName: _string(_cashSummary?['cash_register_name']),
             ),
           ),

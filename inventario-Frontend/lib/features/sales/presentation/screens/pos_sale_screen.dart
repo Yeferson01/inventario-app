@@ -46,8 +46,18 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
   final Map<String, TextEditingController> _paymentAmountControllers = {};
 
+  List<_PosCartItem>? _parkedCartItems;
+  List<_PosPaymentDraft>? _parkedPaymentDrafts;
+  int? _parkedPaymentSequence;
+
   int _paymentSequence = 1;
   bool _isCharging = false;
+  bool _isEnqueueing = false;
+  bool _isQuickSaleMode = false;
+
+  bool get _hasParkedSale {
+    return _parkedCartItems != null && _parkedCartItems!.isNotEmpty;
+  }
 
   @override
   void initState() {
@@ -265,9 +275,10 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
       _paymentDrafts.add(
         _PosPaymentDraft(
           id: 'payment-$_paymentSequence',
-          method: _paymentDrafts.any((payment) => payment.method == 'transfer')
-              ? 'cash'
-              : 'transfer',
+          method:
+              _paymentDrafts.any((payment) => payment.method == 'bank_transfer')
+                  ? 'cash'
+                  : 'bank_transfer',
           amount: 0,
         ),
       );
@@ -400,6 +411,297 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
       'QR por cámara se conecta en una fase posterior. '
       'Para lector Bluetooth usa el campo de búsqueda.',
     );
+  }
+
+  void _disposePaymentControllers() {
+    for (final controller in _paymentAmountControllers.values) {
+      controller.dispose();
+    }
+
+    _paymentAmountControllers.clear();
+  }
+
+  void _resetPaymentDraftsToCash() {
+    _disposePaymentControllers();
+
+    _paymentDrafts
+      ..clear()
+      ..add(
+        const _PosPaymentDraft(
+          id: 'payment-1',
+          method: 'cash',
+          amount: 0,
+        ),
+      );
+
+    _paymentSequence = 1;
+  }
+
+  Future<void> _startQuickSale() async {
+    if (_isQuickSaleMode) {
+      _showMessage('La venta rápida ya está activa.');
+      return;
+    }
+
+    if (_cartItems.isEmpty) {
+      _showMessage(
+        'El carrito está vacío. Puedes usarlo directamente para una venta rápida.',
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Iniciar venta rápida'),
+          content: const Text(
+            'Guardaremos temporalmente el carrito actual y abriremos '
+            'un carrito vacío para atender una venta corta.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Iniciar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    setState(() {
+      _parkedCartItems = List<_PosCartItem>.from(_cartItems);
+      _parkedPaymentDrafts = List<_PosPaymentDraft>.from(_paymentDrafts);
+      _parkedPaymentSequence = _paymentSequence;
+
+      _cartItems.clear();
+      _resetPaymentDraftsToCash();
+      _searchController.clear();
+      _isQuickSaleMode = true;
+    });
+
+    _searchFocusNode.requestFocus();
+
+    _showMessage('Venta rápida activa. El carrito anterior quedó en espera.');
+  }
+
+  Future<void> _restoreParkedSale() async {
+    if (!_isQuickSaleMode || !_hasParkedSale) {
+      _showMessage('No hay un carrito anterior para restaurar.');
+      return;
+    }
+
+    if (_cartItems.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Volver al carrito anterior'),
+            content: const Text(
+              'La venta rápida actual todavía tiene productos. '
+              'Si vuelves ahora, se descartará este carrito rápido.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Descartar y volver'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted || confirmed != true) {
+        return;
+      }
+    }
+
+    final restoreMessage = await _restoreParkedSaleDraft();
+
+    _showMessage(restoreMessage ?? 'Carrito anterior restaurado.');
+  }
+
+  Future<_CartStockRefreshResult> _refreshParkedCartAgainstCurrentStock(
+    List<_PosCartItem> parkedCart,
+  ) async {
+    final adjustedItems = <_PosCartItem>[];
+    var reducedCount = 0;
+    var removedCount = 0;
+
+    for (final item in parkedCart) {
+      var available = item.quantityAvailable;
+
+      try {
+        final stockBalance = await ref.read(
+          localProductStockBalanceProvider(
+            ProductStockBalanceKey(
+              businessId: widget.businessId,
+              branchId: widget.branchId,
+              productId: item.productId,
+            ),
+          ).future,
+        );
+
+        if (stockBalance != null) {
+          available = _int(stockBalance['quantity_available']);
+        }
+      } catch (_) {
+        // Si por alguna razón no logramos refrescar el stock, usamos el snapshot
+        // del carrito. El servicio de venta sigue siendo la última defensa.
+      }
+
+      if (available <= 0) {
+        removedCount++;
+        continue;
+      }
+
+      final adjustedQuantity = math.min(item.quantity, available);
+
+      if (adjustedQuantity < item.quantity ||
+          available != item.quantityAvailable) {
+        reducedCount++;
+      }
+
+      adjustedItems.add(
+        item.copyWith(
+          quantity: adjustedQuantity,
+          quantityAvailable: available,
+        ),
+      );
+    }
+
+    String? message;
+
+    if (removedCount > 0 && reducedCount > 0) {
+      message =
+          'Carrito restaurado con ajustes: $removedCount producto(s) removido(s) y $reducedCount cantidad(es) reducida(s) por stock disponible.';
+    } else if (removedCount > 0) {
+      message =
+          'Carrito restaurado: $removedCount producto(s) fueron removidos por falta de stock.';
+    } else if (reducedCount > 0) {
+      message =
+          'Carrito restaurado: $reducedCount producto(s) fueron ajustados al stock disponible.';
+    }
+
+    return _CartStockRefreshResult(
+      items: adjustedItems,
+      message: message,
+      wasAdjusted: removedCount > 0 || reducedCount > 0,
+    );
+  }
+
+  Future<String?> _restoreParkedSaleDraft() async {
+    final parkedCart = _parkedCartItems;
+    final parkedPayments = _parkedPaymentDrafts;
+
+    if (parkedCart == null || parkedPayments == null) {
+      return null;
+    }
+
+    final stockRefresh = await _refreshParkedCartAgainstCurrentStock(
+      parkedCart,
+    );
+
+    if (!mounted) {
+      return stockRefresh.message;
+    }
+
+    setState(() {
+      _disposePaymentControllers();
+
+      _cartItems
+        ..clear()
+        ..addAll(stockRefresh.items);
+
+      _paymentDrafts.clear();
+
+      if (stockRefresh.wasAdjusted) {
+        _paymentDrafts.add(
+          const _PosPaymentDraft(
+            id: 'payment-1',
+            method: 'cash',
+            amount: 0,
+          ),
+        );
+        _paymentSequence = 1;
+      } else {
+        _paymentDrafts.addAll(parkedPayments);
+        _paymentSequence = _parkedPaymentSequence ?? parkedPayments.length;
+      }
+
+      _parkedCartItems = null;
+      _parkedPaymentDrafts = null;
+      _parkedPaymentSequence = null;
+      _isQuickSaleMode = false;
+      _searchController.clear();
+    });
+
+    _searchFocusNode.requestFocus();
+
+    return stockRefresh.message;
+  }
+
+  Future<dynamic> _enqueuePendingPosSales({
+    int limit = 25,
+  }) async {
+    if (_isEnqueueing) {
+      return null;
+    }
+
+    setState(() {
+      _isEnqueueing = true;
+    });
+
+    try {
+      return await ref
+          .read(posSyncOutboxServiceProvider)
+          .enqueuePendingPosSales(
+            businessId: widget.businessId,
+            branchId: widget.branchId,
+            profileId: widget.profileId,
+            appDeviceId: widget.appDeviceId,
+            deviceInstallationId: widget.deviceInstallationId,
+            limit: limit,
+          );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isEnqueueing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _preparePendingPosSync() async {
+    try {
+      final result = await _enqueuePendingPosSales(limit: 50);
+
+      if (!mounted || result == null) {
+        return;
+      }
+
+      _showMessage(
+        result.salesEnqueued == 0
+            ? 'No hay ventas POS pendientes por preparar.'
+            : 'POS preparado: ${result.salesEnqueued} venta(s), '
+                '${result.mutationsEnqueued} mutación(es). '
+                'Se subirán en el horario programado.',
+      );
+    } catch (error) {
+      _showMessage('No se pudo preparar POS para sync: $error');
+    }
   }
 
   List<PosLocalPaymentInput> _buildPaymentInputsForSale(double total) {
@@ -572,11 +874,32 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                 ),
               );
 
+      dynamic enqueueResult;
+
+      try {
+        enqueueResult = await _enqueuePendingPosSales(limit: 25);
+      } catch (error) {
+        if (mounted) {
+          _showMessage(
+            'Venta local creada, pero no se pudo preparar sync POS: $error',
+          );
+        }
+      }
+
       if (!mounted) {
         return;
       }
 
-      _resetSaleDraft();
+      final restoredPreviousCart = _isQuickSaleMode && _parkedCartItems != null;
+
+      if (restoredPreviousCart) {
+        await _restoreParkedSaleDraft();
+      } else {
+        _resetSaleDraft();
+      }
+
+      final enqueuedSales = enqueueResult?.salesEnqueued ?? 0;
+      final enqueuedMutations = enqueueResult?.mutationsEnqueued ?? 0;
 
       await showDialog<void>(
         context: context,
@@ -587,7 +910,11 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
               'La venta se guardó localmente y el stock local fue actualizado.\n\n'
               'Total: ${_money(result.total)}\n'
               'Cambio: ${_money(change)}\n\n'
-              'En la siguiente fase la enviaremos a la cola de sincronización POS.',
+              'Preparación sync POS: $enqueuedSales venta(s), '
+              '$enqueuedMutations mutación(es).\n\n'
+              'La subida a Supabase no se hace inmediatamente. '
+              'Se ejecutará a las 11:00, a las 23:00 o al cierre de caja.'
+              '${restoredPreviousCart ? '\n\nSe restauró el carrito anterior.' : ''}',
             ),
             actions: [
               FilledButton(
@@ -708,6 +1035,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                                   cartItems: _cartItems,
                                   paymentDrafts: _paymentDrafts,
                                   isCharging: _isCharging,
+                                  isEnqueueing: _isEnqueueing,
+                                  isQuickSaleMode: _isQuickSaleMode,
+                                  hasParkedSale: _hasParkedSale,
                                   paymentControllerFor: _paymentControllerFor,
                                   onPaymentMethodChanged: _updatePaymentMethod,
                                   onPaymentAmountChanged: _updatePaymentAmount,
@@ -720,6 +1050,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                                   onEditQuantity: _editCartItemQuantity,
                                   onRemove: _removeCartItem,
                                   onChargePressed: _chargeSale,
+                                  onPrepareSyncPressed: _preparePendingPosSync,
+                                  onStartQuickSale: _startQuickSale,
+                                  onRestoreParkedSale: _restoreParkedSale,
                                   cashRegisterName: widget.cashRegisterName,
                                   cashSessionId: widget.cashSessionId,
                                 ),
@@ -750,6 +1083,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                             cartItems: _cartItems,
                             paymentDrafts: _paymentDrafts,
                             isCharging: _isCharging,
+                            isEnqueueing: _isEnqueueing,
+                            isQuickSaleMode: _isQuickSaleMode,
+                            hasParkedSale: _hasParkedSale,
                             paymentControllerFor: _paymentControllerFor,
                             onPaymentMethodChanged: _updatePaymentMethod,
                             onPaymentAmountChanged: _updatePaymentAmount,
@@ -762,6 +1098,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                             onEditQuantity: _editCartItemQuantity,
                             onRemove: _removeCartItem,
                             onChargePressed: _chargeSale,
+                            onPrepareSyncPressed: _preparePendingPosSync,
+                            onStartQuickSale: _startQuickSale,
+                            onRestoreParkedSale: _restoreParkedSale,
                             cashRegisterName: widget.cashRegisterName,
                             cashSessionId: widget.cashSessionId,
                           ),
@@ -1135,6 +1474,9 @@ class _CartSection extends StatelessWidget {
     required this.cartItems,
     required this.paymentDrafts,
     required this.isCharging,
+    required this.isEnqueueing,
+    required this.isQuickSaleMode,
+    required this.hasParkedSale,
     required this.paymentControllerFor,
     required this.onPaymentMethodChanged,
     required this.onPaymentAmountChanged,
@@ -1146,6 +1488,9 @@ class _CartSection extends StatelessWidget {
     required this.onEditQuantity,
     required this.onRemove,
     required this.onChargePressed,
+    required this.onPrepareSyncPressed,
+    required this.onStartQuickSale,
+    required this.onRestoreParkedSale,
     required this.cashRegisterName,
     required this.cashSessionId,
   });
@@ -1153,6 +1498,9 @@ class _CartSection extends StatelessWidget {
   final List<_PosCartItem> cartItems;
   final List<_PosPaymentDraft> paymentDrafts;
   final bool isCharging;
+  final bool isEnqueueing;
+  final bool isQuickSaleMode;
+  final bool hasParkedSale;
   final TextEditingController Function(_PosPaymentDraft payment)
       paymentControllerFor;
   final void Function(String paymentId, String? method) onPaymentMethodChanged;
@@ -1165,6 +1513,9 @@ class _CartSection extends StatelessWidget {
   final ValueChanged<String> onEditQuantity;
   final ValueChanged<String> onRemove;
   final VoidCallback onChargePressed;
+  final VoidCallback onPrepareSyncPressed;
+  final VoidCallback onStartQuickSale;
+  final VoidCallback onRestoreParkedSale;
   final String? cashRegisterName;
   final String? cashSessionId;
 
@@ -1220,6 +1571,33 @@ class _CartSection extends StatelessWidget {
             tone: AppStatusTone.success,
             icon: Icons.point_of_sale_outlined,
           ),
+          const SizedBox(height: CronosSpacing.sm),
+          if (isQuickSaleMode)
+            AppStatusChip(
+              label: 'Venta rápida activa',
+              tone: AppStatusTone.info,
+              icon: Icons.flash_on_outlined,
+            ),
+          const SizedBox(height: CronosSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: isQuickSaleMode ? onRestoreParkedSale : onStartQuickSale,
+            icon: Icon(
+              isQuickSaleMode
+                  ? Icons.assignment_return_outlined
+                  : Icons.flash_on_outlined,
+            ),
+            label: Text(
+              isQuickSaleMode ? 'Volver al carrito anterior' : 'Venta rápida',
+            ),
+          ),
+          const SizedBox(height: CronosSpacing.xs),
+          Text(
+            isQuickSaleMode
+                ? 'Cobra esta venta corta para restaurar el carrito anterior.'
+                : 'Pausa el carrito actual para atender una venta corta.',
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: CronosSpacing.md),
           if (cartItems.isEmpty)
             const _EmptyCartState()
@@ -1270,9 +1648,24 @@ class _CartSection extends StatelessWidget {
           ),
           const SizedBox(height: CronosSpacing.sm),
           OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.sync_outlined),
-            label: const Text('Sincronizar POS'),
+            onPressed: isEnqueueing ? null : onPrepareSyncPressed,
+            icon: isEnqueueing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.playlist_add_check_outlined),
+            label: Text(
+              isEnqueueing ? 'Preparando...' : 'Preparar sync programado',
+            ),
+          ),
+          const SizedBox(height: CronosSpacing.xs),
+          Text(
+            'Las ventas se suben automáticamente a las 11:00, 23:00 '
+            'o al cierre de caja.',
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
           ),
           if (cashSessionId != null && cashSessionId!.trim().isNotEmpty) ...[
             const SizedBox(height: CronosSpacing.sm),
@@ -1413,7 +1806,7 @@ class _PaymentLineTile extends StatelessWidget {
       ),
       items: const [
         DropdownMenuItem(value: 'cash', child: Text('Efectivo')),
-        DropdownMenuItem(value: 'transfer', child: Text('Transferencia')),
+        DropdownMenuItem(value: 'bank_transfer', child: Text('Transferencia')),
         DropdownMenuItem(value: 'card', child: Text('Tarjeta')),
       ],
       onChanged: onMethodChanged,
@@ -1805,6 +2198,18 @@ class _PosErrorState extends StatelessWidget {
   }
 }
 
+class _CartStockRefreshResult {
+  const _CartStockRefreshResult({
+    required this.items,
+    required this.wasAdjusted,
+    this.message,
+  });
+
+  final List<_PosCartItem> items;
+  final bool wasAdjusted;
+  final String? message;
+}
+
 class _PosCartItem {
   const _PosCartItem({
     required this.productId,
@@ -1826,13 +2231,14 @@ class _PosCartItem {
 
   _PosCartItem copyWith({
     int? quantity,
+    int? quantityAvailable,
   }) {
     return _PosCartItem(
       productId: productId,
       name: name,
       barcode: barcode,
       unitPrice: unitPrice,
-      quantityAvailable: quantityAvailable,
+      quantityAvailable: quantityAvailable ?? this.quantityAvailable,
       quantity: quantity ?? this.quantity,
     );
   }
@@ -1934,6 +2340,7 @@ double _parseMoney(String value) {
 String _paymentLabel(String method) {
   return switch (method) {
     'cash' => 'Efectivo',
+    'bank_transfer' => 'Transferencia',
     'transfer' => 'Transferencia',
     'card' => 'Tarjeta',
     _ => method,

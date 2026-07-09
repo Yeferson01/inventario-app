@@ -46,11 +46,25 @@ class PosSyncRemoteDataSource {
       onConflict: 'business_id,app_device_id,client_batch_id',
     );
 
-    final serverMutations = localMutations.map((mutation) {
-      return {
-        'id': AppUuid.v7(),
+    final serverMutations = <Map<String, dynamic>>[];
+
+    for (final mutation in localMutations) {
+      final mutationBusinessId = _requiredString(mutation, 'business_id');
+      final idempotencyKey = _requiredString(mutation, 'idempotency_key');
+
+      final existingMutationId = await _findExistingServerMutationId(
+        businessId: mutationBusinessId,
+        idempotencyKey: idempotencyKey,
+      );
+
+      serverMutations.add({
+        // Muy importante:
+        // Si la mutación ya existe en remoto, reutilizamos su id.
+        // No hacerlo rompe sync_conflicts_sync_mutation_id_fkey cuando
+        // esa mutación ya tiene conflictos asociados.
+        'id': existingMutationId ?? AppUuid.v7(),
         'sync_batch_id': serverBatchId,
-        'business_id': _requiredString(mutation, 'business_id'),
+        'business_id': mutationBusinessId,
         'app_device_id': _string(mutation['app_device_id']),
         'profile_id': _string(mutation['profile_id']),
         'branch_id': _string(mutation['branch_id']),
@@ -59,13 +73,13 @@ class PosSyncRemoteDataSource {
         'entity_table': _requiredString(mutation, 'entity_table'),
         'entity_id': _requiredString(mutation, 'entity_id'),
         'operation': _requiredString(mutation, 'operation'),
-        'payload': _decodeRequiredJson(mutation['payload_json']),
+        'payload': _normalizedPosPayload(mutation),
         'before_payload': _decodeNullableJson(mutation['before_payload_json']),
         'changed_fields': _decodeNullableJson(mutation['changed_fields_json']),
         'base_version': _int(mutation['base_version']),
         'base_updated_at': _string(mutation['base_updated_at']),
         'status': 'pending',
-        'idempotency_key': _requiredString(mutation, 'idempotency_key'),
+        'idempotency_key': idempotencyKey,
         'metadata': _decodeNullableJson(mutation['metadata_json']) ??
             {
               'source': 'flutter_pos_sync_mutation',
@@ -73,8 +87,8 @@ class PosSyncRemoteDataSource {
             },
         'created_at': now,
         'updated_at': now,
-      };
-    }).toList();
+      });
+    }
 
     await _client.from('sync_mutations').upsert(
           serverMutations,
@@ -99,6 +113,99 @@ class PosSyncRemoteDataSource {
       fallbackMutationCount: localMutations.length,
       value: processResult,
     );
+  }
+
+  Future<bool> allPosMutationEntitiesAlreadyExist({
+    required List<Map<String, dynamic>> localMutations,
+  }) async {
+    if (localMutations.isEmpty) {
+      return false;
+    }
+
+    for (final mutation in localMutations) {
+      final entityTable = _requiredString(mutation, 'entity_table');
+      final entityId = _requiredString(mutation, 'entity_id');
+
+      if (entityTable != 'sales' &&
+          entityTable != 'sale_items' &&
+          entityTable != 'sale_payments') {
+        return false;
+      }
+
+      final exists = await _posEntityExists(
+        table: entityTable,
+        entityId: entityId,
+      );
+
+      if (!exists) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  Future<bool> _posEntityExists({
+    required String table,
+    required String entityId,
+  }) async {
+    final rows =
+        await _client.from(table).select('id').eq('id', entityId).limit(1);
+
+    return rows.isNotEmpty;
+  }
+
+  Future<String?> _findExistingServerMutationId({
+    required String businessId,
+    required String idempotencyKey,
+  }) async {
+    final rows = await _client
+        .from('sync_mutations')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('idempotency_key', idempotencyKey)
+        .limit(1);
+
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    final first = Map<String, dynamic>.from(rows.first as Map);
+
+    return _string(first['id']);
+  }
+
+  Future<List<Map<String, dynamic>>> getServerBatchMutationStatuses({
+    required String serverBatchId,
+  }) async {
+    final rows = await _client
+        .from('sync_mutations')
+        .select(
+          'client_mutation_id, entity_table, entity_id, status, error_code, error_message',
+        )
+        .eq('sync_batch_id', serverBatchId)
+        .order('client_sequence');
+
+    return rows.map((row) => Map<String, dynamic>.from(row as Map)).toList();
+  }
+
+  Object _normalizedPosPayload(Map<String, dynamic> mutation) {
+    final payload = _decodeRequiredJson(mutation['payload_json']);
+    final entityTable = _string(mutation['entity_table']);
+
+    if (payload is! Map) {
+      return payload;
+    }
+
+    final normalized = Map<String, dynamic>.from(payload);
+
+    if (entityTable == 'sale_payments' || entityTable == 'sales') {
+      if (_string(normalized['payment_method']) == 'transfer') {
+        normalized['payment_method'] = 'bank_transfer';
+      }
+    }
+
+    return normalized;
   }
 
   Object _decodeRequiredJson(Object? value) {
