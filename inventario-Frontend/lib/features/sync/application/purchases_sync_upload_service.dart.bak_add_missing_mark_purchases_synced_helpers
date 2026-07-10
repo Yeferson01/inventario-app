@@ -1,23 +1,33 @@
+import 'dart:convert';
+
 import '../../../core/logging/app_logger.dart';
-import '../data/datasources/catalog_sync_remote_datasource.dart';
+import '../../inventory/data/datasources/purchase_local_dao.dart';
+import '../data/datasources/purchases_sync_remote_datasource.dart';
 import '../data/models/catalog_upload_models.dart';
 import 'local_sync_outbox_service.dart';
 
-class CatalogSyncUploadService {
-  CatalogSyncUploadService({
+class PurchasesSyncUploadService {
+  PurchasesSyncUploadService({
     required LocalSyncOutboxService outboxService,
-    required CatalogSyncRemoteDataSource remoteDataSource,
+    required PurchasesSyncRemoteDataSource remoteDataSource,
+    required PurchaseLocalDao purchaseLocalDao,
   })  : _outboxService = outboxService,
-        _remoteDataSource = remoteDataSource;
+        _remoteDataSource = remoteDataSource,
+        _purchaseLocalDao = purchaseLocalDao;
 
   final LocalSyncOutboxService _outboxService;
-  final CatalogSyncRemoteDataSource _remoteDataSource;
+  final PurchasesSyncRemoteDataSource _remoteDataSource;
+  final PurchaseLocalDao _purchaseLocalDao;
 
-  Future<CatalogUploadRunResult> uploadPendingCatalogBatches({
+  Future<CatalogUploadRunResult> uploadPendingPurchasesBatches({
     required String businessId,
     int batchLimit = 10,
   }) async {
-    final pendingBatches = await _outboxService.getPendingCatalogBatches(
+    await _purchaseLocalDao.reconcileCompletedPurchasesFromOutbox(
+      businessId: businessId,
+    );
+
+    final pendingBatches = await _outboxService.getPendingPurchasesBatches(
       businessId: businessId,
       limit: batchLimit,
     );
@@ -37,7 +47,41 @@ class CatalogSyncUploadService {
         final mutations =
             await _outboxService.getMutationsForBatch(localBatchId);
 
-        final result = await _remoteDataSource.uploadAndProcessCatalogBatch(
+        final allRemoteEntitiesAlreadyExist =
+            await _remoteDataSource.allPurchaseMutationEntitiesAlreadyExist(
+          localMutations: mutations,
+        );
+
+        if (allRemoteEntitiesAlreadyExist) {
+          uploaded++;
+          completed++;
+          mutationsUploaded += mutations.length;
+
+          await _outboxService.markBatchCompleted(
+            localBatchId: localBatchId,
+            appliedCount: mutations.length,
+            skippedCount: 0,
+            conflictCount: 0,
+            errorCount: 0,
+          );
+
+          await _markBatchMutationsApplied(
+            mutations: mutations,
+          );
+
+          await _markPurchasesSyncedFromMutations(
+            mutations: mutations,
+          );
+
+          AppLogger.info(
+            'Purchases batch completed idempotently without upload: '
+            'local=$localBatchId status=completed_remote_already_exists',
+          );
+
+          continue;
+        }
+
+        final result = await _remoteDataSource.uploadAndProcessPurchasesBatch(
           localBatch: batch,
           localMutations: mutations,
         );
@@ -45,10 +89,15 @@ class CatalogSyncUploadService {
         uploaded++;
         mutationsUploaded += result.mutationCount;
 
-        final duplicateConflictsAreIdempotent = !result.completed &&
-            await _remoteDataSource.duplicateCatalogConflictsAreIdempotent(
-              serverBatchId: result.serverBatchId,
-            );
+        var duplicateConflictsAreIdempotent = false;
+
+        if (!result.completed && result.conflictCount > 0) {
+          duplicateConflictsAreIdempotent =
+              await _remoteDataSource.duplicatePurchasesConflictsAreIdempotent(
+            serverBatchId: result.serverBatchId,
+            localMutations: mutations,
+          );
+        }
 
         if (result.completed || duplicateConflictsAreIdempotent) {
           completed++;
@@ -65,6 +114,10 @@ class CatalogSyncUploadService {
           );
 
           await _markBatchMutationsApplied(
+            mutations: mutations,
+          );
+
+          await _markPurchasesSyncedFromMutations(
             mutations: mutations,
           );
         } else {
@@ -86,7 +139,7 @@ class CatalogSyncUploadService {
         }
 
         AppLogger.info(
-          'Catalog batch uploaded: local=$localBatchId '
+          'Purchases batch uploaded: local=$localBatchId '
           'server=${result.serverBatchId} status=${duplicateConflictsAreIdempotent ? 'completed_idempotent_duplicate' : result.status}',
         );
       } catch (error, stackTrace) {
@@ -98,7 +151,7 @@ class CatalogSyncUploadService {
         );
 
         AppLogger.error(
-          'Catalog batch upload failed: $localBatchId',
+          'Purchases batch upload failed: $localBatchId',
           error: error,
           stackTrace: stackTrace,
         );
@@ -119,10 +172,8 @@ class CatalogSyncUploadService {
     required List<Map<String, dynamic>> mutations,
   }) async {
     for (final mutation in mutations) {
-      final localMutationId = _requiredString(mutation, 'id');
-
       await _outboxService.markMutationApplied(
-        localMutationId: localMutationId,
+        localMutationId: _requiredString(mutation, 'id'),
       );
     }
   }
@@ -133,13 +184,11 @@ class CatalogSyncUploadService {
   }) async {
     if (result.conflictCount > 0) {
       for (final mutation in mutations) {
-        final localMutationId = _requiredString(mutation, 'id');
-
         await _outboxService.markMutationConflict(
-          localMutationId: localMutationId,
-          errorCode: 'remote_batch_partial',
+          localMutationId: _requiredString(mutation, 'id'),
+          errorCode: 'remote_purchases_batch_partial',
           errorMessage:
-              'El batch remoto quedó partial. Revisar sync_conflicts en servidor.',
+              'El batch remoto de compras quedó partial. Revisar sync_conflicts en servidor.',
         );
       }
 
@@ -148,12 +197,10 @@ class CatalogSyncUploadService {
 
     if (result.errorCount > 0) {
       for (final mutation in mutations) {
-        final localMutationId = _requiredString(mutation, 'id');
-
         await _outboxService.markMutationError(
-          localMutationId: localMutationId,
-          errorCode: 'remote_batch_error',
-          error: 'El batch remoto reportó errores.',
+          localMutationId: _requiredString(mutation, 'id'),
+          errorCode: 'remote_purchases_batch_error',
+          error: 'El batch remoto de compras reportó errores.',
         );
       }
 

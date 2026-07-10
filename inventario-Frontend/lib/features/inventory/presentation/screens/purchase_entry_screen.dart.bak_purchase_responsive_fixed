@@ -3,14 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
-import '../../application/inventory_product_creation_models.dart';
-import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../../application/purchase_local_models.dart';
 import '../../application/purchase_local_provider.dart';
-import '../../application/purchase_sync_repair_provider.dart';
-import '../../../sync/application/local_sync_outbox_providers.dart';
-import '../../../sync/application/purchases_sync_upload_provider.dart';
 
 class PurchaseEntryScreen extends ConsumerStatefulWidget {
   const PurchaseEntryScreen({
@@ -41,8 +36,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
   String _query = '';
   bool _isSaving = false;
-  bool _isSyncingPurchases = false;
-  bool _isCreatingQuickProduct = false;
 
   double get _total {
     return _cartItems.fold<double>(
@@ -161,7 +154,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       decimal: false,
     );
 
-    if (!mounted || value == null) {
+    if (value == null) {
       return;
     }
 
@@ -190,7 +183,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       decimal: true,
     );
 
-    if (!mounted || value == null) {
+    if (value == null) {
       return;
     }
 
@@ -215,38 +208,39 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
     required double initialValue,
     required bool decimal,
   }) async {
-    var currentText = decimal
-        ? initialValue.toStringAsFixed(2)
-        : initialValue.toInt().toString();
+    final controller = TextEditingController(
+      text: decimal
+          ? initialValue.toStringAsFixed(2)
+          : initialValue.toInt().toString(),
+    );
 
-    return showDialog<double>(
+    final result = await showDialog<double>(
       context: context,
-      builder: (dialogContext) {
+      builder: (context) {
         return AlertDialog(
           title: Text(title),
-          content: TextFormField(
-            initialValue: currentText,
+          content: TextField(
+            controller: controller,
             autofocus: true,
             keyboardType: TextInputType.numberWithOptions(decimal: decimal),
             decoration: InputDecoration(
               labelText: decimal ? 'Valor' : 'Cantidad',
               border: const OutlineInputBorder(),
             ),
-            onChanged: (value) {
-              currentText = value;
-            },
-            onFieldSubmitted: (_) {
-              Navigator.of(dialogContext).pop(_parseNumber(currentText));
+            onSubmitted: (_) {
+              final parsed = _parseNumber(controller.text);
+              Navigator.of(context).pop(parsed);
             },
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(_parseNumber(currentText));
+                final parsed = _parseNumber(controller.text);
+                Navigator.of(context).pop(parsed);
               },
               child: const Text('Guardar'),
             ),
@@ -254,413 +248,10 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         );
       },
     );
-  }
 
-  void _addCreatedManualProductToCart(
-    CreatedManualLocalProductResult result,
-  ) {
-    _addProductToCart({
-      'product_id': result.productId,
-      'product_name': result.name,
-      'barcode': result.barcode,
-      'quantity_available': 0,
-      'purchase_price': _double(result.productPayload['purchase_price']),
-      'stock_average_cost': 0,
-    });
-  }
+    controller.dispose();
 
-  Future<void> _openQuickProductDialog() async {
-    if (_isCreatingQuickProduct || _isSaving || _isSyncingPurchases) {
-      return;
-    }
-
-    final draft = await showDialog<_QuickProductDraft>(
-      context: context,
-      builder: (dialogContext) {
-        final formKey = GlobalKey<FormState>();
-
-        var name = '';
-        var barcode = '';
-        var purchaseCostText = '';
-        var salePriceText = '';
-
-        return AlertDialog(
-          title: const Text('Crear producto rápido'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre del producto',
-                      prefixIcon: Icon(Icons.inventory_2_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) {
-                        return 'El nombre es requerido.';
-                      }
-
-                      if ((value ?? '').trim().length < 2) {
-                        return 'El nombre es demasiado corto.';
-                      }
-
-                      return null;
-                    },
-                    onChanged: (value) {
-                      name = value;
-                    },
-                  ),
-                  const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Código / barcode opcional',
-                      prefixIcon: Icon(Icons.qr_code_2_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      barcode = value;
-                    },
-                  ),
-                  const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Costo de compra',
-                      prefixIcon: Icon(Icons.sell_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      final parsed = _parseNumber(value ?? '');
-
-                      if (parsed == null || parsed <= 0) {
-                        return 'El costo debe ser mayor a cero.';
-                      }
-
-                      return null;
-                    },
-                    onChanged: (value) {
-                      purchaseCostText = value;
-                    },
-                  ),
-                  const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Precio de venta opcional',
-                      prefixIcon: Icon(Icons.point_of_sale_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      final raw = (value ?? '').trim();
-
-                      if (raw.isEmpty) {
-                        return null;
-                      }
-
-                      final parsed = _parseNumber(raw);
-
-                      if (parsed == null || parsed < 0) {
-                        return 'El precio de venta no puede ser negativo.';
-                      }
-
-                      return null;
-                    },
-                    onChanged: (value) {
-                      salePriceText = value;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                final valid = formKey.currentState?.validate() ?? false;
-
-                if (!valid) {
-                  return;
-                }
-
-                final purchaseCost = _parseNumber(purchaseCostText) ?? 0;
-                final salePrice = _parseNumber(salePriceText);
-
-                Navigator.of(dialogContext).pop(
-                  _QuickProductDraft(
-                    name: name.trim(),
-                    barcode: barcode.trim().isEmpty ? null : barcode.trim(),
-                    purchaseCost: purchaseCost,
-                    salePrice: salePrice,
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add_box_outlined),
-              label: const Text('Continuar'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted || draft == null) {
-      return;
-    }
-
-    setState(() {
-      _isCreatingQuickProduct = true;
-    });
-
-    try {
-      final service = ref.read(inventoryProductFromMasterSyncServiceProvider);
-
-      final syncResult = await service.createManualProductAndQueueSync(
-        CreateManualLocalProductInput(
-          businessId: widget.businessId,
-          branchId: widget.branchId,
-          profileId: widget.profileId,
-          appDeviceId: widget.appDeviceId,
-          deviceInstallationId: widget.deviceInstallationId,
-          name: draft.name,
-          barcode: draft.barcode,
-          purchasePrice: draft.purchaseCost,
-          salePrice: draft.salePrice ?? 0,
-          unit: 'unidad',
-          clientSequenceStart: DateTime.now()
-              .toUtc()
-              .microsecondsSinceEpoch
-              .remainder(2000000000),
-        ),
-      );
-
-      final result = syncResult.createdProduct;
-
-      if (!mounted) {
-        return;
-      }
-
-      ref.invalidate(
-        localProductsWithStockProvider(
-          ProductsWithLocalStockKey(
-            businessId: widget.businessId,
-            branchId: widget.branchId,
-            limit: 250,
-          ),
-        ),
-      );
-
-      setState(() {
-        _searchController.text = result.name;
-        _query = result.name;
-      });
-
-      _addCreatedManualProductToCart(result);
-
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Producto creado y agregado'),
-            content: Text(
-              'Se creó el producto localmente y se agregó al carrito de compra.\n\n'
-              'Nombre: ${result.name}\n'
-              'Código: ${result.barcode ?? 'sin código'}\n'
-              'Costo: ${_money(_double(result.productPayload['purchase_price']))}\n'
-              'Estado catálogo: manual sin vincular\n'
-              'Sync catálogo: en cola local\n\n'
-              'Cuando registres la compra, el stock local subirá con la cantidad recibida.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (error) {
-      _showMessage('No se pudo crear el producto: $error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCreatingQuickProduct = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _syncPendingPurchases() async {
-    if (_isSyncingPurchases || _isSaving) {
-      return;
-    }
-
-    setState(() {
-      _isSyncingPurchases = true;
-    });
-
-    try {
-      final repairService = ref.read(purchaseSyncRepairServiceProvider);
-      final repairResult = await repairService.repairPartialOrFailedPurchases(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-      );
-
-      final productSyncService =
-          ref.read(inventoryProductFromMasterSyncServiceProvider);
-      final catalogUploadService = ref.read(catalogSyncUploadServiceProvider);
-      final outboxService = ref.read(purchaseSyncOutboxServiceProvider);
-      final uploadService = ref.read(purchasesSyncUploadServiceProvider);
-
-      final catalogBackfillCount = await productSyncService
-          .enqueueManualProductsUsedByUnsyncedPurchasesForCatalogSync(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-        profileId: widget.profileId,
-        appDeviceId: widget.appDeviceId,
-        deviceInstallationId: widget.deviceInstallationId,
-      );
-
-      final catalogUploadResult =
-          await catalogUploadService.uploadPendingCatalogBatches(
-        businessId: widget.businessId,
-        batchLimit: 250,
-      );
-
-      if (catalogUploadResult.batchesPartial > 0 ||
-          catalogUploadResult.batchesFailed > 0) {
-        if (!mounted) {
-          return;
-        }
-
-        await showDialog<void>(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('Catálogo pendiente'),
-              content: Text(
-                'No se subieron las compras porque primero deben sincronizarse '
-                'correctamente los productos del catálogo.\n\n'
-                'Catálogo\n'
-                'Productos manuales encolados: $catalogBackfillCount\n'
-                'Batches revisados: ${catalogUploadResult.batchesChecked}\n'
-                'Batches subidos: ${catalogUploadResult.batchesUploaded}\n'
-                'Completados: ${catalogUploadResult.batchesCompleted}\n'
-                'Parciales: ${catalogUploadResult.batchesPartial}\n'
-                'Fallidos: ${catalogUploadResult.batchesFailed}\n'
-                'Mutaciones subidas: ${catalogUploadResult.mutationsUploaded}\n\n'
-                'Cuando catálogo quede completo, vuelve a sincronizar compras.',
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Entendido'),
-                ),
-              ],
-            );
-          },
-        );
-
-        return;
-      }
-
-      final enqueueResult = await outboxService.enqueuePendingPurchases(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-        profileId: widget.profileId,
-        appDeviceId: widget.appDeviceId,
-        deviceInstallationId: widget.deviceInstallationId,
-        limit: 250,
-      );
-
-      final uploadResult = await uploadService.uploadPendingPurchasesBatches(
-        businessId: widget.businessId,
-        batchLimit: 250,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      ref.invalidate(
-        localProductsWithStockProvider(
-          ProductsWithLocalStockKey(
-            businessId: widget.businessId,
-            branchId: widget.branchId,
-            limit: 250,
-          ),
-        ),
-      );
-
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          final hasIssues = catalogUploadResult.batchesPartial > 0 ||
-              catalogUploadResult.batchesFailed > 0 ||
-              uploadResult.batchesPartial > 0 ||
-              uploadResult.batchesFailed > 0;
-
-          return AlertDialog(
-            title: Text(
-              hasIssues
-                  ? 'Sync de compras con observaciones'
-                  : 'Sync de compras completado',
-            ),
-            content: Text(
-              'Reparación local\n'
-              'Compras reparadas: ${repairResult.purchaseCount}\n'
-              'Batches reemplazados: ${repairResult.supersededBatches}\n\n'
-              'Catálogo\n'
-              'Productos manuales encolados: $catalogBackfillCount\n'
-              'Batches revisados: ${catalogUploadResult.batchesChecked}\n'
-              'Batches subidos: ${catalogUploadResult.batchesUploaded}\n'
-              'Completados: ${catalogUploadResult.batchesCompleted}\n'
-              'Parciales: ${catalogUploadResult.batchesPartial}\n'
-              'Fallidos: ${catalogUploadResult.batchesFailed}\n'
-              'Mutaciones subidas: ${catalogUploadResult.mutationsUploaded}\n\n'
-              'Preparación local\n'
-              'Compras revisadas: ${enqueueResult.purchasesChecked}\n'
-              'Compras preparadas: ${enqueueResult.purchasesEnqueued}\n'
-              'Batches creados: ${enqueueResult.batchesCreated}\n'
-              'Mutaciones preparadas: ${enqueueResult.mutationsEnqueued}\n\n'
-              'Subida remota\n'
-              'Batches revisados: ${uploadResult.batchesChecked}\n'
-              'Batches subidos: ${uploadResult.batchesUploaded}\n'
-              'Completados: ${uploadResult.batchesCompleted}\n'
-              'Parciales: ${uploadResult.batchesPartial}\n'
-              'Fallidos: ${uploadResult.batchesFailed}\n'
-              'Mutaciones subidas: ${uploadResult.mutationsUploaded}',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (error) {
-      _showMessage('No se pudo sincronizar compras: $error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSyncingPurchases = false;
-        });
-      }
-    }
+    return result;
   }
 
   Future<void> _savePurchase() async {
@@ -807,19 +398,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
           title: const Text('Compras'),
           actions: [
             IconButton(
-              onPressed: _isSaving || _isSyncingPurchases
-                  ? null
-                  : _syncPendingPurchases,
-              icon: _isSyncingPurchases
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.cloud_sync_outlined),
-              tooltip: 'Sincronizar compras',
-            ),
-            IconButton(
-              onPressed: _isSaving || _isSyncingPurchases
+              onPressed: _isSaving
                   ? null
                   : () {
                       ref.invalidate(
@@ -859,7 +438,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                           });
                         },
                         onProductTap: _addProductToCart,
-                        onCreateQuickProduct: _openQuickProductDialog,
                       ),
                     ),
                     Expanded(
@@ -910,7 +488,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                       });
                     },
                     onProductTap: _addProductToCart,
-                    onCreateQuickProduct: _openQuickProductDialog,
                   ),
                 ],
               );
@@ -982,7 +559,6 @@ class _ProductsPanel extends StatelessWidget {
     required this.filterProducts,
     required this.onQueryChanged,
     required this.onProductTap,
-    required this.onCreateQuickProduct,
   });
 
   final TextEditingController searchController;
@@ -992,7 +568,6 @@ class _ProductsPanel extends StatelessWidget {
       filterProducts;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<Map<String, dynamic>> onProductTap;
-  final VoidCallback onCreateQuickProduct;
 
   @override
   Widget build(BuildContext context) {
@@ -1015,15 +590,6 @@ class _ProductsPanel extends StatelessWidget {
                 border: OutlineInputBorder(),
               ),
               onChanged: onQueryChanged,
-            ),
-            const SizedBox(height: CronosSpacing.sm),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: onCreateQuickProduct,
-                icon: const Icon(Icons.add_box_outlined),
-                label: const Text('Crear producto rápido'),
-              ),
             ),
             const SizedBox(height: CronosSpacing.md),
             productsAsync.when(
@@ -1109,47 +675,41 @@ class _ProductPurchaseTile extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(CronosSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.inventory_2_outlined),
-                  const SizedBox(width: CronosSpacing.sm),
-                  Expanded(
-                    child: Text(
+              const Icon(Icons.inventory_2_outlined),
+              const SizedBox(width: CronosSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                  ),
-                  const SizedBox(width: CronosSpacing.sm),
-                  const Icon(Icons.add_circle_outline),
-                ],
-              ),
-              const SizedBox(height: CronosSpacing.sm),
-              Wrap(
-                spacing: CronosSpacing.sm,
-                runSpacing: CronosSpacing.xs,
-                children: [
-                  _PurchaseMetricPill(
-                    icon: Icons.warehouse_outlined,
-                    label: 'Stock $stock',
-                  ),
-                  _PurchaseMetricPill(
-                    icon: Icons.sell_outlined,
-                    label:
-                        'Costo ${_PurchaseEntryScreenState._money(suggestedCost)}',
-                  ),
-                  if (barcode != null)
-                    _PurchaseMetricPill(
-                      icon: Icons.qr_code_2_outlined,
-                      label: barcode,
+                    const SizedBox(height: CronosSpacing.xs),
+                    Text(
+                      barcode == null
+                          ? 'Stock actual: $stock'
+                          : '$barcode · Stock actual: $stock',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: CronosSpacing.sm),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _PurchaseEntryScreenState._money(suggestedCost),
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const Text('Costo sugerido'),
                 ],
               ),
+              const SizedBox(width: CronosSpacing.sm),
+              const Icon(Icons.add_circle_outline),
             ],
           ),
         ),
@@ -1235,17 +795,22 @@ class _PurchaseCartPanel extends StatelessWidget {
                 },
               ),
             const SizedBox(height: CronosSpacing.md),
-            Wrap(
-              spacing: CronosSpacing.sm,
-              runSpacing: CronosSpacing.sm,
+            Row(
               children: [
-                _PurchaseMetricPill(
-                  icon: Icons.format_list_numbered_outlined,
-                  label: '$itemCount uds.',
+                Expanded(
+                  child: AppStatusChip(
+                    label: '$itemCount unidad(es)',
+                    tone: AppStatusTone.info,
+                    icon: Icons.format_list_numbered_outlined,
+                  ),
                 ),
-                _PurchaseMetricPill(
-                  icon: Icons.payments_outlined,
-                  label: _PurchaseEntryScreenState._money(total),
+                const SizedBox(width: CronosSpacing.sm),
+                Expanded(
+                  child: AppStatusChip(
+                    label: _PurchaseEntryScreenState._money(total),
+                    tone: AppStatusTone.success,
+                    icon: Icons.payments_outlined,
+                  ),
                 ),
               ],
             ),
@@ -1328,30 +893,30 @@ class _PurchaseCartTile extends StatelessWidget {
           const SizedBox(height: CronosSpacing.sm),
           Wrap(
             spacing: CronosSpacing.sm,
-            runSpacing: CronosSpacing.xs,
+            runSpacing: CronosSpacing.sm,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _PurchaseMetricPill(
+              AppStatusChip(
+                label: 'Stock actual: ${item.currentStock}',
+                tone: AppStatusTone.neutral,
                 icon: Icons.warehouse_outlined,
-                label: 'Stock ${item.currentStock}',
               ),
-              _PurchaseMetricPill(
+              AppStatusChip(
+                label:
+                    'Costo: ${_PurchaseEntryScreenState._money(item.unitCost)}',
+                tone: AppStatusTone.info,
                 icon: Icons.sell_outlined,
-                label:
-                    'Costo ${_PurchaseEntryScreenState._money(item.unitCost)}',
               ),
-              _PurchaseMetricPill(
-                icon: Icons.receipt_long_outlined,
+              AppStatusChip(
                 label:
-                    'Subt. ${_PurchaseEntryScreenState._money(item.subtotal)}',
+                    'Subtotal: ${_PurchaseEntryScreenState._money(item.subtotal)}',
+                tone: AppStatusTone.success,
+                icon: Icons.receipt_long_outlined,
               ),
             ],
           ),
           const SizedBox(height: CronosSpacing.sm),
-          Wrap(
-            spacing: CronosSpacing.sm,
-            runSpacing: CronosSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
             children: [
               IconButton.outlined(
                 onPressed: onDecrement,
@@ -1365,69 +930,13 @@ class _PurchaseCartTile extends StatelessWidget {
                 onPressed: onIncrement,
                 icon: const Icon(Icons.add),
               ),
+              const Spacer(),
               TextButton.icon(
                 onPressed: onEditUnitCost,
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Costo'),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickProductDraft {
-  const _QuickProductDraft({
-    required this.name,
-    required this.purchaseCost,
-    this.barcode,
-    this.salePrice,
-  });
-
-  final String name;
-  final String? barcode;
-  final double purchaseCost;
-  final double? salePrice;
-}
-
-class _PurchaseMetricPill extends StatelessWidget {
-  const _PurchaseMetricPill({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 220),
-      padding: const EdgeInsets.symmetric(
-        horizontal: CronosSpacing.sm,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: CronosColors.textMuted.withValues(alpha: 0.16),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ),
         ],
       ),

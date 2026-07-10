@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../../core/logging/app_logger.dart';
 import '../../inventory/data/datasources/purchase_local_dao.dart';
 import '../data/datasources/purchases_sync_remote_datasource.dart';
@@ -45,6 +47,40 @@ class PurchasesSyncUploadService {
         final mutations =
             await _outboxService.getMutationsForBatch(localBatchId);
 
+        final allRemoteEntitiesAlreadyExist =
+            await _remoteDataSource.allPurchaseMutationEntitiesAlreadyExist(
+          localMutations: mutations,
+        );
+
+        if (allRemoteEntitiesAlreadyExist) {
+          uploaded++;
+          completed++;
+          mutationsUploaded += mutations.length;
+
+          await _outboxService.markBatchCompleted(
+            localBatchId: localBatchId,
+            appliedCount: mutations.length,
+            skippedCount: 0,
+            conflictCount: 0,
+            errorCount: 0,
+          );
+
+          await _markBatchMutationsApplied(
+            mutations: mutations,
+          );
+
+          await _markPurchasesSyncedFromMutations(
+            mutations: mutations,
+          );
+
+          AppLogger.info(
+            'Purchases batch completed idempotently without upload: '
+            'local=$localBatchId status=completed_remote_already_exists',
+          );
+
+          continue;
+        }
+
         final result = await _remoteDataSource.uploadAndProcessPurchasesBatch(
           localBatch: batch,
           localMutations: mutations,
@@ -53,21 +89,37 @@ class PurchasesSyncUploadService {
         uploaded++;
         mutationsUploaded += result.mutationCount;
 
-        if (result.completed) {
+        var duplicateConflictsAreIdempotent = false;
+
+        if (!result.completed && result.conflictCount > 0) {
+          duplicateConflictsAreIdempotent =
+              await _remoteDataSource.duplicatePurchasesConflictsAreIdempotent(
+            serverBatchId: result.serverBatchId,
+            localMutations: mutations,
+          );
+        }
+
+        if (result.completed || duplicateConflictsAreIdempotent) {
           completed++;
 
           await _outboxService.markBatchCompleted(
             localBatchId: localBatchId,
             serverSyncBatchId: result.serverBatchId,
             appliedCount: result.appliedCount,
-            skippedCount: result.skippedCount,
-            conflictCount: result.conflictCount,
-            errorCount: result.errorCount,
+            skippedCount: result.skippedCount +
+                (duplicateConflictsAreIdempotent ? result.conflictCount : 0),
+            conflictCount:
+                duplicateConflictsAreIdempotent ? 0 : result.conflictCount,
+            errorCount: duplicateConflictsAreIdempotent ? 0 : result.errorCount,
           );
 
-          await _markBatchMutationsApplied(mutations: mutations);
+          await _markBatchMutationsApplied(
+            mutations: mutations,
+          );
 
-          await _markLocalPurchasesSynced(mutations: mutations);
+          await _markPurchasesSyncedFromMutations(
+            mutations: mutations,
+          );
         } else {
           partial++;
 
@@ -88,7 +140,7 @@ class PurchasesSyncUploadService {
 
         AppLogger.info(
           'Purchases batch uploaded: local=$localBatchId '
-          'server=${result.serverBatchId} status=${result.status}',
+          'server=${result.serverBatchId} status=${duplicateConflictsAreIdempotent ? 'completed_idempotent_duplicate' : result.status}',
         );
       } catch (error, stackTrace) {
         failed++;
@@ -116,28 +168,77 @@ class PurchasesSyncUploadService {
     );
   }
 
-  Future<void> _markLocalPurchasesSynced({
+  Future<void> _markPurchasesSyncedFromMutations({
     required List<Map<String, dynamic>> mutations,
   }) async {
-    final purchaseIds = <String>{};
-
-    for (final mutation in mutations) {
-      final entityTable = mutation['entity_table']?.toString();
-
-      if (entityTable == 'purchases') {
-        final purchaseId = mutation['entity_id']?.toString();
-
-        if (purchaseId != null && purchaseId.trim().isNotEmpty) {
-          purchaseIds.add(purchaseId);
-        }
-      }
-    }
+    final purchaseIds = _purchaseIdsFromMutations(mutations);
 
     for (final purchaseId in purchaseIds) {
       await _purchaseLocalDao.markPurchaseAndChildrenSyncedAfterUpload(
         purchaseId: purchaseId,
       );
     }
+  }
+
+  Set<String> _purchaseIdsFromMutations(
+    List<Map<String, dynamic>> mutations,
+  ) {
+    final purchaseIds = <String>{};
+
+    for (final mutation in mutations) {
+      final entityTable = mutation['entity_table']?.toString();
+      final entityId = mutation['entity_id']?.toString();
+
+      if (entityTable == 'purchases' &&
+          entityId != null &&
+          entityId.trim().isNotEmpty) {
+        purchaseIds.add(entityId.trim());
+        continue;
+      }
+
+      if (entityTable == 'purchase_items') {
+        final payload = _decodeMutationPayload(mutation);
+        final purchaseId = payload['purchase_id']?.toString();
+
+        if (purchaseId != null && purchaseId.trim().isNotEmpty) {
+          purchaseIds.add(purchaseId.trim());
+        }
+      }
+    }
+
+    return purchaseIds;
+  }
+
+  Map<String, dynamic> _decodeMutationPayload(
+    Map<String, dynamic> mutation,
+  ) {
+    final raw = mutation['payload_json'] ?? mutation['payload'];
+
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {
+        return {};
+      }
+    }
+
+    return {};
   }
 
   Future<void> _markBatchMutationsApplied({

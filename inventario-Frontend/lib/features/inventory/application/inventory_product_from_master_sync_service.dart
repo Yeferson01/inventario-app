@@ -20,6 +20,23 @@ class InventoryProductFromMasterSyncResult {
   }
 }
 
+class InventoryManualProductSyncResult {
+  const InventoryManualProductSyncResult({
+    required this.createdProduct,
+    required this.outboxResult,
+  });
+
+  final CreatedManualLocalProductResult createdProduct;
+  final LocalSyncEnqueueResult outboxResult;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'created_product': createdProduct.toJson(),
+      'outbox_result': outboxResult.toJson(),
+    };
+  }
+}
+
 class InventoryProductFromMasterSyncService {
   InventoryProductFromMasterSyncService({
     required InventoryProductCreationService productCreationService,
@@ -29,6 +46,109 @@ class InventoryProductFromMasterSyncService {
 
   final InventoryProductCreationService _productCreationService;
   final LocalSyncOutboxService _outboxService;
+
+  Future<int> enqueueManualProductsUsedByUnsyncedPurchasesForCatalogSync({
+    required String businessId,
+    required String branchId,
+    String? profileId,
+    String? appDeviceId,
+    String? deviceInstallationId,
+    int limit = 100,
+  }) async {
+    final productIds = await _productCreationService
+        .getManualProductIdsUsedByUnsyncedPurchases(
+      businessId: businessId,
+      branchId: branchId,
+      limit: limit,
+    );
+
+    var enqueued = 0;
+    var sequence =
+        DateTime.now().toUtc().microsecondsSinceEpoch.remainder(2000000000);
+
+    for (final productId in productIds) {
+      final alreadyQueued = await _outboxService.hasMutationForEntity(
+        businessId: businessId,
+        domain: 'catalog',
+        entityTable: 'products',
+        entityId: productId,
+      );
+
+      if (alreadyQueued) {
+        continue;
+      }
+
+      final createdProduct = await _productCreationService
+          .buildExistingManualProductCatalogSyncDraft(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        appDeviceId: appDeviceId,
+        deviceInstallationId: deviceInstallationId,
+        productId: productId,
+        clientSequenceStart: sequence,
+      );
+
+      if (createdProduct == null) {
+        continue;
+      }
+
+      final mutations = createdProduct.pendingMutations
+          .map(mapPendingCatalogMutationToLocalSyncDraft)
+          .toList();
+
+      await _outboxService.enqueueCatalogMutations(
+        businessId: businessId,
+        branchId: branchId,
+        appDeviceId: appDeviceId,
+        profileId: profileId,
+        deviceInstallationId: deviceInstallationId,
+        mutations: mutations,
+        metadata: {
+          'source': 'purchase_catalog_backfill',
+          'product_id': createdProduct.productId,
+          'barcode_normalized': createdProduct.barcodeNormalized,
+          'catalog_status': 'manual_unmatched',
+        },
+      );
+
+      enqueued++;
+      sequence += 10;
+    }
+
+    return enqueued;
+  }
+
+  Future<InventoryManualProductSyncResult> createManualProductAndQueueSync(
+    CreateManualLocalProductInput input,
+  ) async {
+    final createdProduct =
+        await _productCreationService.createManualLocalProduct(input);
+
+    final mutations = createdProduct.pendingMutations
+        .map(mapPendingCatalogMutationToLocalSyncDraft)
+        .toList();
+
+    final outboxResult = await _outboxService.enqueueCatalogMutations(
+      businessId: input.businessId,
+      branchId: input.branchId,
+      appDeviceId: input.appDeviceId,
+      profileId: input.profileId,
+      deviceInstallationId: input.deviceInstallationId,
+      mutations: mutations,
+      metadata: {
+        'source': 'quick_purchase_manual_product',
+        'product_id': createdProduct.productId,
+        'barcode_normalized': createdProduct.barcodeNormalized,
+        'catalog_status': 'manual_unmatched',
+      },
+    );
+
+    return InventoryManualProductSyncResult(
+      createdProduct: createdProduct,
+      outboxResult: outboxResult,
+    );
+  }
 
   Future<InventoryProductFromMasterSyncResult> createProductAndQueueSync(
     CreateProductFromMasterInput input,

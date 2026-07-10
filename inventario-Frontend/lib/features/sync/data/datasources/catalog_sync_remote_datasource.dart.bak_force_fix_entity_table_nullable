@@ -5,42 +5,30 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/app_uuid.dart';
 import '../models/catalog_upload_models.dart';
 
-class PurchasesSyncRemoteDataSource {
-  PurchasesSyncRemoteDataSource(this._client);
+class CatalogSyncRemoteDataSource {
+  CatalogSyncRemoteDataSource(this._client);
 
   final SupabaseClient _client;
 
-  Future<CatalogUploadBatchResult> uploadAndProcessPurchasesBatch({
+  Future<CatalogUploadBatchResult> uploadAndProcessCatalogBatch({
     required Map<String, dynamic> localBatch,
     required List<Map<String, dynamic>> localMutations,
   }) async {
     if (localMutations.isEmpty) {
-      throw ArgumentError(
-          'No se puede subir un batch de compras sin mutaciones.');
+      throw ArgumentError('No se puede subir un batch sin mutaciones.');
     }
 
     final serverBatchId = AppUuid.v7();
     final localBatchId = _requiredString(localBatch, 'id');
     final businessId = _requiredString(localBatch, 'business_id');
     final clientBatchId = _requiredString(localBatch, 'client_batch_id');
+
     final now = DateTime.now().toUtc().toIso8601String();
-
-    final uploadableMutations =
-        await _filterAlreadyExistingPurchaseEntityInserts(
-      businessId: businessId,
-      localMutations: localMutations,
-    );
-
-    if (uploadableMutations.isEmpty) {
-      throw StateError(
-        'No quedan mutaciones de compras por subir después de filtrar duplicados existentes.',
-      );
-    }
 
     final existingMutationIds =
         await _existingServerMutationIdsByIdempotencyKey(
       businessId: businessId,
-      localMutations: uploadableMutations,
+      localMutations: localMutations,
     );
 
     await _client.from('sync_batches').upsert(
@@ -53,11 +41,11 @@ class PurchasesSyncRemoteDataSource {
         'client_batch_id': clientBatchId,
         'direction': 'upload',
         'status': 'pending',
-        'mutation_count': uploadableMutations.length,
+        'mutation_count': localMutations.length,
         'metadata': _decodeNullableJson(localBatch['metadata_json']) ??
             {
-              'source': 'flutter_purchases_upload',
-              'domain': 'purchases',
+              'source': 'flutter_catalog_upload',
+              'domain': 'catalog',
             },
         'created_at': now,
         'updated_at': now,
@@ -65,7 +53,7 @@ class PurchasesSyncRemoteDataSource {
       onConflict: 'business_id,app_device_id,client_batch_id',
     );
 
-    final serverMutations = uploadableMutations.map((mutation) {
+    final serverMutations = localMutations.map((mutation) {
       return {
         'id':
             existingMutationIds[_requiredString(mutation, 'idempotency_key')] ??
@@ -89,8 +77,7 @@ class PurchasesSyncRemoteDataSource {
         'idempotency_key': _requiredString(mutation, 'idempotency_key'),
         'metadata': _decodeNullableJson(mutation['metadata_json']) ??
             {
-              'source': 'flutter_purchases_sync_mutation',
-              'domain': 'purchases',
+              'source': 'flutter_local_sync_mutation',
             },
         'created_at': now,
         'updated_at': now,
@@ -106,40 +93,88 @@ class PurchasesSyncRemoteDataSource {
       'process_sync_batch',
       params: {
         'p_sync_batch_id': serverBatchId,
-        'p_mode': 'apply_purchases',
+        'p_mode': 'apply_catalog',
       },
     );
 
-    // Purchase inventory is applied by the backend trigger when the purchases
-    // sync batch transitions to completed. Flutter must not call the inventory
-    // RPC here.
     return CatalogUploadBatchResult.fromProcessResult(
       localBatchId: localBatchId,
       serverBatchId: serverBatchId,
-      fallbackMutationCount: uploadableMutations.length,
+      fallbackMutationCount: localMutations.length,
       value: processResult,
     );
   }
 
-  Future<bool> allPurchaseMutationEntitiesAlreadyExist({
-    required List<Map<String, dynamic>> localMutations,
-  }) {
-    return _allPurchaseMutationEntitiesExist(localMutations);
-  }
-
-  Future<bool> duplicatePurchasesConflictsAreIdempotent({
+  Future<bool> duplicateCatalogConflictsAreIdempotent({
     required String serverBatchId,
-    required List<Map<String, dynamic>> localMutations,
   }) async {
     final conflicts = await _client
         .from('sync_conflicts')
         .select('conflict_type, entity_table, entity_id, operation')
         .eq('sync_batch_id', serverBatchId);
 
-    if (conflicts.isEmpty) {
+    if (conflicts.isNotEmpty) {
+      return _catalogConflictRowsAreIdempotent(conflicts);
+    }
+
+    final mutations = await _client
+        .from('sync_mutations')
+        .select('entity_table, entity_id, operation, status, error_code')
+        .eq('sync_batch_id', serverBatchId);
+
+    if (mutations.isEmpty) {
       return false;
     }
 
+    var hasDuplicateError = false;
+
+    for (final mutation in mutations) {
+      final entityTable = _string(mutation['entity_table']);
+      final entityId = _string(mutation['entity_id']);
+      final operation = _string(mutation['operation']);
+      final status = _string(mutation['status']);
+      final errorCode = _string(mutation['error_code']);
+
+      if (entityTable != 'products' && entityTable != 'product_barcodes') {
+        return false;
+      }
+
+      if (operation != 'insert' || entityId == null) {
+        return false;
+      }
+
+      if (status == 'applied' || status == 'skipped') {
+        continue;
+      }
+
+      if (errorCode != 'duplicate_key') {
+        return false;
+      }
+
+      if (entityTable.trim().isEmpty ||
+          entityId == null ||
+          entityId.trim().isEmpty) {
+        return false;
+      }
+
+      final exists = await _serverEntityExists(
+        tableName: entityTable,
+        entityId: entityId,
+      );
+
+      if (!exists) {
+        return false;
+      }
+
+      hasDuplicateError = true;
+    }
+
+    return hasDuplicateError;
+  }
+
+  Future<bool> _catalogConflictRowsAreIdempotent(
+    List<dynamic> conflicts,
+  ) async {
     for (final conflict in conflicts) {
       final conflictType = _string(conflict['conflict_type']);
       final entityTable = _string(conflict['entity_table']);
@@ -153,32 +188,8 @@ class PurchasesSyncRemoteDataSource {
         return false;
       }
 
-      if (entityTable != 'purchases' && entityTable != 'purchase_items') {
+      if (entityTable != 'products' && entityTable != 'product_barcodes') {
         return false;
-      }
-
-      final exists = await _serverEntityExists(
-        tableName: entityTable,
-        entityId: entityId,
-      );
-
-      if (!exists) {
-        return false;
-      }
-    }
-
-    return _allPurchaseMutationEntitiesExist(localMutations);
-  }
-
-  Future<bool> _allPurchaseMutationEntitiesExist(
-    List<Map<String, dynamic>> localMutations,
-  ) async {
-    for (final mutation in localMutations) {
-      final entityTable = _requiredString(mutation, 'entity_table');
-      final entityId = _requiredString(mutation, 'entity_id');
-
-      if (entityTable != 'purchases' && entityTable != 'purchase_items') {
-        continue;
       }
 
       final exists = await _serverEntityExists(
@@ -304,100 +315,5 @@ class PurchasesSyncRemoteDataSource {
     }
 
     return result;
-  }
-
-  Future<List<Map<String, dynamic>>>
-      _filterAlreadyExistingPurchaseEntityInserts({
-    required String businessId,
-    required List<Map<String, dynamic>> localMutations,
-  }) async {
-    if (localMutations.isEmpty) {
-      return localMutations;
-    }
-
-    final purchaseInsertIds = localMutations
-        .where((mutation) {
-          return mutation['entity_table']?.toString() == 'purchases' &&
-              mutation['operation']?.toString() == 'insert';
-        })
-        .map((mutation) => mutation['entity_id']?.toString().trim())
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-
-    final purchaseItemInsertIds = localMutations
-        .where((mutation) {
-          return mutation['entity_table']?.toString() == 'purchase_items' &&
-              mutation['operation']?.toString() == 'insert';
-        })
-        .map((mutation) => mutation['entity_id']?.toString().trim())
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-
-    final existingPurchaseIds = <String>{};
-    final existingPurchaseItemIds = <String>{};
-
-    if (purchaseInsertIds.isNotEmpty) {
-      final rows = await _client
-          .from('purchases')
-          .select('id')
-          .eq('business_id', businessId)
-          .inFilter('id', purchaseInsertIds);
-
-      for (final row in rows) {
-        final data = Map<String, dynamic>.from(row as Map);
-        final id = data['id']?.toString().trim();
-
-        if (id != null && id.isNotEmpty) {
-          existingPurchaseIds.add(id);
-        }
-      }
-    }
-
-    if (purchaseItemInsertIds.isNotEmpty) {
-      final rows = await _client
-          .from('purchase_items')
-          .select('id')
-          .eq('business_id', businessId)
-          .inFilter('id', purchaseItemInsertIds);
-
-      for (final row in rows) {
-        final data = Map<String, dynamic>.from(row as Map);
-        final id = data['id']?.toString().trim();
-
-        if (id != null && id.isNotEmpty) {
-          existingPurchaseItemIds.add(id);
-        }
-      }
-    }
-
-    if (existingPurchaseIds.isEmpty && existingPurchaseItemIds.isEmpty) {
-      return localMutations;
-    }
-
-    return localMutations.where((mutation) {
-      final entityTable = mutation['entity_table']?.toString();
-      final operation = mutation['operation']?.toString();
-      final entityId = mutation['entity_id']?.toString().trim();
-
-      if (operation != 'insert' || entityId == null || entityId.isEmpty) {
-        return true;
-      }
-
-      if (entityTable == 'purchases' &&
-          existingPurchaseIds.contains(entityId)) {
-        return false;
-      }
-
-      if (entityTable == 'purchase_items' &&
-          existingPurchaseItemIds.contains(entityId)) {
-        return false;
-      }
-
-      return true;
-    }).toList();
   }
 }

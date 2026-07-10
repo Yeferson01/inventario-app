@@ -121,12 +121,6 @@ class PurchasesSyncRemoteDataSource {
     );
   }
 
-  Future<bool> allPurchaseMutationEntitiesAlreadyExist({
-    required List<Map<String, dynamic>> localMutations,
-  }) {
-    return _allPurchaseMutationEntitiesExist(localMutations);
-  }
-
   Future<bool> duplicatePurchasesConflictsAreIdempotent({
     required String serverBatchId,
     required List<Map<String, dynamic>> localMutations,
@@ -304,100 +298,5 @@ class PurchasesSyncRemoteDataSource {
     }
 
     return result;
-  }
-
-  Future<List<Map<String, dynamic>>>
-      _filterAlreadyExistingPurchaseEntityInserts({
-    required String businessId,
-    required List<Map<String, dynamic>> localMutations,
-  }) async {
-    if (localMutations.isEmpty) {
-      return localMutations;
-    }
-
-    final purchaseInsertIds = localMutations
-        .where((mutation) {
-          return mutation['entity_table']?.toString() == 'purchases' &&
-              mutation['operation']?.toString() == 'insert';
-        })
-        .map((mutation) => mutation['entity_id']?.toString().trim())
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-
-    final purchaseItemInsertIds = localMutations
-        .where((mutation) {
-          return mutation['entity_table']?.toString() == 'purchase_items' &&
-              mutation['operation']?.toString() == 'insert';
-        })
-        .map((mutation) => mutation['entity_id']?.toString().trim())
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-
-    final existingPurchaseIds = <String>{};
-    final existingPurchaseItemIds = <String>{};
-
-    if (purchaseInsertIds.isNotEmpty) {
-      final rows = await _client
-          .from('purchases')
-          .select('id')
-          .eq('business_id', businessId)
-          .inFilter('id', purchaseInsertIds);
-
-      for (final row in rows) {
-        final data = Map<String, dynamic>.from(row as Map);
-        final id = data['id']?.toString().trim();
-
-        if (id != null && id.isNotEmpty) {
-          existingPurchaseIds.add(id);
-        }
-      }
-    }
-
-    if (purchaseItemInsertIds.isNotEmpty) {
-      final rows = await _client
-          .from('purchase_items')
-          .select('id')
-          .eq('business_id', businessId)
-          .inFilter('id', purchaseItemInsertIds);
-
-      for (final row in rows) {
-        final data = Map<String, dynamic>.from(row as Map);
-        final id = data['id']?.toString().trim();
-
-        if (id != null && id.isNotEmpty) {
-          existingPurchaseItemIds.add(id);
-        }
-      }
-    }
-
-    if (existingPurchaseIds.isEmpty && existingPurchaseItemIds.isEmpty) {
-      return localMutations;
-    }
-
-    return localMutations.where((mutation) {
-      final entityTable = mutation['entity_table']?.toString();
-      final operation = mutation['operation']?.toString();
-      final entityId = mutation['entity_id']?.toString().trim();
-
-      if (operation != 'insert' || entityId == null || entityId.isEmpty) {
-        return true;
-      }
-
-      if (entityTable == 'purchases' &&
-          existingPurchaseIds.contains(entityId)) {
-        return false;
-      }
-
-      if (entityTable == 'purchase_items' &&
-          existingPurchaseItemIds.contains(entityId)) {
-        return false;
-      }
-
-      return true;
-    }).toList();
   }
 }

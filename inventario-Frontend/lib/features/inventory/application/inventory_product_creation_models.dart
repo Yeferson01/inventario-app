@@ -142,6 +142,77 @@ class PendingCatalogSyncMutationDraft {
   }
 }
 
+class CreateManualLocalProductInput {
+  const CreateManualLocalProductInput({
+    required this.businessId,
+    required this.name,
+    required this.purchasePrice,
+    required this.salePrice,
+    this.branchId,
+    this.profileId,
+    this.appDeviceId,
+    this.deviceInstallationId,
+    this.barcode,
+    this.categoryId,
+    this.description,
+    this.unit,
+    this.clientSequenceStart = 1,
+  });
+
+  final String businessId;
+  final String? branchId;
+  final String? profileId;
+  final String? appDeviceId;
+  final String? deviceInstallationId;
+
+  final String name;
+  final String? barcode;
+  final double purchasePrice;
+  final double salePrice;
+  final String? categoryId;
+  final String? description;
+  final String? unit;
+
+  final int clientSequenceStart;
+}
+
+class CreatedManualLocalProductResult {
+  const CreatedManualLocalProductResult({
+    required this.productId,
+    required this.businessId,
+    required this.name,
+    required this.productPayload,
+    required this.pendingMutations,
+    this.barcode,
+    this.barcodeNormalized,
+    this.businessBarcodePayload,
+  });
+
+  final String productId;
+  final String businessId;
+  final String name;
+  final String? barcode;
+  final String? barcodeNormalized;
+
+  final Map<String, dynamic> productPayload;
+  final Map<String, dynamic>? businessBarcodePayload;
+  final List<PendingCatalogSyncMutationDraft> pendingMutations;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'product_id': productId,
+      'business_id': businessId,
+      'name': name,
+      'barcode': barcode,
+      'barcode_normalized': barcodeNormalized,
+      'product_payload': productPayload,
+      'business_barcode_payload': businessBarcodePayload,
+      'pending_mutations':
+          pendingMutations.map((item) => item.toJson()).toList(),
+    };
+  }
+}
+
 class CreatedLocalProductResult {
   const CreatedLocalProductResult({
     required this.productId,

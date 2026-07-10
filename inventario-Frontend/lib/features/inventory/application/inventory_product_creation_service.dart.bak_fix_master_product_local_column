@@ -372,128 +372,11 @@ class InventoryProductCreationService {
     return mutations;
   }
 
-  Future<Set<String>> _inventoryLocalTableColumnNames(
-    String tableName,
-  ) async {
-    const allowedTables = {
-      'products',
-      'purchases',
-      'purchase_items',
-      'local_product_barcodes',
-    };
-
-    if (!allowedTables.contains(tableName)) {
-      throw ArgumentError.value(tableName, 'tableName', 'Tabla no permitida');
-    }
-
-    final rows = await _db
-        .customSelect(
-          'pragma table_info($tableName)',
-        )
-        .get();
-
-    return rows
-        .map((row) => row.data['name']?.toString())
-        .whereType<String>()
-        .where((name) => name.trim().isNotEmpty)
-        .toSet();
-  }
-
   Future<List<String>> getManualProductIdsUsedByUnsyncedPurchases({
     required String businessId,
     required String branchId,
     int limit = 100,
   }) async {
-    final productColumns = await _inventoryLocalTableColumnNames('products');
-    final purchaseColumns = await _inventoryLocalTableColumnNames('purchases');
-    final itemColumns = await _inventoryLocalTableColumnNames('purchase_items');
-
-    final whereParts = <String>[];
-    final variables = <Variable>[];
-
-    whereParts.add('pi.business_id = ?');
-    variables.add(Variable<String>(businessId));
-
-    if (itemColumns.contains('branch_id')) {
-      whereParts.add('pi.branch_id = ?');
-      variables.add(Variable<String>(branchId));
-    }
-
-    if (itemColumns.contains('deleted_at')) {
-      whereParts.add('pi.deleted_at is null');
-    }
-
-    if (purchaseColumns.contains('deleted_at')) {
-      whereParts.add('p.deleted_at is null');
-    }
-
-    if (productColumns.contains('deleted_at')) {
-      whereParts.add('pr.deleted_at is null');
-    }
-
-    // En algunas versiones del SQLite local products todavía no tiene
-    // master_product_id. Si existe, filtramos solo productos manuales.
-    // Si no existe, no lo referenciamos para evitar "no such column".
-    if (productColumns.contains('master_product_id')) {
-      whereParts.add(
-        "trim(coalesce(cast(pr.master_product_id as text), '')) = ''",
-      );
-    }
-
-    final pendingParts = <String>[];
-
-    void addPendingStatusCondition(
-      Set<String> columns,
-      String alias,
-      String columnName,
-    ) {
-      if (columns.contains(columnName)) {
-        pendingParts.add(
-          "coalesce(cast($alias.$columnName as text), '0') "
-          "not in ('0', 'synced')",
-        );
-      }
-    }
-
-    void addDirtyLocalStatusCondition(
-      Set<String> columns,
-      String alias,
-      String columnName,
-    ) {
-      if (columns.contains(columnName)) {
-        pendingParts.add(
-          "coalesce(cast($alias.$columnName as text), '') != 'synced'",
-        );
-      }
-    }
-
-    addPendingStatusCondition(productColumns, 'pr', 'sync_status');
-    addDirtyLocalStatusCondition(productColumns, 'pr', 'local_status');
-
-    if (productColumns.contains('last_synced_at')) {
-      pendingParts.add(
-        "coalesce(cast(pr.last_synced_at as text), '') = ''",
-      );
-    }
-
-    addPendingStatusCondition(purchaseColumns, 'p', 'sync_status');
-    addPendingStatusCondition(itemColumns, 'pi', 'sync_status');
-
-    addDirtyLocalStatusCondition(purchaseColumns, 'p', 'local_status');
-    addDirtyLocalStatusCondition(itemColumns, 'pi', 'local_status');
-
-    if (pendingParts.isEmpty) {
-      return const <String>[];
-    }
-
-    whereParts.add('(${pendingParts.join(' or ')})');
-
-    final orderBy = itemColumns.contains('created_at')
-        ? 'pi.created_at asc'
-        : 'pi.product_id asc';
-
-    variables.add(Variable<int>(limit));
-
     final rows = await _db.customSelect(
       '''
       select distinct pi.product_id as product_id
@@ -503,11 +386,29 @@ class InventoryProductCreationService {
       join products pr
         on pr.id = pi.product_id
        and pr.business_id = pi.business_id
-      where ${whereParts.join('\n        and ')}
-      order by $orderBy
+      where pi.business_id = ?
+        and pi.branch_id = ?
+        and pi.deleted_at is null
+        and p.deleted_at is null
+        and pr.deleted_at is null
+        and trim(coalesce(cast(pr.master_product_id as text), '')) = ''
+        and (
+          coalesce(cast(pr.sync_status as text), '0') not in ('0', 'synced')
+          or coalesce(cast(pr.local_status as text), '') != 'synced'
+          or coalesce(cast(pr.last_synced_at as text), '') = ''
+          or coalesce(cast(p.sync_status as text), '0') not in ('0', 'synced')
+          or coalesce(cast(pi.sync_status as text), '0') not in ('0', 'synced')
+          or coalesce(cast(p.local_status as text), '') != 'synced'
+          or coalesce(cast(pi.local_status as text), '') != 'synced'
+        )
+      order by pi.created_at asc
       limit ?
       ''',
-      variables: variables,
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        Variable<int>(limit),
+      ],
     ).get();
 
     return rows
@@ -609,8 +510,8 @@ class InventoryProductCreationService {
       'description': _string(product['description']),
       'purchase_price': _double(product['purchase_price']) ?? 0,
       'sale_price': _double(product['sale_price']) ?? 0,
-      'stock_quantity': _intOrDefault(product['stock_quantity'], 0),
-      'minimum_stock': _intOrDefault(product['minimum_stock'], 0),
+      'stock_quantity': _double(product['stock_quantity']) ?? 0,
+      'minimum_stock': _double(product['minimum_stock']) ?? 0,
       'unit': _string(product['unit']) ?? 'unidad',
       'status': _string(product['status']) ?? 'active',
       'simple_category': _string(product['simple_category']),

@@ -1,23 +1,35 @@
 import '../../../core/logging/app_logger.dart';
-import '../data/datasources/catalog_sync_remote_datasource.dart';
+import '../../cash/data/datasources/cash_session_local_dao.dart';
+import '../../sales/data/datasources/pos_local_sale_dao.dart';
+import '../data/datasources/pos_sync_remote_datasource.dart';
 import '../data/models/catalog_upload_models.dart';
 import 'local_sync_outbox_service.dart';
 
-class CatalogSyncUploadService {
-  CatalogSyncUploadService({
+class PosSyncUploadService {
+  PosSyncUploadService({
     required LocalSyncOutboxService outboxService,
-    required CatalogSyncRemoteDataSource remoteDataSource,
+    required PosSyncRemoteDataSource remoteDataSource,
+    required PosLocalSaleDao posLocalSaleDao,
+    required CashSessionLocalDao cashSessionLocalDao,
   })  : _outboxService = outboxService,
-        _remoteDataSource = remoteDataSource;
+        _remoteDataSource = remoteDataSource,
+        _posLocalSaleDao = posLocalSaleDao,
+        _cashSessionLocalDao = cashSessionLocalDao;
 
   final LocalSyncOutboxService _outboxService;
-  final CatalogSyncRemoteDataSource _remoteDataSource;
+  final PosSyncRemoteDataSource _remoteDataSource;
+  final CashSessionLocalDao _cashSessionLocalDao;
+  final PosLocalSaleDao _posLocalSaleDao;
 
-  Future<CatalogUploadRunResult> uploadPendingCatalogBatches({
+  Future<CatalogUploadRunResult> uploadPendingPosBatches({
     required String businessId,
     int batchLimit = 10,
   }) async {
-    final pendingBatches = await _outboxService.getPendingCatalogBatches(
+    await _posLocalSaleDao.reconcileCompletedPosSalesFromOutbox(
+      businessId: businessId,
+    );
+
+    final pendingBatches = await _outboxService.getPendingPosBatches(
       businessId: businessId,
       limit: batchLimit,
     );
@@ -32,12 +44,14 @@ class CatalogSyncUploadService {
       final localBatchId = _requiredString(batch, 'id');
 
       try {
+        await _assertCashReadyForPosBatch(batch);
+
         await _outboxService.markBatchUploading(localBatchId);
 
         final mutations =
             await _outboxService.getMutationsForBatch(localBatchId);
 
-        final result = await _remoteDataSource.uploadAndProcessCatalogBatch(
+        final result = await _remoteDataSource.uploadAndProcessPosBatch(
           localBatch: batch,
           localMutations: mutations,
         );
@@ -45,28 +59,21 @@ class CatalogSyncUploadService {
         uploaded++;
         mutationsUploaded += result.mutationCount;
 
-        final duplicateConflictsAreIdempotent = !result.completed &&
-            await _remoteDataSource.duplicateCatalogConflictsAreIdempotent(
-              serverBatchId: result.serverBatchId,
-            );
-
-        if (result.completed || duplicateConflictsAreIdempotent) {
+        if (result.completed) {
           completed++;
 
           await _outboxService.markBatchCompleted(
             localBatchId: localBatchId,
             serverSyncBatchId: result.serverBatchId,
             appliedCount: result.appliedCount,
-            skippedCount: result.skippedCount +
-                (duplicateConflictsAreIdempotent ? result.conflictCount : 0),
-            conflictCount:
-                duplicateConflictsAreIdempotent ? 0 : result.conflictCount,
-            errorCount: duplicateConflictsAreIdempotent ? 0 : result.errorCount,
+            skippedCount: result.skippedCount,
+            conflictCount: result.conflictCount,
+            errorCount: result.errorCount,
           );
 
-          await _markBatchMutationsApplied(
-            mutations: mutations,
-          );
+          await _markBatchMutationsApplied(mutations: mutations);
+
+          await _markLocalPosEntitiesSynced(mutations: mutations);
         } else {
           partial++;
 
@@ -86,8 +93,8 @@ class CatalogSyncUploadService {
         }
 
         AppLogger.info(
-          'Catalog batch uploaded: local=$localBatchId '
-          'server=${result.serverBatchId} status=${duplicateConflictsAreIdempotent ? 'completed_idempotent_duplicate' : result.status}',
+          'POS batch uploaded: local=$localBatchId '
+          'server=${result.serverBatchId} status=${result.status}',
         );
       } catch (error, stackTrace) {
         failed++;
@@ -98,7 +105,7 @@ class CatalogSyncUploadService {
         );
 
         AppLogger.error(
-          'Catalog batch upload failed: $localBatchId',
+          'POS batch upload failed: $localBatchId',
           error: error,
           stackTrace: stackTrace,
         );
@@ -115,14 +122,56 @@ class CatalogSyncUploadService {
     );
   }
 
+  Future<void> _assertCashReadyForPosBatch(
+    Map<String, dynamic> batch,
+  ) async {
+    final businessId = _requiredString(batch, 'business_id');
+    final branchId = _requiredString(batch, 'branch_id');
+
+    final summary = await _cashSessionLocalDao.getPosCashReadinessSummary(
+      businessId: businessId,
+      branchId: branchId,
+    );
+
+    final blockedReason = summary['pos_upload_blocked_reason'];
+
+    if (blockedReason != null && blockedReason.toString().trim().isNotEmpty) {
+      throw StateError(
+        'Upload POS bloqueado: ${blockedReason.toString()}',
+      );
+    }
+  }
+
+  Future<void> _markLocalPosEntitiesSynced({
+    required List<Map<String, dynamic>> mutations,
+  }) async {
+    final saleIds = <String>{};
+
+    for (final mutation in mutations) {
+      final entityTable = mutation['entity_table']?.toString();
+
+      if (entityTable == 'sales') {
+        final saleId = mutation['entity_id']?.toString();
+
+        if (saleId != null && saleId.trim().isNotEmpty) {
+          saleIds.add(saleId);
+        }
+      }
+    }
+
+    for (final saleId in saleIds) {
+      await _posLocalSaleDao.markSaleAndChildrenSyncedAfterPosUpload(
+        saleId: saleId,
+      );
+    }
+  }
+
   Future<void> _markBatchMutationsApplied({
     required List<Map<String, dynamic>> mutations,
   }) async {
     for (final mutation in mutations) {
-      final localMutationId = _requiredString(mutation, 'id');
-
       await _outboxService.markMutationApplied(
-        localMutationId: localMutationId,
+        localMutationId: _requiredString(mutation, 'id'),
       );
     }
   }
@@ -133,13 +182,11 @@ class CatalogSyncUploadService {
   }) async {
     if (result.conflictCount > 0) {
       for (final mutation in mutations) {
-        final localMutationId = _requiredString(mutation, 'id');
-
         await _outboxService.markMutationConflict(
-          localMutationId: localMutationId,
-          errorCode: 'remote_batch_partial',
+          localMutationId: _requiredString(mutation, 'id'),
+          errorCode: 'remote_pos_batch_partial',
           errorMessage:
-              'El batch remoto quedó partial. Revisar sync_conflicts en servidor.',
+              'El batch remoto POS quedó partial. Revisar sync_conflicts en servidor.',
         );
       }
 
@@ -148,12 +195,10 @@ class CatalogSyncUploadService {
 
     if (result.errorCount > 0) {
       for (final mutation in mutations) {
-        final localMutationId = _requiredString(mutation, 'id');
-
         await _outboxService.markMutationError(
-          localMutationId: localMutationId,
-          errorCode: 'remote_batch_error',
-          error: 'El batch remoto reportó errores.',
+          localMutationId: _requiredString(mutation, 'id'),
+          errorCode: 'remote_pos_batch_error',
+          error: 'El batch remoto POS reportó errores.',
         );
       }
 

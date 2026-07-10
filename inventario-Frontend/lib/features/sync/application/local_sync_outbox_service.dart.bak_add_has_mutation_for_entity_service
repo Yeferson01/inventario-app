@@ -157,20 +157,6 @@ class LocalSyncOutboxService {
     return _dao.getMutationsForBatch(localBatchId);
   }
 
-  Future<bool> hasMutationForEntity({
-    required String businessId,
-    required String domain,
-    required String entityTable,
-    required String entityId,
-  }) {
-    return _dao.hasMutationForEntity(
-      businessId: businessId,
-      domain: domain,
-      entityTable: entityTable,
-      entityId: entityId,
-    );
-  }
-
   Future<int> countPendingMutations({
     required String businessId,
     String? domain,

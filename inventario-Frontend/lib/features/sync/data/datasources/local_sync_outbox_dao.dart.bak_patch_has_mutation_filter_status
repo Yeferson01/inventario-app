@@ -172,24 +172,8 @@ class LocalSyncOutboxDao {
       on conflict(idempotency_key) do update set
         local_sync_batch_id = excluded.local_sync_batch_id,
         client_batch_id = excluded.client_batch_id,
-        client_sequence = excluded.client_sequence,
-        business_id = excluded.business_id,
-        branch_id = excluded.branch_id,
-        app_device_id = excluded.app_device_id,
-        profile_id = excluded.profile_id,
-        entity_table = excluded.entity_table,
-        entity_id = excluded.entity_id,
-        operation = excluded.operation,
-        payload_json = excluded.payload_json,
-        before_payload_json = excluded.before_payload_json,
-        changed_fields_json = excluded.changed_fields_json,
-        base_version = excluded.base_version,
-        base_updated_at = excluded.base_updated_at,
         status = excluded.status,
         retry_count = local_sync_mutations.retry_count,
-        metadata_json = excluded.metadata_json,
-        last_error = null,
-        error_code = null,
         updated_at = excluded.updated_at
       ''',
       [
@@ -280,16 +264,7 @@ class LocalSyncOutboxDao {
         and b.domain = ?
         and m.entity_table = ?
         and m.entity_id = ?
-        and (
-          (
-            b.status in ('pending', 'uploading')
-            and m.status in ('pending', 'error')
-          )
-          or (
-            b.status = 'completed'
-            and m.status = 'applied'
-          )
-        )
+        and m.status in ('pending', 'error')
       limit 1
       ''',
       variables: [
