@@ -197,3 +197,17 @@ dist
 *.iml
 .DS_Store
 Thumbs.db
+
+# Temporary patch/backup files
+*.bak
+*.bak*
+*.back
+*.back*
+*.backup
+*.tmp
+patch_*.py
+fix_*.py
+restore_*.py
+force_*.py
+*_patch.py
+*_fix.py

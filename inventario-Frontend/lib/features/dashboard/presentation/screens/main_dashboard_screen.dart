@@ -8,6 +8,7 @@ import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
+import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sales/presentation/sales_presentation.dart';
 
 class MainDashboardScreen extends ConsumerStatefulWidget {
@@ -136,6 +137,48 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     await _load();
   }
 
+  Future<void> _openPurchases() async {
+    final appContext = _appContext;
+
+    if (appContext == null) {
+      _showInfoSheet(
+        title: 'Falta contexto',
+        message: 'Selecciona un negocio y una sucursal antes de abrir compras.',
+      );
+      return;
+    }
+
+    final branchId = appContext.branchId;
+    final profileId = appContext.profileId;
+
+    if (branchId == null || profileId == null) {
+      _showInfoSheet(
+        title: 'Contexto incompleto',
+        message:
+            'Compras necesita negocio, sucursal y perfil operativo activo.',
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PurchaseEntryScreen(
+          businessId: appContext.businessId,
+          branchId: branchId,
+          profileId: profileId,
+          appDeviceId: appContext.appDeviceId,
+          deviceInstallationId: appContext.installationId,
+        ),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await _load();
+  }
+
   void _openPosGate() {
     final appContext = _appContext;
 
@@ -197,20 +240,24 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     Navigator.of(context)
         .push(
-          MaterialPageRoute<void>(
-            builder: (_) => PosSaleScreen(
-              businessId: appContext.businessId,
-              branchId: branchId,
-              profileId: profileId,
-              appDeviceId: appContext.appDeviceId,
-              deviceInstallationId: appContext.installationId,
-              cashRegisterId: activeCashRegisterId,
-              cashSessionId: activeCashSessionId,
-              cashRegisterName: _string(_cashSummary?['cash_register_name']),
-            ),
-          ),
-        )
-        .then((_) => _load());
+      MaterialPageRoute<void>(
+        builder: (_) => PosSaleScreen(
+          businessId: appContext.businessId,
+          branchId: branchId,
+          profileId: profileId,
+          appDeviceId: appContext.appDeviceId,
+          deviceInstallationId: appContext.installationId,
+          cashRegisterId: activeCashRegisterId,
+          cashSessionId: activeCashSessionId,
+          cashRegisterName: _string(_cashSummary?['cash_register_name']),
+        ),
+      ),
+    )
+        .then((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   void _showInfoSheet({
@@ -305,6 +352,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                         cashReadiness: _cashReadiness,
                         onOpenCash: _openCashDashboard,
                         onOpenPos: _openPosGate,
+                        onOpenPurchases: _openPurchases,
                         onComingSoon: _showInfoSheet,
                       ),
                     ),
@@ -482,6 +530,7 @@ class _ModulesGrid extends StatelessWidget {
     required this.cashReadiness,
     required this.onOpenCash,
     required this.onOpenPos,
+    required this.onOpenPurchases,
     required this.onComingSoon,
   });
 
@@ -490,6 +539,7 @@ class _ModulesGrid extends StatelessWidget {
   final Map<String, dynamic>? cashReadiness;
   final VoidCallback onOpenCash;
   final VoidCallback onOpenPos;
+  final VoidCallback onOpenPurchases;
   final void Function({
     required String title,
     required String message,
@@ -569,14 +619,9 @@ class _ModulesGrid extends StatelessWidget {
             CronosColors.accent,
           ],
         ),
-        statusLabel: 'Backend listo',
-        statusTone: AppStatusTone.info,
-        onTap: () {
-          onComingSoon(
-            title: 'Compras',
-            message: 'La UI de compras se conectará después de inventario.',
-          );
-        },
+        statusLabel: 'Operativo local',
+        statusTone: AppStatusTone.success,
+        onTap: onOpenPurchases,
       ),
       _DashboardModule(
         title: 'Movimientos',

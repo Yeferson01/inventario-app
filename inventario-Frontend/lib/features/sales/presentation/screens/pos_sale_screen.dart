@@ -544,15 +544,18 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
       var available = item.quantityAvailable;
 
       try {
-        final stockBalance = await ref.read(
-          localProductStockBalanceProvider(
-            ProductStockBalanceKey(
+        final stockDao = ref.read(productStockBalanceLocalDaoProvider);
+
+        final stockBalance = await stockDao
+            .getProductBalance(
               businessId: widget.businessId,
               branchId: widget.branchId,
               productId: item.productId,
-            ),
-          ).future,
-        );
+            )
+            .timeout(
+              const Duration(seconds: 2),
+              onTimeout: () => null,
+            );
 
         if (stockBalance != null) {
           available = _int(stockBalance['quantity_available']);
@@ -892,8 +895,15 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
       final restoredPreviousCart = _isQuickSaleMode && _parkedCartItems != null;
 
+      String? quickSaleRestoreMessage;
+
       if (restoredPreviousCart) {
-        await _restoreParkedSaleDraft();
+        quickSaleRestoreMessage = await _restoreParkedSaleDraft().timeout(
+          const Duration(seconds: 4),
+          onTimeout: () {
+            return 'Venta registrada. El carrito anterior no se pudo refrescar automáticamente; vuelve a POS para continuar.';
+          },
+        );
       } else {
         _resetSaleDraft();
       }
@@ -914,7 +924,7 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
               '$enqueuedMutations mutación(es).\n\n'
               'La subida a Supabase no se hace inmediatamente. '
               'Se ejecutará a las 11:00, a las 23:00 o al cierre de caja.'
-              '${restoredPreviousCart ? '\n\nSe restauró el carrito anterior.' : ''}',
+              '${quickSaleRestoreMessage != null ? '\n\n$quickSaleRestoreMessage' : ''}',
             ),
             actions: [
               FilledButton(
