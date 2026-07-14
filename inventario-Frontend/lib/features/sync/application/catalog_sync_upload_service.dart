@@ -1,0 +1,175 @@
+import '../../../core/logging/app_logger.dart';
+import '../data/datasources/catalog_sync_remote_datasource.dart';
+import '../data/models/catalog_upload_models.dart';
+import 'local_sync_outbox_service.dart';
+
+class CatalogSyncUploadService {
+  CatalogSyncUploadService({
+    required LocalSyncOutboxService outboxService,
+    required CatalogSyncRemoteDataSource remoteDataSource,
+  })  : _outboxService = outboxService,
+        _remoteDataSource = remoteDataSource;
+
+  final LocalSyncOutboxService _outboxService;
+  final CatalogSyncRemoteDataSource _remoteDataSource;
+
+  Future<CatalogUploadRunResult> uploadPendingCatalogBatches({
+    required String businessId,
+    int batchLimit = 10,
+  }) async {
+    final pendingBatches = await _outboxService.getPendingCatalogBatches(
+      businessId: businessId,
+      limit: batchLimit,
+    );
+
+    var uploaded = 0;
+    var completed = 0;
+    var partial = 0;
+    var failed = 0;
+    var mutationsUploaded = 0;
+
+    for (final batch in pendingBatches) {
+      final localBatchId = _requiredString(batch, 'id');
+
+      try {
+        await _outboxService.markBatchUploading(localBatchId);
+
+        final mutations =
+            await _outboxService.getMutationsForBatch(localBatchId);
+
+        final result = await _remoteDataSource.uploadAndProcessCatalogBatch(
+          localBatch: batch,
+          localMutations: mutations,
+        );
+
+        uploaded++;
+        mutationsUploaded += result.mutationCount;
+
+        final duplicateConflictsAreIdempotent = !result.completed &&
+            await _remoteDataSource.duplicateCatalogConflictsAreIdempotent(
+              serverBatchId: result.serverBatchId,
+            );
+
+        if (result.completed || duplicateConflictsAreIdempotent) {
+          completed++;
+
+          await _outboxService.markBatchCompleted(
+            localBatchId: localBatchId,
+            serverSyncBatchId: result.serverBatchId,
+            appliedCount: result.appliedCount,
+            skippedCount: result.skippedCount +
+                (duplicateConflictsAreIdempotent ? result.conflictCount : 0),
+            conflictCount:
+                duplicateConflictsAreIdempotent ? 0 : result.conflictCount,
+            errorCount: duplicateConflictsAreIdempotent ? 0 : result.errorCount,
+          );
+
+          await _markBatchMutationsApplied(
+            mutations: mutations,
+          );
+        } else {
+          partial++;
+
+          await _outboxService.markBatchPartial(
+            localBatchId: localBatchId,
+            serverSyncBatchId: result.serverBatchId,
+            appliedCount: result.appliedCount,
+            skippedCount: result.skippedCount,
+            conflictCount: result.conflictCount,
+            errorCount: result.errorCount,
+          );
+
+          await _markBatchMutationsPartial(
+            mutations: mutations,
+            result: result,
+          );
+        }
+
+        AppLogger.info(
+          'Catalog batch uploaded: local=$localBatchId '
+          'server=${result.serverBatchId} status=${duplicateConflictsAreIdempotent ? 'completed_idempotent_duplicate' : result.status}',
+        );
+      } catch (error, stackTrace) {
+        failed++;
+
+        await _outboxService.markBatchError(
+          localBatchId: localBatchId,
+          error: error,
+        );
+
+        AppLogger.error(
+          'Catalog batch upload failed: $localBatchId',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    return CatalogUploadRunResult(
+      batchesChecked: pendingBatches.length,
+      batchesUploaded: uploaded,
+      batchesCompleted: completed,
+      batchesPartial: partial,
+      batchesFailed: failed,
+      mutationsUploaded: mutationsUploaded,
+    );
+  }
+
+  Future<void> _markBatchMutationsApplied({
+    required List<Map<String, dynamic>> mutations,
+  }) async {
+    for (final mutation in mutations) {
+      final localMutationId = _requiredString(mutation, 'id');
+
+      await _outboxService.markMutationApplied(
+        localMutationId: localMutationId,
+      );
+    }
+  }
+
+  Future<void> _markBatchMutationsPartial({
+    required List<Map<String, dynamic>> mutations,
+    required CatalogUploadBatchResult result,
+  }) async {
+    if (result.conflictCount > 0) {
+      for (final mutation in mutations) {
+        final localMutationId = _requiredString(mutation, 'id');
+
+        await _outboxService.markMutationConflict(
+          localMutationId: localMutationId,
+          errorCode: 'remote_batch_partial',
+          errorMessage:
+              'El batch remoto quedó partial. Revisar sync_conflicts en servidor.',
+        );
+      }
+
+      return;
+    }
+
+    if (result.errorCount > 0) {
+      for (final mutation in mutations) {
+        final localMutationId = _requiredString(mutation, 'id');
+
+        await _outboxService.markMutationError(
+          localMutationId: localMutationId,
+          errorCode: 'remote_batch_error',
+          error: 'El batch remoto reportó errores.',
+        );
+      }
+
+      return;
+    }
+
+    await _markBatchMutationsApplied(mutations: mutations);
+  }
+
+  String _requiredString(Map<String, dynamic> source, String key) {
+    final value = source[key];
+
+    if (value == null || value.toString().trim().isEmpty) {
+      throw ArgumentError('Campo requerido ausente: $key');
+    }
+
+    return value.toString();
+  }
+}
