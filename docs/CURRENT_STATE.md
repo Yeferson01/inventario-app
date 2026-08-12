@@ -293,10 +293,12 @@ El próximo punto del roadmap es:
 
 **6.21 — Inventario operativo**
 
-La primera subfase que se estaba evaluando era el dashboard de inventario. Su
-diseño deberá partir de `local_product_stock_balances` y
-`local_inventory_movements`, no de `products.stock_quantity` como fuente de
-verdad. Este documento no diseña ni implementa esa fase.
+La ruta oficial de continuidad, documentada en [ROADMAP.md](ROADMAP.md), fija
+como siguiente punto **6.21.1 — Listado de productos con stock**. Esta UI final
+continúa pendiente. El listado deberá partir de
+`local_product_stock_balances`; `local_inventory_movements` conserva los
+movimientos y la trazabilidad, y `products.stock_quantity` no es el saldo
+operativo. Este documento no diseña ni implementa esa fase.
 
 ## Límites de esta fotografía
 
