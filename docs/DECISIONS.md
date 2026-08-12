@@ -1,0 +1,235 @@
+# Decisiones técnicas vigentes
+
+Este registro conserva decisiones arquitectónicas de CronosManagement y las
+distingue del estado implementado. No sustituye la fotografía factual de
+[CURRENT_STATE.md](CURRENT_STATE.md), la arquitectura de
+[ARCHITECTURE.md](ARCHITECTURE.md) ni las reglas operativas de
+[AGENTS.md](../AGENTS.md).
+
+## Formato
+
+- **Estado:** `vigente` cuando la decisión forma parte del contrato actual;
+  `zona no decidida` cuando solo se conoce la infraestructura o la deuda.
+- **Decisión:** regla que debe preservarse.
+- **Motivo:** necesidad que la origina.
+- **Consecuencias:** efectos y límites prácticos.
+
+### D-001 — Offline-first real
+
+**Estado:** vigente.
+
+**Decisión:** Drift/SQLite es la fuente local inmediata. Una operación que el
+dominio puede resolver localmente se escribe antes del upload, actualiza la UI
+desde local y usa IDs generados por el cliente. La sincronización ocurre después.
+
+**Motivo:** ventas, caja, compras y demás operaciones compatibles deben seguir
+funcionando durante pérdidas de conectividad.
+
+**Consecuencias:** la disponibilidad de internet no forma parte de la
+transacción local; estado local, outbox y estado remoto conservan
+responsabilidades separadas. Un dominio puede tener pasos de reconciliación
+propios sin dejar de ser offline-first.
+
+### D-002 — Supabase como backend central y servidor de sync
+
+**Estado:** vigente.
+
+**Decisión:** Supabase/Postgres es el servidor central para consolidación,
+seguridad multi-tenant, RPCs y procesamiento de sincronización. No debe
+convertirse en una dependencia sincrónica de cada acción local.
+
+**Motivo:** centralizar datos y políticas sin hacer que la operación cotidiana
+dependa de la red.
+
+**Consecuencias:** los accesos remotos se realizan mediante uploaders y pulls
+delimitados. Una consulta remota de soporte no reemplaza la lectura local
+operacional.
+
+### D-003 — Contexto multi-tenant por negocio y sucursal
+
+**Estado:** vigente.
+
+**Decisión:** `business` y `branch` son parte central del contexto operacional.
+Las operaciones que dependen de ubicación, en especial el inventario, se
+delimitan por sucursal.
+
+**Motivo:** un usuario puede operar en negocios o sucursales distintos, con
+datos, permisos, caja y existencias diferentes.
+
+**Consecuencias:** servicios, payloads, consultas y saldos deben recibir o
+resolver el contexto correcto. Un saldo de producto sin sucursal no representa
+el inventario operacional vigente.
+
+### D-004 — Frontera Presentation / Application / Data
+
+**Estado:** vigente.
+
+**Decisión:** la cadena de la UI final es
+`presentation → application → data`. Presentation recoge intención y muestra
+estado; Application implementa casos de uso y coordinación; Data contiene DAOs,
+repositorios y datasources.
+
+**Motivo:** mantener reglas de negocio, persistencia y transporte fuera de las
+pantallas y hacer reutilizables los flujos operacionales.
+
+**Consecuencias:** la UI final no implementa reglas de negocio ni accede
+directamente a DAOs/datasources, salvo un patrón ya establecido y expresamente
+autorizado para el caso. Una pantalla nueva debe reutilizar servicios/providers
+de Application antes de abrir otra vía de acceso a datos.
+
+### D-005 — Outbox común e identidad idempotente
+
+**Estado:** vigente.
+
+**Decisión:** `local_sync_batches` y `local_sync_mutations` son el outbox común.
+Client batch IDs, client mutation IDs, client sequences e idempotency keys
+identifican lógicamente los intentos. Un retry reutiliza la identidad de la
+operación que está reintentando.
+
+**Motivo:** tolerar interrupciones y respuestas parciales sin duplicar ventas,
+compras, pagos, inventario u otras entidades.
+
+**Consecuencias:** los uploaders por dominio comparten batches, mutations,
+estados, errores y contadores de retry. No se reemplaza este mecanismo ni se
+crea un outbox paralelo sin una decisión arquitectónica específica. Reintentar
+no significa generar una operación de negocio nueva.
+
+### D-006 — Borrado lógico para entidades de negocio
+
+**Estado:** vigente.
+
+**Decisión:** no se implementa hard delete para entidades de negocio sin una
+decisión específica. Se preservan soft delete y tombstones donde aplica el
+contrato.
+
+**Motivo:** mantener trazabilidad y permitir que eliminaciones se propaguen de
+forma segura entre dispositivos.
+
+**Consecuencias:** el filtrado de activos y el pull deben contemplar registros
+borrados lógicamente; una operación `delete` de sync no autoriza por sí misma un
+borrado físico.
+
+### D-007 — Catálogo y barcode lookup local-first
+
+**Estado:** vigente.
+
+**Decisión:** un escaneo normaliza el barcode y busca primero el producto local
+del negocio, luego el catálogo maestro local. Si no hay coincidencia puede
+crearse un producto manual siguiendo el flujo previsto. No se consulta
+Supabase por cada escaneo.
+
+**Motivo:** permitir búsqueda rápida y venta sin conectividad, evitando una
+petición remota por lectura.
+
+**Consecuencias:** el catálogo maestro se descarga y actualiza mediante pull; la
+creación y las contribuciones se sincronizan después. Los RPCs remotos de lookup
+son soporte o excepción, no la ruta operacional normal.
+
+### D-008 — Saldo y trazabilidad de inventario separados de Products
+
+**Estado:** vigente.
+
+**Decisión:** `local_product_stock_balances` contiene el saldo local operativo
+por negocio, sucursal y producto; `local_inventory_movements` contiene el
+ledger y su trazabilidad. `products.stock_quantity` es legacy y no es source of
+truth. `products.minimum_stock` es configuración, no saldo.
+
+**Motivo:** representar correctamente inventario por sucursal y explicar cada
+variación mediante movimientos.
+
+**Consecuencias:** ventas y compras afectan balances y movements mediante sus
+flujos existentes. No se crea un segundo sistema de stock ni se recupera
+`stock_quantity` como autoridad accidental. Los umbrales pueden leer
+`minimum_stock`, pero siempre los comparan con el saldo operacional.
+
+### D-009 — Ubicación vigente del POS
+
+**Estado:** vigente para el baseline actual.
+
+**Decisión:** el flujo POS operacional vive en `features/sales`.
+`features/pos` es un scaffold sin implementación operacional relevante y no se
+asume como destino automático de cambios.
+
+**Motivo:** documentar la realidad del código sin ejecutar una reorganización
+arquitectónica implícita.
+
+**Consecuencias:** los cambios del POS actual parten de `features/sales`. Mover
+responsabilidades a `features/pos` requiere una decisión explícita de
+reorganización.
+
+### D-010 — Caja como precondición operacional del POS
+
+**Estado:** vigente.
+
+**Decisión:** el POS aplica las reglas actuales de cash session: necesita el
+contexto de caja abierto y, para el upload, la preparación remota requerida por
+el uploader. El cierre visible sigue
+`cash → POS → cierre local → cash`.
+
+**Motivo:** asociar las ventas a una sesión válida y evitar cerrar caja dejando
+ventas locales pendientes antes del cierre remoto.
+
+**Consecuencias:** abrir, sincronizar y cerrar caja usan los servicios existentes.
+La secuencia visible de cierre no debe confundirse con el trigger de scheduled
+sync.
+
+### D-011 — E2E/debug es laboratorio
+
+**Estado:** vigente.
+
+**Decisión:** pantallas y servicios E2E/debug validan infraestructura y flujos
+controlados, pero no definen la UI final ni el diseño terminado del producto.
+
+**Motivo:** conservar herramientas de diagnóstico sin promover sus botones y
+atajos a contratos de presentación.
+
+**Consecuencias:** una capacidad demostrada en el laboratorio no se marca como
+UI final completada. La UI productiva usa servicios de Application y sus propias
+reglas de interacción.
+
+### D-012 — Sync automatizable y coordinado
+
+**Estado:** decisión vigente; cobertura implementada parcial.
+
+**Decisión:** un producto offline-first debe poder automatizar y coordinar la
+sincronización sin hacer depender la operación local de ella.
+
+**Motivo:** enviar cambios pendientes y refrescar datos sin exigir que cada
+acción del usuario gestione manualmente toda la sincronización.
+
+**Estado actual implementado:** `ScheduledSyncService` solo sube batches de
+catálogo y hace pull delta de catálogo. `AppSyncCoordinatorService` agrega el
+preflight, la verificación online, la preparación de runtime y el pull de
+contexto operacional antes de delegar. POS, purchases, cash e inventory no
+forman parte de esa cadena programada actual.
+
+**Consecuencias:** “solo catálogo” describe el baseline, no una decisión
+arquitectónica definitiva sobre el alcance futuro del scheduled sync.
+
+### D-013 — Conflictos de sincronización locales
+
+**Estado:** zona no decidida.
+
+**Hecho confirmado:** el backend implementa `sync_conflicts` y RPCs relacionados.
+El schema Drift 8 no contiene una tabla local equivalente.
+
+**Decisión pendiente:** no está confirmado qué modelo local o experiencia de UI
+debe representar y resolver conflictos.
+
+**Consecuencias:** no se inventa una tabla, servicio, política de resolución o
+UI local. La infraestructura remota existente no cierra esta decisión.
+
+### D-014 — Cambios autorizados del esquema Drift
+
+**Estado:** vigente.
+
+**Decisión:** `app_database.g.dart` es generado y no se edita manualmente.
+`build_runner` y la generación Drift se ejecutan cuando una modificación
+autorizada cambia el esquema.
+
+**Motivo:** mantener consistentes tablas, companions, migraciones y código
+generado.
+
+**Consecuencias:** un cambio real de tablas exige revisar `schemaVersion`, la
+estrategia de migración, regenerar y probar la base. Un cambio Dart que no
+altera tablas no obliga por sí mismo a incrementar `schemaVersion`.
