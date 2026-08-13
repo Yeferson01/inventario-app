@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/providers/database_provider.dart';
+import '../../../core/database/database_provider.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
 import '../data/datasources/catalog_local_dao.dart';
 import '../data/datasources/catalog_remote_datasource.dart';
