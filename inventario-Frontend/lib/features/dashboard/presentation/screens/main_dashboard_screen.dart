@@ -6,9 +6,10 @@ import '../../../../core/providers/device_provider.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
+import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
+import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
-import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sales/presentation/sales_presentation.dart';
 
 class MainDashboardScreen extends ConsumerStatefulWidget {
@@ -177,6 +178,39 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     }
 
     await _load();
+  }
+
+  Future<void> _openInventory() async {
+    final appContext = _appContext;
+
+    if (appContext == null) {
+      _showInfoSheet(
+        title: 'Falta contexto',
+        message:
+            'Selecciona un negocio y una sucursal antes de abrir inventario.',
+      );
+      return;
+    }
+
+    final businessId = appContext.businessId.trim();
+    final branchId = appContext.branchId?.trim();
+
+    if (businessId.isEmpty || branchId == null || branchId.isEmpty) {
+      _showInfoSheet(
+        title: 'Contexto incompleto',
+        message: 'Inventario necesita un negocio y una sucursal activos.',
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => InventoryProductStockListScreen(
+          businessId: businessId,
+          branchId: branchId,
+        ),
+      ),
+    );
   }
 
   void _openPosGate() {
@@ -352,6 +386,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                         cashReadiness: _cashReadiness,
                         onOpenCash: _openCashDashboard,
                         onOpenPos: _openPosGate,
+                        onOpenInventory: _openInventory,
                         onOpenPurchases: _openPurchases,
                         onComingSoon: _showInfoSheet,
                       ),
@@ -530,6 +565,7 @@ class _ModulesGrid extends StatelessWidget {
     required this.cashReadiness,
     required this.onOpenCash,
     required this.onOpenPos,
+    required this.onOpenInventory,
     required this.onOpenPurchases,
     required this.onComingSoon,
   });
@@ -539,6 +575,7 @@ class _ModulesGrid extends StatelessWidget {
   final Map<String, dynamic>? cashReadiness;
   final VoidCallback onOpenCash;
   final VoidCallback onOpenPos;
+  final VoidCallback onOpenInventory;
   final VoidCallback onOpenPurchases;
   final void Function({
     required String title,
@@ -597,17 +634,12 @@ class _ModulesGrid extends StatelessWidget {
       ),
       _DashboardModule(
         title: 'Inventario',
-        subtitle: 'Consultar stock, saldos y alertas.',
+        subtitle: 'Consultar stock operativo de la sucursal actual.',
         icon: Icons.inventory_2_outlined,
         gradient: CronosColors.warningGradient,
-        statusLabel: 'Base lista',
-        statusTone: AppStatusTone.warning,
-        onTap: () {
-          onComingSoon(
-            title: 'Inventario',
-            message: 'Conectaremos inventario después de POS.',
-          );
-        },
+        statusLabel: 'Operativo local',
+        statusTone: AppStatusTone.success,
+        onTap: onOpenInventory,
       ),
       _DashboardModule(
         title: 'Compras',

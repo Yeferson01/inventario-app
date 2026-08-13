@@ -112,8 +112,9 @@ class ProductStockBalanceLocalDao {
   Future<List<Map<String, dynamic>>> getProductsWithLocalStock({
     required String businessId,
     required String branchId,
-    int limit = 100,
+    int? limit = 100,
   }) async {
+    final limitClause = limit == null ? '' : 'limit ?';
     final rows = await _db.customSelect(
       '''
       select
@@ -141,13 +142,13 @@ class ProductStockBalanceLocalDao {
       where p.business_id = ?
         and p.deleted_at is null
       order by lower(p.name) asc
-      limit ?
+      $limitClause
       ''',
       variables: [
         Variable<String>(branchId),
         Variable<String>(branchId),
         Variable<String>(businessId),
-        Variable<int>(limit),
+        if (limit != null) Variable<int>(limit),
       ],
       readsFrom: {
         _db.products,
@@ -161,8 +162,10 @@ class ProductStockBalanceLocalDao {
   Stream<List<Map<String, dynamic>>> watchProductsWithLocalStock({
     required String businessId,
     required String branchId,
-    int limit = 100,
+    int? limit = 100,
   }) {
+    final limitClause = limit == null ? '' : 'limit ?';
+
     return _db
         .customSelect(
           '''
@@ -191,13 +194,13 @@ class ProductStockBalanceLocalDao {
           where p.business_id = ?
             and p.deleted_at is null
           order by lower(p.name) asc
-          limit ?
+          $limitClause
           ''',
           variables: [
             Variable<String>(branchId),
             Variable<String>(branchId),
             Variable<String>(businessId),
-            Variable<int>(limit),
+            if (limit != null) Variable<int>(limit),
           ],
           readsFrom: {
             _db.products,

@@ -42,7 +42,7 @@ class ProductsWithLocalStockKey {
 
   final String businessId;
   final String branchId;
-  final int limit;
+  final int? limit;
 
   @override
   bool operator ==(Object other) {
