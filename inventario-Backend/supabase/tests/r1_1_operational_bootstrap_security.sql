@@ -377,7 +377,8 @@ do $$
 begin
   begin
     perform public.ensure_business_runtime_setup(
-      'f1000000-0000-0000-0000-000000000002'
+      'f1000000-0000-0000-0000-000000000002',
+      'f1000000-0000-0000-0000-000000000021'
     );
     raise exception 'Case 11 failed: cashier created administrative runtime';
   exception
