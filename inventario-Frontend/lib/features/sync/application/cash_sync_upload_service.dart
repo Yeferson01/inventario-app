@@ -19,6 +19,7 @@ class CashSyncUploadService {
 
   Future<CatalogUploadRunResult> uploadPendingCashBatches({
     required String businessId,
+    String? branchId,
     int batchLimit = 10,
   }) async {
     await _cashSessionLocalDao.deleteOrphanCashOutboxBatches(
@@ -35,6 +36,7 @@ class CashSyncUploadService {
 
     final pendingBatches = await _outboxService.getPendingCashBatches(
       businessId: businessId,
+      branchId: branchId,
       limit: batchLimit,
     );
 

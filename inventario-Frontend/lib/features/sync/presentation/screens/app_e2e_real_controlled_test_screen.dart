@@ -362,6 +362,7 @@ class _AppE2ERealControlledTestScreenState
         final uploaded =
             await inventoryUploadService.uploadPendingInventoryBatches(
           businessId: businessId,
+          branchId: branchId,
           batchLimit: 10,
         );
 
@@ -448,6 +449,7 @@ class _AppE2ERealControlledTestScreenState
 
       final uploadResult = await posUploadService.uploadPendingPosBatches(
         businessId: businessId,
+        branchId: branchId,
         batchLimit: 10,
       );
 
@@ -752,6 +754,7 @@ class _AppE2ERealControlledTestScreenState
 
       final uploadResult = await cashUploadService.uploadPendingCashBatches(
         businessId: businessId,
+        branchId: branchId,
         batchLimit: 10,
       );
 
@@ -1393,6 +1396,7 @@ class _AppE2ERealControlledTestScreenState
       final uploadResult =
           await purchasesUploadService.uploadPendingPurchasesBatches(
         businessId: businessId,
+        branchId: branchId,
         batchLimit: 10,
       );
 

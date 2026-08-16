@@ -223,13 +223,16 @@ class LocalSyncOutboxDao {
   Future<List<Map<String, dynamic>>> getPendingBatches({
     required String businessId,
     String? domain,
+    String? branchId,
     int limit = 20,
   }) async {
     final whereDomain = domain == null ? '' : 'and domain = ?';
+    final whereBranch = branchId == null ? '' : 'and branch_id = ?';
 
     final variables = <Variable>[
       Variable<String>(businessId),
       if (domain != null) Variable<String>(domain),
+      if (branchId != null) Variable<String>(branchId),
       Variable<int>(limit),
     ];
 
@@ -240,6 +243,7 @@ class LocalSyncOutboxDao {
           where business_id = ?
             and status in ('pending', 'error')
             $whereDomain
+            $whereBranch
           order by created_at asc
           limit ?
           ''',
@@ -306,12 +310,15 @@ class LocalSyncOutboxDao {
   Future<int> countPendingMutations({
     required String businessId,
     String? domain,
+    String? branchId,
   }) async {
     final domainJoin = domain == null ? '' : 'and b.domain = ?';
+    final branchJoin = branchId == null ? '' : 'and b.branch_id = ?';
 
     final variables = <Variable>[
       Variable<String>(businessId),
       if (domain != null) Variable<String>(domain),
+      if (branchId != null) Variable<String>(branchId),
     ];
 
     final row = await _db.customSelect(
@@ -323,6 +330,7 @@ class LocalSyncOutboxDao {
           where m.business_id = ?
             and m.status in ('pending', 'error')
             $domainJoin
+            $branchJoin
           ''',
       variables: variables,
     ).getSingle();

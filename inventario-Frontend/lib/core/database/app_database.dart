@@ -212,6 +212,10 @@ class SaleItems extends Table {
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
+  // El estado dirty se infiere de la venta padre y del outbox vigente.
+  // R1.3c solo agrega el tombstone; no introduce local_status por simetría.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
   IntColumn get syncStatus =>
       intEnum<SyncStatus>().withDefault(Constant(SyncStatus.synced.index))();
 
@@ -948,9 +952,21 @@ class LocalProductStockBalances extends Table {
 
   RealColumn get averageCost => real().nullable()();
 
+  TextColumn get remoteBalanceId => text().nullable()();
+
+  IntColumn get remoteQuantityOnHand => integer().nullable()();
+
+  IntColumn get remoteQuantityReserved => integer().nullable()();
+
+  IntColumn get remoteQuantityAvailable => integer().nullable()();
+
+  RealColumn get remoteAverageCost => real().nullable()();
+
   DateTimeColumn get lastMovementAt => dateTime().nullable()();
 
   DateTimeColumn get remoteUpdatedAt => dateTime().nullable()();
+
+  TextColumn get remoteSnapshotId => text().nullable()();
 
   DateTimeColumn get lastSyncedAt => dateTime().nullable()();
 
@@ -961,6 +977,124 @@ class LocalProductStockBalances extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class LocalOperationalBootstrapCheckpoints extends Table {
+  @override
+  String get tableName => 'local_operational_bootstrap_checkpoints';
+
+  TextColumn get id => text()();
+  TextColumn get profileId => text().named('profile_id')();
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().named('branch_id')();
+  TextColumn get appDeviceId => text().named('app_device_id')();
+  TextColumn get bundle => text()();
+  TextColumn get dataset => text()();
+  TextColumn get snapshotId => text().nullable().named('snapshot_id')();
+  DateTimeColumn get snapshotAt => dateTime().nullable().named('snapshot_at')();
+  TextColumn get nextPageToken => text().nullable().named('next_page_token')();
+  TextColumn get status => text().withDefault(const Constant('started'))();
+  IntColumn get rowsReceived =>
+      integer().withDefault(const Constant(0)).named('rows_received')();
+  IntColumn get pagesApplied =>
+      integer().withDefault(const Constant(0)).named('pages_applied')();
+  DateTimeColumn get authorizationValidatedAt =>
+      dateTime().nullable().named('authorization_validated_at')();
+  DateTimeColumn get startedAt =>
+      dateTime().withDefault(currentDateAndTime).named('started_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get completedAt =>
+      dateTime().nullable().named('completed_at')();
+  DateTimeColumn get lastSuccessAt =>
+      dateTime().nullable().named('last_success_at')();
+  TextColumn get lastError => text().nullable().named('last_error')();
+  IntColumn get retryCount =>
+      integer().withDefault(const Constant(0)).named('retry_count')();
+  BoolColumn get requiredForOffline => boolean()
+      .withDefault(const Constant(true))
+      .named('required_for_offline')();
+  TextColumn get convergenceStatus => text()
+      .withDefault(const Constant('pending'))
+      .named('convergence_status')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class LocalOperationalBootstrapSeenRecords extends Table {
+  @override
+  String get tableName => 'local_operational_bootstrap_seen_records';
+
+  TextColumn get id => text()();
+  TextColumn get snapshotId => text().named('snapshot_id')();
+  TextColumn get profileId => text().named('profile_id')();
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().named('branch_id')();
+  TextColumn get bundle => text()();
+  TextColumn get dataset => text()();
+  TextColumn get entityId => text().named('entity_id')();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class LocalReconciliationIssues extends Table {
+  @override
+  String get tableName => 'local_reconciliation_issues';
+
+  TextColumn get id => text()();
+  TextColumn get profileId => text().named('profile_id')();
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().named('branch_id')();
+  TextColumn get domain => text()();
+  TextColumn get entityType => text().nullable().named('entity_type')();
+  TextColumn get entityId => text().nullable().named('entity_id')();
+  TextColumn get issueType => text().named('issue_type')();
+  TextColumn get severity => text()();
+  TextColumn get status => text().withDefault(const Constant('open'))();
+  TextColumn get message => text()();
+  TextColumn get metadataJson => text().nullable().named('metadata_json')();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+  DateTimeColumn get resolvedAt => dateTime().nullable().named('resolved_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class LocalAuthorizedOperationalContexts extends Table {
+  @override
+  String get tableName => 'local_authorized_operational_contexts';
+
+  TextColumn get id => text()();
+  TextColumn get profileId => text().named('profile_id')();
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().named('branch_id')();
+  TextColumn get effectivePermissionsJson =>
+      text().withDefault(const Constant('[]')).named('effective_permissions')();
+  TextColumn get effectiveRolesJson =>
+      text().withDefault(const Constant('[]')).named('effective_roles')();
+  TextColumn get applicableMembershipIdsJson => text()
+      .withDefault(const Constant('[]'))
+      .named('applicable_membership_ids')();
+  DateTimeColumn get authorizationValidatedAt =>
+      dateTime().named('authorization_validated_at')();
+  TextColumn get snapshotId => text().nullable().named('snapshot_id')();
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -981,6 +1115,10 @@ class LocalProductStockBalances extends Table {
     LocalSyncMutations,
     LocalInventoryMovements,
     LocalProductStockBalances,
+    LocalOperationalBootstrapCheckpoints,
+    LocalOperationalBootstrapSeenRecords,
+    LocalReconciliationIssues,
+    LocalAuthorizedOperationalContexts,
     Businesses,
     Profiles,
     Categories,
@@ -1012,7 +1150,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   Future<void> _createCashSessionIndexes() async {
     final cashRegistersTable = await customSelect(
@@ -1219,6 +1357,81 @@ class AppDatabase extends _$AppDatabase {
     ''');
   }
 
+  Future<void> _createOperationalRecoveryIndexes() async {
+    await customStatement('''
+      create unique index if not exists ux_local_bootstrap_checkpoint_scope
+      on local_operational_bootstrap_checkpoints (
+        profile_id,
+        business_id,
+        branch_id,
+        app_device_id,
+        bundle,
+        dataset
+      )
+    ''');
+
+    await customStatement('''
+      create unique index if not exists ux_local_bootstrap_seen_record
+      on local_operational_bootstrap_seen_records (
+        snapshot_id,
+        profile_id,
+        business_id,
+        branch_id,
+        bundle,
+        dataset,
+        entity_id
+      )
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_bootstrap_seen_snapshot_dataset
+      on local_operational_bootstrap_seen_records (snapshot_id, dataset)
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_bootstrap_seen_entity
+      on local_operational_bootstrap_seen_records (
+        profile_id,
+        business_id,
+        branch_id,
+        dataset,
+        entity_id
+      )
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_reconciliation_open_blockers
+      on local_reconciliation_issues (
+        profile_id,
+        business_id,
+        branch_id,
+        status,
+        severity
+      )
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_reconciliation_entity
+      on local_reconciliation_issues (
+        profile_id,
+        business_id,
+        branch_id,
+        domain,
+        entity_type,
+        entity_id
+      )
+    ''');
+
+    await customStatement('''
+      create unique index if not exists ux_local_authorized_context_scope
+      on local_authorized_operational_contexts (
+        profile_id,
+        business_id,
+        branch_id
+      )
+    ''');
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
@@ -1228,11 +1441,53 @@ class AppDatabase extends _$AppDatabase {
           await _createAppContextIndexes();
           await _createInventoryMovementIndexes();
           await _createProductStockBalanceIndexes();
+          await _createOperationalRecoveryIndexes();
           await _createPosIndexes();
           await _createPurchaseIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 9) {
+            await m.createTable(localOperationalBootstrapCheckpoints);
+            await m.createTable(localOperationalBootstrapSeenRecords);
+            await m.createTable(localReconciliationIssues);
+            await m.createTable(localAuthorizedOperationalContexts);
+
+            if (from >= 5) {
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.remoteBalanceId,
+              );
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.remoteQuantityOnHand,
+              );
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.remoteQuantityReserved,
+              );
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.remoteQuantityAvailable,
+              );
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.remoteAverageCost,
+              );
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.remoteSnapshotId,
+              );
+              await m.addColumn(
+                localProductStockBalances,
+                localProductStockBalances.deletedAt,
+              );
+            }
+
+            await m.addColumn(saleItems, saleItems.deletedAt);
+            await _createOperationalRecoveryIndexes();
+          }
+
           if (from < 8) {
             await m.createTable(cashRegisters);
             await m.createTable(cashSessions);
@@ -1305,8 +1560,10 @@ class AppDatabase extends _$AppDatabase {
           // Aquí manejarás tus futuras migraciones de forma estructurada
         },
         beforeOpen: (details) async {
+          await customStatement('pragma foreign_keys = on');
           await _createCashSessionIndexes();
           await _createProductStockBalanceIndexes();
+          await _createOperationalRecoveryIndexes();
           await _createPosIndexes();
           await _createInventoryMovementIndexes();
           await ensureLocalSyncOutboxIndexes();

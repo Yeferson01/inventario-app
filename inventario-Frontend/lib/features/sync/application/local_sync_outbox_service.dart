@@ -97,44 +97,52 @@ class LocalSyncOutboxService {
 
   Future<List<Map<String, dynamic>>> getPendingCashBatches({
     required String businessId,
+    String? branchId,
     int limit = 10,
   }) {
     return getPendingBatches(
       businessId: businessId,
       domain: 'cash',
+      branchId: branchId,
       limit: limit,
     );
   }
 
   Future<List<Map<String, dynamic>>> getPendingPurchasesBatches({
     required String businessId,
+    String? branchId,
     int limit = 10,
   }) {
     return getPendingBatches(
       businessId: businessId,
       domain: 'purchases',
+      branchId: branchId,
       limit: limit,
     );
   }
 
   Future<List<Map<String, dynamic>>> getPendingPosBatches({
     required String businessId,
+    String? branchId,
     int limit = 10,
   }) {
     return getPendingBatches(
       businessId: businessId,
       domain: 'pos',
+      branchId: branchId,
       limit: limit,
     );
   }
 
   Future<List<Map<String, dynamic>>> getPendingInventoryBatches({
     required String businessId,
+    String? branchId,
     int limit = 20,
   }) {
     return _dao.getPendingBatches(
       businessId: businessId,
       domain: 'inventory',
+      branchId: branchId,
       limit: limit,
     );
   }
@@ -142,11 +150,13 @@ class LocalSyncOutboxService {
   Future<List<Map<String, dynamic>>> getPendingBatches({
     required String businessId,
     String? domain,
+    String? branchId,
     int limit = 20,
   }) {
     return _dao.getPendingBatches(
       businessId: businessId,
       domain: domain,
+      branchId: branchId,
       limit: limit,
     );
   }
@@ -174,10 +184,12 @@ class LocalSyncOutboxService {
   Future<int> countPendingMutations({
     required String businessId,
     String? domain,
+    String? branchId,
   }) {
     return _dao.countPendingMutations(
       businessId: businessId,
       domain: domain,
+      branchId: branchId,
     );
   }
 

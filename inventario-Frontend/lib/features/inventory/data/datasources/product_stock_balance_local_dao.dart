@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
+import '../../../../core/utils/app_uuid.dart';
 import '../models/product_stock_balance_models.dart';
 
 class ProductStockBalanceLocalDao {
@@ -25,6 +26,11 @@ class ProductStockBalanceLocalDao {
         quantity_reserved,
         quantity_available,
         average_cost,
+        remote_balance_id,
+        remote_quantity_on_hand,
+        remote_quantity_reserved,
+        remote_quantity_available,
+        remote_average_cost,
         last_movement_at,
         remote_updated_at,
         last_synced_at,
@@ -32,12 +38,17 @@ class ProductStockBalanceLocalDao {
         metadata_json,
         created_at,
         updated_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      on conflict(id) do update set
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(business_id, branch_id, product_id) do update set
         quantity_on_hand = excluded.quantity_on_hand,
         quantity_reserved = excluded.quantity_reserved,
         quantity_available = excluded.quantity_available,
         average_cost = excluded.average_cost,
+        remote_balance_id = excluded.remote_balance_id,
+        remote_quantity_on_hand = excluded.remote_quantity_on_hand,
+        remote_quantity_reserved = excluded.remote_quantity_reserved,
+        remote_quantity_available = excluded.remote_quantity_available,
+        remote_average_cost = excluded.remote_average_cost,
         last_movement_at = excluded.last_movement_at,
         remote_updated_at = excluded.remote_updated_at,
         last_synced_at = excluded.last_synced_at,
@@ -54,11 +65,79 @@ class ProductStockBalanceLocalDao {
         balance.quantityReserved,
         balance.quantityAvailable,
         balance.averageCost,
+        balance.remoteBalanceId,
+        balance.quantityOnHand,
+        balance.quantityReserved,
+        balance.quantityAvailable,
+        balance.averageCost,
         balance.lastMovementAt,
         balance.remoteUpdatedAt,
         now,
         'synced',
         jsonEncode(balance.toJson()),
+        now,
+        now,
+      ],
+    );
+  }
+
+  Future<void> upsertRemoteBaseByScope({
+    required String businessId,
+    required String branchId,
+    required String productId,
+    required String remoteBalanceId,
+    required int remoteQuantityOnHand,
+    required int remoteQuantityReserved,
+    required int remoteQuantityAvailable,
+    double? remoteAverageCost,
+    DateTime? remoteUpdatedAt,
+    String? remoteSnapshotId,
+    DateTime? deletedAt,
+  }) async {
+    final now = DateTime.now().toUtc();
+
+    await _customStatement(
+      '''
+      insert into local_product_stock_balances (
+        id,
+        business_id,
+        branch_id,
+        product_id,
+        remote_balance_id,
+        remote_quantity_on_hand,
+        remote_quantity_reserved,
+        remote_quantity_available,
+        remote_average_cost,
+        remote_updated_at,
+        remote_snapshot_id,
+        deleted_at,
+        created_at,
+        updated_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(business_id, branch_id, product_id) do update set
+        remote_balance_id = excluded.remote_balance_id,
+        remote_quantity_on_hand = excluded.remote_quantity_on_hand,
+        remote_quantity_reserved = excluded.remote_quantity_reserved,
+        remote_quantity_available = excluded.remote_quantity_available,
+        remote_average_cost = excluded.remote_average_cost,
+        remote_updated_at = excluded.remote_updated_at,
+        remote_snapshot_id = excluded.remote_snapshot_id,
+        deleted_at = excluded.deleted_at,
+        updated_at = excluded.updated_at
+      ''',
+      [
+        AppUuid.v7(),
+        businessId,
+        branchId,
+        productId,
+        remoteBalanceId,
+        remoteQuantityOnHand,
+        remoteQuantityReserved,
+        remoteQuantityAvailable,
+        remoteAverageCost,
+        remoteUpdatedAt,
+        remoteSnapshotId,
+        deletedAt,
         now,
         now,
       ],
@@ -81,13 +160,20 @@ class ProductStockBalanceLocalDao {
         quantity_reserved,
         quantity_available,
         average_cost,
+        remote_balance_id,
+        remote_quantity_on_hand,
+        remote_quantity_reserved,
+        remote_quantity_available,
+        remote_average_cost,
         last_movement_at,
         remote_updated_at,
+        remote_snapshot_id,
         last_synced_at,
         sync_status,
         metadata_json,
         created_at,
         updated_at
+        ,deleted_at
       from local_product_stock_balances
       where business_id = ?
         and branch_id = ?
@@ -228,13 +314,20 @@ class ProductStockBalanceLocalDao {
             quantity_reserved,
             quantity_available,
             average_cost,
+            remote_balance_id,
+            remote_quantity_on_hand,
+            remote_quantity_reserved,
+            remote_quantity_available,
+            remote_average_cost,
             last_movement_at,
             remote_updated_at,
+            remote_snapshot_id,
             last_synced_at,
             sync_status,
             metadata_json,
             created_at,
-            updated_at
+            updated_at,
+            deleted_at
           from local_product_stock_balances
           where business_id = ?
             and branch_id = ?
@@ -274,13 +367,20 @@ class ProductStockBalanceLocalDao {
         quantity_reserved,
         quantity_available,
         average_cost,
+        remote_balance_id,
+        remote_quantity_on_hand,
+        remote_quantity_reserved,
+        remote_quantity_available,
+        remote_average_cost,
         last_movement_at,
         remote_updated_at,
+        remote_snapshot_id,
         last_synced_at,
         sync_status,
         metadata_json,
         created_at,
-        updated_at
+        updated_at,
+        deleted_at
       from local_product_stock_balances
       where business_id = ?
         and branch_id = ?

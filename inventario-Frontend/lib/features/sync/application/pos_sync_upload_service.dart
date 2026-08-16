@@ -25,6 +25,7 @@ class PosSyncUploadService {
 
   Future<CatalogUploadRunResult> uploadPendingPosBatches({
     required String businessId,
+    String? branchId,
     int batchLimit = 10,
   }) async {
     await _posLocalSaleDao.reconcileCompletedPosSalesFromOutbox(
@@ -33,6 +34,7 @@ class PosSyncUploadService {
 
     final pendingBatches = await _outboxService.getPendingPosBatches(
       businessId: businessId,
+      branchId: branchId,
       limit: batchLimit,
     );
 

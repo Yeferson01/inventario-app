@@ -143,6 +143,56 @@ void main() {
     expect(products, hasLength(101));
     expect(streamedProducts, hasLength(101));
   });
+
+  test('remote base upsert reconciles by scope and preserves local row ID',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'product-p',
+      businessId: businessId,
+      name: 'Producto P',
+    );
+    await _insertBalance(
+      database,
+      id: 'random-local-uuid',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'product-p',
+      quantityOnHand: 8,
+    );
+
+    await dao.upsertRemoteBaseByScope(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'product-p',
+      remoteBalanceId: 'remote-123',
+      remoteQuantityOnHand: 5,
+      remoteQuantityReserved: 1,
+      remoteQuantityAvailable: 4,
+      remoteAverageCost: 1200,
+      remoteSnapshotId: 'snapshot-1',
+    );
+
+    final rows = await database.customSelect(
+      '''
+      select * from local_product_stock_balances
+      where business_id = ? and branch_id = ? and product_id = ?
+      ''',
+      variables: [
+        const Variable<String>(businessId),
+        const Variable<String>(branchId),
+        const Variable<String>('product-p'),
+      ],
+    ).get();
+
+    expect(rows, hasLength(1));
+    expect(rows.single.read<String>('id'), 'random-local-uuid');
+    expect(rows.single.read<int>('quantity_on_hand'), 8);
+    expect(rows.single.read<String>('remote_balance_id'), 'remote-123');
+    expect(rows.single.read<int>('remote_quantity_on_hand'), 5);
+    expect(rows.single.read<int>('remote_quantity_reserved'), 1);
+    expect(rows.single.read<int>('remote_quantity_available'), 4);
+  });
 }
 
 Future<void> _insertProduct(

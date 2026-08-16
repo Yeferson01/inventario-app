@@ -587,6 +587,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
       final uploadResult = await uploadService.uploadPendingPurchasesBatches(
         businessId: widget.businessId,
+        branchId: widget.branchId,
         batchLimit: 250,
       );
 

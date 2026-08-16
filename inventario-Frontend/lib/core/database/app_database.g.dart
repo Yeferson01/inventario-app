@@ -11179,6 +11179,36 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
   late final GeneratedColumn<double> averageCost = GeneratedColumn<double>(
       'average_cost', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _remoteBalanceIdMeta =
+      const VerificationMeta('remoteBalanceId');
+  @override
+  late final GeneratedColumn<String> remoteBalanceId = GeneratedColumn<String>(
+      'remote_balance_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _remoteQuantityOnHandMeta =
+      const VerificationMeta('remoteQuantityOnHand');
+  @override
+  late final GeneratedColumn<int> remoteQuantityOnHand = GeneratedColumn<int>(
+      'remote_quantity_on_hand', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _remoteQuantityReservedMeta =
+      const VerificationMeta('remoteQuantityReserved');
+  @override
+  late final GeneratedColumn<int> remoteQuantityReserved = GeneratedColumn<int>(
+      'remote_quantity_reserved', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _remoteQuantityAvailableMeta =
+      const VerificationMeta('remoteQuantityAvailable');
+  @override
+  late final GeneratedColumn<int> remoteQuantityAvailable =
+      GeneratedColumn<int>('remote_quantity_available', aliasedName, true,
+          type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _remoteAverageCostMeta =
+      const VerificationMeta('remoteAverageCost');
+  @override
+  late final GeneratedColumn<double> remoteAverageCost =
+      GeneratedColumn<double>('remote_average_cost', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _lastMovementAtMeta =
       const VerificationMeta('lastMovementAt');
   @override
@@ -11191,6 +11221,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
   late final GeneratedColumn<DateTime> remoteUpdatedAt =
       GeneratedColumn<DateTime>('remote_updated_at', aliasedName, true,
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _remoteSnapshotIdMeta =
+      const VerificationMeta('remoteSnapshotId');
+  @override
+  late final GeneratedColumn<String> remoteSnapshotId = GeneratedColumn<String>(
+      'remote_snapshot_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _lastSyncedAtMeta =
       const VerificationMeta('lastSyncedAt');
   @override
@@ -11227,6 +11263,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -11237,13 +11279,20 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
         quantityReserved,
         quantityAvailable,
         averageCost,
+        remoteBalanceId,
+        remoteQuantityOnHand,
+        remoteQuantityReserved,
+        remoteQuantityAvailable,
+        remoteAverageCost,
         lastMovementAt,
         remoteUpdatedAt,
+        remoteSnapshotId,
         lastSyncedAt,
         syncStatus,
         metadataJson,
         createdAt,
-        updatedAt
+        updatedAt,
+        deletedAt
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -11305,6 +11354,37 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           averageCost.isAcceptableOrUnknown(
               data['average_cost']!, _averageCostMeta));
     }
+    if (data.containsKey('remote_balance_id')) {
+      context.handle(
+          _remoteBalanceIdMeta,
+          remoteBalanceId.isAcceptableOrUnknown(
+              data['remote_balance_id']!, _remoteBalanceIdMeta));
+    }
+    if (data.containsKey('remote_quantity_on_hand')) {
+      context.handle(
+          _remoteQuantityOnHandMeta,
+          remoteQuantityOnHand.isAcceptableOrUnknown(
+              data['remote_quantity_on_hand']!, _remoteQuantityOnHandMeta));
+    }
+    if (data.containsKey('remote_quantity_reserved')) {
+      context.handle(
+          _remoteQuantityReservedMeta,
+          remoteQuantityReserved.isAcceptableOrUnknown(
+              data['remote_quantity_reserved']!, _remoteQuantityReservedMeta));
+    }
+    if (data.containsKey('remote_quantity_available')) {
+      context.handle(
+          _remoteQuantityAvailableMeta,
+          remoteQuantityAvailable.isAcceptableOrUnknown(
+              data['remote_quantity_available']!,
+              _remoteQuantityAvailableMeta));
+    }
+    if (data.containsKey('remote_average_cost')) {
+      context.handle(
+          _remoteAverageCostMeta,
+          remoteAverageCost.isAcceptableOrUnknown(
+              data['remote_average_cost']!, _remoteAverageCostMeta));
+    }
     if (data.containsKey('last_movement_at')) {
       context.handle(
           _lastMovementAtMeta,
@@ -11316,6 +11396,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           _remoteUpdatedAtMeta,
           remoteUpdatedAt.isAcceptableOrUnknown(
               data['remote_updated_at']!, _remoteUpdatedAtMeta));
+    }
+    if (data.containsKey('remote_snapshot_id')) {
+      context.handle(
+          _remoteSnapshotIdMeta,
+          remoteSnapshotId.isAcceptableOrUnknown(
+              data['remote_snapshot_id']!, _remoteSnapshotIdMeta));
     }
     if (data.containsKey('last_synced_at')) {
       context.handle(
@@ -11343,6 +11429,10 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
     return context;
   }
 
@@ -11369,10 +11459,23 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           DriftSqlType.int, data['${effectivePrefix}quantity_available'])!,
       averageCost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}average_cost']),
+      remoteBalanceId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}remote_balance_id']),
+      remoteQuantityOnHand: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}remote_quantity_on_hand']),
+      remoteQuantityReserved: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}remote_quantity_reserved']),
+      remoteQuantityAvailable: attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}remote_quantity_available']),
+      remoteAverageCost: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}remote_average_cost']),
       lastMovementAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}last_movement_at']),
       remoteUpdatedAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}remote_updated_at']),
+      remoteSnapshotId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}remote_snapshot_id']),
       lastSyncedAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
       syncStatus: attachedDatabase.typeMapping
@@ -11383,6 +11486,8 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
     );
   }
 
@@ -11402,13 +11507,20 @@ class LocalProductStockBalance extends DataClass
   final int quantityReserved;
   final int quantityAvailable;
   final double? averageCost;
+  final String? remoteBalanceId;
+  final int? remoteQuantityOnHand;
+  final int? remoteQuantityReserved;
+  final int? remoteQuantityAvailable;
+  final double? remoteAverageCost;
   final DateTime? lastMovementAt;
   final DateTime? remoteUpdatedAt;
+  final String? remoteSnapshotId;
   final DateTime? lastSyncedAt;
   final String syncStatus;
   final String? metadataJson;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
   const LocalProductStockBalance(
       {required this.id,
       required this.businessId,
@@ -11418,13 +11530,20 @@ class LocalProductStockBalance extends DataClass
       required this.quantityReserved,
       required this.quantityAvailable,
       this.averageCost,
+      this.remoteBalanceId,
+      this.remoteQuantityOnHand,
+      this.remoteQuantityReserved,
+      this.remoteQuantityAvailable,
+      this.remoteAverageCost,
       this.lastMovementAt,
       this.remoteUpdatedAt,
+      this.remoteSnapshotId,
       this.lastSyncedAt,
       required this.syncStatus,
       this.metadataJson,
       required this.createdAt,
-      required this.updatedAt});
+      required this.updatedAt,
+      this.deletedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -11438,11 +11557,29 @@ class LocalProductStockBalance extends DataClass
     if (!nullToAbsent || averageCost != null) {
       map['average_cost'] = Variable<double>(averageCost);
     }
+    if (!nullToAbsent || remoteBalanceId != null) {
+      map['remote_balance_id'] = Variable<String>(remoteBalanceId);
+    }
+    if (!nullToAbsent || remoteQuantityOnHand != null) {
+      map['remote_quantity_on_hand'] = Variable<int>(remoteQuantityOnHand);
+    }
+    if (!nullToAbsent || remoteQuantityReserved != null) {
+      map['remote_quantity_reserved'] = Variable<int>(remoteQuantityReserved);
+    }
+    if (!nullToAbsent || remoteQuantityAvailable != null) {
+      map['remote_quantity_available'] = Variable<int>(remoteQuantityAvailable);
+    }
+    if (!nullToAbsent || remoteAverageCost != null) {
+      map['remote_average_cost'] = Variable<double>(remoteAverageCost);
+    }
     if (!nullToAbsent || lastMovementAt != null) {
       map['last_movement_at'] = Variable<DateTime>(lastMovementAt);
     }
     if (!nullToAbsent || remoteUpdatedAt != null) {
       map['remote_updated_at'] = Variable<DateTime>(remoteUpdatedAt);
+    }
+    if (!nullToAbsent || remoteSnapshotId != null) {
+      map['remote_snapshot_id'] = Variable<String>(remoteSnapshotId);
     }
     if (!nullToAbsent || lastSyncedAt != null) {
       map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
@@ -11453,6 +11590,9 @@ class LocalProductStockBalance extends DataClass
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -11468,12 +11608,30 @@ class LocalProductStockBalance extends DataClass
       averageCost: averageCost == null && nullToAbsent
           ? const Value.absent()
           : Value(averageCost),
+      remoteBalanceId: remoteBalanceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteBalanceId),
+      remoteQuantityOnHand: remoteQuantityOnHand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteQuantityOnHand),
+      remoteQuantityReserved: remoteQuantityReserved == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteQuantityReserved),
+      remoteQuantityAvailable: remoteQuantityAvailable == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteQuantityAvailable),
+      remoteAverageCost: remoteAverageCost == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteAverageCost),
       lastMovementAt: lastMovementAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastMovementAt),
       remoteUpdatedAt: remoteUpdatedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteUpdatedAt),
+      remoteSnapshotId: remoteSnapshotId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteSnapshotId),
       lastSyncedAt: lastSyncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncedAt),
@@ -11483,6 +11641,9 @@ class LocalProductStockBalance extends DataClass
           : Value(metadataJson),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -11498,13 +11659,24 @@ class LocalProductStockBalance extends DataClass
       quantityReserved: serializer.fromJson<int>(json['quantityReserved']),
       quantityAvailable: serializer.fromJson<int>(json['quantityAvailable']),
       averageCost: serializer.fromJson<double?>(json['averageCost']),
+      remoteBalanceId: serializer.fromJson<String?>(json['remoteBalanceId']),
+      remoteQuantityOnHand:
+          serializer.fromJson<int?>(json['remoteQuantityOnHand']),
+      remoteQuantityReserved:
+          serializer.fromJson<int?>(json['remoteQuantityReserved']),
+      remoteQuantityAvailable:
+          serializer.fromJson<int?>(json['remoteQuantityAvailable']),
+      remoteAverageCost:
+          serializer.fromJson<double?>(json['remoteAverageCost']),
       lastMovementAt: serializer.fromJson<DateTime?>(json['lastMovementAt']),
       remoteUpdatedAt: serializer.fromJson<DateTime?>(json['remoteUpdatedAt']),
+      remoteSnapshotId: serializer.fromJson<String?>(json['remoteSnapshotId']),
       lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       metadataJson: serializer.fromJson<String?>(json['metadataJson']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -11519,13 +11691,21 @@ class LocalProductStockBalance extends DataClass
       'quantityReserved': serializer.toJson<int>(quantityReserved),
       'quantityAvailable': serializer.toJson<int>(quantityAvailable),
       'averageCost': serializer.toJson<double?>(averageCost),
+      'remoteBalanceId': serializer.toJson<String?>(remoteBalanceId),
+      'remoteQuantityOnHand': serializer.toJson<int?>(remoteQuantityOnHand),
+      'remoteQuantityReserved': serializer.toJson<int?>(remoteQuantityReserved),
+      'remoteQuantityAvailable':
+          serializer.toJson<int?>(remoteQuantityAvailable),
+      'remoteAverageCost': serializer.toJson<double?>(remoteAverageCost),
       'lastMovementAt': serializer.toJson<DateTime?>(lastMovementAt),
       'remoteUpdatedAt': serializer.toJson<DateTime?>(remoteUpdatedAt),
+      'remoteSnapshotId': serializer.toJson<String?>(remoteSnapshotId),
       'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'metadataJson': serializer.toJson<String?>(metadataJson),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -11538,13 +11718,20 @@ class LocalProductStockBalance extends DataClass
           int? quantityReserved,
           int? quantityAvailable,
           Value<double?> averageCost = const Value.absent(),
+          Value<String?> remoteBalanceId = const Value.absent(),
+          Value<int?> remoteQuantityOnHand = const Value.absent(),
+          Value<int?> remoteQuantityReserved = const Value.absent(),
+          Value<int?> remoteQuantityAvailable = const Value.absent(),
+          Value<double?> remoteAverageCost = const Value.absent(),
           Value<DateTime?> lastMovementAt = const Value.absent(),
           Value<DateTime?> remoteUpdatedAt = const Value.absent(),
+          Value<String?> remoteSnapshotId = const Value.absent(),
           Value<DateTime?> lastSyncedAt = const Value.absent(),
           String? syncStatus,
           Value<String?> metadataJson = const Value.absent(),
           DateTime? createdAt,
-          DateTime? updatedAt}) =>
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent()}) =>
       LocalProductStockBalance(
         id: id ?? this.id,
         businessId: businessId ?? this.businessId,
@@ -11554,11 +11741,29 @@ class LocalProductStockBalance extends DataClass
         quantityReserved: quantityReserved ?? this.quantityReserved,
         quantityAvailable: quantityAvailable ?? this.quantityAvailable,
         averageCost: averageCost.present ? averageCost.value : this.averageCost,
+        remoteBalanceId: remoteBalanceId.present
+            ? remoteBalanceId.value
+            : this.remoteBalanceId,
+        remoteQuantityOnHand: remoteQuantityOnHand.present
+            ? remoteQuantityOnHand.value
+            : this.remoteQuantityOnHand,
+        remoteQuantityReserved: remoteQuantityReserved.present
+            ? remoteQuantityReserved.value
+            : this.remoteQuantityReserved,
+        remoteQuantityAvailable: remoteQuantityAvailable.present
+            ? remoteQuantityAvailable.value
+            : this.remoteQuantityAvailable,
+        remoteAverageCost: remoteAverageCost.present
+            ? remoteAverageCost.value
+            : this.remoteAverageCost,
         lastMovementAt:
             lastMovementAt.present ? lastMovementAt.value : this.lastMovementAt,
         remoteUpdatedAt: remoteUpdatedAt.present
             ? remoteUpdatedAt.value
             : this.remoteUpdatedAt,
+        remoteSnapshotId: remoteSnapshotId.present
+            ? remoteSnapshotId.value
+            : this.remoteSnapshotId,
         lastSyncedAt:
             lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
         syncStatus: syncStatus ?? this.syncStatus,
@@ -11566,6 +11771,7 @@ class LocalProductStockBalance extends DataClass
             metadataJson.present ? metadataJson.value : this.metadataJson,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
   LocalProductStockBalance copyWithCompanion(
       LocalProductStockBalancesCompanion data) {
@@ -11586,12 +11792,30 @@ class LocalProductStockBalance extends DataClass
           : this.quantityAvailable,
       averageCost:
           data.averageCost.present ? data.averageCost.value : this.averageCost,
+      remoteBalanceId: data.remoteBalanceId.present
+          ? data.remoteBalanceId.value
+          : this.remoteBalanceId,
+      remoteQuantityOnHand: data.remoteQuantityOnHand.present
+          ? data.remoteQuantityOnHand.value
+          : this.remoteQuantityOnHand,
+      remoteQuantityReserved: data.remoteQuantityReserved.present
+          ? data.remoteQuantityReserved.value
+          : this.remoteQuantityReserved,
+      remoteQuantityAvailable: data.remoteQuantityAvailable.present
+          ? data.remoteQuantityAvailable.value
+          : this.remoteQuantityAvailable,
+      remoteAverageCost: data.remoteAverageCost.present
+          ? data.remoteAverageCost.value
+          : this.remoteAverageCost,
       lastMovementAt: data.lastMovementAt.present
           ? data.lastMovementAt.value
           : this.lastMovementAt,
       remoteUpdatedAt: data.remoteUpdatedAt.present
           ? data.remoteUpdatedAt.value
           : this.remoteUpdatedAt,
+      remoteSnapshotId: data.remoteSnapshotId.present
+          ? data.remoteSnapshotId.value
+          : this.remoteSnapshotId,
       lastSyncedAt: data.lastSyncedAt.present
           ? data.lastSyncedAt.value
           : this.lastSyncedAt,
@@ -11602,6 +11826,7 @@ class LocalProductStockBalance extends DataClass
           : this.metadataJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -11616,34 +11841,49 @@ class LocalProductStockBalance extends DataClass
           ..write('quantityReserved: $quantityReserved, ')
           ..write('quantityAvailable: $quantityAvailable, ')
           ..write('averageCost: $averageCost, ')
+          ..write('remoteBalanceId: $remoteBalanceId, ')
+          ..write('remoteQuantityOnHand: $remoteQuantityOnHand, ')
+          ..write('remoteQuantityReserved: $remoteQuantityReserved, ')
+          ..write('remoteQuantityAvailable: $remoteQuantityAvailable, ')
+          ..write('remoteAverageCost: $remoteAverageCost, ')
           ..write('lastMovementAt: $lastMovementAt, ')
           ..write('remoteUpdatedAt: $remoteUpdatedAt, ')
+          ..write('remoteSnapshotId: $remoteSnapshotId, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('metadataJson: $metadataJson, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      businessId,
-      branchId,
-      productId,
-      quantityOnHand,
-      quantityReserved,
-      quantityAvailable,
-      averageCost,
-      lastMovementAt,
-      remoteUpdatedAt,
-      lastSyncedAt,
-      syncStatus,
-      metadataJson,
-      createdAt,
-      updatedAt);
+  int get hashCode => Object.hashAll([
+        id,
+        businessId,
+        branchId,
+        productId,
+        quantityOnHand,
+        quantityReserved,
+        quantityAvailable,
+        averageCost,
+        remoteBalanceId,
+        remoteQuantityOnHand,
+        remoteQuantityReserved,
+        remoteQuantityAvailable,
+        remoteAverageCost,
+        lastMovementAt,
+        remoteUpdatedAt,
+        remoteSnapshotId,
+        lastSyncedAt,
+        syncStatus,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -11656,13 +11896,20 @@ class LocalProductStockBalance extends DataClass
           other.quantityReserved == this.quantityReserved &&
           other.quantityAvailable == this.quantityAvailable &&
           other.averageCost == this.averageCost &&
+          other.remoteBalanceId == this.remoteBalanceId &&
+          other.remoteQuantityOnHand == this.remoteQuantityOnHand &&
+          other.remoteQuantityReserved == this.remoteQuantityReserved &&
+          other.remoteQuantityAvailable == this.remoteQuantityAvailable &&
+          other.remoteAverageCost == this.remoteAverageCost &&
           other.lastMovementAt == this.lastMovementAt &&
           other.remoteUpdatedAt == this.remoteUpdatedAt &&
+          other.remoteSnapshotId == this.remoteSnapshotId &&
           other.lastSyncedAt == this.lastSyncedAt &&
           other.syncStatus == this.syncStatus &&
           other.metadataJson == this.metadataJson &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class LocalProductStockBalancesCompanion
@@ -11675,13 +11922,20 @@ class LocalProductStockBalancesCompanion
   final Value<int> quantityReserved;
   final Value<int> quantityAvailable;
   final Value<double?> averageCost;
+  final Value<String?> remoteBalanceId;
+  final Value<int?> remoteQuantityOnHand;
+  final Value<int?> remoteQuantityReserved;
+  final Value<int?> remoteQuantityAvailable;
+  final Value<double?> remoteAverageCost;
   final Value<DateTime?> lastMovementAt;
   final Value<DateTime?> remoteUpdatedAt;
+  final Value<String?> remoteSnapshotId;
   final Value<DateTime?> lastSyncedAt;
   final Value<String> syncStatus;
   final Value<String?> metadataJson;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const LocalProductStockBalancesCompanion({
     this.id = const Value.absent(),
@@ -11692,13 +11946,20 @@ class LocalProductStockBalancesCompanion
     this.quantityReserved = const Value.absent(),
     this.quantityAvailable = const Value.absent(),
     this.averageCost = const Value.absent(),
+    this.remoteBalanceId = const Value.absent(),
+    this.remoteQuantityOnHand = const Value.absent(),
+    this.remoteQuantityReserved = const Value.absent(),
+    this.remoteQuantityAvailable = const Value.absent(),
+    this.remoteAverageCost = const Value.absent(),
     this.lastMovementAt = const Value.absent(),
     this.remoteUpdatedAt = const Value.absent(),
+    this.remoteSnapshotId = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.metadataJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LocalProductStockBalancesCompanion.insert({
@@ -11710,13 +11971,20 @@ class LocalProductStockBalancesCompanion
     this.quantityReserved = const Value.absent(),
     this.quantityAvailable = const Value.absent(),
     this.averageCost = const Value.absent(),
+    this.remoteBalanceId = const Value.absent(),
+    this.remoteQuantityOnHand = const Value.absent(),
+    this.remoteQuantityReserved = const Value.absent(),
+    this.remoteQuantityAvailable = const Value.absent(),
+    this.remoteAverageCost = const Value.absent(),
     this.lastMovementAt = const Value.absent(),
     this.remoteUpdatedAt = const Value.absent(),
+    this.remoteSnapshotId = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.metadataJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         businessId = Value(businessId),
@@ -11731,13 +11999,20 @@ class LocalProductStockBalancesCompanion
     Expression<int>? quantityReserved,
     Expression<int>? quantityAvailable,
     Expression<double>? averageCost,
+    Expression<String>? remoteBalanceId,
+    Expression<int>? remoteQuantityOnHand,
+    Expression<int>? remoteQuantityReserved,
+    Expression<int>? remoteQuantityAvailable,
+    Expression<double>? remoteAverageCost,
     Expression<DateTime>? lastMovementAt,
     Expression<DateTime>? remoteUpdatedAt,
+    Expression<String>? remoteSnapshotId,
     Expression<DateTime>? lastSyncedAt,
     Expression<String>? syncStatus,
     Expression<String>? metadataJson,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -11749,13 +12024,23 @@ class LocalProductStockBalancesCompanion
       if (quantityReserved != null) 'quantity_reserved': quantityReserved,
       if (quantityAvailable != null) 'quantity_available': quantityAvailable,
       if (averageCost != null) 'average_cost': averageCost,
+      if (remoteBalanceId != null) 'remote_balance_id': remoteBalanceId,
+      if (remoteQuantityOnHand != null)
+        'remote_quantity_on_hand': remoteQuantityOnHand,
+      if (remoteQuantityReserved != null)
+        'remote_quantity_reserved': remoteQuantityReserved,
+      if (remoteQuantityAvailable != null)
+        'remote_quantity_available': remoteQuantityAvailable,
+      if (remoteAverageCost != null) 'remote_average_cost': remoteAverageCost,
       if (lastMovementAt != null) 'last_movement_at': lastMovementAt,
       if (remoteUpdatedAt != null) 'remote_updated_at': remoteUpdatedAt,
+      if (remoteSnapshotId != null) 'remote_snapshot_id': remoteSnapshotId,
       if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (metadataJson != null) 'metadata_json': metadataJson,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11769,13 +12054,20 @@ class LocalProductStockBalancesCompanion
       Value<int>? quantityReserved,
       Value<int>? quantityAvailable,
       Value<double?>? averageCost,
+      Value<String?>? remoteBalanceId,
+      Value<int?>? remoteQuantityOnHand,
+      Value<int?>? remoteQuantityReserved,
+      Value<int?>? remoteQuantityAvailable,
+      Value<double?>? remoteAverageCost,
       Value<DateTime?>? lastMovementAt,
       Value<DateTime?>? remoteUpdatedAt,
+      Value<String?>? remoteSnapshotId,
       Value<DateTime?>? lastSyncedAt,
       Value<String>? syncStatus,
       Value<String?>? metadataJson,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
       Value<int>? rowid}) {
     return LocalProductStockBalancesCompanion(
       id: id ?? this.id,
@@ -11786,13 +12078,22 @@ class LocalProductStockBalancesCompanion
       quantityReserved: quantityReserved ?? this.quantityReserved,
       quantityAvailable: quantityAvailable ?? this.quantityAvailable,
       averageCost: averageCost ?? this.averageCost,
+      remoteBalanceId: remoteBalanceId ?? this.remoteBalanceId,
+      remoteQuantityOnHand: remoteQuantityOnHand ?? this.remoteQuantityOnHand,
+      remoteQuantityReserved:
+          remoteQuantityReserved ?? this.remoteQuantityReserved,
+      remoteQuantityAvailable:
+          remoteQuantityAvailable ?? this.remoteQuantityAvailable,
+      remoteAverageCost: remoteAverageCost ?? this.remoteAverageCost,
       lastMovementAt: lastMovementAt ?? this.lastMovementAt,
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,
+      remoteSnapshotId: remoteSnapshotId ?? this.remoteSnapshotId,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       metadataJson: metadataJson ?? this.metadataJson,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11824,11 +12125,32 @@ class LocalProductStockBalancesCompanion
     if (averageCost.present) {
       map['average_cost'] = Variable<double>(averageCost.value);
     }
+    if (remoteBalanceId.present) {
+      map['remote_balance_id'] = Variable<String>(remoteBalanceId.value);
+    }
+    if (remoteQuantityOnHand.present) {
+      map['remote_quantity_on_hand'] =
+          Variable<int>(remoteQuantityOnHand.value);
+    }
+    if (remoteQuantityReserved.present) {
+      map['remote_quantity_reserved'] =
+          Variable<int>(remoteQuantityReserved.value);
+    }
+    if (remoteQuantityAvailable.present) {
+      map['remote_quantity_available'] =
+          Variable<int>(remoteQuantityAvailable.value);
+    }
+    if (remoteAverageCost.present) {
+      map['remote_average_cost'] = Variable<double>(remoteAverageCost.value);
+    }
     if (lastMovementAt.present) {
       map['last_movement_at'] = Variable<DateTime>(lastMovementAt.value);
     }
     if (remoteUpdatedAt.present) {
       map['remote_updated_at'] = Variable<DateTime>(remoteUpdatedAt.value);
+    }
+    if (remoteSnapshotId.present) {
+      map['remote_snapshot_id'] = Variable<String>(remoteSnapshotId.value);
     }
     if (lastSyncedAt.present) {
       map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
@@ -11844,6 +12166,9 @@ class LocalProductStockBalancesCompanion
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -11862,11 +12187,2922 @@ class LocalProductStockBalancesCompanion
           ..write('quantityReserved: $quantityReserved, ')
           ..write('quantityAvailable: $quantityAvailable, ')
           ..write('averageCost: $averageCost, ')
+          ..write('remoteBalanceId: $remoteBalanceId, ')
+          ..write('remoteQuantityOnHand: $remoteQuantityOnHand, ')
+          ..write('remoteQuantityReserved: $remoteQuantityReserved, ')
+          ..write('remoteQuantityAvailable: $remoteQuantityAvailable, ')
+          ..write('remoteAverageCost: $remoteAverageCost, ')
           ..write('lastMovementAt: $lastMovementAt, ')
           ..write('remoteUpdatedAt: $remoteUpdatedAt, ')
+          ..write('remoteSnapshotId: $remoteSnapshotId, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalOperationalBootstrapCheckpointsTable
+    extends LocalOperationalBootstrapCheckpoints
+    with
+        TableInfo<$LocalOperationalBootstrapCheckpointsTable,
+            LocalOperationalBootstrapCheckpoint> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalOperationalBootstrapCheckpointsTable(this.attachedDatabase,
+      [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _appDeviceIdMeta =
+      const VerificationMeta('appDeviceId');
+  @override
+  late final GeneratedColumn<String> appDeviceId = GeneratedColumn<String>(
+      'app_device_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _bundleMeta = const VerificationMeta('bundle');
+  @override
+  late final GeneratedColumn<String> bundle = GeneratedColumn<String>(
+      'bundle', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _datasetMeta =
+      const VerificationMeta('dataset');
+  @override
+  late final GeneratedColumn<String> dataset = GeneratedColumn<String>(
+      'dataset', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _snapshotIdMeta =
+      const VerificationMeta('snapshotId');
+  @override
+  late final GeneratedColumn<String> snapshotId = GeneratedColumn<String>(
+      'snapshot_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _snapshotAtMeta =
+      const VerificationMeta('snapshotAt');
+  @override
+  late final GeneratedColumn<DateTime> snapshotAt = GeneratedColumn<DateTime>(
+      'snapshot_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _nextPageTokenMeta =
+      const VerificationMeta('nextPageToken');
+  @override
+  late final GeneratedColumn<String> nextPageToken = GeneratedColumn<String>(
+      'next_page_token', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('started'));
+  static const VerificationMeta _rowsReceivedMeta =
+      const VerificationMeta('rowsReceived');
+  @override
+  late final GeneratedColumn<int> rowsReceived = GeneratedColumn<int>(
+      'rows_received', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _pagesAppliedMeta =
+      const VerificationMeta('pagesApplied');
+  @override
+  late final GeneratedColumn<int> pagesApplied = GeneratedColumn<int>(
+      'pages_applied', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _authorizationValidatedAtMeta =
+      const VerificationMeta('authorizationValidatedAt');
+  @override
+  late final GeneratedColumn<DateTime> authorizationValidatedAt =
+      GeneratedColumn<DateTime>('authorization_validated_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _startedAtMeta =
+      const VerificationMeta('startedAt');
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+      'started_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _completedAtMeta =
+      const VerificationMeta('completedAt');
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+      'completed_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSuccessAtMeta =
+      const VerificationMeta('lastSuccessAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSuccessAt =
+      GeneratedColumn<DateTime>('last_success_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastErrorMeta =
+      const VerificationMeta('lastError');
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+      'last_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _retryCountMeta =
+      const VerificationMeta('retryCount');
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+      'retry_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _requiredForOfflineMeta =
+      const VerificationMeta('requiredForOffline');
+  @override
+  late final GeneratedColumn<bool> requiredForOffline = GeneratedColumn<bool>(
+      'required_for_offline', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("required_for_offline" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _convergenceStatusMeta =
+      const VerificationMeta('convergenceStatus');
+  @override
+  late final GeneratedColumn<String> convergenceStatus =
+      GeneratedColumn<String>('convergence_status', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('pending'));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        profileId,
+        businessId,
+        branchId,
+        appDeviceId,
+        bundle,
+        dataset,
+        snapshotId,
+        snapshotAt,
+        nextPageToken,
+        status,
+        rowsReceived,
+        pagesApplied,
+        authorizationValidatedAt,
+        startedAt,
+        updatedAt,
+        completedAt,
+        lastSuccessAt,
+        lastError,
+        retryCount,
+        requiredForOffline,
+        convergenceStatus
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_operational_bootstrap_checkpoints';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalOperationalBootstrapCheckpoint> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('app_device_id')) {
+      context.handle(
+          _appDeviceIdMeta,
+          appDeviceId.isAcceptableOrUnknown(
+              data['app_device_id']!, _appDeviceIdMeta));
+    } else if (isInserting) {
+      context.missing(_appDeviceIdMeta);
+    }
+    if (data.containsKey('bundle')) {
+      context.handle(_bundleMeta,
+          bundle.isAcceptableOrUnknown(data['bundle']!, _bundleMeta));
+    } else if (isInserting) {
+      context.missing(_bundleMeta);
+    }
+    if (data.containsKey('dataset')) {
+      context.handle(_datasetMeta,
+          dataset.isAcceptableOrUnknown(data['dataset']!, _datasetMeta));
+    } else if (isInserting) {
+      context.missing(_datasetMeta);
+    }
+    if (data.containsKey('snapshot_id')) {
+      context.handle(
+          _snapshotIdMeta,
+          snapshotId.isAcceptableOrUnknown(
+              data['snapshot_id']!, _snapshotIdMeta));
+    }
+    if (data.containsKey('snapshot_at')) {
+      context.handle(
+          _snapshotAtMeta,
+          snapshotAt.isAcceptableOrUnknown(
+              data['snapshot_at']!, _snapshotAtMeta));
+    }
+    if (data.containsKey('next_page_token')) {
+      context.handle(
+          _nextPageTokenMeta,
+          nextPageToken.isAcceptableOrUnknown(
+              data['next_page_token']!, _nextPageTokenMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('rows_received')) {
+      context.handle(
+          _rowsReceivedMeta,
+          rowsReceived.isAcceptableOrUnknown(
+              data['rows_received']!, _rowsReceivedMeta));
+    }
+    if (data.containsKey('pages_applied')) {
+      context.handle(
+          _pagesAppliedMeta,
+          pagesApplied.isAcceptableOrUnknown(
+              data['pages_applied']!, _pagesAppliedMeta));
+    }
+    if (data.containsKey('authorization_validated_at')) {
+      context.handle(
+          _authorizationValidatedAtMeta,
+          authorizationValidatedAt.isAcceptableOrUnknown(
+              data['authorization_validated_at']!,
+              _authorizationValidatedAtMeta));
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(_startedAtMeta,
+          startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+          _completedAtMeta,
+          completedAt.isAcceptableOrUnknown(
+              data['completed_at']!, _completedAtMeta));
+    }
+    if (data.containsKey('last_success_at')) {
+      context.handle(
+          _lastSuccessAtMeta,
+          lastSuccessAt.isAcceptableOrUnknown(
+              data['last_success_at']!, _lastSuccessAtMeta));
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(_lastErrorMeta,
+          lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+          _retryCountMeta,
+          retryCount.isAcceptableOrUnknown(
+              data['retry_count']!, _retryCountMeta));
+    }
+    if (data.containsKey('required_for_offline')) {
+      context.handle(
+          _requiredForOfflineMeta,
+          requiredForOffline.isAcceptableOrUnknown(
+              data['required_for_offline']!, _requiredForOfflineMeta));
+    }
+    if (data.containsKey('convergence_status')) {
+      context.handle(
+          _convergenceStatusMeta,
+          convergenceStatus.isAcceptableOrUnknown(
+              data['convergence_status']!, _convergenceStatusMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalOperationalBootstrapCheckpoint map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalOperationalBootstrapCheckpoint(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      appDeviceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}app_device_id'])!,
+      bundle: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}bundle'])!,
+      dataset: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}dataset'])!,
+      snapshotId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}snapshot_id']),
+      snapshotAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}snapshot_at']),
+      nextPageToken: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}next_page_token']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      rowsReceived: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}rows_received'])!,
+      pagesApplied: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}pages_applied'])!,
+      authorizationValidatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}authorization_validated_at']),
+      startedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}started_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      completedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}completed_at']),
+      lastSuccessAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_success_at']),
+      lastError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      retryCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}retry_count'])!,
+      requiredForOffline: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}required_for_offline'])!,
+      convergenceStatus: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}convergence_status'])!,
+    );
+  }
+
+  @override
+  $LocalOperationalBootstrapCheckpointsTable createAlias(String alias) {
+    return $LocalOperationalBootstrapCheckpointsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalOperationalBootstrapCheckpoint extends DataClass
+    implements Insertable<LocalOperationalBootstrapCheckpoint> {
+  final String id;
+  final String profileId;
+  final String businessId;
+  final String branchId;
+  final String appDeviceId;
+  final String bundle;
+  final String dataset;
+  final String? snapshotId;
+  final DateTime? snapshotAt;
+  final String? nextPageToken;
+  final String status;
+  final int rowsReceived;
+  final int pagesApplied;
+  final DateTime? authorizationValidatedAt;
+  final DateTime startedAt;
+  final DateTime updatedAt;
+  final DateTime? completedAt;
+  final DateTime? lastSuccessAt;
+  final String? lastError;
+  final int retryCount;
+  final bool requiredForOffline;
+  final String convergenceStatus;
+  const LocalOperationalBootstrapCheckpoint(
+      {required this.id,
+      required this.profileId,
+      required this.businessId,
+      required this.branchId,
+      required this.appDeviceId,
+      required this.bundle,
+      required this.dataset,
+      this.snapshotId,
+      this.snapshotAt,
+      this.nextPageToken,
+      required this.status,
+      required this.rowsReceived,
+      required this.pagesApplied,
+      this.authorizationValidatedAt,
+      required this.startedAt,
+      required this.updatedAt,
+      this.completedAt,
+      this.lastSuccessAt,
+      this.lastError,
+      required this.retryCount,
+      required this.requiredForOffline,
+      required this.convergenceStatus});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['app_device_id'] = Variable<String>(appDeviceId);
+    map['bundle'] = Variable<String>(bundle);
+    map['dataset'] = Variable<String>(dataset);
+    if (!nullToAbsent || snapshotId != null) {
+      map['snapshot_id'] = Variable<String>(snapshotId);
+    }
+    if (!nullToAbsent || snapshotAt != null) {
+      map['snapshot_at'] = Variable<DateTime>(snapshotAt);
+    }
+    if (!nullToAbsent || nextPageToken != null) {
+      map['next_page_token'] = Variable<String>(nextPageToken);
+    }
+    map['status'] = Variable<String>(status);
+    map['rows_received'] = Variable<int>(rowsReceived);
+    map['pages_applied'] = Variable<int>(pagesApplied);
+    if (!nullToAbsent || authorizationValidatedAt != null) {
+      map['authorization_validated_at'] =
+          Variable<DateTime>(authorizationValidatedAt);
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    if (!nullToAbsent || lastSuccessAt != null) {
+      map['last_success_at'] = Variable<DateTime>(lastSuccessAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['retry_count'] = Variable<int>(retryCount);
+    map['required_for_offline'] = Variable<bool>(requiredForOffline);
+    map['convergence_status'] = Variable<String>(convergenceStatus);
+    return map;
+  }
+
+  LocalOperationalBootstrapCheckpointsCompanion toCompanion(bool nullToAbsent) {
+    return LocalOperationalBootstrapCheckpointsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      appDeviceId: Value(appDeviceId),
+      bundle: Value(bundle),
+      dataset: Value(dataset),
+      snapshotId: snapshotId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotId),
+      snapshotAt: snapshotAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotAt),
+      nextPageToken: nextPageToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextPageToken),
+      status: Value(status),
+      rowsReceived: Value(rowsReceived),
+      pagesApplied: Value(pagesApplied),
+      authorizationValidatedAt: authorizationValidatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(authorizationValidatedAt),
+      startedAt: Value(startedAt),
+      updatedAt: Value(updatedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      lastSuccessAt: lastSuccessAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSuccessAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      retryCount: Value(retryCount),
+      requiredForOffline: Value(requiredForOffline),
+      convergenceStatus: Value(convergenceStatus),
+    );
+  }
+
+  factory LocalOperationalBootstrapCheckpoint.fromJson(
+      Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalOperationalBootstrapCheckpoint(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      appDeviceId: serializer.fromJson<String>(json['appDeviceId']),
+      bundle: serializer.fromJson<String>(json['bundle']),
+      dataset: serializer.fromJson<String>(json['dataset']),
+      snapshotId: serializer.fromJson<String?>(json['snapshotId']),
+      snapshotAt: serializer.fromJson<DateTime?>(json['snapshotAt']),
+      nextPageToken: serializer.fromJson<String?>(json['nextPageToken']),
+      status: serializer.fromJson<String>(json['status']),
+      rowsReceived: serializer.fromJson<int>(json['rowsReceived']),
+      pagesApplied: serializer.fromJson<int>(json['pagesApplied']),
+      authorizationValidatedAt:
+          serializer.fromJson<DateTime?>(json['authorizationValidatedAt']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      lastSuccessAt: serializer.fromJson<DateTime?>(json['lastSuccessAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      requiredForOffline: serializer.fromJson<bool>(json['requiredForOffline']),
+      convergenceStatus: serializer.fromJson<String>(json['convergenceStatus']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'appDeviceId': serializer.toJson<String>(appDeviceId),
+      'bundle': serializer.toJson<String>(bundle),
+      'dataset': serializer.toJson<String>(dataset),
+      'snapshotId': serializer.toJson<String?>(snapshotId),
+      'snapshotAt': serializer.toJson<DateTime?>(snapshotAt),
+      'nextPageToken': serializer.toJson<String?>(nextPageToken),
+      'status': serializer.toJson<String>(status),
+      'rowsReceived': serializer.toJson<int>(rowsReceived),
+      'pagesApplied': serializer.toJson<int>(pagesApplied),
+      'authorizationValidatedAt':
+          serializer.toJson<DateTime?>(authorizationValidatedAt),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'lastSuccessAt': serializer.toJson<DateTime?>(lastSuccessAt),
+      'lastError': serializer.toJson<String?>(lastError),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'requiredForOffline': serializer.toJson<bool>(requiredForOffline),
+      'convergenceStatus': serializer.toJson<String>(convergenceStatus),
+    };
+  }
+
+  LocalOperationalBootstrapCheckpoint copyWith(
+          {String? id,
+          String? profileId,
+          String? businessId,
+          String? branchId,
+          String? appDeviceId,
+          String? bundle,
+          String? dataset,
+          Value<String?> snapshotId = const Value.absent(),
+          Value<DateTime?> snapshotAt = const Value.absent(),
+          Value<String?> nextPageToken = const Value.absent(),
+          String? status,
+          int? rowsReceived,
+          int? pagesApplied,
+          Value<DateTime?> authorizationValidatedAt = const Value.absent(),
+          DateTime? startedAt,
+          DateTime? updatedAt,
+          Value<DateTime?> completedAt = const Value.absent(),
+          Value<DateTime?> lastSuccessAt = const Value.absent(),
+          Value<String?> lastError = const Value.absent(),
+          int? retryCount,
+          bool? requiredForOffline,
+          String? convergenceStatus}) =>
+      LocalOperationalBootstrapCheckpoint(
+        id: id ?? this.id,
+        profileId: profileId ?? this.profileId,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        appDeviceId: appDeviceId ?? this.appDeviceId,
+        bundle: bundle ?? this.bundle,
+        dataset: dataset ?? this.dataset,
+        snapshotId: snapshotId.present ? snapshotId.value : this.snapshotId,
+        snapshotAt: snapshotAt.present ? snapshotAt.value : this.snapshotAt,
+        nextPageToken:
+            nextPageToken.present ? nextPageToken.value : this.nextPageToken,
+        status: status ?? this.status,
+        rowsReceived: rowsReceived ?? this.rowsReceived,
+        pagesApplied: pagesApplied ?? this.pagesApplied,
+        authorizationValidatedAt: authorizationValidatedAt.present
+            ? authorizationValidatedAt.value
+            : this.authorizationValidatedAt,
+        startedAt: startedAt ?? this.startedAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        completedAt: completedAt.present ? completedAt.value : this.completedAt,
+        lastSuccessAt:
+            lastSuccessAt.present ? lastSuccessAt.value : this.lastSuccessAt,
+        lastError: lastError.present ? lastError.value : this.lastError,
+        retryCount: retryCount ?? this.retryCount,
+        requiredForOffline: requiredForOffline ?? this.requiredForOffline,
+        convergenceStatus: convergenceStatus ?? this.convergenceStatus,
+      );
+  LocalOperationalBootstrapCheckpoint copyWithCompanion(
+      LocalOperationalBootstrapCheckpointsCompanion data) {
+    return LocalOperationalBootstrapCheckpoint(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      appDeviceId:
+          data.appDeviceId.present ? data.appDeviceId.value : this.appDeviceId,
+      bundle: data.bundle.present ? data.bundle.value : this.bundle,
+      dataset: data.dataset.present ? data.dataset.value : this.dataset,
+      snapshotId:
+          data.snapshotId.present ? data.snapshotId.value : this.snapshotId,
+      snapshotAt:
+          data.snapshotAt.present ? data.snapshotAt.value : this.snapshotAt,
+      nextPageToken: data.nextPageToken.present
+          ? data.nextPageToken.value
+          : this.nextPageToken,
+      status: data.status.present ? data.status.value : this.status,
+      rowsReceived: data.rowsReceived.present
+          ? data.rowsReceived.value
+          : this.rowsReceived,
+      pagesApplied: data.pagesApplied.present
+          ? data.pagesApplied.value
+          : this.pagesApplied,
+      authorizationValidatedAt: data.authorizationValidatedAt.present
+          ? data.authorizationValidatedAt.value
+          : this.authorizationValidatedAt,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      completedAt:
+          data.completedAt.present ? data.completedAt.value : this.completedAt,
+      lastSuccessAt: data.lastSuccessAt.present
+          ? data.lastSuccessAt.value
+          : this.lastSuccessAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      retryCount:
+          data.retryCount.present ? data.retryCount.value : this.retryCount,
+      requiredForOffline: data.requiredForOffline.present
+          ? data.requiredForOffline.value
+          : this.requiredForOffline,
+      convergenceStatus: data.convergenceStatus.present
+          ? data.convergenceStatus.value
+          : this.convergenceStatus,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalOperationalBootstrapCheckpoint(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('appDeviceId: $appDeviceId, ')
+          ..write('bundle: $bundle, ')
+          ..write('dataset: $dataset, ')
+          ..write('snapshotId: $snapshotId, ')
+          ..write('snapshotAt: $snapshotAt, ')
+          ..write('nextPageToken: $nextPageToken, ')
+          ..write('status: $status, ')
+          ..write('rowsReceived: $rowsReceived, ')
+          ..write('pagesApplied: $pagesApplied, ')
+          ..write('authorizationValidatedAt: $authorizationValidatedAt, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('lastSuccessAt: $lastSuccessAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('requiredForOffline: $requiredForOffline, ')
+          ..write('convergenceStatus: $convergenceStatus')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        profileId,
+        businessId,
+        branchId,
+        appDeviceId,
+        bundle,
+        dataset,
+        snapshotId,
+        snapshotAt,
+        nextPageToken,
+        status,
+        rowsReceived,
+        pagesApplied,
+        authorizationValidatedAt,
+        startedAt,
+        updatedAt,
+        completedAt,
+        lastSuccessAt,
+        lastError,
+        retryCount,
+        requiredForOffline,
+        convergenceStatus
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalOperationalBootstrapCheckpoint &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.appDeviceId == this.appDeviceId &&
+          other.bundle == this.bundle &&
+          other.dataset == this.dataset &&
+          other.snapshotId == this.snapshotId &&
+          other.snapshotAt == this.snapshotAt &&
+          other.nextPageToken == this.nextPageToken &&
+          other.status == this.status &&
+          other.rowsReceived == this.rowsReceived &&
+          other.pagesApplied == this.pagesApplied &&
+          other.authorizationValidatedAt == this.authorizationValidatedAt &&
+          other.startedAt == this.startedAt &&
+          other.updatedAt == this.updatedAt &&
+          other.completedAt == this.completedAt &&
+          other.lastSuccessAt == this.lastSuccessAt &&
+          other.lastError == this.lastError &&
+          other.retryCount == this.retryCount &&
+          other.requiredForOffline == this.requiredForOffline &&
+          other.convergenceStatus == this.convergenceStatus);
+}
+
+class LocalOperationalBootstrapCheckpointsCompanion
+    extends UpdateCompanion<LocalOperationalBootstrapCheckpoint> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> appDeviceId;
+  final Value<String> bundle;
+  final Value<String> dataset;
+  final Value<String?> snapshotId;
+  final Value<DateTime?> snapshotAt;
+  final Value<String?> nextPageToken;
+  final Value<String> status;
+  final Value<int> rowsReceived;
+  final Value<int> pagesApplied;
+  final Value<DateTime?> authorizationValidatedAt;
+  final Value<DateTime> startedAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> completedAt;
+  final Value<DateTime?> lastSuccessAt;
+  final Value<String?> lastError;
+  final Value<int> retryCount;
+  final Value<bool> requiredForOffline;
+  final Value<String> convergenceStatus;
+  final Value<int> rowid;
+  const LocalOperationalBootstrapCheckpointsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.appDeviceId = const Value.absent(),
+    this.bundle = const Value.absent(),
+    this.dataset = const Value.absent(),
+    this.snapshotId = const Value.absent(),
+    this.snapshotAt = const Value.absent(),
+    this.nextPageToken = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rowsReceived = const Value.absent(),
+    this.pagesApplied = const Value.absent(),
+    this.authorizationValidatedAt = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.lastSuccessAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.requiredForOffline = const Value.absent(),
+    this.convergenceStatus = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalOperationalBootstrapCheckpointsCompanion.insert({
+    required String id,
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String bundle,
+    required String dataset,
+    this.snapshotId = const Value.absent(),
+    this.snapshotAt = const Value.absent(),
+    this.nextPageToken = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rowsReceived = const Value.absent(),
+    this.pagesApplied = const Value.absent(),
+    this.authorizationValidatedAt = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.lastSuccessAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.requiredForOffline = const Value.absent(),
+    this.convergenceStatus = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        profileId = Value(profileId),
+        businessId = Value(businessId),
+        branchId = Value(branchId),
+        appDeviceId = Value(appDeviceId),
+        bundle = Value(bundle),
+        dataset = Value(dataset);
+  static Insertable<LocalOperationalBootstrapCheckpoint> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? appDeviceId,
+    Expression<String>? bundle,
+    Expression<String>? dataset,
+    Expression<String>? snapshotId,
+    Expression<DateTime>? snapshotAt,
+    Expression<String>? nextPageToken,
+    Expression<String>? status,
+    Expression<int>? rowsReceived,
+    Expression<int>? pagesApplied,
+    Expression<DateTime>? authorizationValidatedAt,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? completedAt,
+    Expression<DateTime>? lastSuccessAt,
+    Expression<String>? lastError,
+    Expression<int>? retryCount,
+    Expression<bool>? requiredForOffline,
+    Expression<String>? convergenceStatus,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (appDeviceId != null) 'app_device_id': appDeviceId,
+      if (bundle != null) 'bundle': bundle,
+      if (dataset != null) 'dataset': dataset,
+      if (snapshotId != null) 'snapshot_id': snapshotId,
+      if (snapshotAt != null) 'snapshot_at': snapshotAt,
+      if (nextPageToken != null) 'next_page_token': nextPageToken,
+      if (status != null) 'status': status,
+      if (rowsReceived != null) 'rows_received': rowsReceived,
+      if (pagesApplied != null) 'pages_applied': pagesApplied,
+      if (authorizationValidatedAt != null)
+        'authorization_validated_at': authorizationValidatedAt,
+      if (startedAt != null) 'started_at': startedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (lastSuccessAt != null) 'last_success_at': lastSuccessAt,
+      if (lastError != null) 'last_error': lastError,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (requiredForOffline != null)
+        'required_for_offline': requiredForOffline,
+      if (convergenceStatus != null) 'convergence_status': convergenceStatus,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalOperationalBootstrapCheckpointsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? profileId,
+      Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? appDeviceId,
+      Value<String>? bundle,
+      Value<String>? dataset,
+      Value<String?>? snapshotId,
+      Value<DateTime?>? snapshotAt,
+      Value<String?>? nextPageToken,
+      Value<String>? status,
+      Value<int>? rowsReceived,
+      Value<int>? pagesApplied,
+      Value<DateTime?>? authorizationValidatedAt,
+      Value<DateTime>? startedAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? completedAt,
+      Value<DateTime?>? lastSuccessAt,
+      Value<String?>? lastError,
+      Value<int>? retryCount,
+      Value<bool>? requiredForOffline,
+      Value<String>? convergenceStatus,
+      Value<int>? rowid}) {
+    return LocalOperationalBootstrapCheckpointsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      appDeviceId: appDeviceId ?? this.appDeviceId,
+      bundle: bundle ?? this.bundle,
+      dataset: dataset ?? this.dataset,
+      snapshotId: snapshotId ?? this.snapshotId,
+      snapshotAt: snapshotAt ?? this.snapshotAt,
+      nextPageToken: nextPageToken ?? this.nextPageToken,
+      status: status ?? this.status,
+      rowsReceived: rowsReceived ?? this.rowsReceived,
+      pagesApplied: pagesApplied ?? this.pagesApplied,
+      authorizationValidatedAt:
+          authorizationValidatedAt ?? this.authorizationValidatedAt,
+      startedAt: startedAt ?? this.startedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      completedAt: completedAt ?? this.completedAt,
+      lastSuccessAt: lastSuccessAt ?? this.lastSuccessAt,
+      lastError: lastError ?? this.lastError,
+      retryCount: retryCount ?? this.retryCount,
+      requiredForOffline: requiredForOffline ?? this.requiredForOffline,
+      convergenceStatus: convergenceStatus ?? this.convergenceStatus,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (appDeviceId.present) {
+      map['app_device_id'] = Variable<String>(appDeviceId.value);
+    }
+    if (bundle.present) {
+      map['bundle'] = Variable<String>(bundle.value);
+    }
+    if (dataset.present) {
+      map['dataset'] = Variable<String>(dataset.value);
+    }
+    if (snapshotId.present) {
+      map['snapshot_id'] = Variable<String>(snapshotId.value);
+    }
+    if (snapshotAt.present) {
+      map['snapshot_at'] = Variable<DateTime>(snapshotAt.value);
+    }
+    if (nextPageToken.present) {
+      map['next_page_token'] = Variable<String>(nextPageToken.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (rowsReceived.present) {
+      map['rows_received'] = Variable<int>(rowsReceived.value);
+    }
+    if (pagesApplied.present) {
+      map['pages_applied'] = Variable<int>(pagesApplied.value);
+    }
+    if (authorizationValidatedAt.present) {
+      map['authorization_validated_at'] =
+          Variable<DateTime>(authorizationValidatedAt.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (lastSuccessAt.present) {
+      map['last_success_at'] = Variable<DateTime>(lastSuccessAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (requiredForOffline.present) {
+      map['required_for_offline'] = Variable<bool>(requiredForOffline.value);
+    }
+    if (convergenceStatus.present) {
+      map['convergence_status'] = Variable<String>(convergenceStatus.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalOperationalBootstrapCheckpointsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('appDeviceId: $appDeviceId, ')
+          ..write('bundle: $bundle, ')
+          ..write('dataset: $dataset, ')
+          ..write('snapshotId: $snapshotId, ')
+          ..write('snapshotAt: $snapshotAt, ')
+          ..write('nextPageToken: $nextPageToken, ')
+          ..write('status: $status, ')
+          ..write('rowsReceived: $rowsReceived, ')
+          ..write('pagesApplied: $pagesApplied, ')
+          ..write('authorizationValidatedAt: $authorizationValidatedAt, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('lastSuccessAt: $lastSuccessAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('requiredForOffline: $requiredForOffline, ')
+          ..write('convergenceStatus: $convergenceStatus, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalOperationalBootstrapSeenRecordsTable
+    extends LocalOperationalBootstrapSeenRecords
+    with
+        TableInfo<$LocalOperationalBootstrapSeenRecordsTable,
+            LocalOperationalBootstrapSeenRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalOperationalBootstrapSeenRecordsTable(this.attachedDatabase,
+      [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _snapshotIdMeta =
+      const VerificationMeta('snapshotId');
+  @override
+  late final GeneratedColumn<String> snapshotId = GeneratedColumn<String>(
+      'snapshot_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _bundleMeta = const VerificationMeta('bundle');
+  @override
+  late final GeneratedColumn<String> bundle = GeneratedColumn<String>(
+      'bundle', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _datasetMeta =
+      const VerificationMeta('dataset');
+  @override
+  late final GeneratedColumn<String> dataset = GeneratedColumn<String>(
+      'dataset', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+      'entity_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        snapshotId,
+        profileId,
+        businessId,
+        branchId,
+        bundle,
+        dataset,
+        entityId,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_operational_bootstrap_seen_records';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalOperationalBootstrapSeenRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('snapshot_id')) {
+      context.handle(
+          _snapshotIdMeta,
+          snapshotId.isAcceptableOrUnknown(
+              data['snapshot_id']!, _snapshotIdMeta));
+    } else if (isInserting) {
+      context.missing(_snapshotIdMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('bundle')) {
+      context.handle(_bundleMeta,
+          bundle.isAcceptableOrUnknown(data['bundle']!, _bundleMeta));
+    } else if (isInserting) {
+      context.missing(_bundleMeta);
+    }
+    if (data.containsKey('dataset')) {
+      context.handle(_datasetMeta,
+          dataset.isAcceptableOrUnknown(data['dataset']!, _datasetMeta));
+    } else if (isInserting) {
+      context.missing(_datasetMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalOperationalBootstrapSeenRecord map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalOperationalBootstrapSeenRecord(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      snapshotId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}snapshot_id'])!,
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      bundle: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}bundle'])!,
+      dataset: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}dataset'])!,
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_id'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $LocalOperationalBootstrapSeenRecordsTable createAlias(String alias) {
+    return $LocalOperationalBootstrapSeenRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalOperationalBootstrapSeenRecord extends DataClass
+    implements Insertable<LocalOperationalBootstrapSeenRecord> {
+  final String id;
+  final String snapshotId;
+  final String profileId;
+  final String businessId;
+  final String branchId;
+  final String bundle;
+  final String dataset;
+  final String entityId;
+  final DateTime createdAt;
+  const LocalOperationalBootstrapSeenRecord(
+      {required this.id,
+      required this.snapshotId,
+      required this.profileId,
+      required this.businessId,
+      required this.branchId,
+      required this.bundle,
+      required this.dataset,
+      required this.entityId,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['snapshot_id'] = Variable<String>(snapshotId);
+    map['profile_id'] = Variable<String>(profileId);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['bundle'] = Variable<String>(bundle);
+    map['dataset'] = Variable<String>(dataset);
+    map['entity_id'] = Variable<String>(entityId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LocalOperationalBootstrapSeenRecordsCompanion toCompanion(bool nullToAbsent) {
+    return LocalOperationalBootstrapSeenRecordsCompanion(
+      id: Value(id),
+      snapshotId: Value(snapshotId),
+      profileId: Value(profileId),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      bundle: Value(bundle),
+      dataset: Value(dataset),
+      entityId: Value(entityId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LocalOperationalBootstrapSeenRecord.fromJson(
+      Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalOperationalBootstrapSeenRecord(
+      id: serializer.fromJson<String>(json['id']),
+      snapshotId: serializer.fromJson<String>(json['snapshotId']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      bundle: serializer.fromJson<String>(json['bundle']),
+      dataset: serializer.fromJson<String>(json['dataset']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'snapshotId': serializer.toJson<String>(snapshotId),
+      'profileId': serializer.toJson<String>(profileId),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'bundle': serializer.toJson<String>(bundle),
+      'dataset': serializer.toJson<String>(dataset),
+      'entityId': serializer.toJson<String>(entityId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LocalOperationalBootstrapSeenRecord copyWith(
+          {String? id,
+          String? snapshotId,
+          String? profileId,
+          String? businessId,
+          String? branchId,
+          String? bundle,
+          String? dataset,
+          String? entityId,
+          DateTime? createdAt}) =>
+      LocalOperationalBootstrapSeenRecord(
+        id: id ?? this.id,
+        snapshotId: snapshotId ?? this.snapshotId,
+        profileId: profileId ?? this.profileId,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        bundle: bundle ?? this.bundle,
+        dataset: dataset ?? this.dataset,
+        entityId: entityId ?? this.entityId,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  LocalOperationalBootstrapSeenRecord copyWithCompanion(
+      LocalOperationalBootstrapSeenRecordsCompanion data) {
+    return LocalOperationalBootstrapSeenRecord(
+      id: data.id.present ? data.id.value : this.id,
+      snapshotId:
+          data.snapshotId.present ? data.snapshotId.value : this.snapshotId,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      bundle: data.bundle.present ? data.bundle.value : this.bundle,
+      dataset: data.dataset.present ? data.dataset.value : this.dataset,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalOperationalBootstrapSeenRecord(')
+          ..write('id: $id, ')
+          ..write('snapshotId: $snapshotId, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('bundle: $bundle, ')
+          ..write('dataset: $dataset, ')
+          ..write('entityId: $entityId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, snapshotId, profileId, businessId,
+      branchId, bundle, dataset, entityId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalOperationalBootstrapSeenRecord &&
+          other.id == this.id &&
+          other.snapshotId == this.snapshotId &&
+          other.profileId == this.profileId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.bundle == this.bundle &&
+          other.dataset == this.dataset &&
+          other.entityId == this.entityId &&
+          other.createdAt == this.createdAt);
+}
+
+class LocalOperationalBootstrapSeenRecordsCompanion
+    extends UpdateCompanion<LocalOperationalBootstrapSeenRecord> {
+  final Value<String> id;
+  final Value<String> snapshotId;
+  final Value<String> profileId;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> bundle;
+  final Value<String> dataset;
+  final Value<String> entityId;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LocalOperationalBootstrapSeenRecordsCompanion({
+    this.id = const Value.absent(),
+    this.snapshotId = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.bundle = const Value.absent(),
+    this.dataset = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalOperationalBootstrapSeenRecordsCompanion.insert({
+    required String id,
+    required String snapshotId,
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String bundle,
+    required String dataset,
+    required String entityId,
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        snapshotId = Value(snapshotId),
+        profileId = Value(profileId),
+        businessId = Value(businessId),
+        branchId = Value(branchId),
+        bundle = Value(bundle),
+        dataset = Value(dataset),
+        entityId = Value(entityId);
+  static Insertable<LocalOperationalBootstrapSeenRecord> custom({
+    Expression<String>? id,
+    Expression<String>? snapshotId,
+    Expression<String>? profileId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? bundle,
+    Expression<String>? dataset,
+    Expression<String>? entityId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (snapshotId != null) 'snapshot_id': snapshotId,
+      if (profileId != null) 'profile_id': profileId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (bundle != null) 'bundle': bundle,
+      if (dataset != null) 'dataset': dataset,
+      if (entityId != null) 'entity_id': entityId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalOperationalBootstrapSeenRecordsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? snapshotId,
+      Value<String>? profileId,
+      Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? bundle,
+      Value<String>? dataset,
+      Value<String>? entityId,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return LocalOperationalBootstrapSeenRecordsCompanion(
+      id: id ?? this.id,
+      snapshotId: snapshotId ?? this.snapshotId,
+      profileId: profileId ?? this.profileId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      bundle: bundle ?? this.bundle,
+      dataset: dataset ?? this.dataset,
+      entityId: entityId ?? this.entityId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (snapshotId.present) {
+      map['snapshot_id'] = Variable<String>(snapshotId.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (bundle.present) {
+      map['bundle'] = Variable<String>(bundle.value);
+    }
+    if (dataset.present) {
+      map['dataset'] = Variable<String>(dataset.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalOperationalBootstrapSeenRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('snapshotId: $snapshotId, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('bundle: $bundle, ')
+          ..write('dataset: $dataset, ')
+          ..write('entityId: $entityId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalReconciliationIssuesTable extends LocalReconciliationIssues
+    with TableInfo<$LocalReconciliationIssuesTable, LocalReconciliationIssue> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalReconciliationIssuesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+      'domain', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityTypeMeta =
+      const VerificationMeta('entityType');
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+      'entity_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+      'entity_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _issueTypeMeta =
+      const VerificationMeta('issueType');
+  @override
+  late final GeneratedColumn<String> issueType = GeneratedColumn<String>(
+      'issue_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _severityMeta =
+      const VerificationMeta('severity');
+  @override
+  late final GeneratedColumn<String> severity = GeneratedColumn<String>(
+      'severity', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('open'));
+  static const VerificationMeta _messageMeta =
+      const VerificationMeta('message');
+  @override
+  late final GeneratedColumn<String> message = GeneratedColumn<String>(
+      'message', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _metadataJsonMeta =
+      const VerificationMeta('metadataJson');
+  @override
+  late final GeneratedColumn<String> metadataJson = GeneratedColumn<String>(
+      'metadata_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _resolvedAtMeta =
+      const VerificationMeta('resolvedAt');
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+      'resolved_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        profileId,
+        businessId,
+        branchId,
+        domain,
+        entityType,
+        entityId,
+        issueType,
+        severity,
+        status,
+        message,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        resolvedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_reconciliation_issues';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalReconciliationIssue> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('domain')) {
+      context.handle(_domainMeta,
+          domain.isAcceptableOrUnknown(data['domain']!, _domainMeta));
+    } else if (isInserting) {
+      context.missing(_domainMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+          _entityTypeMeta,
+          entityType.isAcceptableOrUnknown(
+              data['entity_type']!, _entityTypeMeta));
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    }
+    if (data.containsKey('issue_type')) {
+      context.handle(_issueTypeMeta,
+          issueType.isAcceptableOrUnknown(data['issue_type']!, _issueTypeMeta));
+    } else if (isInserting) {
+      context.missing(_issueTypeMeta);
+    }
+    if (data.containsKey('severity')) {
+      context.handle(_severityMeta,
+          severity.isAcceptableOrUnknown(data['severity']!, _severityMeta));
+    } else if (isInserting) {
+      context.missing(_severityMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('message')) {
+      context.handle(_messageMeta,
+          message.isAcceptableOrUnknown(data['message']!, _messageMeta));
+    } else if (isInserting) {
+      context.missing(_messageMeta);
+    }
+    if (data.containsKey('metadata_json')) {
+      context.handle(
+          _metadataJsonMeta,
+          metadataJson.isAcceptableOrUnknown(
+              data['metadata_json']!, _metadataJsonMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+          _resolvedAtMeta,
+          resolvedAt.isAcceptableOrUnknown(
+              data['resolved_at']!, _resolvedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalReconciliationIssue map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalReconciliationIssue(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      domain: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}domain'])!,
+      entityType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_type']),
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_id']),
+      issueType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}issue_type'])!,
+      severity: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}severity'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      message: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}message'])!,
+      metadataJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata_json']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      resolvedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}resolved_at']),
+    );
+  }
+
+  @override
+  $LocalReconciliationIssuesTable createAlias(String alias) {
+    return $LocalReconciliationIssuesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalReconciliationIssue extends DataClass
+    implements Insertable<LocalReconciliationIssue> {
+  final String id;
+  final String profileId;
+  final String businessId;
+  final String branchId;
+  final String domain;
+  final String? entityType;
+  final String? entityId;
+  final String issueType;
+  final String severity;
+  final String status;
+  final String message;
+  final String? metadataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? resolvedAt;
+  const LocalReconciliationIssue(
+      {required this.id,
+      required this.profileId,
+      required this.businessId,
+      required this.branchId,
+      required this.domain,
+      this.entityType,
+      this.entityId,
+      required this.issueType,
+      required this.severity,
+      required this.status,
+      required this.message,
+      this.metadataJson,
+      required this.createdAt,
+      required this.updatedAt,
+      this.resolvedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['domain'] = Variable<String>(domain);
+    if (!nullToAbsent || entityType != null) {
+      map['entity_type'] = Variable<String>(entityType);
+    }
+    if (!nullToAbsent || entityId != null) {
+      map['entity_id'] = Variable<String>(entityId);
+    }
+    map['issue_type'] = Variable<String>(issueType);
+    map['severity'] = Variable<String>(severity);
+    map['status'] = Variable<String>(status);
+    map['message'] = Variable<String>(message);
+    if (!nullToAbsent || metadataJson != null) {
+      map['metadata_json'] = Variable<String>(metadataJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    return map;
+  }
+
+  LocalReconciliationIssuesCompanion toCompanion(bool nullToAbsent) {
+    return LocalReconciliationIssuesCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      domain: Value(domain),
+      entityType: entityType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(entityType),
+      entityId: entityId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(entityId),
+      issueType: Value(issueType),
+      severity: Value(severity),
+      status: Value(status),
+      message: Value(message),
+      metadataJson: metadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+    );
+  }
+
+  factory LocalReconciliationIssue.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalReconciliationIssue(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      domain: serializer.fromJson<String>(json['domain']),
+      entityType: serializer.fromJson<String?>(json['entityType']),
+      entityId: serializer.fromJson<String?>(json['entityId']),
+      issueType: serializer.fromJson<String>(json['issueType']),
+      severity: serializer.fromJson<String>(json['severity']),
+      status: serializer.fromJson<String>(json['status']),
+      message: serializer.fromJson<String>(json['message']),
+      metadataJson: serializer.fromJson<String?>(json['metadataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'domain': serializer.toJson<String>(domain),
+      'entityType': serializer.toJson<String?>(entityType),
+      'entityId': serializer.toJson<String?>(entityId),
+      'issueType': serializer.toJson<String>(issueType),
+      'severity': serializer.toJson<String>(severity),
+      'status': serializer.toJson<String>(status),
+      'message': serializer.toJson<String>(message),
+      'metadataJson': serializer.toJson<String?>(metadataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+    };
+  }
+
+  LocalReconciliationIssue copyWith(
+          {String? id,
+          String? profileId,
+          String? businessId,
+          String? branchId,
+          String? domain,
+          Value<String?> entityType = const Value.absent(),
+          Value<String?> entityId = const Value.absent(),
+          String? issueType,
+          String? severity,
+          String? status,
+          String? message,
+          Value<String?> metadataJson = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> resolvedAt = const Value.absent()}) =>
+      LocalReconciliationIssue(
+        id: id ?? this.id,
+        profileId: profileId ?? this.profileId,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        domain: domain ?? this.domain,
+        entityType: entityType.present ? entityType.value : this.entityType,
+        entityId: entityId.present ? entityId.value : this.entityId,
+        issueType: issueType ?? this.issueType,
+        severity: severity ?? this.severity,
+        status: status ?? this.status,
+        message: message ?? this.message,
+        metadataJson:
+            metadataJson.present ? metadataJson.value : this.metadataJson,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+      );
+  LocalReconciliationIssue copyWithCompanion(
+      LocalReconciliationIssuesCompanion data) {
+    return LocalReconciliationIssue(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      entityType:
+          data.entityType.present ? data.entityType.value : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      issueType: data.issueType.present ? data.issueType.value : this.issueType,
+      severity: data.severity.present ? data.severity.value : this.severity,
+      status: data.status.present ? data.status.value : this.status,
+      message: data.message.present ? data.message.value : this.message,
+      metadataJson: data.metadataJson.present
+          ? data.metadataJson.value
+          : this.metadataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      resolvedAt:
+          data.resolvedAt.present ? data.resolvedAt.value : this.resolvedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalReconciliationIssue(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('domain: $domain, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('issueType: $issueType, ')
+          ..write('severity: $severity, ')
+          ..write('status: $status, ')
+          ..write('message: $message, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('resolvedAt: $resolvedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      profileId,
+      businessId,
+      branchId,
+      domain,
+      entityType,
+      entityId,
+      issueType,
+      severity,
+      status,
+      message,
+      metadataJson,
+      createdAt,
+      updatedAt,
+      resolvedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalReconciliationIssue &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.domain == this.domain &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.issueType == this.issueType &&
+          other.severity == this.severity &&
+          other.status == this.status &&
+          other.message == this.message &&
+          other.metadataJson == this.metadataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.resolvedAt == this.resolvedAt);
+}
+
+class LocalReconciliationIssuesCompanion
+    extends UpdateCompanion<LocalReconciliationIssue> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> domain;
+  final Value<String?> entityType;
+  final Value<String?> entityId;
+  final Value<String> issueType;
+  final Value<String> severity;
+  final Value<String> status;
+  final Value<String> message;
+  final Value<String?> metadataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> resolvedAt;
+  final Value<int> rowid;
+  const LocalReconciliationIssuesCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.issueType = const Value.absent(),
+    this.severity = const Value.absent(),
+    this.status = const Value.absent(),
+    this.message = const Value.absent(),
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalReconciliationIssuesCompanion.insert({
+    required String id,
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String domain,
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    required String issueType,
+    required String severity,
+    this.status = const Value.absent(),
+    required String message,
+    this.metadataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        profileId = Value(profileId),
+        businessId = Value(businessId),
+        branchId = Value(branchId),
+        domain = Value(domain),
+        issueType = Value(issueType),
+        severity = Value(severity),
+        message = Value(message);
+  static Insertable<LocalReconciliationIssue> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? domain,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<String>? issueType,
+    Expression<String>? severity,
+    Expression<String>? status,
+    Expression<String>? message,
+    Expression<String>? metadataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? resolvedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (domain != null) 'domain': domain,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (issueType != null) 'issue_type': issueType,
+      if (severity != null) 'severity': severity,
+      if (status != null) 'status': status,
+      if (message != null) 'message': message,
+      if (metadataJson != null) 'metadata_json': metadataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalReconciliationIssuesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? profileId,
+      Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? domain,
+      Value<String?>? entityType,
+      Value<String?>? entityId,
+      Value<String>? issueType,
+      Value<String>? severity,
+      Value<String>? status,
+      Value<String>? message,
+      Value<String?>? metadataJson,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? resolvedAt,
+      Value<int>? rowid}) {
+    return LocalReconciliationIssuesCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      domain: domain ?? this.domain,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      issueType: issueType ?? this.issueType,
+      severity: severity ?? this.severity,
+      status: status ?? this.status,
+      message: message ?? this.message,
+      metadataJson: metadataJson ?? this.metadataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (issueType.present) {
+      map['issue_type'] = Variable<String>(issueType.value);
+    }
+    if (severity.present) {
+      map['severity'] = Variable<String>(severity.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (message.present) {
+      map['message'] = Variable<String>(message.value);
+    }
+    if (metadataJson.present) {
+      map['metadata_json'] = Variable<String>(metadataJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalReconciliationIssuesCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('domain: $domain, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('issueType: $issueType, ')
+          ..write('severity: $severity, ')
+          ..write('status: $status, ')
+          ..write('message: $message, ')
+          ..write('metadataJson: $metadataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalAuthorizedOperationalContextsTable
+    extends LocalAuthorizedOperationalContexts
+    with
+        TableInfo<$LocalAuthorizedOperationalContextsTable,
+            LocalAuthorizedOperationalContext> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalAuthorizedOperationalContextsTable(this.attachedDatabase,
+      [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _effectivePermissionsJsonMeta =
+      const VerificationMeta('effectivePermissionsJson');
+  @override
+  late final GeneratedColumn<String> effectivePermissionsJson =
+      GeneratedColumn<String>('effective_permissions', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('[]'));
+  static const VerificationMeta _effectiveRolesJsonMeta =
+      const VerificationMeta('effectiveRolesJson');
+  @override
+  late final GeneratedColumn<String> effectiveRolesJson =
+      GeneratedColumn<String>('effective_roles', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('[]'));
+  static const VerificationMeta _applicableMembershipIdsJsonMeta =
+      const VerificationMeta('applicableMembershipIdsJson');
+  @override
+  late final GeneratedColumn<String> applicableMembershipIdsJson =
+      GeneratedColumn<String>('applicable_membership_ids', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('[]'));
+  static const VerificationMeta _authorizationValidatedAtMeta =
+      const VerificationMeta('authorizationValidatedAt');
+  @override
+  late final GeneratedColumn<DateTime> authorizationValidatedAt =
+      GeneratedColumn<DateTime>(
+          'authorization_validated_at', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _snapshotIdMeta =
+      const VerificationMeta('snapshotId');
+  @override
+  late final GeneratedColumn<String> snapshotId = GeneratedColumn<String>(
+      'snapshot_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('active'));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        profileId,
+        businessId,
+        branchId,
+        effectivePermissionsJson,
+        effectiveRolesJson,
+        applicableMembershipIdsJson,
+        authorizationValidatedAt,
+        snapshotId,
+        status,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_authorized_operational_contexts';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalAuthorizedOperationalContext> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('effective_permissions')) {
+      context.handle(
+          _effectivePermissionsJsonMeta,
+          effectivePermissionsJson.isAcceptableOrUnknown(
+              data['effective_permissions']!, _effectivePermissionsJsonMeta));
+    }
+    if (data.containsKey('effective_roles')) {
+      context.handle(
+          _effectiveRolesJsonMeta,
+          effectiveRolesJson.isAcceptableOrUnknown(
+              data['effective_roles']!, _effectiveRolesJsonMeta));
+    }
+    if (data.containsKey('applicable_membership_ids')) {
+      context.handle(
+          _applicableMembershipIdsJsonMeta,
+          applicableMembershipIdsJson.isAcceptableOrUnknown(
+              data['applicable_membership_ids']!,
+              _applicableMembershipIdsJsonMeta));
+    }
+    if (data.containsKey('authorization_validated_at')) {
+      context.handle(
+          _authorizationValidatedAtMeta,
+          authorizationValidatedAt.isAcceptableOrUnknown(
+              data['authorization_validated_at']!,
+              _authorizationValidatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_authorizationValidatedAtMeta);
+    }
+    if (data.containsKey('snapshot_id')) {
+      context.handle(
+          _snapshotIdMeta,
+          snapshotId.isAcceptableOrUnknown(
+              data['snapshot_id']!, _snapshotIdMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalAuthorizedOperationalContext map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalAuthorizedOperationalContext(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      effectivePermissionsJson: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}effective_permissions'])!,
+      effectiveRolesJson: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}effective_roles'])!,
+      applicableMembershipIdsJson: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}applicable_membership_ids'])!,
+      authorizationValidatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}authorization_validated_at'])!,
+      snapshotId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}snapshot_id']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $LocalAuthorizedOperationalContextsTable createAlias(String alias) {
+    return $LocalAuthorizedOperationalContextsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalAuthorizedOperationalContext extends DataClass
+    implements Insertable<LocalAuthorizedOperationalContext> {
+  final String id;
+  final String profileId;
+  final String businessId;
+  final String branchId;
+  final String effectivePermissionsJson;
+  final String effectiveRolesJson;
+  final String applicableMembershipIdsJson;
+  final DateTime authorizationValidatedAt;
+  final String? snapshotId;
+  final String status;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalAuthorizedOperationalContext(
+      {required this.id,
+      required this.profileId,
+      required this.businessId,
+      required this.branchId,
+      required this.effectivePermissionsJson,
+      required this.effectiveRolesJson,
+      required this.applicableMembershipIdsJson,
+      required this.authorizationValidatedAt,
+      this.snapshotId,
+      required this.status,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['effective_permissions'] = Variable<String>(effectivePermissionsJson);
+    map['effective_roles'] = Variable<String>(effectiveRolesJson);
+    map['applicable_membership_ids'] =
+        Variable<String>(applicableMembershipIdsJson);
+    map['authorization_validated_at'] =
+        Variable<DateTime>(authorizationValidatedAt);
+    if (!nullToAbsent || snapshotId != null) {
+      map['snapshot_id'] = Variable<String>(snapshotId);
+    }
+    map['status'] = Variable<String>(status);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalAuthorizedOperationalContextsCompanion toCompanion(bool nullToAbsent) {
+    return LocalAuthorizedOperationalContextsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      effectivePermissionsJson: Value(effectivePermissionsJson),
+      effectiveRolesJson: Value(effectiveRolesJson),
+      applicableMembershipIdsJson: Value(applicableMembershipIdsJson),
+      authorizationValidatedAt: Value(authorizationValidatedAt),
+      snapshotId: snapshotId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotId),
+      status: Value(status),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalAuthorizedOperationalContext.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalAuthorizedOperationalContext(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      effectivePermissionsJson:
+          serializer.fromJson<String>(json['effectivePermissionsJson']),
+      effectiveRolesJson:
+          serializer.fromJson<String>(json['effectiveRolesJson']),
+      applicableMembershipIdsJson:
+          serializer.fromJson<String>(json['applicableMembershipIdsJson']),
+      authorizationValidatedAt:
+          serializer.fromJson<DateTime>(json['authorizationValidatedAt']),
+      snapshotId: serializer.fromJson<String?>(json['snapshotId']),
+      status: serializer.fromJson<String>(json['status']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'effectivePermissionsJson':
+          serializer.toJson<String>(effectivePermissionsJson),
+      'effectiveRolesJson': serializer.toJson<String>(effectiveRolesJson),
+      'applicableMembershipIdsJson':
+          serializer.toJson<String>(applicableMembershipIdsJson),
+      'authorizationValidatedAt':
+          serializer.toJson<DateTime>(authorizationValidatedAt),
+      'snapshotId': serializer.toJson<String?>(snapshotId),
+      'status': serializer.toJson<String>(status),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalAuthorizedOperationalContext copyWith(
+          {String? id,
+          String? profileId,
+          String? businessId,
+          String? branchId,
+          String? effectivePermissionsJson,
+          String? effectiveRolesJson,
+          String? applicableMembershipIdsJson,
+          DateTime? authorizationValidatedAt,
+          Value<String?> snapshotId = const Value.absent(),
+          String? status,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      LocalAuthorizedOperationalContext(
+        id: id ?? this.id,
+        profileId: profileId ?? this.profileId,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        effectivePermissionsJson:
+            effectivePermissionsJson ?? this.effectivePermissionsJson,
+        effectiveRolesJson: effectiveRolesJson ?? this.effectiveRolesJson,
+        applicableMembershipIdsJson:
+            applicableMembershipIdsJson ?? this.applicableMembershipIdsJson,
+        authorizationValidatedAt:
+            authorizationValidatedAt ?? this.authorizationValidatedAt,
+        snapshotId: snapshotId.present ? snapshotId.value : this.snapshotId,
+        status: status ?? this.status,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  LocalAuthorizedOperationalContext copyWithCompanion(
+      LocalAuthorizedOperationalContextsCompanion data) {
+    return LocalAuthorizedOperationalContext(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      effectivePermissionsJson: data.effectivePermissionsJson.present
+          ? data.effectivePermissionsJson.value
+          : this.effectivePermissionsJson,
+      effectiveRolesJson: data.effectiveRolesJson.present
+          ? data.effectiveRolesJson.value
+          : this.effectiveRolesJson,
+      applicableMembershipIdsJson: data.applicableMembershipIdsJson.present
+          ? data.applicableMembershipIdsJson.value
+          : this.applicableMembershipIdsJson,
+      authorizationValidatedAt: data.authorizationValidatedAt.present
+          ? data.authorizationValidatedAt.value
+          : this.authorizationValidatedAt,
+      snapshotId:
+          data.snapshotId.present ? data.snapshotId.value : this.snapshotId,
+      status: data.status.present ? data.status.value : this.status,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalAuthorizedOperationalContext(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('effectivePermissionsJson: $effectivePermissionsJson, ')
+          ..write('effectiveRolesJson: $effectiveRolesJson, ')
+          ..write('applicableMembershipIdsJson: $applicableMembershipIdsJson, ')
+          ..write('authorizationValidatedAt: $authorizationValidatedAt, ')
+          ..write('snapshotId: $snapshotId, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      profileId,
+      businessId,
+      branchId,
+      effectivePermissionsJson,
+      effectiveRolesJson,
+      applicableMembershipIdsJson,
+      authorizationValidatedAt,
+      snapshotId,
+      status,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalAuthorizedOperationalContext &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.effectivePermissionsJson == this.effectivePermissionsJson &&
+          other.effectiveRolesJson == this.effectiveRolesJson &&
+          other.applicableMembershipIdsJson ==
+              this.applicableMembershipIdsJson &&
+          other.authorizationValidatedAt == this.authorizationValidatedAt &&
+          other.snapshotId == this.snapshotId &&
+          other.status == this.status &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalAuthorizedOperationalContextsCompanion
+    extends UpdateCompanion<LocalAuthorizedOperationalContext> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> effectivePermissionsJson;
+  final Value<String> effectiveRolesJson;
+  final Value<String> applicableMembershipIdsJson;
+  final Value<DateTime> authorizationValidatedAt;
+  final Value<String?> snapshotId;
+  final Value<String> status;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalAuthorizedOperationalContextsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.effectivePermissionsJson = const Value.absent(),
+    this.effectiveRolesJson = const Value.absent(),
+    this.applicableMembershipIdsJson = const Value.absent(),
+    this.authorizationValidatedAt = const Value.absent(),
+    this.snapshotId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalAuthorizedOperationalContextsCompanion.insert({
+    required String id,
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    this.effectivePermissionsJson = const Value.absent(),
+    this.effectiveRolesJson = const Value.absent(),
+    this.applicableMembershipIdsJson = const Value.absent(),
+    required DateTime authorizationValidatedAt,
+    this.snapshotId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        profileId = Value(profileId),
+        businessId = Value(businessId),
+        branchId = Value(branchId),
+        authorizationValidatedAt = Value(authorizationValidatedAt);
+  static Insertable<LocalAuthorizedOperationalContext> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? effectivePermissionsJson,
+    Expression<String>? effectiveRolesJson,
+    Expression<String>? applicableMembershipIdsJson,
+    Expression<DateTime>? authorizationValidatedAt,
+    Expression<String>? snapshotId,
+    Expression<String>? status,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (effectivePermissionsJson != null)
+        'effective_permissions': effectivePermissionsJson,
+      if (effectiveRolesJson != null) 'effective_roles': effectiveRolesJson,
+      if (applicableMembershipIdsJson != null)
+        'applicable_membership_ids': applicableMembershipIdsJson,
+      if (authorizationValidatedAt != null)
+        'authorization_validated_at': authorizationValidatedAt,
+      if (snapshotId != null) 'snapshot_id': snapshotId,
+      if (status != null) 'status': status,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalAuthorizedOperationalContextsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? profileId,
+      Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? effectivePermissionsJson,
+      Value<String>? effectiveRolesJson,
+      Value<String>? applicableMembershipIdsJson,
+      Value<DateTime>? authorizationValidatedAt,
+      Value<String?>? snapshotId,
+      Value<String>? status,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return LocalAuthorizedOperationalContextsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      effectivePermissionsJson:
+          effectivePermissionsJson ?? this.effectivePermissionsJson,
+      effectiveRolesJson: effectiveRolesJson ?? this.effectiveRolesJson,
+      applicableMembershipIdsJson:
+          applicableMembershipIdsJson ?? this.applicableMembershipIdsJson,
+      authorizationValidatedAt:
+          authorizationValidatedAt ?? this.authorizationValidatedAt,
+      snapshotId: snapshotId ?? this.snapshotId,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (effectivePermissionsJson.present) {
+      map['effective_permissions'] =
+          Variable<String>(effectivePermissionsJson.value);
+    }
+    if (effectiveRolesJson.present) {
+      map['effective_roles'] = Variable<String>(effectiveRolesJson.value);
+    }
+    if (applicableMembershipIdsJson.present) {
+      map['applicable_membership_ids'] =
+          Variable<String>(applicableMembershipIdsJson.value);
+    }
+    if (authorizationValidatedAt.present) {
+      map['authorization_validated_at'] =
+          Variable<DateTime>(authorizationValidatedAt.value);
+    }
+    if (snapshotId.present) {
+      map['snapshot_id'] = Variable<String>(snapshotId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalAuthorizedOperationalContextsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('effectivePermissionsJson: $effectivePermissionsJson, ')
+          ..write('effectiveRolesJson: $effectiveRolesJson, ')
+          ..write('applicableMembershipIdsJson: $applicableMembershipIdsJson, ')
+          ..write('authorizationValidatedAt: $authorizationValidatedAt, ')
+          ..write('snapshotId: $snapshotId, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -14756,6 +17992,12 @@ class $SaleItemsTable extends SaleItems
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   late final GeneratedColumnWithTypeConverter<SyncStatus, int> syncStatus =
       GeneratedColumn<int>('sync_status', aliasedName, false,
@@ -14779,6 +18021,7 @@ class $SaleItemsTable extends SaleItems
         metadataJson,
         createdAt,
         updatedAt,
+        deletedAt,
         syncStatus
       ];
   @override
@@ -14862,6 +18105,10 @@ class $SaleItemsTable extends SaleItems
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
     return context;
   }
 
@@ -14899,6 +18146,8 @@ class $SaleItemsTable extends SaleItems
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
       syncStatus: $SaleItemsTable.$convertersyncStatus.fromSql(attachedDatabase
           .typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}sync_status'])!),
@@ -14929,6 +18178,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
   final String? metadataJson;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
   final SyncStatus syncStatus;
   const SaleItem(
       {required this.id,
@@ -14945,6 +18195,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       this.metadataJson,
       required this.createdAt,
       required this.updatedAt,
+      this.deletedAt,
       required this.syncStatus});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -14973,6 +18224,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     {
       map['sync_status'] =
           Variable<int>($SaleItemsTable.$convertersyncStatus.toSql(syncStatus));
@@ -15005,6 +18259,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           : Value(metadataJson),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       syncStatus: Value(syncStatus),
     );
   }
@@ -15028,6 +18285,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       metadataJson: serializer.fromJson<String?>(json['metadataJson']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       syncStatus: $SaleItemsTable.$convertersyncStatus
           .fromJson(serializer.fromJson<int>(json['syncStatus'])),
     );
@@ -15050,6 +18308,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       'metadataJson': serializer.toJson<String?>(metadataJson),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'syncStatus': serializer
           .toJson<int>($SaleItemsTable.$convertersyncStatus.toJson(syncStatus)),
     };
@@ -15070,6 +18329,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           Value<String?> metadataJson = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent(),
           SyncStatus? syncStatus}) =>
       SaleItem(
         id: id ?? this.id,
@@ -15091,6 +18351,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
             metadataJson.present ? metadataJson.value : this.metadataJson,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
         syncStatus: syncStatus ?? this.syncStatus,
       );
   SaleItem copyWithCompanion(SaleItemsCompanion data) {
@@ -15117,6 +18378,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           : this.metadataJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
     );
@@ -15139,6 +18401,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ..write('metadataJson: $metadataJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus')
           ..write(')'))
         .toString();
@@ -15160,6 +18423,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       metadataJson,
       createdAt,
       updatedAt,
+      deletedAt,
       syncStatus);
   @override
   bool operator ==(Object other) =>
@@ -15179,6 +18443,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           other.metadataJson == this.metadataJson &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
           other.syncStatus == this.syncStatus);
 }
 
@@ -15197,6 +18462,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
   final Value<String?> metadataJson;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
   final Value<SyncStatus> syncStatus;
   final Value<int> rowid;
   const SaleItemsCompanion({
@@ -15214,6 +18480,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.metadataJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -15232,6 +18499,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.metadataJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -15253,6 +18521,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Expression<String>? metadataJson,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? syncStatus,
     Expression<int>? rowid,
   }) {
@@ -15272,6 +18541,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       if (metadataJson != null) 'metadata_json': metadataJson,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (rowid != null) 'rowid': rowid,
     });
@@ -15292,6 +18562,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       Value<String?>? metadataJson,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
       Value<SyncStatus>? syncStatus,
       Value<int>? rowid}) {
     return SaleItemsCompanion(
@@ -15309,6 +18580,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       metadataJson: metadataJson ?? this.metadataJson,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       rowid: rowid ?? this.rowid,
     );
@@ -15360,6 +18632,9 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<int>(
           $SaleItemsTable.$convertersyncStatus.toSql(syncStatus.value));
@@ -15387,6 +18662,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
           ..write('metadataJson: $metadataJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -19710,6 +22986,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalInventoryMovementsTable(this);
   late final $LocalProductStockBalancesTable localProductStockBalances =
       $LocalProductStockBalancesTable(this);
+  late final $LocalOperationalBootstrapCheckpointsTable
+      localOperationalBootstrapCheckpoints =
+      $LocalOperationalBootstrapCheckpointsTable(this);
+  late final $LocalOperationalBootstrapSeenRecordsTable
+      localOperationalBootstrapSeenRecords =
+      $LocalOperationalBootstrapSeenRecordsTable(this);
+  late final $LocalReconciliationIssuesTable localReconciliationIssues =
+      $LocalReconciliationIssuesTable(this);
+  late final $LocalAuthorizedOperationalContextsTable
+      localAuthorizedOperationalContexts =
+      $LocalAuthorizedOperationalContextsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ProductsTable products = $ProductsTable(this);
@@ -19747,6 +23034,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localSyncMutations,
         localInventoryMovements,
         localProductStockBalances,
+        localOperationalBootstrapCheckpoints,
+        localOperationalBootstrapSeenRecords,
+        localReconciliationIssues,
+        localAuthorizedOperationalContexts,
         categories,
         customers,
         products,
@@ -27136,13 +30427,20 @@ typedef $$LocalProductStockBalancesTableCreateCompanionBuilder
   Value<int> quantityReserved,
   Value<int> quantityAvailable,
   Value<double?> averageCost,
+  Value<String?> remoteBalanceId,
+  Value<int?> remoteQuantityOnHand,
+  Value<int?> remoteQuantityReserved,
+  Value<int?> remoteQuantityAvailable,
+  Value<double?> remoteAverageCost,
   Value<DateTime?> lastMovementAt,
   Value<DateTime?> remoteUpdatedAt,
+  Value<String?> remoteSnapshotId,
   Value<DateTime?> lastSyncedAt,
   Value<String> syncStatus,
   Value<String?> metadataJson,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
   Value<int> rowid,
 });
 typedef $$LocalProductStockBalancesTableUpdateCompanionBuilder
@@ -27155,13 +30453,20 @@ typedef $$LocalProductStockBalancesTableUpdateCompanionBuilder
   Value<int> quantityReserved,
   Value<int> quantityAvailable,
   Value<double?> averageCost,
+  Value<String?> remoteBalanceId,
+  Value<int?> remoteQuantityOnHand,
+  Value<int?> remoteQuantityReserved,
+  Value<int?> remoteQuantityAvailable,
+  Value<double?> remoteAverageCost,
   Value<DateTime?> lastMovementAt,
   Value<DateTime?> remoteUpdatedAt,
+  Value<String?> remoteSnapshotId,
   Value<DateTime?> lastSyncedAt,
   Value<String> syncStatus,
   Value<String?> metadataJson,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
   Value<int> rowid,
 });
 
@@ -27201,12 +30506,36 @@ class $$LocalProductStockBalancesTableFilterComposer
   ColumnFilters<double> get averageCost => $composableBuilder(
       column: $table.averageCost, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get remoteBalanceId => $composableBuilder(
+      column: $table.remoteBalanceId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get remoteQuantityOnHand => $composableBuilder(
+      column: $table.remoteQuantityOnHand,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get remoteQuantityReserved => $composableBuilder(
+      column: $table.remoteQuantityReserved,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get remoteQuantityAvailable => $composableBuilder(
+      column: $table.remoteQuantityAvailable,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get remoteAverageCost => $composableBuilder(
+      column: $table.remoteAverageCost,
+      builder: (column) => ColumnFilters(column));
+
   ColumnFilters<DateTime> get lastMovementAt => $composableBuilder(
       column: $table.lastMovementAt,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get remoteUpdatedAt => $composableBuilder(
       column: $table.remoteUpdatedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get remoteSnapshotId => $composableBuilder(
+      column: $table.remoteSnapshotId,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
@@ -27223,6 +30552,9 @@ class $$LocalProductStockBalancesTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$LocalProductStockBalancesTableOrderingComposer
@@ -27261,12 +30593,36 @@ class $$LocalProductStockBalancesTableOrderingComposer
   ColumnOrderings<double> get averageCost => $composableBuilder(
       column: $table.averageCost, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get remoteBalanceId => $composableBuilder(
+      column: $table.remoteBalanceId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get remoteQuantityOnHand => $composableBuilder(
+      column: $table.remoteQuantityOnHand,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get remoteQuantityReserved => $composableBuilder(
+      column: $table.remoteQuantityReserved,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get remoteQuantityAvailable => $composableBuilder(
+      column: $table.remoteQuantityAvailable,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get remoteAverageCost => $composableBuilder(
+      column: $table.remoteAverageCost,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get lastMovementAt => $composableBuilder(
       column: $table.lastMovementAt,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get remoteUpdatedAt => $composableBuilder(
       column: $table.remoteUpdatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get remoteSnapshotId => $composableBuilder(
+      column: $table.remoteSnapshotId,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
@@ -27285,6 +30641,9 @@ class $$LocalProductStockBalancesTableOrderingComposer
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$LocalProductStockBalancesTableAnnotationComposer
@@ -27320,11 +30679,29 @@ class $$LocalProductStockBalancesTableAnnotationComposer
   GeneratedColumn<double> get averageCost => $composableBuilder(
       column: $table.averageCost, builder: (column) => column);
 
+  GeneratedColumn<String> get remoteBalanceId => $composableBuilder(
+      column: $table.remoteBalanceId, builder: (column) => column);
+
+  GeneratedColumn<int> get remoteQuantityOnHand => $composableBuilder(
+      column: $table.remoteQuantityOnHand, builder: (column) => column);
+
+  GeneratedColumn<int> get remoteQuantityReserved => $composableBuilder(
+      column: $table.remoteQuantityReserved, builder: (column) => column);
+
+  GeneratedColumn<int> get remoteQuantityAvailable => $composableBuilder(
+      column: $table.remoteQuantityAvailable, builder: (column) => column);
+
+  GeneratedColumn<double> get remoteAverageCost => $composableBuilder(
+      column: $table.remoteAverageCost, builder: (column) => column);
+
   GeneratedColumn<DateTime> get lastMovementAt => $composableBuilder(
       column: $table.lastMovementAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get remoteUpdatedAt => $composableBuilder(
       column: $table.remoteUpdatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteSnapshotId => $composableBuilder(
+      column: $table.remoteSnapshotId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
       column: $table.lastSyncedAt, builder: (column) => column);
@@ -27340,6 +30717,9 @@ class $$LocalProductStockBalancesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 }
 
 class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
@@ -27381,13 +30761,20 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             Value<int> quantityReserved = const Value.absent(),
             Value<int> quantityAvailable = const Value.absent(),
             Value<double?> averageCost = const Value.absent(),
+            Value<String?> remoteBalanceId = const Value.absent(),
+            Value<int?> remoteQuantityOnHand = const Value.absent(),
+            Value<int?> remoteQuantityReserved = const Value.absent(),
+            Value<int?> remoteQuantityAvailable = const Value.absent(),
+            Value<double?> remoteAverageCost = const Value.absent(),
             Value<DateTime?> lastMovementAt = const Value.absent(),
             Value<DateTime?> remoteUpdatedAt = const Value.absent(),
+            Value<String?> remoteSnapshotId = const Value.absent(),
             Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<String?> metadataJson = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalProductStockBalancesCompanion(
@@ -27399,13 +30786,20 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             quantityReserved: quantityReserved,
             quantityAvailable: quantityAvailable,
             averageCost: averageCost,
+            remoteBalanceId: remoteBalanceId,
+            remoteQuantityOnHand: remoteQuantityOnHand,
+            remoteQuantityReserved: remoteQuantityReserved,
+            remoteQuantityAvailable: remoteQuantityAvailable,
+            remoteAverageCost: remoteAverageCost,
             lastMovementAt: lastMovementAt,
             remoteUpdatedAt: remoteUpdatedAt,
+            remoteSnapshotId: remoteSnapshotId,
             lastSyncedAt: lastSyncedAt,
             syncStatus: syncStatus,
             metadataJson: metadataJson,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            deletedAt: deletedAt,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -27417,13 +30811,20 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             Value<int> quantityReserved = const Value.absent(),
             Value<int> quantityAvailable = const Value.absent(),
             Value<double?> averageCost = const Value.absent(),
+            Value<String?> remoteBalanceId = const Value.absent(),
+            Value<int?> remoteQuantityOnHand = const Value.absent(),
+            Value<int?> remoteQuantityReserved = const Value.absent(),
+            Value<int?> remoteQuantityAvailable = const Value.absent(),
+            Value<double?> remoteAverageCost = const Value.absent(),
             Value<DateTime?> lastMovementAt = const Value.absent(),
             Value<DateTime?> remoteUpdatedAt = const Value.absent(),
+            Value<String?> remoteSnapshotId = const Value.absent(),
             Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<String?> metadataJson = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalProductStockBalancesCompanion.insert(
@@ -27435,13 +30836,20 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             quantityReserved: quantityReserved,
             quantityAvailable: quantityAvailable,
             averageCost: averageCost,
+            remoteBalanceId: remoteBalanceId,
+            remoteQuantityOnHand: remoteQuantityOnHand,
+            remoteQuantityReserved: remoteQuantityReserved,
+            remoteQuantityAvailable: remoteQuantityAvailable,
+            remoteAverageCost: remoteAverageCost,
             lastMovementAt: lastMovementAt,
             remoteUpdatedAt: remoteUpdatedAt,
+            remoteSnapshotId: remoteSnapshotId,
             lastSyncedAt: lastSyncedAt,
             syncStatus: syncStatus,
             metadataJson: metadataJson,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            deletedAt: deletedAt,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -27467,6 +30875,1336 @@ typedef $$LocalProductStockBalancesTableProcessedTableManager
               LocalProductStockBalance>
         ),
         LocalProductStockBalance,
+        PrefetchHooks Function()>;
+typedef $$LocalOperationalBootstrapCheckpointsTableCreateCompanionBuilder
+    = LocalOperationalBootstrapCheckpointsCompanion Function({
+  required String id,
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String appDeviceId,
+  required String bundle,
+  required String dataset,
+  Value<String?> snapshotId,
+  Value<DateTime?> snapshotAt,
+  Value<String?> nextPageToken,
+  Value<String> status,
+  Value<int> rowsReceived,
+  Value<int> pagesApplied,
+  Value<DateTime?> authorizationValidatedAt,
+  Value<DateTime> startedAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> completedAt,
+  Value<DateTime?> lastSuccessAt,
+  Value<String?> lastError,
+  Value<int> retryCount,
+  Value<bool> requiredForOffline,
+  Value<String> convergenceStatus,
+  Value<int> rowid,
+});
+typedef $$LocalOperationalBootstrapCheckpointsTableUpdateCompanionBuilder
+    = LocalOperationalBootstrapCheckpointsCompanion Function({
+  Value<String> id,
+  Value<String> profileId,
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> appDeviceId,
+  Value<String> bundle,
+  Value<String> dataset,
+  Value<String?> snapshotId,
+  Value<DateTime?> snapshotAt,
+  Value<String?> nextPageToken,
+  Value<String> status,
+  Value<int> rowsReceived,
+  Value<int> pagesApplied,
+  Value<DateTime?> authorizationValidatedAt,
+  Value<DateTime> startedAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> completedAt,
+  Value<DateTime?> lastSuccessAt,
+  Value<String?> lastError,
+  Value<int> retryCount,
+  Value<bool> requiredForOffline,
+  Value<String> convergenceStatus,
+  Value<int> rowid,
+});
+
+class $$LocalOperationalBootstrapCheckpointsTableFilterComposer
+    extends Composer<_$AppDatabase,
+        $LocalOperationalBootstrapCheckpointsTable> {
+  $$LocalOperationalBootstrapCheckpointsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get bundle => $composableBuilder(
+      column: $table.bundle, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get dataset => $composableBuilder(
+      column: $table.dataset, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get snapshotAt => $composableBuilder(
+      column: $table.snapshotAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get nextPageToken => $composableBuilder(
+      column: $table.nextPageToken, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get rowsReceived => $composableBuilder(
+      column: $table.rowsReceived, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get pagesApplied => $composableBuilder(
+      column: $table.pagesApplied, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+      column: $table.startedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSuccessAt => $composableBuilder(
+      column: $table.lastSuccessAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get requiredForOffline => $composableBuilder(
+      column: $table.requiredForOffline,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get convergenceStatus => $composableBuilder(
+      column: $table.convergenceStatus,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalOperationalBootstrapCheckpointsTableOrderingComposer
+    extends Composer<_$AppDatabase,
+        $LocalOperationalBootstrapCheckpointsTable> {
+  $$LocalOperationalBootstrapCheckpointsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get bundle => $composableBuilder(
+      column: $table.bundle, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get dataset => $composableBuilder(
+      column: $table.dataset, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get snapshotAt => $composableBuilder(
+      column: $table.snapshotAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get nextPageToken => $composableBuilder(
+      column: $table.nextPageToken,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get rowsReceived => $composableBuilder(
+      column: $table.rowsReceived,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get pagesApplied => $composableBuilder(
+      column: $table.pagesApplied,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+      column: $table.startedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSuccessAt => $composableBuilder(
+      column: $table.lastSuccessAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get requiredForOffline => $composableBuilder(
+      column: $table.requiredForOffline,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get convergenceStatus => $composableBuilder(
+      column: $table.convergenceStatus,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalOperationalBootstrapCheckpointsTableAnnotationComposer
+    extends Composer<_$AppDatabase,
+        $LocalOperationalBootstrapCheckpointsTable> {
+  $$LocalOperationalBootstrapCheckpointsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get appDeviceId => $composableBuilder(
+      column: $table.appDeviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get bundle =>
+      $composableBuilder(column: $table.bundle, builder: (column) => column);
+
+  GeneratedColumn<String> get dataset =>
+      $composableBuilder(column: $table.dataset, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get snapshotAt => $composableBuilder(
+      column: $table.snapshotAt, builder: (column) => column);
+
+  GeneratedColumn<String> get nextPageToken => $composableBuilder(
+      column: $table.nextPageToken, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get rowsReceived => $composableBuilder(
+      column: $table.rowsReceived, builder: (column) => column);
+
+  GeneratedColumn<int> get pagesApplied => $composableBuilder(
+      column: $table.pagesApplied, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSuccessAt => $composableBuilder(
+      column: $table.lastSuccessAt, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => column);
+
+  GeneratedColumn<bool> get requiredForOffline => $composableBuilder(
+      column: $table.requiredForOffline, builder: (column) => column);
+
+  GeneratedColumn<String> get convergenceStatus => $composableBuilder(
+      column: $table.convergenceStatus, builder: (column) => column);
+}
+
+class $$LocalOperationalBootstrapCheckpointsTableTableManager
+    extends RootTableManager<
+        _$AppDatabase,
+        $LocalOperationalBootstrapCheckpointsTable,
+        LocalOperationalBootstrapCheckpoint,
+        $$LocalOperationalBootstrapCheckpointsTableFilterComposer,
+        $$LocalOperationalBootstrapCheckpointsTableOrderingComposer,
+        $$LocalOperationalBootstrapCheckpointsTableAnnotationComposer,
+        $$LocalOperationalBootstrapCheckpointsTableCreateCompanionBuilder,
+        $$LocalOperationalBootstrapCheckpointsTableUpdateCompanionBuilder,
+        (
+          LocalOperationalBootstrapCheckpoint,
+          BaseReferences<
+              _$AppDatabase,
+              $LocalOperationalBootstrapCheckpointsTable,
+              LocalOperationalBootstrapCheckpoint>
+        ),
+        LocalOperationalBootstrapCheckpoint,
+        PrefetchHooks Function()> {
+  $$LocalOperationalBootstrapCheckpointsTableTableManager(
+      _$AppDatabase db, $LocalOperationalBootstrapCheckpointsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalOperationalBootstrapCheckpointsTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalOperationalBootstrapCheckpointsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalOperationalBootstrapCheckpointsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> profileId = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> appDeviceId = const Value.absent(),
+            Value<String> bundle = const Value.absent(),
+            Value<String> dataset = const Value.absent(),
+            Value<String?> snapshotId = const Value.absent(),
+            Value<DateTime?> snapshotAt = const Value.absent(),
+            Value<String?> nextPageToken = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> rowsReceived = const Value.absent(),
+            Value<int> pagesApplied = const Value.absent(),
+            Value<DateTime?> authorizationValidatedAt = const Value.absent(),
+            Value<DateTime> startedAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> completedAt = const Value.absent(),
+            Value<DateTime?> lastSuccessAt = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<bool> requiredForOffline = const Value.absent(),
+            Value<String> convergenceStatus = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalOperationalBootstrapCheckpointsCompanion(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            appDeviceId: appDeviceId,
+            bundle: bundle,
+            dataset: dataset,
+            snapshotId: snapshotId,
+            snapshotAt: snapshotAt,
+            nextPageToken: nextPageToken,
+            status: status,
+            rowsReceived: rowsReceived,
+            pagesApplied: pagesApplied,
+            authorizationValidatedAt: authorizationValidatedAt,
+            startedAt: startedAt,
+            updatedAt: updatedAt,
+            completedAt: completedAt,
+            lastSuccessAt: lastSuccessAt,
+            lastError: lastError,
+            retryCount: retryCount,
+            requiredForOffline: requiredForOffline,
+            convergenceStatus: convergenceStatus,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String profileId,
+            required String businessId,
+            required String branchId,
+            required String appDeviceId,
+            required String bundle,
+            required String dataset,
+            Value<String?> snapshotId = const Value.absent(),
+            Value<DateTime?> snapshotAt = const Value.absent(),
+            Value<String?> nextPageToken = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> rowsReceived = const Value.absent(),
+            Value<int> pagesApplied = const Value.absent(),
+            Value<DateTime?> authorizationValidatedAt = const Value.absent(),
+            Value<DateTime> startedAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> completedAt = const Value.absent(),
+            Value<DateTime?> lastSuccessAt = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<bool> requiredForOffline = const Value.absent(),
+            Value<String> convergenceStatus = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalOperationalBootstrapCheckpointsCompanion.insert(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            appDeviceId: appDeviceId,
+            bundle: bundle,
+            dataset: dataset,
+            snapshotId: snapshotId,
+            snapshotAt: snapshotAt,
+            nextPageToken: nextPageToken,
+            status: status,
+            rowsReceived: rowsReceived,
+            pagesApplied: pagesApplied,
+            authorizationValidatedAt: authorizationValidatedAt,
+            startedAt: startedAt,
+            updatedAt: updatedAt,
+            completedAt: completedAt,
+            lastSuccessAt: lastSuccessAt,
+            lastError: lastError,
+            retryCount: retryCount,
+            requiredForOffline: requiredForOffline,
+            convergenceStatus: convergenceStatus,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalOperationalBootstrapCheckpointsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalOperationalBootstrapCheckpointsTable,
+        LocalOperationalBootstrapCheckpoint,
+        $$LocalOperationalBootstrapCheckpointsTableFilterComposer,
+        $$LocalOperationalBootstrapCheckpointsTableOrderingComposer,
+        $$LocalOperationalBootstrapCheckpointsTableAnnotationComposer,
+        $$LocalOperationalBootstrapCheckpointsTableCreateCompanionBuilder,
+        $$LocalOperationalBootstrapCheckpointsTableUpdateCompanionBuilder,
+        (
+          LocalOperationalBootstrapCheckpoint,
+          BaseReferences<
+              _$AppDatabase,
+              $LocalOperationalBootstrapCheckpointsTable,
+              LocalOperationalBootstrapCheckpoint>
+        ),
+        LocalOperationalBootstrapCheckpoint,
+        PrefetchHooks Function()>;
+typedef $$LocalOperationalBootstrapSeenRecordsTableCreateCompanionBuilder
+    = LocalOperationalBootstrapSeenRecordsCompanion Function({
+  required String id,
+  required String snapshotId,
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String bundle,
+  required String dataset,
+  required String entityId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+typedef $$LocalOperationalBootstrapSeenRecordsTableUpdateCompanionBuilder
+    = LocalOperationalBootstrapSeenRecordsCompanion Function({
+  Value<String> id,
+  Value<String> snapshotId,
+  Value<String> profileId,
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> bundle,
+  Value<String> dataset,
+  Value<String> entityId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$LocalOperationalBootstrapSeenRecordsTableFilterComposer
+    extends Composer<_$AppDatabase,
+        $LocalOperationalBootstrapSeenRecordsTable> {
+  $$LocalOperationalBootstrapSeenRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get bundle => $composableBuilder(
+      column: $table.bundle, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get dataset => $composableBuilder(
+      column: $table.dataset, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalOperationalBootstrapSeenRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase,
+        $LocalOperationalBootstrapSeenRecordsTable> {
+  $$LocalOperationalBootstrapSeenRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get bundle => $composableBuilder(
+      column: $table.bundle, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get dataset => $composableBuilder(
+      column: $table.dataset, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalOperationalBootstrapSeenRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase,
+        $LocalOperationalBootstrapSeenRecordsTable> {
+  $$LocalOperationalBootstrapSeenRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get bundle =>
+      $composableBuilder(column: $table.bundle, builder: (column) => column);
+
+  GeneratedColumn<String> get dataset =>
+      $composableBuilder(column: $table.dataset, builder: (column) => column);
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$LocalOperationalBootstrapSeenRecordsTableTableManager
+    extends RootTableManager<
+        _$AppDatabase,
+        $LocalOperationalBootstrapSeenRecordsTable,
+        LocalOperationalBootstrapSeenRecord,
+        $$LocalOperationalBootstrapSeenRecordsTableFilterComposer,
+        $$LocalOperationalBootstrapSeenRecordsTableOrderingComposer,
+        $$LocalOperationalBootstrapSeenRecordsTableAnnotationComposer,
+        $$LocalOperationalBootstrapSeenRecordsTableCreateCompanionBuilder,
+        $$LocalOperationalBootstrapSeenRecordsTableUpdateCompanionBuilder,
+        (
+          LocalOperationalBootstrapSeenRecord,
+          BaseReferences<
+              _$AppDatabase,
+              $LocalOperationalBootstrapSeenRecordsTable,
+              LocalOperationalBootstrapSeenRecord>
+        ),
+        LocalOperationalBootstrapSeenRecord,
+        PrefetchHooks Function()> {
+  $$LocalOperationalBootstrapSeenRecordsTableTableManager(
+      _$AppDatabase db, $LocalOperationalBootstrapSeenRecordsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalOperationalBootstrapSeenRecordsTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalOperationalBootstrapSeenRecordsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalOperationalBootstrapSeenRecordsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> snapshotId = const Value.absent(),
+            Value<String> profileId = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> bundle = const Value.absent(),
+            Value<String> dataset = const Value.absent(),
+            Value<String> entityId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalOperationalBootstrapSeenRecordsCompanion(
+            id: id,
+            snapshotId: snapshotId,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            bundle: bundle,
+            dataset: dataset,
+            entityId: entityId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String snapshotId,
+            required String profileId,
+            required String businessId,
+            required String branchId,
+            required String bundle,
+            required String dataset,
+            required String entityId,
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalOperationalBootstrapSeenRecordsCompanion.insert(
+            id: id,
+            snapshotId: snapshotId,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            bundle: bundle,
+            dataset: dataset,
+            entityId: entityId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalOperationalBootstrapSeenRecordsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalOperationalBootstrapSeenRecordsTable,
+        LocalOperationalBootstrapSeenRecord,
+        $$LocalOperationalBootstrapSeenRecordsTableFilterComposer,
+        $$LocalOperationalBootstrapSeenRecordsTableOrderingComposer,
+        $$LocalOperationalBootstrapSeenRecordsTableAnnotationComposer,
+        $$LocalOperationalBootstrapSeenRecordsTableCreateCompanionBuilder,
+        $$LocalOperationalBootstrapSeenRecordsTableUpdateCompanionBuilder,
+        (
+          LocalOperationalBootstrapSeenRecord,
+          BaseReferences<
+              _$AppDatabase,
+              $LocalOperationalBootstrapSeenRecordsTable,
+              LocalOperationalBootstrapSeenRecord>
+        ),
+        LocalOperationalBootstrapSeenRecord,
+        PrefetchHooks Function()>;
+typedef $$LocalReconciliationIssuesTableCreateCompanionBuilder
+    = LocalReconciliationIssuesCompanion Function({
+  required String id,
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String domain,
+  Value<String?> entityType,
+  Value<String?> entityId,
+  required String issueType,
+  required String severity,
+  Value<String> status,
+  required String message,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> resolvedAt,
+  Value<int> rowid,
+});
+typedef $$LocalReconciliationIssuesTableUpdateCompanionBuilder
+    = LocalReconciliationIssuesCompanion Function({
+  Value<String> id,
+  Value<String> profileId,
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> domain,
+  Value<String?> entityType,
+  Value<String?> entityId,
+  Value<String> issueType,
+  Value<String> severity,
+  Value<String> status,
+  Value<String> message,
+  Value<String?> metadataJson,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> resolvedAt,
+  Value<int> rowid,
+});
+
+class $$LocalReconciliationIssuesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalReconciliationIssuesTable> {
+  $$LocalReconciliationIssuesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get domain => $composableBuilder(
+      column: $table.domain, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get issueType => $composableBuilder(
+      column: $table.issueType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get severity => $composableBuilder(
+      column: $table.severity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get message => $composableBuilder(
+      column: $table.message, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+      column: $table.resolvedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalReconciliationIssuesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalReconciliationIssuesTable> {
+  $$LocalReconciliationIssuesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+      column: $table.domain, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get issueType => $composableBuilder(
+      column: $table.issueType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get severity => $composableBuilder(
+      column: $table.severity, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get message => $composableBuilder(
+      column: $table.message, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+      column: $table.resolvedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalReconciliationIssuesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalReconciliationIssuesTable> {
+  $$LocalReconciliationIssuesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => column);
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get issueType =>
+      $composableBuilder(column: $table.issueType, builder: (column) => column);
+
+  GeneratedColumn<String> get severity =>
+      $composableBuilder(column: $table.severity, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get message =>
+      $composableBuilder(column: $table.message, builder: (column) => column);
+
+  GeneratedColumn<String> get metadataJson => $composableBuilder(
+      column: $table.metadataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+      column: $table.resolvedAt, builder: (column) => column);
+}
+
+class $$LocalReconciliationIssuesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalReconciliationIssuesTable,
+    LocalReconciliationIssue,
+    $$LocalReconciliationIssuesTableFilterComposer,
+    $$LocalReconciliationIssuesTableOrderingComposer,
+    $$LocalReconciliationIssuesTableAnnotationComposer,
+    $$LocalReconciliationIssuesTableCreateCompanionBuilder,
+    $$LocalReconciliationIssuesTableUpdateCompanionBuilder,
+    (
+      LocalReconciliationIssue,
+      BaseReferences<_$AppDatabase, $LocalReconciliationIssuesTable,
+          LocalReconciliationIssue>
+    ),
+    LocalReconciliationIssue,
+    PrefetchHooks Function()> {
+  $$LocalReconciliationIssuesTableTableManager(
+      _$AppDatabase db, $LocalReconciliationIssuesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalReconciliationIssuesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalReconciliationIssuesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalReconciliationIssuesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> profileId = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> domain = const Value.absent(),
+            Value<String?> entityType = const Value.absent(),
+            Value<String?> entityId = const Value.absent(),
+            Value<String> issueType = const Value.absent(),
+            Value<String> severity = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String> message = const Value.absent(),
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> resolvedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalReconciliationIssuesCompanion(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            domain: domain,
+            entityType: entityType,
+            entityId: entityId,
+            issueType: issueType,
+            severity: severity,
+            status: status,
+            message: message,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            resolvedAt: resolvedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String profileId,
+            required String businessId,
+            required String branchId,
+            required String domain,
+            Value<String?> entityType = const Value.absent(),
+            Value<String?> entityId = const Value.absent(),
+            required String issueType,
+            required String severity,
+            Value<String> status = const Value.absent(),
+            required String message,
+            Value<String?> metadataJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> resolvedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalReconciliationIssuesCompanion.insert(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            domain: domain,
+            entityType: entityType,
+            entityId: entityId,
+            issueType: issueType,
+            severity: severity,
+            status: status,
+            message: message,
+            metadataJson: metadataJson,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            resolvedAt: resolvedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalReconciliationIssuesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalReconciliationIssuesTable,
+        LocalReconciliationIssue,
+        $$LocalReconciliationIssuesTableFilterComposer,
+        $$LocalReconciliationIssuesTableOrderingComposer,
+        $$LocalReconciliationIssuesTableAnnotationComposer,
+        $$LocalReconciliationIssuesTableCreateCompanionBuilder,
+        $$LocalReconciliationIssuesTableUpdateCompanionBuilder,
+        (
+          LocalReconciliationIssue,
+          BaseReferences<_$AppDatabase, $LocalReconciliationIssuesTable,
+              LocalReconciliationIssue>
+        ),
+        LocalReconciliationIssue,
+        PrefetchHooks Function()>;
+typedef $$LocalAuthorizedOperationalContextsTableCreateCompanionBuilder
+    = LocalAuthorizedOperationalContextsCompanion Function({
+  required String id,
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  Value<String> effectivePermissionsJson,
+  Value<String> effectiveRolesJson,
+  Value<String> applicableMembershipIdsJson,
+  required DateTime authorizationValidatedAt,
+  Value<String?> snapshotId,
+  Value<String> status,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$LocalAuthorizedOperationalContextsTableUpdateCompanionBuilder
+    = LocalAuthorizedOperationalContextsCompanion Function({
+  Value<String> id,
+  Value<String> profileId,
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> effectivePermissionsJson,
+  Value<String> effectiveRolesJson,
+  Value<String> applicableMembershipIdsJson,
+  Value<DateTime> authorizationValidatedAt,
+  Value<String?> snapshotId,
+  Value<String> status,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$LocalAuthorizedOperationalContextsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalAuthorizedOperationalContextsTable> {
+  $$LocalAuthorizedOperationalContextsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get effectivePermissionsJson => $composableBuilder(
+      column: $table.effectivePermissionsJson,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get effectiveRolesJson => $composableBuilder(
+      column: $table.effectiveRolesJson,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get applicableMembershipIdsJson => $composableBuilder(
+      column: $table.applicableMembershipIdsJson,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalAuthorizedOperationalContextsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalAuthorizedOperationalContextsTable> {
+  $$LocalAuthorizedOperationalContextsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get effectivePermissionsJson => $composableBuilder(
+      column: $table.effectivePermissionsJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get effectiveRolesJson => $composableBuilder(
+      column: $table.effectiveRolesJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get applicableMembershipIdsJson => $composableBuilder(
+      column: $table.applicableMembershipIdsJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalAuthorizedOperationalContextsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalAuthorizedOperationalContextsTable> {
+  $$LocalAuthorizedOperationalContextsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get effectivePermissionsJson => $composableBuilder(
+      column: $table.effectivePermissionsJson, builder: (column) => column);
+
+  GeneratedColumn<String> get effectiveRolesJson => $composableBuilder(
+      column: $table.effectiveRolesJson, builder: (column) => column);
+
+  GeneratedColumn<String> get applicableMembershipIdsJson => $composableBuilder(
+      column: $table.applicableMembershipIdsJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotId => $composableBuilder(
+      column: $table.snapshotId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalAuthorizedOperationalContextsTableTableManager
+    extends RootTableManager<
+        _$AppDatabase,
+        $LocalAuthorizedOperationalContextsTable,
+        LocalAuthorizedOperationalContext,
+        $$LocalAuthorizedOperationalContextsTableFilterComposer,
+        $$LocalAuthorizedOperationalContextsTableOrderingComposer,
+        $$LocalAuthorizedOperationalContextsTableAnnotationComposer,
+        $$LocalAuthorizedOperationalContextsTableCreateCompanionBuilder,
+        $$LocalAuthorizedOperationalContextsTableUpdateCompanionBuilder,
+        (
+          LocalAuthorizedOperationalContext,
+          BaseReferences<
+              _$AppDatabase,
+              $LocalAuthorizedOperationalContextsTable,
+              LocalAuthorizedOperationalContext>
+        ),
+        LocalAuthorizedOperationalContext,
+        PrefetchHooks Function()> {
+  $$LocalAuthorizedOperationalContextsTableTableManager(
+      _$AppDatabase db, $LocalAuthorizedOperationalContextsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalAuthorizedOperationalContextsTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalAuthorizedOperationalContextsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalAuthorizedOperationalContextsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> profileId = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> effectivePermissionsJson = const Value.absent(),
+            Value<String> effectiveRolesJson = const Value.absent(),
+            Value<String> applicableMembershipIdsJson = const Value.absent(),
+            Value<DateTime> authorizationValidatedAt = const Value.absent(),
+            Value<String?> snapshotId = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalAuthorizedOperationalContextsCompanion(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            effectivePermissionsJson: effectivePermissionsJson,
+            effectiveRolesJson: effectiveRolesJson,
+            applicableMembershipIdsJson: applicableMembershipIdsJson,
+            authorizationValidatedAt: authorizationValidatedAt,
+            snapshotId: snapshotId,
+            status: status,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String profileId,
+            required String businessId,
+            required String branchId,
+            Value<String> effectivePermissionsJson = const Value.absent(),
+            Value<String> effectiveRolesJson = const Value.absent(),
+            Value<String> applicableMembershipIdsJson = const Value.absent(),
+            required DateTime authorizationValidatedAt,
+            Value<String?> snapshotId = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalAuthorizedOperationalContextsCompanion.insert(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            effectivePermissionsJson: effectivePermissionsJson,
+            effectiveRolesJson: effectiveRolesJson,
+            applicableMembershipIdsJson: applicableMembershipIdsJson,
+            authorizationValidatedAt: authorizationValidatedAt,
+            snapshotId: snapshotId,
+            status: status,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalAuthorizedOperationalContextsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalAuthorizedOperationalContextsTable,
+        LocalAuthorizedOperationalContext,
+        $$LocalAuthorizedOperationalContextsTableFilterComposer,
+        $$LocalAuthorizedOperationalContextsTableOrderingComposer,
+        $$LocalAuthorizedOperationalContextsTableAnnotationComposer,
+        $$LocalAuthorizedOperationalContextsTableCreateCompanionBuilder,
+        $$LocalAuthorizedOperationalContextsTableUpdateCompanionBuilder,
+        (
+          LocalAuthorizedOperationalContext,
+          BaseReferences<
+              _$AppDatabase,
+              $LocalAuthorizedOperationalContextsTable,
+              LocalAuthorizedOperationalContext>
+        ),
+        LocalAuthorizedOperationalContext,
         PrefetchHooks Function()>;
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String id,
@@ -29887,6 +34625,7 @@ typedef $$SaleItemsTableCreateCompanionBuilder = SaleItemsCompanion Function({
   Value<String?> metadataJson,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
   Value<SyncStatus> syncStatus,
   Value<int> rowid,
 });
@@ -29905,6 +34644,7 @@ typedef $$SaleItemsTableUpdateCompanionBuilder = SaleItemsCompanion Function({
   Value<String?> metadataJson,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
   Value<SyncStatus> syncStatus,
   Value<int> rowid,
 });
@@ -29989,6 +34729,9 @@ class $$SaleItemsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<SyncStatus, SyncStatus, int> get syncStatus =>
       $composableBuilder(
@@ -30085,6 +34828,9 @@ class $$SaleItemsTableOrderingComposer
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
 
@@ -30174,6 +34920,9 @@ class $$SaleItemsTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<SyncStatus, int> get syncStatus =>
       $composableBuilder(
           column: $table.syncStatus, builder: (column) => column);
@@ -30256,6 +35005,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             Value<String?> metadataJson = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
             Value<SyncStatus> syncStatus = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -30274,6 +35024,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             metadataJson: metadataJson,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            deletedAt: deletedAt,
             syncStatus: syncStatus,
             rowid: rowid,
           ),
@@ -30292,6 +35043,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             Value<String?> metadataJson = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
             Value<SyncStatus> syncStatus = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -30310,6 +35062,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             metadataJson: metadataJson,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            deletedAt: deletedAt,
             syncStatus: syncStatus,
             rowid: rowid,
           ),
@@ -33725,6 +38478,21 @@ class $AppDatabaseManager {
   $$LocalProductStockBalancesTableTableManager get localProductStockBalances =>
       $$LocalProductStockBalancesTableTableManager(
           _db, _db.localProductStockBalances);
+  $$LocalOperationalBootstrapCheckpointsTableTableManager
+      get localOperationalBootstrapCheckpoints =>
+          $$LocalOperationalBootstrapCheckpointsTableTableManager(
+              _db, _db.localOperationalBootstrapCheckpoints);
+  $$LocalOperationalBootstrapSeenRecordsTableTableManager
+      get localOperationalBootstrapSeenRecords =>
+          $$LocalOperationalBootstrapSeenRecordsTableTableManager(
+              _db, _db.localOperationalBootstrapSeenRecords);
+  $$LocalReconciliationIssuesTableTableManager get localReconciliationIssues =>
+      $$LocalReconciliationIssuesTableTableManager(
+          _db, _db.localReconciliationIssues);
+  $$LocalAuthorizedOperationalContextsTableTableManager
+      get localAuthorizedOperationalContexts =>
+          $$LocalAuthorizedOperationalContextsTableTableManager(
+              _db, _db.localAuthorizedOperationalContexts);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
   $$CustomersTableTableManager get customers =>

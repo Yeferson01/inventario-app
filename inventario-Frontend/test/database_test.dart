@@ -31,6 +31,13 @@ void main() {
 
     test('Debería insertar una venta sin modificar stock legacy del producto',
         () async {
+      await db.into(db.businesses).insert(
+            BusinessesCompanion.insert(
+              id: businessId,
+              name: 'Negocio de Prueba Offline',
+            ),
+          );
+
       // 1. Crear e insertar un producto inicial con 50 unidades en stock
       final productoInicial = Product(
         id: productId,

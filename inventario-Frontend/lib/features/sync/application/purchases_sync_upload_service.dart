@@ -21,6 +21,7 @@ class PurchasesSyncUploadService {
 
   Future<CatalogUploadRunResult> uploadPendingPurchasesBatches({
     required String businessId,
+    String? branchId,
     int batchLimit = 10,
   }) async {
     await _purchaseLocalDao.reconcileCompletedPurchasesFromOutbox(
@@ -29,6 +30,7 @@ class PurchasesSyncUploadService {
 
     final pendingBatches = await _outboxService.getPendingPurchasesBatches(
       businessId: businessId,
+      branchId: branchId,
       limit: batchLimit,
     );
 

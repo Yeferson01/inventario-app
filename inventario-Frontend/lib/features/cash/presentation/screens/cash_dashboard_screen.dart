@@ -351,6 +351,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
     final uploadResult = await uploadService.uploadPendingPosBatches(
       businessId: widget.businessId,
+      branchId: widget.branchId,
       batchLimit: 250,
     );
 
@@ -381,6 +382,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
     final uploadResult = await uploadService.uploadPendingCashBatches(
       businessId: widget.businessId,
+      branchId: widget.branchId,
       batchLimit: 250,
     );
 

@@ -1,5 +1,6 @@
 class RemoteProductStockBalance {
   const RemoteProductStockBalance({
+    this.remoteBalanceId,
     required this.businessId,
     required this.branchId,
     required this.productId,
@@ -11,6 +12,7 @@ class RemoteProductStockBalance {
     required this.remoteUpdatedAt,
   });
 
+  final String? remoteBalanceId;
   final String businessId;
   final String branchId;
   final String productId;
@@ -25,6 +27,7 @@ class RemoteProductStockBalance {
 
   factory RemoteProductStockBalance.fromJson(Map<String, dynamic> json) {
     return RemoteProductStockBalance(
+      remoteBalanceId: _nullableString(json['id']),
       businessId: _requiredString(json, 'business_id'),
       branchId: _requiredString(json, 'branch_id'),
       productId: _requiredString(json, 'product_id'),
@@ -39,6 +42,7 @@ class RemoteProductStockBalance {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': remoteBalanceId,
       'business_id': businessId,
       'branch_id': branchId,
       'product_id': productId,
@@ -59,6 +63,11 @@ class RemoteProductStockBalance {
     }
 
     return value.toString();
+  }
+
+  static String? _nullableString(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   static int _int(Object? value) {

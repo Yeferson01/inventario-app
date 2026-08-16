@@ -15,10 +15,12 @@ class InventorySyncUploadService {
 
   Future<CatalogUploadRunResult> uploadPendingInventoryBatches({
     required String businessId,
+    String? branchId,
     int batchLimit = 10,
   }) async {
     final pendingBatches = await _outboxService.getPendingInventoryBatches(
       businessId: businessId,
+      branchId: branchId,
       limit: batchLimit,
     );
 
