@@ -87,6 +87,49 @@ class OperationalBootstrapCheckpointLocalDao {
     return rows.isEmpty ? null : Map<String, dynamic>.from(rows.first.data);
   }
 
+  Future<OperationalBootstrapCheckpointRecord?> getRecord(
+    OperationalBootstrapScope scope,
+  ) async {
+    final row = await get(scope);
+    return row == null
+        ? null
+        : OperationalBootstrapCheckpointRecord.fromRow(row);
+  }
+
+  Future<List<OperationalBootstrapCheckpointRecord>> listForBundle({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String bundle,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select *
+      from local_operational_bootstrap_checkpoints
+      where profile_id = ? and business_id = ? and branch_id = ?
+        and app_device_id = ? and bundle = ?
+      order by dataset
+      ''',
+      variables: [
+        Variable<String>(profileId),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        Variable<String>(appDeviceId),
+        Variable<String>(bundle),
+      ],
+      readsFrom: {_db.localOperationalBootstrapCheckpoints},
+    ).get();
+
+    return rows
+        .map(
+          (row) => OperationalBootstrapCheckpointRecord.fromRow(
+            Map<String, dynamic>.from(row.data),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<void> markApplying(
     OperationalBootstrapScope scope, {
     String? convergenceStatus,
@@ -102,6 +145,7 @@ class OperationalBootstrapCheckpointLocalDao {
     required OperationalBootstrapScope scope,
     required String? nextPageToken,
     required int rowsReceived,
+    DateTime? authorizationValidatedAt,
   }) async {
     final now = DateTime.now().toUtc();
     await _statement(
@@ -110,6 +154,7 @@ class OperationalBootstrapCheckpointLocalDao {
       set next_page_token = ?,
           rows_received = rows_received + ?,
           pages_applied = pages_applied + 1,
+          authorization_validated_at = coalesce(?, authorization_validated_at),
           status = 'applying',
           last_success_at = ?,
           last_error = null,
@@ -117,7 +162,14 @@ class OperationalBootstrapCheckpointLocalDao {
       where profile_id = ? and business_id = ? and branch_id = ?
         and app_device_id = ? and bundle = ? and dataset = ?
       ''',
-      [nextPageToken, rowsReceived, now, now, ..._scopeValues(scope)],
+      [
+        nextPageToken,
+        rowsReceived,
+        authorizationValidatedAt,
+        now,
+        now,
+        ..._scopeValues(scope),
+      ],
     );
   }
 
