@@ -120,9 +120,8 @@ class OperationalBootstrapDownloadService {
     }
 
     warnings.addAll(response.warnings);
-    await _applyInitialResponse(request, response, warnings);
-
-    for (final page in response.datasets.values) {
+    for (final page in _orderedPages(response)) {
+      await _applyInitialPage(request, response, page, warnings);
       if (page.hasMore) {
         await _continueDataset(
           request,
@@ -164,7 +163,7 @@ class OperationalBootstrapDownloadService {
 
     final snapshotId = snapshotIds.single;
     final warnings = <String>[];
-    for (final record in incomplete) {
+    for (final record in _orderedRecords(request.bundle, incomplete)) {
       final token = record.nextPageToken;
       if (token == null) {
         await _checkpointDao.markRestartRequired(
@@ -194,22 +193,21 @@ class OperationalBootstrapDownloadService {
     );
   }
 
-  Future<void> _applyInitialResponse(
+  Future<void> _applyInitialPage(
     OperationalBootstrapDownloadRequest request,
     OperationalBootstrapSnapshotPage response,
+    OperationalBootstrapDatasetPage page,
     List<String> warnings,
   ) async {
     try {
       await _database.transaction(() async {
-        for (final page in response.datasets.values) {
-          await _applyPageInTransaction(
-            request,
-            response,
-            page,
-            beginCheckpoint: true,
-            warnings: warnings,
-          );
-        }
+        await _applyPageInTransaction(
+          request,
+          response,
+          page,
+          beginCheckpoint: true,
+          warnings: warnings,
+        );
       });
     } catch (error) {
       if (error is OperationalBootstrapException) {
@@ -506,6 +504,28 @@ class OperationalBootstrapDownloadService {
           : OperationalBootstrapCheckpointStatus.applying,
       warnings: List<String>.unmodifiable(warnings),
     );
+  }
+
+  List<OperationalBootstrapDatasetPage> _orderedPages(
+    OperationalBootstrapSnapshotPage response,
+  ) {
+    final pages = response.datasets.values.toList(growable: false);
+    if (_pageApplier is OperationalBootstrapDatasetOrdering) {
+      return (_pageApplier as OperationalBootstrapDatasetOrdering)
+          .orderDatasets(response.bundle, pages, (page) => page.dataset);
+    }
+    return pages;
+  }
+
+  List<OperationalBootstrapCheckpointRecord> _orderedRecords(
+    String bundle,
+    List<OperationalBootstrapCheckpointRecord> records,
+  ) {
+    if (_pageApplier is OperationalBootstrapDatasetOrdering) {
+      return (_pageApplier as OperationalBootstrapDatasetOrdering)
+          .orderDatasets(bundle, records, (record) => record.scope.dataset);
+    }
+    return records;
   }
 
   static Future<void> _defaultRetryDelay(Duration delay) {

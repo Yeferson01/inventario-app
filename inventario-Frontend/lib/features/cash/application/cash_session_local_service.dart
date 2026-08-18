@@ -116,6 +116,8 @@ class CashSessionLocalService {
     final cashRegister = await _getOrCreateCashRegister(input);
 
     final openSession = await _dao.getOpenCashSessionForRegister(
+      businessId: input.businessId,
+      branchId: input.branchId,
       cashRegisterId: cashRegister.id,
     );
 
@@ -177,11 +179,15 @@ class CashSessionLocalService {
         input.cashRegisterId!.trim().isNotEmpty) {
       final existing = await _dao.getCashRegisterById(
         id: input.cashRegisterId!.trim(),
+        businessId: input.businessId,
+        branchId: input.branchId,
       );
 
       if (existing == null) {
-        throw StateError(
-          'cashRegisterId informado no existe localmente: ${input.cashRegisterId}',
+        throw CashRecoveryRequiredException(
+          cashRegisterId: input.cashRegisterId!.trim(),
+          businessId: input.businessId,
+          branchId: input.branchId,
         );
       }
 
@@ -247,7 +253,7 @@ class CashSessionLocalService {
       businessId: _requiredString(row, 'business_id'),
       branchId: _requiredString(row, 'branch_id'),
       cashRegisterId: _requiredString(row, 'cash_register_id'),
-      openedByProfileId: _requiredString(row, 'opened_by_profile_id'),
+      openedByProfileId: _nullableString(row['opened_by_profile_id']),
       openedAt: _date(row['opened_at']),
       openingCashAmount: _double(row['opening_cash_amount']),
       status: _nullableString(row['status']) ?? 'open',

@@ -9,6 +9,7 @@ import '../data/datasources/operational_bootstrap_checkpoint_local_dao.dart';
 import '../data/datasources/operational_bootstrap_remote_datasource.dart';
 import '../data/datasources/operational_bootstrap_seen_record_local_dao.dart';
 import '../data/datasources/reconciliation_issue_local_dao.dart';
+import '../data/datasources/cash_pos_reconciliation_local_dao.dart';
 import '../data/datasources/product_operational_reconciliation_local_dao.dart';
 import '../../inventory/application/product_stock_balance_providers.dart';
 import '../data/datasources/inventory_balance_reconciliation_local_dao.dart';
@@ -23,6 +24,9 @@ import 'product_operational_reconciliation_support.dart';
 import 'product_snapshot_applier.dart';
 import 'inventory_balance_reconciliation_service.dart';
 import 'inventory_balance_snapshot_applier.dart';
+import 'cash_pos_snapshot_applier.dart';
+import 'cash_pos_recovery_service.dart';
+import '../../cash/application/cash_session_local_provider.dart';
 
 final operationalBootstrapRemoteDataSourceProvider =
     Provider<OperationalBootstrapRemoteDataSource>((ref) {
@@ -132,6 +136,19 @@ final inventoryBalanceSnapshotApplierProvider =
   );
 });
 
+final cashPosReconciliationLocalDaoProvider =
+    Provider<CashPosReconciliationLocalDao>((ref) {
+  return CashPosReconciliationLocalDao(ref.watch(appDatabaseProvider));
+});
+
+final cashPosSnapshotApplierProvider = Provider<CashPosSnapshotApplier>((ref) {
+  return CashPosSnapshotApplier(
+    localDao: ref.watch(cashPosReconciliationLocalDaoProvider),
+    seenRecordDao: ref.watch(operationalBootstrapSeenRecordLocalDaoProvider),
+    issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
+  );
+});
+
 final operationalBootstrapPageApplierProvider =
     Provider<OperationalBootstrapPageApplier>((ref) {
   return OperationalBootstrapPageApplierRouter(
@@ -144,7 +161,21 @@ final operationalBootstrapPageApplierProvider =
           ref.watch(productBarcodeSnapshotApplierProvider),
       'product_operational/product_stock_balances':
           ref.watch(inventoryBalanceSnapshotApplierProvider),
+      for (final dataset in CashPosSnapshotApplier.datasets)
+        'cash_pos/$dataset': ref.watch(cashPosSnapshotApplierProvider),
     },
+    dependencyOrder: const {
+      'cash_pos': CashPosSnapshotApplier.datasets,
+    },
+  );
+});
+
+final cashPosRecoveryServiceProvider = Provider<CashPosRecoveryService>((ref) {
+  return CashPosRecoveryService(
+    downloadService: ref.watch(operationalBootstrapDownloadServiceProvider),
+    reconciliationDao: ref.watch(cashPosReconciliationLocalDaoProvider),
+    cashSessionDao: ref.watch(cashSessionLocalDaoProvider),
+    issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
   );
 });
 

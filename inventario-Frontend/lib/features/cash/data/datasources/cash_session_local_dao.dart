@@ -13,6 +13,8 @@ class CashSessionLocalDao {
 
   Future<Map<String, dynamic>?> getCashRegisterById({
     required String id,
+    required String businessId,
+    required String branchId,
   }) async {
     final rows = await _db.customSelect(
       '''
@@ -34,11 +36,15 @@ class CashSessionLocalDao {
         last_synced_at
       from cash_registers
       where id = ?
+        and business_id = ?
+        and branch_id = ?
         and deleted_at is null
       limit 1
       ''',
       variables: [
         Variable<String>(id),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
       ],
       readsFrom: {_db.cashRegisters},
     ).get();
@@ -98,6 +104,8 @@ class CashSessionLocalDao {
   }
 
   Future<Map<String, dynamic>?> getOpenCashSessionForRegister({
+    required String businessId,
+    required String branchId,
     required String cashRegisterId,
   }) async {
     final rows = await _db.customSelect(
@@ -126,13 +134,17 @@ class CashSessionLocalDao {
         deleted_at,
         last_synced_at
       from cash_sessions
-      where cash_register_id = ?
+      where business_id = ?
+        and branch_id = ?
+        and cash_register_id = ?
         and status = 'open'
         and deleted_at is null
       order by opened_at desc
       limit 1
       ''',
       variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
         Variable<String>(cashRegisterId),
       ],
       readsFrom: {_db.cashSessions},
@@ -255,7 +267,11 @@ class CashSessionLocalDao {
       ],
     );
 
-    final created = await getCashRegisterById(id: id);
+    final created = await getCashRegisterById(
+      id: id,
+      businessId: businessId,
+      branchId: branchId,
+    );
 
     if (created == null) {
       throw StateError('No se pudo crear cash_register local.');
@@ -338,6 +354,8 @@ class CashSessionLocalDao {
     );
 
     final created = await getOpenCashSessionForRegister(
+      businessId: businessId,
+      branchId: branchId,
       cashRegisterId: cashRegisterId,
     );
 

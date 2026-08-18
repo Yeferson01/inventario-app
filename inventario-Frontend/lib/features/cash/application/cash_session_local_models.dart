@@ -24,6 +24,22 @@ class OpenCashSessionInput {
   final Map<String, dynamic> metadata;
 }
 
+class CashRecoveryRequiredException implements Exception {
+  const CashRecoveryRequiredException({
+    required this.cashRegisterId,
+    required this.businessId,
+    required this.branchId,
+  });
+
+  final String cashRegisterId;
+  final String businessId;
+  final String branchId;
+
+  @override
+  String toString() => 'CashRecoveryRequiredException: canonical cash register '
+      '$cashRegisterId is not materialized for $businessId/$branchId.';
+}
+
 class LocalCashRegisterResult {
   const LocalCashRegisterResult({
     required this.id,
@@ -70,7 +86,7 @@ class LocalCashSessionResult {
   final String businessId;
   final String branchId;
   final String cashRegisterId;
-  final String openedByProfileId;
+  final String? openedByProfileId;
   final DateTime openedAt;
   final double openingCashAmount;
   final String status;

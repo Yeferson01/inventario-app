@@ -4,12 +4,34 @@ import 'operational_bootstrap_page_applier.dart';
 class OperationalBootstrapPageApplierRouter
     implements
         OperationalBootstrapPageApplier,
-        OperationalBootstrapDatasetFinalizer {
+        OperationalBootstrapDatasetFinalizer,
+        OperationalBootstrapDatasetOrdering {
   OperationalBootstrapPageApplierRouter({
     required Map<String, OperationalBootstrapPageApplier> routes,
-  }) : _routes = Map.unmodifiable(routes);
+    Map<String, List<String>> dependencyOrder = const {},
+  })  : _routes = Map.unmodifiable(routes),
+        _dependencyOrder = Map.unmodifiable(dependencyOrder);
 
   final Map<String, OperationalBootstrapPageApplier> _routes;
+  final Map<String, List<String>> _dependencyOrder;
+
+  @override
+  List<T> orderDatasets<T>(
+    String bundle,
+    List<T> values,
+    String Function(T value) datasetOf,
+  ) {
+    final order = _dependencyOrder[bundle];
+    if (order == null) return List<T>.of(values);
+    final positions = {
+      for (var index = 0; index < order.length; index++) order[index]: index
+    };
+    return List<T>.of(values)
+      ..sort(
+        (left, right) => (positions[datasetOf(left)] ?? order.length)
+            .compareTo(positions[datasetOf(right)] ?? order.length),
+      );
+  }
 
   @override
   Future<OperationalBootstrapPageApplyResult> applyPage({

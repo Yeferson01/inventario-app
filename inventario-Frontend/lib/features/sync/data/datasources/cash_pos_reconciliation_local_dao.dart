@@ -1,0 +1,582 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart';
+
+import '../../../../core/database/app_database.dart';
+import '../../../../core/database/utils/sqlite_parameter_utils.dart';
+import '../models/cash_pos_recovery_models.dart';
+import '../models/operational_bootstrap_models.dart';
+
+enum CashPosEntityState {
+  cleanRemoteSynced,
+  pendingLocal,
+  transportAmbiguous,
+  remotelyApplied,
+  dirtyWithoutOutbox,
+}
+
+class CashPosEntityClassification {
+  const CashPosEntityClassification({
+    required this.state,
+    required this.recognizedAt,
+  });
+
+  final CashPosEntityState state;
+  final DateTime? recognizedAt;
+
+  bool get canAcceptRemote =>
+      state == CashPosEntityState.cleanRemoteSynced ||
+      state == CashPosEntityState.remotelyApplied;
+}
+
+class CashPosReconciliationLocalDao {
+  CashPosReconciliationLocalDao(this._db);
+
+  final AppDatabase _db;
+
+  Future<Map<String, dynamic>?> getById(String table, String id) async {
+    final row = await _db.customSelect(
+      'select * from $table where id = ? limit 1',
+      variables: [Variable<String>(id)],
+    ).getSingleOrNull();
+    return row == null ? null : Map<String, dynamic>.from(row.data);
+  }
+
+  Future<CashPosEntityClassification> classify({
+    required String businessId,
+    required String branchId,
+    required String domain,
+    required String entityTable,
+    required String entityId,
+    required Map<String, dynamic> local,
+    String? parentSaleId,
+  }) async {
+    final localStatus = local['local_status']?.toString();
+    final syncStatus = local['sync_status'];
+    var dirty = syncStatus is! int || syncStatus != SyncStatus.synced.index;
+    if (entityTable != 'sale_items') {
+      dirty = dirty || (localStatus != null && localStatus != 'synced');
+    }
+
+    final targets = <(String, String)>[(entityTable, entityId)];
+    if (parentSaleId != null) targets.add(('sales', parentSaleId));
+    final clauses =
+        List.filled(targets.length, '(m.entity_table = ? and m.entity_id = ?)')
+            .join(' or ');
+    final variables = <Variable<Object>>[
+      Variable<String>(businessId),
+      Variable<String>(branchId),
+      Variable<String>(domain),
+      for (final target in targets) ...[
+        Variable<String>(target.$1),
+        Variable<String>(target.$2),
+      ],
+    ];
+    final evidence = await _db
+        .customSelect(
+          '''
+      select m.status as mutation_status, m.uploaded_at as mutation_uploaded_at,
+             b.status as batch_status, b.uploaded_at as batch_uploaded_at
+      from local_sync_mutations m
+      left join local_sync_batches b on b.id = m.local_sync_batch_id
+      where m.business_id = ? and m.branch_id = ?
+        and (b.id is null or b.domain = ?)
+        and ($clauses)
+      order by m.created_at desc
+      ''',
+          variables: variables,
+          readsFrom: {_db.localSyncMutations, _db.localSyncBatches},
+        )
+        .get();
+
+    if (evidence.isEmpty) {
+      return CashPosEntityClassification(
+        state: dirty
+            ? CashPosEntityState.dirtyWithoutOutbox
+            : CashPosEntityState.cleanRemoteSynced,
+        recognizedAt: null,
+      );
+    }
+
+    final allApplied = evidence.every(
+      (row) =>
+          row.data['mutation_status'] == 'applied' &&
+          row.data['batch_status'] == 'completed',
+    );
+    DateTime? recognizedAt;
+    for (final row in evidence) {
+      if (row.data['mutation_status'] == 'applied' &&
+          row.data['batch_status'] == 'completed') {
+        final at = _dateOrNull(
+          row.data['mutation_uploaded_at'] ?? row.data['batch_uploaded_at'],
+        );
+        if (at != null && (recognizedAt == null || at.isAfter(recognizedAt))) {
+          recognizedAt = at;
+        }
+      }
+    }
+    if (allApplied) {
+      final updatedAt = _dateOrNull(local['updated_at']);
+      if (dirty &&
+          recognizedAt != null &&
+          updatedAt != null &&
+          updatedAt.isAfter(recognizedAt)) {
+        return CashPosEntityClassification(
+          state: CashPosEntityState.dirtyWithoutOutbox,
+          recognizedAt: recognizedAt,
+        );
+      }
+      return CashPosEntityClassification(
+        state: CashPosEntityState.remotelyApplied,
+        recognizedAt: recognizedAt,
+      );
+    }
+    final allPending = evidence.every(
+      (row) =>
+          row.data['mutation_status'] == 'pending' &&
+          row.data['batch_status'] == 'pending',
+    );
+    return CashPosEntityClassification(
+      state: allPending
+          ? CashPosEntityState.pendingLocal
+          : CashPosEntityState.transportAmbiguous,
+      recognizedAt: recognizedAt,
+    );
+  }
+
+  Future<void> applyCashRegister(CashRegisterSnapshotRow row) async {
+    final existing = await getById('cash_registers', row.id);
+    await _statement(
+      '''
+      insert into cash_registers (
+        id, business_id, branch_id, name, code, status, idempotency_key,
+        local_status, sync_status, version, metadata_json, created_at,
+        updated_at, deleted_at, last_synced_at
+      ) values (?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        business_id = excluded.business_id,
+        branch_id = excluded.branch_id,
+        name = excluded.name,
+        status = excluded.status,
+        local_status = 'synced',
+        sync_status = excluded.sync_status,
+        version = excluded.version,
+        metadata_json = excluded.metadata_json,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        deleted_at = excluded.deleted_at,
+        last_synced_at = excluded.last_synced_at
+      ''',
+      [
+        row.id,
+        row.businessId,
+        row.branchId,
+        row.name,
+        existing?['code'],
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? 'inactive'
+            : row.status,
+        existing?['idempotency_key'],
+        SyncStatus.synced.index,
+        row.version,
+        _mergeMetadata(existing?['metadata_json'], {
+          'recovery_source': 'cash_pos_snapshot',
+        }),
+        row.createdAt,
+        row.updatedAt,
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? row.deletedAt ?? row.updatedAt
+            : row.deletedAt,
+        row.updatedAt,
+      ],
+    );
+  }
+
+  Future<void> applyCashSession(CashSessionSnapshotRow row) async {
+    final openedBy = await profileExists(row.openedByProfileId)
+        ? row.openedByProfileId
+        : null;
+    final existing = await getById('cash_sessions', row.id);
+    await _statement(
+      '''
+      insert into cash_sessions (
+        id, business_id, branch_id, cash_register_id, opened_by_profile_id,
+        closed_by_profile_id, opened_at, closed_at, opening_cash_amount,
+        closing_cash_amount, expected_cash_amount, difference_amount, status,
+        idempotency_key, local_status, sync_status, version, metadata_json,
+        created_at, updated_at, deleted_at, last_synced_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        business_id = excluded.business_id,
+        branch_id = excluded.branch_id,
+        cash_register_id = excluded.cash_register_id,
+        opened_by_profile_id = excluded.opened_by_profile_id,
+        closed_by_profile_id = excluded.closed_by_profile_id,
+        opened_at = excluded.opened_at,
+        closed_at = excluded.closed_at,
+        opening_cash_amount = excluded.opening_cash_amount,
+        closing_cash_amount = excluded.closing_cash_amount,
+        expected_cash_amount = excluded.expected_cash_amount,
+        difference_amount = excluded.difference_amount,
+        status = excluded.status,
+        local_status = 'synced',
+        sync_status = excluded.sync_status,
+        version = excluded.version,
+        metadata_json = excluded.metadata_json,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        deleted_at = excluded.deleted_at,
+        last_synced_at = excluded.last_synced_at
+      ''',
+      [
+        row.id,
+        row.businessId,
+        row.branchId,
+        row.cashRegisterId,
+        openedBy,
+        row.closedByProfileId != null &&
+                await profileExists(row.closedByProfileId!)
+            ? row.closedByProfileId
+            : null,
+        row.openedAt,
+        row.closedAt,
+        row.openingCashAmount,
+        row.closingCashAmount,
+        row.expectedCashAmount,
+        row.differenceAmount,
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? 'cancelled'
+            : row.status,
+        existing?['idempotency_key'],
+        SyncStatus.synced.index,
+        row.version,
+        _mergeMetadata(existing?['metadata_json'], {
+          'recovery_source': 'cash_pos_snapshot',
+          'remote_opened_by_profile_id': row.openedByProfileId,
+          if (row.closedByProfileId != null)
+            'remote_closed_by_profile_id': row.closedByProfileId,
+        }),
+        row.createdAt,
+        row.updatedAt,
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? row.deletedAt ?? row.updatedAt
+            : row.deletedAt,
+        row.updatedAt,
+      ],
+    );
+  }
+
+  Future<void> applySale(
+    CashPosSaleSnapshotRow row, {
+    required String cashRegisterId,
+  }) async {
+    final userId = row.userId != null && await profileExists(row.userId!)
+        ? row.userId
+        : null;
+    final customerId =
+        row.customerId != null && await customerExists(row.customerId!)
+            ? row.customerId
+            : null;
+    await _statement(
+      '''
+      insert into sales (
+        id, business_id, user_id, customer_id, branch_id, cash_register_id,
+        cash_session_id, subtotal, discount_total, tax_total, total,
+        payment_method, payment_status, idempotency_key, local_status,
+        metadata_json, status, created_at, updated_at, deleted_at, sync_status
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        business_id = excluded.business_id,
+        user_id = excluded.user_id,
+        customer_id = excluded.customer_id,
+        branch_id = excluded.branch_id,
+        cash_register_id = excluded.cash_register_id,
+        cash_session_id = excluded.cash_session_id,
+        subtotal = excluded.subtotal,
+        discount_total = excluded.discount_total,
+        tax_total = excluded.tax_total,
+        total = excluded.total,
+        payment_method = excluded.payment_method,
+        payment_status = excluded.payment_status,
+        idempotency_key = excluded.idempotency_key,
+        local_status = 'synced',
+        metadata_json = excluded.metadata_json,
+        status = excluded.status,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        deleted_at = excluded.deleted_at,
+        sync_status = excluded.sync_status
+      ''',
+      [
+        row.id,
+        row.businessId,
+        userId,
+        customerId,
+        row.branchId,
+        cashRegisterId,
+        row.cashSessionId,
+        row.subtotal,
+        row.discountTotal,
+        row.taxTotal,
+        row.total,
+        row.paymentMethod,
+        row.paymentStatus,
+        row.idempotencyKey,
+        jsonEncode({
+          ...?row.metadata,
+          'recovery_source': 'cash_pos_snapshot',
+          if (row.userId != null) 'remote_user_id': row.userId,
+          if (row.customerId != null) 'remote_customer_id': row.customerId,
+        }),
+        row.status,
+        row.createdAt,
+        row.updatedAt,
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? row.deletedAt ?? row.updatedAt
+            : row.deletedAt,
+        SyncStatus.synced.index,
+      ],
+    );
+  }
+
+  Future<void> applySaleItem(CashPosSaleItemSnapshotRow row) async {
+    await _statement(
+      '''
+      insert into sale_items (
+        id, sale_id, product_id, product_name_snapshot, barcode_snapshot,
+        quantity, unit_price, discount_total, tax_total, subtotal, line_total,
+        metadata_json, created_at, updated_at, deleted_at, sync_status
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        sale_id = excluded.sale_id,
+        product_id = excluded.product_id,
+        product_name_snapshot = excluded.product_name_snapshot,
+        barcode_snapshot = excluded.barcode_snapshot,
+        quantity = excluded.quantity,
+        unit_price = excluded.unit_price,
+        discount_total = excluded.discount_total,
+        tax_total = excluded.tax_total,
+        subtotal = excluded.subtotal,
+        line_total = excluded.line_total,
+        metadata_json = excluded.metadata_json,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        deleted_at = excluded.deleted_at,
+        sync_status = excluded.sync_status
+      ''',
+      [
+        row.id,
+        row.saleId,
+        row.productId,
+        row.productNameSnapshot,
+        row.barcodeSnapshot,
+        row.quantity,
+        row.unitPrice,
+        row.discountTotal,
+        row.taxTotal,
+        row.subtotal,
+        row.lineTotal,
+        jsonEncode({...?row.metadata, 'recovery_source': 'cash_pos_snapshot'}),
+        row.createdAt,
+        row.updatedAt,
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? row.deletedAt ?? row.updatedAt
+            : row.deletedAt,
+        SyncStatus.synced.index,
+      ],
+    );
+  }
+
+  Future<void> applySalePayment(
+    CashPosSalePaymentSnapshotRow row, {
+    required String branchId,
+  }) async {
+    await _statement(
+      '''
+      insert into sale_payments (
+        id, business_id, branch_id, sale_id, payment_method, amount, currency,
+        status, reference, metadata_json, sync_status, local_status,
+        created_at, updated_at, deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?)
+      on conflict(id) do update set
+        business_id = excluded.business_id,
+        branch_id = excluded.branch_id,
+        sale_id = excluded.sale_id,
+        payment_method = excluded.payment_method,
+        amount = excluded.amount,
+        currency = excluded.currency,
+        status = excluded.status,
+        reference = excluded.reference,
+        metadata_json = excluded.metadata_json,
+        sync_status = excluded.sync_status,
+        local_status = 'synced',
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        deleted_at = excluded.deleted_at
+      ''',
+      [
+        row.id,
+        row.businessId,
+        branchId,
+        row.saleId,
+        row.paymentMethod,
+        row.amount,
+        row.currency,
+        row.status,
+        row.reference,
+        jsonEncode({...?row.metadata, 'recovery_source': 'cash_pos_snapshot'}),
+        SyncStatus.synced.index,
+        row.createdAt,
+        row.updatedAt,
+        row.state == OperationalBootstrapRecordState.tombstone
+            ? row.deletedAt ?? row.updatedAt
+            : row.deletedAt,
+      ],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> rowsForScope({
+    required String table,
+    required String businessId,
+    required String branchId,
+    String? cashSessionId,
+  }) async {
+    final sessionFilter =
+        cashSessionId == null ? '' : 'and cash_session_id = ?';
+    final rows = await _db.customSelect(
+      'select * from $table where business_id = ? and branch_id = ? '
+      'and deleted_at is null $sessionFilter order by id',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        if (cashSessionId != null) Variable<String>(cashSessionId),
+      ],
+    ).get();
+    return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> openSessionsForRegister({
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select * from cash_sessions
+      where business_id = ? and branch_id = ? and cash_register_id = ?
+        and status = 'open' and deleted_at is null
+      order by opened_at, id
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        Variable<String>(cashRegisterId),
+      ],
+      readsFrom: {_db.cashSessions},
+    ).get();
+    return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> salesForSession(String cashSessionId) {
+    return _rowsByForeignKey('sales', 'cash_session_id', cashSessionId);
+  }
+
+  Future<List<Map<String, dynamic>>> saleItemsForSale(String saleId) {
+    return _rowsByForeignKey('sale_items', 'sale_id', saleId);
+  }
+
+  Future<List<Map<String, dynamic>>> salePaymentsForSale(String saleId) {
+    return _rowsByForeignKey('sale_payments', 'sale_id', saleId);
+  }
+
+  Future<List<Map<String, dynamic>>> _rowsByForeignKey(
+    String table,
+    String column,
+    String value,
+  ) async {
+    final rows = await _db.customSelect(
+      'select * from $table where $column = ? and deleted_at is null order by id',
+      variables: [Variable<String>(value)],
+    ).get();
+    return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
+  }
+
+  Future<bool> productExistsForBusiness(String id, String businessId) =>
+      _exists('products', id, businessId: businessId);
+
+  Future<bool> profileExists(String id) => _exists('profiles', id);
+
+  Future<bool> customerExists(String id) => _exists('customers', id);
+
+  Future<bool> _exists(
+    String table,
+    String id, {
+    String? businessId,
+  }) async {
+    final row = await _db.customSelect(
+      'select 1 from $table where id = ? '
+      '${businessId == null ? '' : 'and business_id = ? '}limit 1',
+      variables: [
+        Variable<String>(id),
+        if (businessId != null) Variable<String>(businessId),
+      ],
+    ).getSingleOrNull();
+    return row != null;
+  }
+
+  Future<void> softInvalidate({
+    required String table,
+    required String id,
+    required DateTime at,
+  }) async {
+    final status = switch (table) {
+      'cash_registers' => ", status = 'inactive'",
+      'cash_sessions' => ", status = 'cancelled'",
+      _ => '',
+    };
+    final localStatus =
+        table == 'sale_items' ? '' : ", local_status = 'synced'";
+    await _statement(
+      'update $table set deleted_at = ?, updated_at = ?, sync_status = ?'
+      '$localStatus$status where id = ?',
+      [at, at, SyncStatus.synced.index, id],
+    );
+  }
+
+  Future<int> countSalesForSession(String cashSessionId) async {
+    final row = await _db.customSelect(
+      'select count(*) as count from sales where cash_session_id = ? '
+      'and deleted_at is null',
+      variables: [Variable<String>(cashSessionId)],
+      readsFrom: {_db.sales},
+    ).getSingle();
+    return (row.data['count'] as num).toInt();
+  }
+
+  Future<void> _statement(String sql, List<Object?> values) =>
+      _db.customStatement(sql, normalizeSqliteParameters(values));
+
+  String _mergeMetadata(Object? existing, Map<String, Object?> extra) {
+    final decoded = <String, Object?>{};
+    if (existing is String && existing.isNotEmpty) {
+      try {
+        final value = jsonDecode(existing);
+        if (value is Map) {
+          decoded.addAll(value.map((key, item) => MapEntry('$key', item)));
+        }
+      } on FormatException {
+        // Replace malformed legacy metadata with valid recovery provenance.
+      }
+    }
+    return jsonEncode({...decoded, ...extra});
+  }
+
+  DateTime? _dateOrNull(Object? value) {
+    if (value is DateTime) return value.toUtc();
+    if (value is int) {
+      final milliseconds = value.abs() < 100000000000 ? value * 1000 : value;
+      return DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
+    }
+    return value is String ? DateTime.tryParse(value)?.toUtc() : null;
+  }
+}

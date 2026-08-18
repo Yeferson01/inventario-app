@@ -16,6 +16,14 @@ abstract interface class OperationalBootstrapDatasetFinalizer {
   });
 }
 
+abstract interface class OperationalBootstrapDatasetOrdering {
+  List<T> orderDatasets<T>(
+    String bundle,
+    List<T> values,
+    String Function(T value) datasetOf,
+  );
+}
+
 class OperationalBootstrapPageApplyResult {
   const OperationalBootstrapPageApplyResult({
     this.seenEntityIds = const [],
