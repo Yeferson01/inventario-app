@@ -20,10 +20,12 @@ class OperationalBootstrapPageApplyResult {
   const OperationalBootstrapPageApplyResult({
     this.seenEntityIds = const [],
     this.warnings = const [],
+    this.completeConvergenceStatus = 'complete',
   });
 
   final List<String> seenEntityIds;
   final List<String> warnings;
+  final String completeConvergenceStatus;
 }
 
 class JournalOnlyOperationalBootstrapPageApplier

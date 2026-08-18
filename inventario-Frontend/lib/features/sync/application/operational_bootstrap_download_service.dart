@@ -361,7 +361,10 @@ class OperationalBootstrapDownloadService {
       authorizationValidatedAt: response.authorizationValidatedAt,
     );
     if (page.complete) {
-      await _checkpointDao.markComplete(scope);
+      await _checkpointDao.markComplete(
+        scope,
+        convergenceStatus: applyResult.completeConvergenceStatus,
+      );
     }
   }
 

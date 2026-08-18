@@ -144,6 +144,117 @@ class ProductStockBalanceLocalDao {
     );
   }
 
+  Future<void> stageRemoteBaseByScope({
+    required String businessId,
+    required String branchId,
+    required String productId,
+    required String remoteBalanceId,
+    required int remoteQuantityOnHand,
+    required int remoteQuantityReserved,
+    required int remoteQuantityAvailable,
+    required double? remoteAverageCost,
+    required DateTime remoteUpdatedAt,
+    required String remoteSnapshotId,
+    required bool remoteTombstone,
+    required DateTime? remoteDeletedAt,
+  }) async {
+    final now = DateTime.now().toUtc();
+    final metadata = jsonEncode({
+      'remote_record_state': remoteTombstone ? 'tombstone' : 'present',
+      'remote_deleted_at': remoteDeletedAt?.toIso8601String(),
+    });
+    await _customStatement(
+      '''
+      insert into local_product_stock_balances (
+        id, business_id, branch_id, product_id, remote_balance_id,
+        remote_quantity_on_hand, remote_quantity_reserved,
+        remote_quantity_available, remote_average_cost, remote_updated_at,
+        remote_snapshot_id, metadata_json, created_at, updated_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(business_id, branch_id, product_id) do update set
+        remote_balance_id = excluded.remote_balance_id,
+        remote_quantity_on_hand = excluded.remote_quantity_on_hand,
+        remote_quantity_reserved = excluded.remote_quantity_reserved,
+        remote_quantity_available = excluded.remote_quantity_available,
+        remote_average_cost = excluded.remote_average_cost,
+        remote_updated_at = excluded.remote_updated_at,
+        remote_snapshot_id = excluded.remote_snapshot_id,
+        metadata_json = excluded.metadata_json,
+        updated_at = excluded.updated_at
+      ''',
+      [
+        AppUuid.v7(),
+        businessId,
+        branchId,
+        productId,
+        remoteBalanceId,
+        remoteQuantityOnHand,
+        remoteQuantityReserved,
+        remoteQuantityAvailable,
+        remoteAverageCost,
+        remoteUpdatedAt.millisecondsSinceEpoch,
+        remoteSnapshotId,
+        metadata,
+        now.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+      ],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getScopeBalances({
+    required String businessId,
+    required String branchId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select * from local_product_stock_balances
+      where business_id = ? and branch_id = ?
+      order by product_id
+      ''',
+      variables: [Variable<String>(businessId), Variable<String>(branchId)],
+      readsFrom: {_db.localProductStockBalances},
+    ).get();
+    return rows
+        .map((row) => Map<String, dynamic>.from(row.data))
+        .toList(growable: false);
+  }
+
+  Future<void> finalizeOperativeBalance({
+    required String businessId,
+    required String branchId,
+    required String productId,
+    required int quantityOnHand,
+    required int quantityReserved,
+    required int quantityAvailable,
+    required double? averageCost,
+    required DateTime? lastMovementAt,
+    required DateTime? deletedAt,
+  }) async {
+    final now = DateTime.now().toUtc();
+    await _customStatement(
+      '''
+      update local_product_stock_balances
+      set quantity_on_hand = ?, quantity_reserved = ?, quantity_available = ?,
+          average_cost = ?, last_movement_at = ?, deleted_at = ?,
+          sync_status = 'synced', last_synced_at = ?, updated_at = ?
+      where business_id = ? and branch_id = ? and product_id = ?
+      ''',
+      [
+        quantityOnHand,
+        quantityReserved,
+        quantityAvailable,
+        averageCost,
+        lastMovementAt?.millisecondsSinceEpoch,
+        deletedAt?.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+        businessId,
+        branchId,
+        productId,
+      ],
+    );
+  }
+
   Future<Map<String, dynamic>?> getProductBalance({
     required String businessId,
     required String branchId,

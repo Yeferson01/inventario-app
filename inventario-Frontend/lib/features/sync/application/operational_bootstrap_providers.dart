@@ -10,6 +10,9 @@ import '../data/datasources/operational_bootstrap_remote_datasource.dart';
 import '../data/datasources/operational_bootstrap_seen_record_local_dao.dart';
 import '../data/datasources/reconciliation_issue_local_dao.dart';
 import '../data/datasources/product_operational_reconciliation_local_dao.dart';
+import '../../inventory/application/product_stock_balance_providers.dart';
+import '../data/datasources/inventory_balance_reconciliation_local_dao.dart';
+import '../data/datasources/inventory_movement_acknowledgement_remote_datasource.dart';
 import 'category_snapshot_applier.dart';
 import 'core_context_snapshot_applier.dart';
 import 'operational_bootstrap_download_service.dart';
@@ -18,6 +21,8 @@ import 'operational_bootstrap_page_applier_router.dart';
 import 'product_barcode_snapshot_applier.dart';
 import 'product_operational_reconciliation_support.dart';
 import 'product_snapshot_applier.dart';
+import 'inventory_balance_reconciliation_service.dart';
+import 'inventory_balance_snapshot_applier.dart';
 
 final operationalBootstrapRemoteDataSourceProvider =
     Provider<OperationalBootstrapRemoteDataSource>((ref) {
@@ -106,6 +111,27 @@ final productBarcodeSnapshotApplierProvider =
   );
 });
 
+final inventoryBalanceReconciliationLocalDaoProvider =
+    Provider<InventoryBalanceReconciliationLocalDao>((ref) {
+  return InventoryBalanceReconciliationLocalDao(
+    ref.watch(appDatabaseProvider),
+  );
+});
+
+final inventoryMovementAcknowledgementRemoteDataSourceProvider =
+    Provider<InventoryMovementAcknowledgementRemoteDataSource>((ref) {
+  return InventoryMovementAcknowledgementRemoteDataSource(
+    ref.watch(supabaseClientProvider),
+  );
+});
+
+final inventoryBalanceSnapshotApplierProvider =
+    Provider<InventoryBalanceSnapshotApplier>((ref) {
+  return InventoryBalanceSnapshotApplier(
+    balanceDao: ref.watch(productStockBalanceLocalDaoProvider),
+  );
+});
+
 final operationalBootstrapPageApplierProvider =
     Provider<OperationalBootstrapPageApplier>((ref) {
   return OperationalBootstrapPageApplierRouter(
@@ -116,7 +142,24 @@ final operationalBootstrapPageApplierProvider =
       'product_operational/products': ref.watch(productSnapshotApplierProvider),
       'product_operational/product_barcodes':
           ref.watch(productBarcodeSnapshotApplierProvider),
+      'product_operational/product_stock_balances':
+          ref.watch(inventoryBalanceSnapshotApplierProvider),
     },
+  );
+});
+
+final inventoryBalanceReconciliationServiceProvider =
+    Provider<InventoryBalanceReconciliationService>((ref) {
+  return InventoryBalanceReconciliationService(
+    database: ref.watch(appDatabaseProvider),
+    acknowledgementDataSource:
+        ref.watch(inventoryMovementAcknowledgementRemoteDataSourceProvider),
+    movementDao: ref.watch(inventoryBalanceReconciliationLocalDaoProvider),
+    balanceDao: ref.watch(productStockBalanceLocalDaoProvider),
+    downloadService: ref.watch(operationalBootstrapDownloadServiceProvider),
+    seenRecordDao: ref.watch(operationalBootstrapSeenRecordLocalDaoProvider),
+    checkpointDao: ref.watch(operationalBootstrapCheckpointLocalDaoProvider),
+    issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
   );
 });
 

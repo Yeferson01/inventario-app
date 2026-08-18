@@ -92,6 +92,38 @@ class ReconciliationIssueLocalDao {
     );
   }
 
+  Future<void> resolveOpenIssue({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String domain,
+    required String issueType,
+    String? entityType,
+    String? entityId,
+  }) async {
+    final now = DateTime.now().toUtc();
+    await _db.customStatement(
+      '''
+      update local_reconciliation_issues
+      set status = 'resolved', resolved_at = ?, updated_at = ?
+      where profile_id = ? and business_id = ? and branch_id = ?
+        and domain = ? and issue_type = ? and status = 'open'
+        and coalesce(entity_type, '') = ? and coalesce(entity_id, '') = ?
+      ''',
+      normalizeSqliteParameters([
+        now,
+        now,
+        profileId,
+        businessId,
+        branchId,
+        domain,
+        issueType,
+        entityType ?? '',
+        entityId ?? '',
+      ]),
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getOpenBlockingIssues({
     required String profileId,
     required String businessId,

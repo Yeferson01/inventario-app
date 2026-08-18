@@ -221,6 +221,23 @@ class OperationalBootstrapCheckpointLocalDao {
     );
   }
 
+  Future<void> markConvergence(
+    OperationalBootstrapScope scope, {
+    required String status,
+    String? error,
+  }) async {
+    final now = DateTime.now().toUtc();
+    await _statement(
+      '''
+      update local_operational_bootstrap_checkpoints
+      set convergence_status = ?, last_error = ?, updated_at = ?
+      where profile_id = ? and business_id = ? and branch_id = ?
+        and app_device_id = ? and bundle = ? and dataset = ?
+      ''',
+      [status, error, now, ..._scopeValues(scope)],
+    );
+  }
+
   Future<void> _updateStatus(
     OperationalBootstrapScope scope, {
     required String status,
