@@ -38,7 +38,9 @@ final appRouterSyncBootstrapProvider =
   }
 
   final selectedContextStore = ref.watch(appSelectedSyncContextStoreProvider);
-  final selectedContext = await selectedContextStore.getSelectedContext();
+  final selectedContext = await selectedContextStore.getSelectedContext(
+    profileId: user.id,
+  );
 
   if (selectedContext == null) {
     return const AppRouterSyncBootstrapData(
@@ -55,7 +57,7 @@ final appRouterSyncBootstrapProvider =
   final input = AppSyncCoordinatorInput(
     businessId: selectedContext.businessId,
     branchId: selectedContext.branchId,
-    profileId: selectedContext.profileId ?? user.id,
+    profileId: selectedContext.profileId,
     installationId: installationId,
     isOnline: isOnline,
     deviceName: _deviceName(),

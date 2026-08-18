@@ -83,3 +83,120 @@ List<Map<String, Object?>> bootstrapRows(
     },
   );
 }
+
+Map<String, Object?> bootstrapCoreRpcResponse({
+  String snapshotId = 'core-snapshot-1',
+  String profileId = 'profile-a',
+  String businessId = 'business-a',
+  String branchId = 'branch-x',
+  String appDeviceId = 'device-a',
+  List<String> permissions = const [
+    'inventory.read',
+    'products.read',
+    'sales.create',
+  ],
+  List<Map<String, Object?>>? memberships,
+  List<Map<String, Object?>>? roles,
+  bool hasMore = false,
+  String? nextPageToken,
+  String authorizationValidatedAt = '2026-08-15T10:00:00Z',
+}) {
+  final resolvedMemberships = memberships ??
+      [
+        {
+          'id': 'membership-business',
+          'business_id': businessId,
+          'profile_id': profileId,
+          'branch_id': null,
+          'role_id': 'role-cashier',
+          'status': 'active',
+          'created_at': '2026-08-01T08:00:00Z',
+          'updated_at': '2026-08-01T08:00:00Z',
+          'deleted_at': null,
+        },
+        {
+          'id': 'membership-branch',
+          'business_id': businessId,
+          'profile_id': profileId,
+          'branch_id': branchId,
+          'role_id': 'role-inventory',
+          'status': 'active',
+          'created_at': '2026-08-02T08:00:00Z',
+          'updated_at': '2026-08-02T08:00:00Z',
+          'deleted_at': null,
+        },
+      ];
+  final resolvedRoles = roles ??
+      [
+        {
+          'role_id': 'role-cashier',
+          'role_name': 'cashier',
+          'business_id': null,
+          'is_system_role': true,
+        },
+        {
+          'role_id': 'role-inventory',
+          'role_name': 'inventory_operator',
+          'business_id': businessId,
+          'is_system_role': false,
+        },
+      ];
+  return bootstrapRpcResponse(
+    snapshotId: snapshotId,
+    profileId: profileId,
+    businessId: businessId,
+    branchId: branchId,
+    appDeviceId: appDeviceId,
+    bundle: 'core',
+    datasetRequested: null,
+    authorizationValidatedAt: authorizationValidatedAt,
+    datasets: {
+      'context': bootstrapDatasetPage(
+        dataset: 'context',
+        hasMore: hasMore,
+        nextPageToken: nextPageToken,
+        rows: [
+          {
+            'profile_id': profileId,
+            'business': {
+              'id': businessId,
+              'name': 'Business A',
+              'business_type': 'retail',
+              'owner_name': 'Owner A',
+              'phone': '+570000000',
+              'email': 'business-a@example.test',
+              'address': 'Address A',
+              'subscription_plan': 'free',
+              'status': 'active',
+              'created_at': '2026-08-01T08:00:00Z',
+              'updated_at': '2026-08-14T08:00:00Z',
+              'deleted_at': null,
+            },
+            'branch': {
+              'id': branchId,
+              'business_id': businessId,
+              'name': 'Branch X',
+              'address': 'Branch address',
+              'phone': '+571111111',
+              'status': 'active',
+              'created_at': '2026-08-01T08:00:00Z',
+              'updated_at': '2026-08-14T08:00:00Z',
+              'deleted_at': null,
+            },
+            'app_device': {
+              'id': appDeviceId,
+              'business_id': businessId,
+              'branch_id': branchId,
+              'profile_id': profileId,
+              'status': 'active',
+            },
+            'memberships': resolvedMemberships,
+            'effective_roles': resolvedRoles,
+            'effective_permissions': permissions,
+            'authorization_validated_at': authorizationValidatedAt,
+          },
+        ],
+      ),
+    },
+  );
+}

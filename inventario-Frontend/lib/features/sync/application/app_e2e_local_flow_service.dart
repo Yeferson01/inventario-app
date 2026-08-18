@@ -102,6 +102,7 @@ class AppE2ELocalFlowService {
 
     final currentContext = await _appContextService.loadCurrentContext(
       installationId: installationId,
+      profileId: input.profileId,
       isOnline: input.isOnline,
       lastSyncStatus: input.lastSyncStatus,
     );

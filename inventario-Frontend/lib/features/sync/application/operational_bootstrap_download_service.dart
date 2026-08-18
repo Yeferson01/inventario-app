@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../core/database/app_database.dart';
+import '../data/datasources/authorized_operational_context_local_dao.dart';
 import '../data/datasources/operational_bootstrap_checkpoint_local_dao.dart';
 import '../data/datasources/operational_bootstrap_remote_datasource.dart';
 import '../data/datasources/operational_bootstrap_seen_record_local_dao.dart';
@@ -20,6 +21,7 @@ class OperationalBootstrapDownloadService {
     required OperationalBootstrapSeenRecordLocalDao seenRecordDao,
     required ReconciliationIssueLocalDao reconciliationIssueDao,
     required OperationalBootstrapPageApplier pageApplier,
+    required AuthorizedOperationalContextLocalDao authorizationContextDao,
     this.maxTransientRetries = 2,
     this.retryDelay = _defaultRetryDelay,
   })  : _database = database,
@@ -27,7 +29,8 @@ class OperationalBootstrapDownloadService {
         _checkpointDao = checkpointDao,
         _seenRecordDao = seenRecordDao,
         _reconciliationIssueDao = reconciliationIssueDao,
-        _pageApplier = pageApplier;
+        _pageApplier = pageApplier,
+        _authorizationContextDao = authorizationContextDao;
 
   final AppDatabase _database;
   final OperationalBootstrapRemoteDataSource _remoteDataSource;
@@ -35,6 +38,7 @@ class OperationalBootstrapDownloadService {
   final OperationalBootstrapSeenRecordLocalDao _seenRecordDao;
   final ReconciliationIssueLocalDao _reconciliationIssueDao;
   final OperationalBootstrapPageApplier _pageApplier;
+  final AuthorizedOperationalContextLocalDao _authorizationContextDao;
   final int maxTransientRetries;
   final OperationalBootstrapRetryDelay retryDelay;
 
@@ -108,6 +112,7 @@ class OperationalBootstrapDownloadService {
       );
       await _validateApplicationScope(request, response);
     } on OperationalBootstrapException catch (error) {
+      await _invalidateRevokedCoreContext(request, error);
       if (error.kind == OperationalBootstrapFailureKind.scopeMismatch) {
         await _recordScopeMismatch(request, error);
       }
@@ -402,6 +407,7 @@ class OperationalBootstrapDownloadService {
     OperationalBootstrapScope scope,
     OperationalBootstrapException error,
   ) async {
+    await _invalidateRevokedCoreContext(request, error);
     if (error.kind == OperationalBootstrapFailureKind.scopeMismatch) {
       await _recordScopeMismatch(request, error);
     }
@@ -410,6 +416,22 @@ class OperationalBootstrapDownloadService {
       return;
     }
     await _checkpointDao.markFailed(scope, error: error);
+  }
+
+  Future<void> _invalidateRevokedCoreContext(
+    OperationalBootstrapDownloadRequest request,
+    OperationalBootstrapException error,
+  ) async {
+    if (request.bundle != 'core' ||
+        (error.kind != OperationalBootstrapFailureKind.unauthorized &&
+            error.kind != OperationalBootstrapFailureKind.forbidden)) {
+      return;
+    }
+    await _authorizationContextDao.invalidateContext(
+      profileId: request.profileId,
+      businessId: request.businessId,
+      branchId: request.branchId,
+    );
   }
 
   Future<void> _recordScopeMismatch(

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/supabase/supabase_client_provider.dart';
 import 'app_context_models.dart';
 import 'local_sync_outbox_providers.dart';
 
@@ -42,13 +43,18 @@ class AppCurrentContextRequest {
   }
 }
 
-final appCurrentContextProvider =
-    FutureProvider.family<AppCurrentContext?, AppCurrentContextRequest>(
+final appCurrentContextProvider = FutureProvider.autoDispose
+    .family<AppCurrentContext?, AppCurrentContextRequest>(
   (ref, request) async {
+    final profileId = ref.watch(currentSupabaseUserProvider)?.id;
+    if (profileId == null) {
+      return null;
+    }
     final service = ref.watch(appContextServiceProvider);
 
     return service.loadCurrentContext(
       installationId: request.installationId,
+      profileId: profileId,
       isOnline: request.isOnline,
       lastSyncStatus: request.lastSyncStatus,
     );

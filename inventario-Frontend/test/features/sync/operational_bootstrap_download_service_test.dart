@@ -4,6 +4,7 @@ import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_download_models.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_download_service.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_page_applier.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/authorized_operational_context_local_dao.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/operational_bootstrap_checkpoint_local_dao.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/operational_bootstrap_remote_datasource.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/operational_bootstrap_seen_record_local_dao.dart';
@@ -535,6 +536,7 @@ class _Harness {
       seenRecordDao: seen,
       reconciliationIssueDao: issues,
       pageApplier: pageApplier,
+      authorizationContextDao: AuthorizedOperationalContextLocalDao(database),
       maxTransientRetries: maxTransientRetries,
       retryDelay: (_) async {},
     );

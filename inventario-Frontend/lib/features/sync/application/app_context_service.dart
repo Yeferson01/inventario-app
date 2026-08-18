@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import '../../../core/database/app_database.dart';
+import '../data/datasources/authorized_operational_context_local_dao.dart';
 import 'app_context_models.dart';
 import 'app_runtime_context_store.dart';
 import 'app_selected_sync_context_store.dart';
@@ -9,18 +10,21 @@ class AppContextService {
     required AppDatabase database,
     required AppSelectedSyncContextStore selectedContextStore,
     required AppRuntimeContextStore runtimeContextStore,
+    required AuthorizedOperationalContextLocalDao authorizationContextDao,
   })  : _db = database,
         _selectedContextStore = selectedContextStore,
-        _runtimeContextStore = runtimeContextStore;
+        _runtimeContextStore = runtimeContextStore,
+        _authorizationContextDao = authorizationContextDao;
 
   final AppDatabase _db;
   final AppSelectedSyncContextStore _selectedContextStore;
   final AppRuntimeContextStore _runtimeContextStore;
+  final AuthorizedOperationalContextLocalDao _authorizationContextDao;
 
   Future<void> selectBusinessContext({
     required String businessId,
+    required String profileId,
     String? branchId,
-    String? profileId,
   }) {
     return _selectedContextStore.saveSelectedContext(
       AppSelectedSyncContext(
@@ -33,10 +37,13 @@ class AppContextService {
 
   Future<AppCurrentContext?> loadCurrentContext({
     required String installationId,
+    required String profileId,
     required bool isOnline,
     String? lastSyncStatus,
   }) async {
-    final selectedContext = await _selectedContextStore.getSelectedContext();
+    final selectedContext = await _selectedContextStore.getSelectedContext(
+      profileId: profileId,
+    );
 
     if (selectedContext == null) {
       return null;
@@ -47,13 +54,53 @@ class AppContextService {
       installationId: installationId,
     );
 
-    final effectiveProfileId =
-        selectedContext.profileId ?? runtimeContext?.profileId;
+    final matchingRuntimeContext =
+        runtimeContext?.profileId == profileId ? runtimeContext : null;
+    final branchId =
+        selectedContext.branchId ?? matchingRuntimeContext?.branchId;
+
+    final authorizationContext = branchId == null
+        ? null
+        : await _authorizationContextDao.getContextRecord(
+            profileId: profileId,
+            businessId: selectedContext.businessId,
+            branchId: branchId,
+          );
+
+    if (authorizationContext != null) {
+      final isAuthorized = authorizationContext.isActive;
+      final roles =
+          isAuthorized ? authorizationContext.effectiveRoles : const <String>[];
+      return AppCurrentContext(
+        businessId: selectedContext.businessId,
+        branchId: branchId,
+        profileId: profileId,
+        installationId: installationId,
+        appDeviceId: matchingRuntimeContext?.appDeviceId,
+        roleName: roles.isEmpty ? null : roles.join(', '),
+        effectiveRoles: roles,
+        applicableMembershipIds: isAuthorized
+            ? authorizationContext.applicableMembershipIds
+            : const <String>[],
+        authorizationContextReady: isAuthorized,
+        authorizationValidatedAt: authorizationContext.authorizationValidatedAt,
+        permissions: AppPermissionSet.fromIterable(
+          isAuthorized
+              ? authorizationContext.effectivePermissions
+              : const <String>[],
+        ),
+        isOnline: isOnline,
+        cashRegisterId: matchingRuntimeContext?.cashRegisterId,
+        cashSessionId: matchingRuntimeContext?.cashSessionId,
+        receiptSequenceId: matchingRuntimeContext?.receiptSequenceId,
+        lastSyncStatus: lastSyncStatus,
+      );
+    }
 
     final membership = await _loadBestMembership(
       businessId: selectedContext.businessId,
-      branchId: selectedContext.branchId,
-      profileId: effectiveProfileId,
+      branchId: branchId,
+      profileId: profileId,
     );
 
     final roleId = _string(membership?['role_id']);
@@ -65,17 +112,18 @@ class AppContextService {
 
     return AppCurrentContext(
       businessId: selectedContext.businessId,
-      branchId: selectedContext.branchId ?? runtimeContext?.branchId,
-      profileId: effectiveProfileId,
+      branchId: branchId,
+      profileId: profileId,
       installationId: installationId,
-      appDeviceId: runtimeContext?.appDeviceId,
+      appDeviceId: matchingRuntimeContext?.appDeviceId,
       roleId: roleId,
       roleName: roleName,
+      effectiveRoles: roleName == null ? const [] : [roleName],
       permissions: permissions,
       isOnline: isOnline,
-      cashRegisterId: runtimeContext?.cashRegisterId,
-      cashSessionId: runtimeContext?.cashSessionId,
-      receiptSequenceId: runtimeContext?.receiptSequenceId,
+      cashRegisterId: matchingRuntimeContext?.cashRegisterId,
+      cashSessionId: matchingRuntimeContext?.cashSessionId,
+      receiptSequenceId: matchingRuntimeContext?.receiptSequenceId,
       lastSyncStatus: lastSyncStatus,
     );
   }

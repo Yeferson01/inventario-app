@@ -174,6 +174,32 @@ class AuthorizedOperationalContextProjection {
   final String status;
 }
 
+class AuthorizedOperationalContextRecord {
+  const AuthorizedOperationalContextRecord({
+    required this.profileId,
+    required this.businessId,
+    required this.branchId,
+    required this.effectivePermissions,
+    required this.effectiveRoles,
+    required this.applicableMembershipIds,
+    required this.authorizationValidatedAt,
+    required this.snapshotId,
+    required this.status,
+  });
+
+  final String profileId;
+  final String businessId;
+  final String branchId;
+  final List<String> effectivePermissions;
+  final List<String> effectiveRoles;
+  final List<String> applicableMembershipIds;
+  final DateTime authorizationValidatedAt;
+  final String? snapshotId;
+  final String status;
+
+  bool get isActive => status == 'active';
+}
+
 DateTime _recoveryDateTime(Object? value, String field) {
   if (value is DateTime) {
     return value.toUtc();

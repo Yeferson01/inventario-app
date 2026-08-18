@@ -4,6 +4,7 @@ import '../../../core/database/database_provider.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
 import '../../catalog/application/catalog_local_providers.dart';
 import '../data/datasources/catalog_sync_remote_datasource.dart';
+import '../data/datasources/authorized_operational_context_local_dao.dart';
 import '../data/datasources/local_sync_outbox_dao.dart';
 import '../data/datasources/operational_context_local_dao.dart';
 import '../data/datasources/operational_context_remote_datasource.dart';
@@ -104,10 +105,12 @@ final cashCloseSyncTriggerServiceProvider =
 });
 
 final appContextServiceProvider = Provider<AppContextService>((ref) {
+  final database = ref.watch(appDatabaseProvider);
   return AppContextService(
-    database: ref.watch(appDatabaseProvider),
+    database: database,
     selectedContextStore: ref.watch(appSelectedSyncContextStoreProvider),
     runtimeContextStore: ref.watch(appRuntimeContextStoreProvider),
+    authorizationContextDao: AuthorizedOperationalContextLocalDao(database),
   );
 });
 

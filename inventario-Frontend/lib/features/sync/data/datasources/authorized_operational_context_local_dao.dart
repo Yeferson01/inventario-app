@@ -17,9 +17,8 @@ class AuthorizedOperationalContextLocalDao {
   ) async {
     final now = DateTime.now().toUtc();
 
-    await _db.transaction(() async {
-      await _db.customStatement(
-        '''
+    await _db.customStatement(
+      '''
         insert into local_authorized_operational_contexts (
           id, profile_id, business_id, branch_id, effective_permissions,
           effective_roles, applicable_membership_ids,
@@ -34,23 +33,55 @@ class AuthorizedOperationalContextLocalDao {
           snapshot_id = excluded.snapshot_id,
           status = excluded.status,
           updated_at = excluded.updated_at
-        ''',
-        normalizeSqliteParameters([
-          AppUuid.v7(),
-          projection.profileId,
-          projection.businessId,
-          projection.branchId,
-          jsonEncode(projection.effectivePermissions),
-          jsonEncode(projection.effectiveRoles),
-          jsonEncode(projection.applicableMembershipIds),
-          projection.authorizationValidatedAt,
-          projection.snapshotId,
-          projection.status,
-          now,
-          now,
-        ]),
-      );
-    });
+      ''',
+      normalizeSqliteParameters([
+        AppUuid.v7(),
+        projection.profileId,
+        projection.businessId,
+        projection.branchId,
+        jsonEncode(projection.effectivePermissions),
+        jsonEncode(projection.effectiveRoles),
+        jsonEncode(projection.applicableMembershipIds),
+        projection.authorizationValidatedAt,
+        projection.snapshotId,
+        projection.status,
+        now,
+        now,
+      ]),
+    );
+  }
+
+  Future<AuthorizedOperationalContextRecord?> getContextRecord({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+  }) async {
+    final context = await getContext(
+      profileId: profileId,
+      businessId: businessId,
+      branchId: branchId,
+    );
+    if (context == null) {
+      return null;
+    }
+    return AuthorizedOperationalContextRecord(
+      profileId: context['profile_id'] as String,
+      businessId: context['business_id'] as String,
+      branchId: context['branch_id'] as String,
+      effectivePermissions: _decodeStrings(
+        context['effective_permissions'],
+      ),
+      effectiveRoles: _decodeStrings(context['effective_roles']),
+      applicableMembershipIds: _decodeStrings(
+        context['applicable_membership_ids'],
+      ),
+      authorizationValidatedAt: _dateTime(
+        context['authorization_validated_at'],
+        'authorization_validated_at',
+      ),
+      snapshotId: context['snapshot_id'] as String?,
+      status: context['status'] as String,
+    );
   }
 
   Future<Map<String, dynamic>?> getContext({
@@ -78,12 +109,12 @@ class AuthorizedOperationalContextLocalDao {
     required String businessId,
     required String branchId,
   }) async {
-    final context = await getContext(
+    final context = await getContextRecord(
       profileId: profileId,
       businessId: businessId,
       branchId: branchId,
     );
-    return _decodeStrings(context?['effective_permissions']);
+    return context?.isActive == true ? context!.effectivePermissions : const [];
   }
 
   Future<List<String>> getEffectiveRoles({
@@ -91,12 +122,12 @@ class AuthorizedOperationalContextLocalDao {
     required String businessId,
     required String branchId,
   }) async {
-    final context = await getContext(
+    final context = await getContextRecord(
       profileId: profileId,
       businessId: businessId,
       branchId: branchId,
     );
-    return _decodeStrings(context?['effective_roles']);
+    return context?.isActive == true ? context!.effectiveRoles : const [];
   }
 
   Future<bool> exists({
@@ -121,7 +152,7 @@ class AuthorizedOperationalContextLocalDao {
     await _db.customStatement(
       '''
       update local_authorized_operational_contexts
-      set status = 'invalid', updated_at = ?
+      set status = 'revoked', updated_at = ?
       where profile_id = ? and business_id = ? and branch_id = ?
       ''',
       normalizeSqliteParameters([
@@ -153,5 +184,21 @@ class AuthorizedOperationalContextLocalDao {
       return const [];
     }
     return decoded.map((item) => item.toString()).toList(growable: false);
+  }
+
+  DateTime _dateTime(Object? value, String field) {
+    if (value is DateTime) {
+      return value.toUtc();
+    }
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true);
+    }
+    if (value is String) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) {
+        return parsed.toUtc();
+      }
+    }
+    throw StateError('Invalid $field in authorization projection.');
   }
 }

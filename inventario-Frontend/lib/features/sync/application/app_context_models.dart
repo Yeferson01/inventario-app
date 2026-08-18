@@ -41,6 +41,10 @@ class AppCurrentContext {
     required this.installationId,
     required this.isOnline,
     required this.permissions,
+    this.effectiveRoles = const [],
+    this.applicableMembershipIds = const [],
+    this.authorizationContextReady = false,
+    this.authorizationValidatedAt,
     this.branchId,
     this.profileId,
     this.appDeviceId,
@@ -56,6 +60,10 @@ class AppCurrentContext {
   final String installationId;
   final bool isOnline;
   final AppPermissionSet permissions;
+  final List<String> effectiveRoles;
+  final List<String> applicableMembershipIds;
+  final bool authorizationContextReady;
+  final DateTime? authorizationValidatedAt;
 
   final String? branchId;
   final String? profileId;
@@ -91,6 +99,10 @@ class AppCurrentContext {
       'role_id': roleId,
       'role_name': roleName,
       'permissions': permissions.sorted(),
+      'effective_roles': effectiveRoles,
+      'applicable_membership_ids': applicableMembershipIds,
+      'authorization_context_ready': authorizationContextReady,
+      'authorization_validated_at': authorizationValidatedAt?.toIso8601String(),
       'is_online': isOnline,
       'cash_register_id': cashRegisterId,
       'cash_session_id': cashSessionId,

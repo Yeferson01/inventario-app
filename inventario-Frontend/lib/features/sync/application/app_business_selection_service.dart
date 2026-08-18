@@ -90,7 +90,9 @@ class AppBusinessSelectionService {
   Future<AppBusinessSelectionOption?> getSelectedOption({
     required String profileId,
   }) async {
-    final selectedContext = await _selectedContextStore.getSelectedContext();
+    final selectedContext = await _selectedContextStore.getSelectedContext(
+      profileId: profileId,
+    );
 
     if (selectedContext == null) {
       return null;
@@ -109,8 +111,8 @@ class AppBusinessSelectionService {
     }
   }
 
-  Future<void> clearSelectedContext() {
-    return _selectedContextStore.clearSelectedContext();
+  Future<void> clearSelectedContext({required String profileId}) {
+    return _selectedContextStore.clearSelectedContext(profileId: profileId);
   }
 
   AppBusinessSelectionOption _findMatchingOption({

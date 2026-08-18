@@ -13,7 +13,7 @@ class AppBusinessContextActions {
   }) async {
     final service = _ref.read(appBusinessSelectionServiceProvider);
 
-    await service.clearSelectedContext();
+    await service.clearSelectedContext(profileId: profileId);
 
     _ref.invalidate(appSelectedBusinessOptionProvider(profileId));
     _ref.invalidate(appAvailableBusinessContextsProvider(profileId));
