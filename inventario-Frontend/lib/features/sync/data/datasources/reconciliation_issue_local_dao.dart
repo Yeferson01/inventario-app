@@ -17,29 +17,65 @@ class ReconciliationIssueLocalDao {
 
     final id = AppUuid.v7();
     final now = DateTime.now().toUtc();
-    await _db.customStatement(
+    await _db.into(_db.localReconciliationIssues).insert(
+          LocalReconciliationIssuesCompanion.insert(
+            id: id,
+            profileId: issue.profileId,
+            businessId: issue.businessId,
+            branchId: issue.branchId,
+            domain: issue.domain,
+            entityType: Value(issue.entityType),
+            entityId: Value(issue.entityId),
+            issueType: issue.issueType,
+            severity: issue.severity,
+            message: issue.message,
+            metadataJson: Value(issue.metadataJson),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    return id;
+  }
+
+  Future<String> openOrUpdateIssue(ReconciliationIssueDraft issue) async {
+    if (issue.severity != 'warning' && issue.severity != 'blocking') {
+      throw ArgumentError('Severity de reconciliación no soportada.');
+    }
+    final existing = await _db.customSelect(
       '''
-      insert into local_reconciliation_issues (
-        id, profile_id, business_id, branch_id, domain, entity_type, entity_id,
-        issue_type, severity, status, message, metadata_json, created_at,
-        updated_at, resolved_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, null)
+      select id
+      from local_reconciliation_issues
+      where profile_id = ? and business_id = ? and branch_id = ?
+        and domain = ? and issue_type = ? and status = 'open'
+        and coalesce(entity_type, '') = ? and coalesce(entity_id, '') = ?
+      limit 1
       ''',
-      normalizeSqliteParameters([
-        id,
-        issue.profileId,
-        issue.businessId,
-        issue.branchId,
-        issue.domain,
-        issue.entityType,
-        issue.entityId,
-        issue.issueType,
-        issue.severity,
-        issue.message,
-        issue.metadataJson,
-        now,
-        now,
-      ]),
+      variables: [
+        Variable<String>(issue.profileId),
+        Variable<String>(issue.businessId),
+        Variable<String>(issue.branchId),
+        Variable<String>(issue.domain),
+        Variable<String>(issue.issueType),
+        Variable<String>(issue.entityType ?? ''),
+        Variable<String>(issue.entityId ?? ''),
+      ],
+      readsFrom: {_db.localReconciliationIssues},
+    ).getSingleOrNull();
+    if (existing == null) {
+      return openIssue(issue);
+    }
+
+    final id = existing.read<String>('id');
+    final now = DateTime.now().toUtc();
+    await (_db.update(_db.localReconciliationIssues)
+          ..where((row) => row.id.equals(id)))
+        .write(
+      LocalReconciliationIssuesCompanion(
+        severity: Value(issue.severity),
+        message: Value(issue.message),
+        metadataJson: Value(issue.metadataJson),
+        updatedAt: Value(now),
+      ),
     );
     return id;
   }

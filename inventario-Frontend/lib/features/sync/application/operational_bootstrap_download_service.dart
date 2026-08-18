@@ -344,6 +344,14 @@ class OperationalBootstrapDownloadService {
             .toList(growable: false),
       );
     }
+    if (page.complete && _pageApplier is OperationalBootstrapDatasetFinalizer) {
+      await (_pageApplier as OperationalBootstrapDatasetFinalizer)
+          .finalizeDataset(
+        profileId: request.profileId,
+        snapshot: response,
+        page: page,
+      );
+    }
     warnings.addAll(applyResult.warnings);
 
     await _checkpointDao.commitPageProgress(

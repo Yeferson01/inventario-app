@@ -9,6 +9,7 @@ Map<String, Object?> bootstrapRpcResponse({
   Map<String, Map<String, Object?>>? datasets,
   bool? snapshotComplete,
   bool? requestedDatasetsComplete,
+  String snapshotAt = '2026-08-15T09:00:00Z',
   String authorizationValidatedAt = '2026-08-15T10:00:00Z',
 }) {
   final resolvedDatasets = datasets ??
@@ -29,7 +30,7 @@ Map<String, Object?> bootstrapRpcResponse({
   );
   return {
     'snapshot_id': snapshotId,
-    'snapshot_at': '2026-08-15T09:00:00Z',
+    'snapshot_at': snapshotAt,
     'profile_id': profileId,
     'business_id': businessId,
     'branch_id': branchId,
@@ -48,6 +49,110 @@ Map<String, Object?> bootstrapRpcResponse({
       'model': 'fixed_identity_window_current_values',
       'keyset': 'id',
     },
+  };
+}
+
+Map<String, Object?> productOperationalCategoryRow({
+  required String id,
+  String businessId = 'business-a',
+  String name = 'Category',
+  String? description,
+  String state = 'present',
+  String createdAt = '2026-08-01T08:00:00Z',
+  String updatedAt = '2026-08-14T08:00:00Z',
+  String? deletedAt,
+}) {
+  return {
+    'id': id,
+    'business_id': businessId,
+    'name': name,
+    'description': description,
+    'created_at': createdAt,
+    'updated_at': updatedAt,
+    'deleted_at': deletedAt,
+    '_bootstrap_record_state': state,
+  };
+}
+
+Map<String, Object?> productOperationalProductRow({
+  required String id,
+  String businessId = 'business-a',
+  String? categoryId,
+  String? barcode,
+  String name = 'Product',
+  String? description,
+  double purchasePrice = 5,
+  double salePrice = 10,
+  int stockQuantity = 0,
+  int minimumStock = 0,
+  String unit = 'unidad',
+  String status = 'active',
+  String? simpleCategory,
+  String state = 'present',
+  String createdAt = '2026-08-01T08:00:00Z',
+  String updatedAt = '2026-08-14T08:00:00Z',
+  String? deletedAt,
+}) {
+  return {
+    'id': id,
+    'business_id': businessId,
+    'category_id': categoryId,
+    'barcode': barcode,
+    'name': name,
+    'description': description,
+    'purchase_price': purchasePrice,
+    'sale_price': salePrice,
+    'stock_quantity': stockQuantity,
+    'minimum_stock': minimumStock,
+    'unit': unit,
+    'status': status,
+    'simple_category': simpleCategory,
+    'created_at': createdAt,
+    'updated_at': updatedAt,
+    'deleted_at': deletedAt,
+    '_bootstrap_record_state': state,
+  };
+}
+
+Map<String, Object?> productOperationalBarcodeRow({
+  required String id,
+  String scope = 'business',
+  String? businessId = 'business-a',
+  String? productId = 'product-1',
+  String? masterProductId,
+  String barcode = '7700000000001',
+  String barcodeNormalized = '7700000000001',
+  String barcodeType = 'ean13',
+  bool isPrimary = true,
+  String status = 'active',
+  String? source = 'business',
+  double? confidenceScore,
+  int version = 1,
+  Map<String, Object?>? metadata,
+  String state = 'present',
+  String createdAt = '2026-08-01T08:00:00Z',
+  String updatedAt = '2026-08-14T08:00:00Z',
+  String? deletedAt,
+}) {
+  return {
+    'id': id,
+    'scope': scope,
+    'business_id': businessId,
+    'product_id': productId,
+    'master_product_id': masterProductId,
+    'barcode': barcode,
+    'barcode_normalized': barcodeNormalized,
+    'barcode_type': barcodeType,
+    'is_primary': isPrimary,
+    'status': status,
+    'source': source,
+    'confidence_score': confidenceScore,
+    'version': version,
+    'metadata': metadata,
+    'created_at': createdAt,
+    'updated_at': updatedAt,
+    'deleted_at': deletedAt,
+    '_bootstrap_record_state': state,
   };
 }
 

@@ -8,6 +8,14 @@ abstract interface class OperationalBootstrapPageApplier {
   });
 }
 
+abstract interface class OperationalBootstrapDatasetFinalizer {
+  Future<void> finalizeDataset({
+    required String profileId,
+    required OperationalBootstrapSnapshotPage snapshot,
+    required OperationalBootstrapDatasetPage page,
+  });
+}
+
 class OperationalBootstrapPageApplyResult {
   const OperationalBootstrapPageApplyResult({
     this.seenEntityIds = const [],
