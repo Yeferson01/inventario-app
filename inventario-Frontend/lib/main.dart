@@ -12,17 +12,19 @@ import 'core/config/app_config.dart';
 import 'features/debug/presentation/screens/debug_ping_screen.dart';
 import 'features/sync/presentation/widgets/app_router_sync_shell_gate.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('FlutterError: ${details.exceptionAsString()}');
-    debugPrintStack(stackTrace: details.stack);
-  };
-
+void main() {
+  late final Zone bootstrapZone;
   runZonedGuarded(
     () async {
+      bootstrapZone = Zone.current;
+      WidgetsFlutterBinding.ensureInitialized();
+
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.presentError(details);
+        debugPrint('FlutterError: ${details.exceptionAsString()}');
+        debugPrintStack(stackTrace: details.stack);
+      };
+
       if (const bool.fromEnvironment('BYPASS_MAIN_DEBUG')) {
         debugPrint(
           'BYPASS_MAIN_DEBUG activo: render directo antes de AppConfig/Supabase.',
@@ -101,10 +103,12 @@ Future<void> main() async {
       debugPrint('UNCAUGHT ZONE ERROR: $error');
       debugPrintStack(stackTrace: stackTrace);
 
-      runApp(
-        BootstrapErrorApp(
-          error: error,
-          stackTrace: stackTrace,
+      bootstrapZone.run(
+        () => runApp(
+          BootstrapErrorApp(
+            error: error,
+            stackTrace: stackTrace,
+          ),
         ),
       );
     },
@@ -178,6 +182,7 @@ class MyApp extends StatelessWidget {
 
     return ScreenUtilInit(
       designSize: const Size(390, 844),
+      ensureScreenSize: true,
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
