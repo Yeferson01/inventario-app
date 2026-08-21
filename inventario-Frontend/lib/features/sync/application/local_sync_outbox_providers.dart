@@ -9,10 +9,12 @@ import '../data/datasources/local_sync_outbox_dao.dart';
 import '../data/datasources/operational_context_local_dao.dart';
 import '../data/datasources/operational_context_remote_datasource.dart';
 import '../data/datasources/runtime_setup_remote_datasource.dart';
+import '../data/datasources/runtime_resolution_remote_datasource.dart';
 import 'app_business_selection_service.dart';
 import 'app_context_service.dart';
 import 'app_runtime_context_store.dart';
 import 'app_runtime_setup_service.dart';
+import 'runtime_resolution_service.dart';
 import 'app_selected_sync_context_store.dart';
 import 'app_sync_coordinator_service.dart';
 import 'cash_close_sync_trigger_service.dart';
@@ -71,6 +73,18 @@ final runtimeSetupRemoteDataSourceProvider =
   return RuntimeSetupRemoteDataSource(supabase);
 });
 
+final runtimeResolutionRemoteDataSourceProvider =
+    Provider<RuntimeResolutionRemoteDataSource>((ref) {
+  return RuntimeResolutionRemoteDataSource(ref.watch(supabaseClientProvider));
+});
+
+final runtimeResolutionServiceProvider =
+    Provider<RuntimeResolutionService>((ref) {
+  return RuntimeResolutionService(
+    ref.watch(runtimeResolutionRemoteDataSourceProvider),
+  );
+});
+
 final appRuntimeContextStoreProvider = Provider<AppRuntimeContextStore>((ref) {
   return AppRuntimeContextStore();
 });
@@ -78,6 +92,7 @@ final appRuntimeContextStoreProvider = Provider<AppRuntimeContextStore>((ref) {
 final appRuntimeSetupServiceProvider = Provider<AppRuntimeSetupService>((ref) {
   return AppRuntimeSetupService(
     remoteDataSource: ref.watch(runtimeSetupRemoteDataSourceProvider),
+    runtimeResolutionService: ref.watch(runtimeResolutionServiceProvider),
     contextStore: ref.watch(appRuntimeContextStoreProvider),
   );
 });

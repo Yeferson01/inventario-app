@@ -9,6 +9,10 @@ import '../../application/app_e2e_local_flow_models.dart';
 import '../../application/app_e2e_local_flow_provider.dart';
 import '../../application/app_e2e_product_from_catalog_flow_models.dart';
 import '../../application/app_e2e_product_from_catalog_flow_provider.dart';
+import '../../application/operational_bootstrap_entry_models.dart';
+import '../../application/operational_bootstrap_entry_providers.dart';
+import '../../application/operational_bootstrap_orchestration_models.dart';
+import '../../application/operational_bootstrap_providers.dart';
 import '../../../inventory/application/inventory_initial_stock_models.dart';
 import '../../../inventory/application/inventory_initial_stock_provider.dart';
 import '../../application/inventory_sync_upload_provider.dart';
@@ -68,6 +72,57 @@ class _AppE2ERealControlledTestScreenState
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
   Object? _lastError;
+
+  Future<void> _runOperationalBootstrap() async {
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final businessId = _optionalText(_businessIdController);
+      final branchId = _optionalText(_branchIdController);
+      if ((businessId == null) != (branchId == null)) {
+        throw StateError(
+          'Business y branch deben indicarse juntos o dejarse ambos vacíos.',
+        );
+      }
+      final result = await ref.read(operationalBootstrapEntryRunnerProvider)(
+        OperationalBootstrapEntryRequest(
+          mode: OperationalBootstrapMode.recovery,
+          selection: businessId == null
+              ? null
+              : OperationalContextSelection(
+                  businessId: businessId,
+                  branchId: branchId!,
+                ),
+          deviceName: _deviceName(),
+          platform: defaultTargetPlatform.name,
+          appVersion: packageInfo.version,
+          metadata: const {
+            'source': 'app_e2e_real_controlled_test_screen',
+            'flow': 'operational_recovery_bootstrap',
+          },
+        ),
+      );
+      setState(() {
+        _lastResult = {
+          'flow': 'operational_recovery_bootstrap',
+          ...result.toJson(),
+        };
+      });
+    } catch (error) {
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
 
   Future<void> _run({
     required bool runManualSync,
@@ -2095,6 +2150,7 @@ class _AppE2ERealControlledTestScreenState
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(supabaseClientProvider).auth.currentUser;
+    final bootstrapProgress = ref.watch(operationalBootstrapProgressProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -2129,6 +2185,15 @@ class _AppE2ERealControlledTestScreenState
           _InfoTile(
             title: 'Usuario autenticado',
             value: user?.id ?? 'No autenticado',
+          ),
+          _InfoTile(
+            title: 'Operational bootstrap',
+            value: [
+              bootstrapProgress.stage.name,
+              if (bootstrapProgress.bundle != null) bootstrapProgress.bundle!,
+              if (bootstrapProgress.dataset != null) bootstrapProgress.dataset!,
+              if (bootstrapProgress.message != null) bootstrapProgress.message!,
+            ].join(' / '),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -2266,6 +2331,11 @@ class _AppE2ERealControlledTestScreenState
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: _isRunning ? null : _runOperationalBootstrap,
+            child: const Text('Operational Recovery / Bootstrap'),
           ),
           const SizedBox(height: 12),
           if (_showLegacyE2EDebugButtons) ...[

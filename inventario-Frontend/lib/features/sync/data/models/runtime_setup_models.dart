@@ -1,9 +1,8 @@
 class RegisterAppDeviceInput {
   const RegisterAppDeviceInput({
     required this.businessId,
+    required this.branchId,
     required this.installationId,
-    this.branchId,
-    this.profileId,
     this.deviceName,
     this.platform,
     this.appVersion,
@@ -12,50 +11,31 @@ class RegisterAppDeviceInput {
   });
 
   final String businessId;
+  final String branchId;
   final String installationId;
-
-  final String? branchId;
-  final String? profileId;
   final String? deviceName;
   final String? platform;
   final String? appVersion;
   final String? osVersion;
   final Map<String, dynamic>? metadata;
 
-  Map<String, dynamic> toRpcParamsWithPrefix({bool includeProfileId = true}) {
-    return {
-      'p_business_id': businessId,
-      'p_branch_id': branchId,
-      if (includeProfileId) 'p_profile_id': profileId,
-      'p_installation_id': installationId,
-      'p_device_name': deviceName,
-      'p_platform': platform,
-      'p_app_version': appVersion,
-      'p_os_version': osVersion,
-      'p_metadata': metadata ?? <String, dynamic>{},
-    };
-  }
-
-  Map<String, dynamic> toRpcParamsWithoutPrefix(
-      {bool includeProfileId = true}) {
-    return {
-      'business_id': businessId,
-      'branch_id': branchId,
-      if (includeProfileId) 'profile_id': profileId,
-      'installation_id': installationId,
-      'device_name': deviceName,
-      'platform': platform,
-      'app_version': appVersion,
-      'os_version': osVersion,
-      'metadata': metadata ?? <String, dynamic>{},
-    };
-  }
+  Map<String, dynamic> toRpcParams() => {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_installation_id': installationId,
+        'p_device_name': deviceName,
+        'p_platform': platform,
+        'p_app_version': appVersion,
+        'p_os_version': osVersion,
+        'p_metadata': metadata ?? <String, dynamic>{},
+      };
 }
 
 class RegisteredAppDeviceResult {
   const RegisteredAppDeviceResult({
     required this.appDeviceId,
     required this.businessId,
+    required this.branchId,
     required this.installationId,
     required this.status,
     required this.raw,
@@ -63,6 +43,7 @@ class RegisteredAppDeviceResult {
 
   final String appDeviceId;
   final String businessId;
+  final String branchId;
   final String installationId;
   final String status;
   final Map<String, dynamic> raw;
@@ -90,6 +71,7 @@ class RegisteredAppDeviceResult {
     return RegisteredAppDeviceResult(
       appDeviceId: appDeviceId,
       businessId: _string(map['business_id']) ?? fallbackBusinessId,
+      branchId: _requiredString(map, 'branch_id'),
       installationId: _string(map['installation_id']) ?? fallbackInstallationId,
       status: _string(map['status']) ?? 'active',
       raw: map,
@@ -100,6 +82,7 @@ class RegisteredAppDeviceResult {
     return {
       'app_device_id': appDeviceId,
       'business_id': businessId,
+      'branch_id': branchId,
       'installation_id': installationId,
       'status': status,
       'raw': raw,
@@ -110,44 +93,28 @@ class RegisteredAppDeviceResult {
 class EnsureBusinessRuntimeSetupInput {
   const EnsureBusinessRuntimeSetupInput({
     required this.businessId,
-    this.branchId,
-    this.profileId,
+    required this.branchId,
     this.appDeviceId,
     this.metadata,
   });
 
   final String businessId;
-  final String? branchId;
-  final String? profileId;
+  final String branchId;
   final String? appDeviceId;
   final Map<String, dynamic>? metadata;
 
-  Map<String, dynamic> toRpcParamsWithPrefix({bool includeProfileId = true}) {
-    return {
-      'p_business_id': businessId,
-      'p_branch_id': branchId,
-      if (includeProfileId) 'p_profile_id': profileId,
-      'p_app_device_id': appDeviceId,
-      'p_metadata': metadata ?? <String, dynamic>{},
-    };
-  }
-
-  Map<String, dynamic> toRpcParamsWithoutPrefix(
-      {bool includeProfileId = true}) {
-    return {
-      'business_id': businessId,
-      'branch_id': branchId,
-      if (includeProfileId) 'profile_id': profileId,
-      'app_device_id': appDeviceId,
-      'metadata': metadata ?? <String, dynamic>{},
-    };
-  }
+  Map<String, dynamic> toRpcParams() => {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_metadata': metadata ?? <String, dynamic>{},
+      };
 }
 
 class BusinessRuntimeSetupResult {
   const BusinessRuntimeSetupResult({
     required this.businessId,
-    this.branchId,
+    required this.branchId,
     this.cashRegisterId,
     this.cashSessionId,
     this.receiptSequenceId,
@@ -155,7 +122,7 @@ class BusinessRuntimeSetupResult {
   });
 
   final String businessId;
-  final String? branchId;
+  final String branchId;
   final String? cashRegisterId;
   final String? cashSessionId;
   final String? receiptSequenceId;
@@ -164,13 +131,12 @@ class BusinessRuntimeSetupResult {
   factory BusinessRuntimeSetupResult.fromRpc(
     dynamic value, {
     required String fallbackBusinessId,
-    String? fallbackBranchId,
   }) {
     final map = _asMap(value);
 
     return BusinessRuntimeSetupResult(
       businessId: _string(map['business_id']) ?? fallbackBusinessId,
-      branchId: _string(map['branch_id']) ?? fallbackBranchId,
+      branchId: _requiredString(map, 'branch_id'),
       cashRegisterId: _string(
         map['cash_register_id'] ?? map['default_cash_register_id'],
       ),
@@ -270,4 +236,10 @@ String? _string(Object? value) {
   }
 
   return text;
+}
+
+String _requiredString(Map<String, dynamic> map, String key) {
+  final value = _string(map[key]);
+  if (value == null) throw StateError('RPC response is missing $key.');
+  return value;
 }

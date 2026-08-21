@@ -180,8 +180,7 @@ class OperationalBootstrapService {
       state
         ..requiresProducts = permissions.any(productPermissions.contains)
         ..requiresCash = permissions.any(cashPermissions.contains)
-        ..runtimeSetupAllowed = permissions.contains('settings.business') ||
-            permissions.contains('settings.branches');
+        ..runtimeSetupAllowed = permissions.contains('settings.business');
       state.requiredBundles
         ..add('core')
         ..addAll([

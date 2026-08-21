@@ -31,9 +31,9 @@ class AppE2EProductFromCatalogFlowService {
         isOnline: input.isOnline,
         lastSyncStatus: input.lastSyncStatus,
         // Para crear outbox válido necesitamos runtime/app_device remoto.
-        // En esta prueba controlada ejecutamos sync manual previo para asegurar
-        // que register_or_update_app_device y ensure_business_runtime_setup ya
-        // hayan corrido y podamos obtener un appDeviceId existente.
+        // El sync manual registra el device y resuelve infraestructura ya
+        // existente; cualquier setup administrativo faltante es una acción
+        // explícita y separada.
         runManualSync: true,
         deviceName: input.deviceName,
         platform: input.platform,

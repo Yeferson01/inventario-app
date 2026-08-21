@@ -7,7 +7,6 @@ void main() {
       const input = RegisterAppDeviceInput(
         businessId: 'business-1',
         branchId: 'branch-1',
-        profileId: 'profile-1',
         installationId: 'installation-1',
         deviceName: 'Caja Android 1',
         platform: 'android',
@@ -18,27 +17,28 @@ void main() {
         },
       );
 
-      final params = input.toRpcParamsWithPrefix();
+      final params = input.toRpcParams();
 
       expect(params['p_business_id'], equals('business-1'));
       expect(params['p_branch_id'], equals('branch-1'));
-      expect(params['p_profile_id'], equals('profile-1'));
+      expect(params.containsKey('p_profile_id'), isFalse);
       expect(params['p_installation_id'], equals('installation-1'));
       expect(params['p_platform'], equals('android'));
       expect(params['p_metadata'], isA<Map<String, dynamic>>());
     });
 
-    test('builds unprefixed rpc params without profile id', () {
+    test('requires and sends an explicit branch', () {
       const input = RegisterAppDeviceInput(
         businessId: 'business-1',
+        branchId: 'branch-1',
         installationId: 'installation-1',
       );
 
-      final params = input.toRpcParamsWithoutPrefix(includeProfileId: false);
+      final params = input.toRpcParams();
 
-      expect(params['business_id'], equals('business-1'));
-      expect(params['installation_id'], equals('installation-1'));
-      expect(params.containsKey('profile_id'), isFalse);
+      expect(params['p_business_id'], equals('business-1'));
+      expect(params['p_branch_id'], equals('branch-1'));
+      expect(params['p_installation_id'], equals('installation-1'));
     });
   });
 
@@ -48,6 +48,7 @@ void main() {
         {
           'id': 'device-1',
           'business_id': 'business-1',
+          'branch_id': 'branch-1',
           'installation_id': 'installation-1',
           'status': 'active',
         },
@@ -56,6 +57,7 @@ void main() {
       );
 
       expect(result.appDeviceId, equals('device-1'));
+      expect(result.branchId, equals('branch-1'));
       expect(result.status, equals('active'));
     });
 

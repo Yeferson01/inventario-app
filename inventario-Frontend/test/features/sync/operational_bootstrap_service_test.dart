@@ -90,7 +90,7 @@ void main() {
   test('runtime setup result is typed and capability-authorized', () async {
     final owner = _Harness(
       database,
-      permissions: const ['settings.branches', 'inventory.read'],
+      permissions: const ['settings.business', 'inventory.read'],
     );
     final ownerResult = await owner.service.run(
       _request(runtimeReady: false, cashRegisterId: null),
@@ -101,6 +101,22 @@ void main() {
       OperationalBootstrapOutcome.runtimeSetupRequired,
     );
     expect(ownerResult.runtimeSetupAllowed, isTrue);
+
+    await database.close();
+    database = AppDatabase.executor(NativeDatabase.memory());
+    final branchManager = _Harness(
+      database,
+      permissions: const ['settings.branches', 'inventory.read'],
+    );
+    final branchManagerResult = await branchManager.service.run(
+      _request(runtimeReady: false, cashRegisterId: null),
+    );
+
+    expect(
+      branchManagerResult.outcome,
+      OperationalBootstrapOutcome.runtimeSetupRequired,
+    );
+    expect(branchManagerResult.runtimeSetupAllowed, isFalse);
 
     await database.close();
     database = AppDatabase.executor(NativeDatabase.memory());

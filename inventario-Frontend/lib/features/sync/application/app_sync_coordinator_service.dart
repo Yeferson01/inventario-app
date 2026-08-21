@@ -78,10 +78,27 @@ class AppSyncCoordinatorService {
       );
     }
 
+    final branchId = input.branchId?.trim();
+    final profileId = input.profileId?.trim();
+    if (branchId == null ||
+        branchId.isEmpty ||
+        profileId == null ||
+        profileId.isEmpty) {
+      const reason =
+          'Sync omitido: se requiere profile y branch operacional explícita.';
+      AppLogger.info(reason);
+      return AppSyncCoordinatorResult(
+        didRun: false,
+        didPrepareRuntime: false,
+        trigger: decision.trigger,
+        reason: reason,
+      );
+    }
+
     final runtimeContext = await _runtimeSetupService.prepareRuntimeContext(
       businessId: input.businessId,
-      branchId: input.branchId,
-      profileId: input.profileId,
+      branchId: branchId,
+      profileId: profileId,
       installationId: input.installationId,
       deviceName: input.deviceName,
       platform: input.platform,
