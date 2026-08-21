@@ -57,6 +57,19 @@ void main() {
         name: 'D eliminado',
         deletedAt: DateTime.utc(2026, 1, 1),
       );
+      await _insertProduct(
+        database,
+        id: 'inactive',
+        businessId: businessId,
+        name: 'E inactivo',
+        status: 'inactive',
+      );
+      await _insertProduct(
+        database,
+        id: 'negative',
+        businessId: businessId,
+        name: 'D negativo',
+      );
 
       await _insertBalance(
         database,
@@ -82,6 +95,23 @@ void main() {
         productId: 'deleted',
         quantityOnHand: 8,
       );
+      await _insertBalance(
+        database,
+        id: 'balance-tombstoned',
+        businessId: businessId,
+        branchId: branchId,
+        productId: 'missing',
+        quantityOnHand: 23,
+        deletedAt: DateTime.utc(2026, 1, 2),
+      );
+      await _insertBalance(
+        database,
+        id: 'balance-negative',
+        businessId: businessId,
+        branchId: branchId,
+        productId: 'negative',
+        quantityOnHand: -3,
+      );
 
       final products = await dao.getProductsWithLocalStock(
         businessId: businessId,
@@ -91,7 +121,7 @@ void main() {
 
       expect(
         products.map((product) => product['product_id']),
-        ['positive', 'zero', 'missing'],
+        ['positive', 'zero', 'missing', 'negative'],
       );
       expect(products[0]['quantity_on_hand'], 15);
       expect(products[0]['legacy_stock_quantity'], 999);
@@ -99,8 +129,125 @@ void main() {
       expect(products[2]['quantity_on_hand'], 0);
       expect(products[2]['quantity_reserved'], 0);
       expect(products[2]['quantity_available'], 0);
+      expect(products[3]['quantity_on_hand'], -3);
     },
   );
+
+  test('ten active products with nine balances return ten rows', () async {
+    await _insertProducts(
+      database,
+      businessId: businessId,
+      count: 10,
+      idPrefix: 'recovered',
+    );
+    for (var index = 0; index < 9; index++) {
+      await _insertBalance(
+        database,
+        id: 'balance-$index',
+        businessId: businessId,
+        branchId: branchId,
+        productId: 'recovered-$index',
+        quantityOnHand: index + 1,
+      );
+    }
+
+    final products = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      limit: null,
+    );
+
+    expect(products, hasLength(10));
+    expect(products.last['product_id'], 'recovered-9');
+    expect(products.last['quantity_on_hand'], 0);
+  });
+
+  test('isolates product stock by business and branch', () async {
+    await database.into(database.businesses).insert(
+          BusinessesCompanion.insert(
+            id: 'business-2',
+            name: 'Otro negocio',
+          ),
+        );
+    await _insertProduct(
+      database,
+      id: 'product-a',
+      businessId: businessId,
+      name: 'Producto A',
+    );
+    await _insertProduct(
+      database,
+      id: 'product-b',
+      businessId: 'business-2',
+      name: 'Producto B',
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-a-x',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'product-a',
+      quantityOnHand: 4,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-a-y',
+      businessId: businessId,
+      branchId: 'branch-2',
+      productId: 'product-a',
+      quantityOnHand: 99,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-b-x',
+      businessId: 'business-2',
+      branchId: branchId,
+      productId: 'product-b',
+      quantityOnHand: 77,
+    );
+
+    final products = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      limit: null,
+    );
+
+    expect(products, hasLength(1));
+    expect(products.single['product_id'], 'product-a');
+    expect(products.single['quantity_on_hand'], 4);
+  });
+
+  test('watch emits again when the scoped Drift balance changes', () async {
+    await _insertProduct(
+      database,
+      id: 'reactive',
+      businessId: businessId,
+      name: 'Producto reactivo',
+    );
+    final quantities = dao
+        .watchProductsWithLocalStock(
+          businessId: businessId,
+          branchId: branchId,
+          limit: null,
+        )
+        .map((rows) => rows.single['quantity_on_hand']);
+    final expectation = expectLater(
+      quantities.take(2),
+      emitsInOrder([0, 7]),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    await _insertBalance(
+      database,
+      id: 'balance-reactive',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive',
+      quantityOnHand: 7,
+    );
+
+    await expectation;
+  });
 
   test('keeps an explicit result limit', () async {
     await _insertProducts(
@@ -202,6 +349,7 @@ Future<void> _insertProduct(
   required String name,
   String? barcode,
   int legacyStock = 0,
+  String status = 'active',
   DateTime? deletedAt,
 }) {
   return database.into(database.products).insert(
@@ -212,6 +360,7 @@ Future<void> _insertProduct(
           name: name,
           salePrice: 1000,
           stockQuantity: Value(legacyStock),
+          status: Value(status),
           deletedAt: Value(deletedAt),
         ),
       );
@@ -246,6 +395,7 @@ Future<void> _insertBalance(
   required String branchId,
   required String productId,
   required int quantityOnHand,
+  DateTime? deletedAt,
 }) {
   return database.into(database.localProductStockBalances).insert(
         LocalProductStockBalancesCompanion.insert(
@@ -255,6 +405,7 @@ Future<void> _insertBalance(
           productId: productId,
           quantityOnHand: Value(quantityOnHand),
           quantityAvailable: Value(quantityOnHand),
+          deletedAt: Value(deletedAt),
         ),
       );
 }

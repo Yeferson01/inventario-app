@@ -336,7 +336,9 @@ class ProductStockBalanceLocalDao {
         on b.business_id = p.business_id
        and b.branch_id = ?
        and b.product_id = p.id
+       and b.deleted_at is null
       where p.business_id = ?
+        and p.status = 'active'
         and p.deleted_at is null
       order by lower(p.name) asc
       $limitClause
@@ -388,7 +390,9 @@ class ProductStockBalanceLocalDao {
             on b.business_id = p.business_id
            and b.branch_id = ?
            and b.product_id = p.id
+           and b.deleted_at is null
           where p.business_id = ?
+            and p.status = 'active'
             and p.deleted_at is null
           order by lower(p.name) asc
           $limitClause
