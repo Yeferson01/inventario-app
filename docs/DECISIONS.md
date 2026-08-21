@@ -233,3 +233,20 @@ generado.
 **Consecuencias:** un cambio real de tablas exige revisar `schemaVersion`, la
 estrategia de migración, regenerar y probar la base. Un cambio Dart que no
 altera tablas no obliga por sí mismo a incrementar `schemaVersion`.
+
+### D-015 — Autorización efectiva y ciclo financiero de caja
+
+**Estado:** vigente.
+
+**Decisión:** la autorización es capability/effective-permission based, no
+active-role based. Los permisos efectivos de las memberships aplicables se
+usan como unión server-authoritative; los nombres de roles son descriptivos.
+
+Una cash session representa el ciclo financiero de una caja. No es una sesión
+de autenticación ni un rol activo. Cambiar de módulo dentro del mismo contexto
+operacional no exige cerrar caja.
+
+**Consecuencias:** POS, Caja, Inventario y Compras se muestran y habilitan por
+sus permission keys reales. Un usuario puede operar simultáneamente los módulos
+que su unión de permisos autorice. El gating de UI mejora la UX, pero no
+sustituye los guards de Application/Domain ni la autorización backend.

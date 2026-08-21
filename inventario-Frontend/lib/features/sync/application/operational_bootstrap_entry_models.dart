@@ -4,6 +4,7 @@ import '../data/models/runtime_setup_models.dart';
 import 'operational_bootstrap_orchestration_models.dart';
 
 enum OperationalBootstrapEntryOutcome {
+  noAuthorizedContexts,
   selectionRequired,
   deviceBlocked,
   runtimeReadyAndBootstrapCompleted,

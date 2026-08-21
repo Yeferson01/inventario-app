@@ -120,15 +120,18 @@ El contexto seleccionado combina `business`, `branch`, `profile` y los datos de
 la instalación/dispositivo. Ese contexto delimita consultas, permisos, caja,
 inventario y payloads de sincronización.
 
-- `AppBusinessSelectionService` construye y selecciona contextos disponibles a
-  partir de negocios, membresías, sucursales y roles locales.
-- `AppContextService` mantiene el contexto actual y deriva sus permisos.
-- `AppRuntimeSetupService` registra o actualiza el dispositivo remoto, asegura
-  el runtime del negocio y almacena un `AppRuntimeContext` con IDs operacionales,
-  incluida la caja/sesión cuando el backend los devuelve.
-- `OperationalContextPullService` descarga un snapshot y
-  `OperationalContextLocalDao` aplica localmente negocios, perfiles,
-  sucursales, membresías, roles, permisos y sus relaciones.
+- `AuthorizedOperationalContextService` consume
+  `list_authorized_operational_contexts()` y es la autoridad online para las
+  opciones explícitas `profile + business + branch`.
+- `OperationalBootstrapEntryService` valida la selección profile-scoped y
+  coordina registro del device, resolución de runtime y bootstrap antes de
+  permitir la navegación productiva.
+- `AppContextService` lee la proyección local efectiva por
+  `profile + business + branch`; sus permisos efectivos, no un rol activo,
+  gobiernan el gating de UX.
+- `AppBusinessSelectionService` y `OperationalContextPullService` permanecen
+  como infraestructura legacy para consumidores delimitados de sync/E2E, pero
+  ya no calculan las opciones del selector productivo.
 
 La ausencia o selección incorrecta de contexto no es un detalle visual: cambia
 el tenant, la sucursal y las autorizaciones de una operación.

@@ -9,6 +9,21 @@ import 'package:inventario_frontend/features/sync/data/models/runtime_resolution
 import 'package:inventario_frontend/features/sync/data/models/runtime_setup_models.dart';
 
 void main() {
+  test('zero contexts returns typed state and performs no operational calls',
+      () async {
+    final harness = _EntryHarness()..contexts = const [];
+
+    final result = await harness.service.run(_request());
+
+    expect(
+      result.outcome,
+      OperationalBootstrapEntryOutcome.noAuthorizedContexts,
+    );
+    expect(harness.registerCalls, 0);
+    expect(harness.resolveCalls, 0);
+    expect(harness.bootstrapCalls, 0);
+  });
+
   test('multiple authorized contexts require explicit selection', () async {
     final harness = _EntryHarness()
       ..contexts = [

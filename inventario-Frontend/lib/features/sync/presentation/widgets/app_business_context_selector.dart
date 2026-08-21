@@ -1,103 +1,174 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../application/app_business_selection_models.dart';
-import '../../application/app_business_selection_provider.dart';
-import '../../application/local_sync_outbox_providers.dart';
+import '../../data/models/authorized_operational_context_models.dart';
 
-class AppBusinessContextSelector extends ConsumerWidget {
+class AppBusinessContextSelector extends StatefulWidget {
   const AppBusinessContextSelector({
-    required this.profileId,
-    this.onSelected,
+    required this.contexts,
+    required this.onSelected,
+    this.isSubmitting = false,
     super.key,
   });
 
-  final String profileId;
-  final ValueChanged<AppBusinessSelectionResult>? onSelected;
+  final List<AuthorizedOperationalContext> contexts;
+  final ValueChanged<AuthorizedOperationalContext> onSelected;
+  final bool isSubmitting;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final optionsAsync = ref.watch(
-      appAvailableBusinessContextsProvider(profileId),
-    );
+  State<AppBusinessContextSelector> createState() =>
+      _AppBusinessContextSelectorState();
+}
 
-    final selectedAsync = ref.watch(
-      appSelectedBusinessOptionProvider(profileId),
-    );
+class _AppBusinessContextSelectorState
+    extends State<AppBusinessContextSelector> {
+  String? _businessId;
+  String? _branchId;
 
-    return optionsAsync.when(
-      data: (options) {
-        if (options.isEmpty) {
-          return const Text('No tienes negocios disponibles.');
-        }
+  @override
+  void initState() {
+    super.initState();
+    _initializeSelection();
+  }
 
-        final selected = selectedAsync.when(
-          data: (value) => value,
-          loading: () => null,
-          error: (_, __) => null,
-        );
+  @override
+  void didUpdateWidget(covariant AppBusinessContextSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameScopes(oldWidget.contexts, widget.contexts)) {
+      _initializeSelection();
+    }
+  }
 
-        return DropdownButtonFormField<String>(
-          initialValue: _selectedValue(selected, options),
-          decoration: const InputDecoration(
-            labelText: 'Negocio / Sucursal',
+  void _initializeSelection() {
+    final businesses = _groupByBusiness(widget.contexts);
+    _businessId = businesses.length == 1 ? businesses.keys.single : null;
+    _branchId = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final businesses = _groupByBusiness(widget.contexts);
+    final selectedBusinessContexts = _businessId == null
+        ? const <AuthorizedOperationalContext>[]
+        : businesses[_businessId] ?? const <AuthorizedOperationalContext>[];
+    final selectedContext = _selectedContext(selectedBusinessContexts);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (businesses.length > 1) ...[
+          DropdownButtonFormField<String>(
+            key: const Key('operational-business-selector'),
+            initialValue: _businessId,
+            decoration: const InputDecoration(
+              labelText: 'Negocio',
+              border: OutlineInputBorder(),
+            ),
+            items: businesses.entries
+                .map(
+                  (entry) => DropdownMenuItem<String>(
+                    value: entry.key,
+                    child: Text(entry.value.first.businessName),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: widget.isSubmitting
+                ? null
+                : (businessId) {
+                    setState(() {
+                      _businessId = businessId;
+                      final branches = businessId == null
+                          ? const <AuthorizedOperationalContext>[]
+                          : businesses[businessId] ??
+                              const <AuthorizedOperationalContext>[];
+                      _branchId = branches.length == 1
+                          ? branches.single.branchId
+                          : null;
+                    });
+                  },
           ),
-          items: options.map((option) {
-            return DropdownMenuItem<String>(
-              value: _optionValue(option),
-              child: Text(option.displayName),
-            );
-          }).toList(),
-          onChanged: (value) async {
-            if (value == null) {
-              return;
-            }
-
-            final option = options.firstWhere(
-              (item) => _optionValue(item) == value,
-            );
-
-            final service = ref.read(appBusinessSelectionServiceProvider);
-
-            final result = await service.selectContext(
-              profileId: option.profileId,
-              businessId: option.businessId,
-              branchId: option.branchId,
-            );
-
-            ref.invalidate(appSelectedBusinessOptionProvider(profileId));
-
-            onSelected?.call(result);
-          },
-        );
-      },
-      loading: () => const LinearProgressIndicator(),
-      error: (error, _) => Text(
-        'Error cargando negocios: $error',
-      ),
+          const SizedBox(height: 16),
+        ] else if (businesses.isNotEmpty) ...[
+          Text(
+            businesses.values.single.first.businessName,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (_businessId != null)
+          DropdownButtonFormField<String>(
+            key: const Key('operational-branch-selector'),
+            initialValue: _branchId,
+            decoration: const InputDecoration(
+              labelText: 'Sucursal',
+              border: OutlineInputBorder(),
+            ),
+            items: selectedBusinessContexts
+                .map(
+                  (item) => DropdownMenuItem<String>(
+                    value: item.branchId,
+                    child: Text(item.branchName),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: widget.isSubmitting
+                ? null
+                : (branchId) {
+                    setState(() {
+                      _branchId = branchId;
+                    });
+                  },
+          ),
+        const SizedBox(height: 20),
+        FilledButton(
+          key: const Key('confirm-operational-context'),
+          onPressed: widget.isSubmitting || selectedContext == null
+              ? null
+              : () => widget.onSelected(selectedContext),
+          child: Text(
+            widget.isSubmitting ? 'Preparando contexto...' : 'Continuar',
+          ),
+        ),
+      ],
     );
   }
 
-  String? _selectedValue(
-    AppBusinessSelectionOption? selected,
-    List<AppBusinessSelectionOption> options,
+  AuthorizedOperationalContext? _selectedContext(
+    List<AuthorizedOperationalContext> contexts,
   ) {
-    if (selected == null) {
+    final branchId = _branchId;
+    if (branchId == null) {
       return null;
     }
-
-    final value = _optionValue(selected);
-
-    final exists = options.any((option) => _optionValue(option) == value);
-
-    if (!exists) {
-      return null;
+    for (final context in contexts) {
+      if (context.branchId == branchId) {
+        return context;
+      }
     }
-
-    return value;
+    return null;
   }
 
-  String _optionValue(AppBusinessSelectionOption option) {
-    return '${option.businessId}:${option.branchId ?? 'main'}:${option.roleId}';
+  Map<String, List<AuthorizedOperationalContext>> _groupByBusiness(
+    List<AuthorizedOperationalContext> contexts,
+  ) {
+    final grouped = <String, List<AuthorizedOperationalContext>>{};
+    for (final context in contexts) {
+      grouped.putIfAbsent(context.businessId, () => []).add(context);
+    }
+    return grouped;
+  }
+
+  bool _sameScopes(
+    List<AuthorizedOperationalContext> left,
+    List<AuthorizedOperationalContext> right,
+  ) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var index = 0; index < left.length; index++) {
+      if (left[index].scopeKey != right[index].scopeKey) {
+        return false;
+      }
+    }
+    return true;
   }
 }

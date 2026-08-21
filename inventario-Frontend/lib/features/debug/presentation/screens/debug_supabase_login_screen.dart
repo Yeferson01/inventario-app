@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class DebugSupabaseLoginScreen extends StatefulWidget {
+import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
+import '../../../sync/application/operational_bootstrap_entry_providers.dart';
+
+class DebugSupabaseLoginScreen extends ConsumerStatefulWidget {
   const DebugSupabaseLoginScreen({super.key});
 
   @override
-  State<DebugSupabaseLoginScreen> createState() =>
+  ConsumerState<DebugSupabaseLoginScreen> createState() =>
       _DebugSupabaseLoginScreenState();
 }
 
-class _DebugSupabaseLoginScreenState extends State<DebugSupabaseLoginScreen> {
+class _DebugSupabaseLoginScreenState
+    extends ConsumerState<DebugSupabaseLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -47,6 +52,9 @@ class _DebugSupabaseLoginScreenState extends State<DebugSupabaseLoginScreen> {
         password: password,
       );
 
+      ref.invalidate(appRouterSyncBootstrapProvider);
+      ref.invalidate(productiveOperationalEntryProvider);
+
       setState(() {
         _message = 'Login OK. User ID: ${response.user?.id ?? 'sin user'}';
       });
@@ -69,6 +77,9 @@ class _DebugSupabaseLoginScreenState extends State<DebugSupabaseLoginScreen> {
 
     try {
       await _client.auth.signOut();
+
+      ref.invalidate(appRouterSyncBootstrapProvider);
+      ref.invalidate(productiveOperationalEntryProvider);
 
       setState(() {
         _message = 'Sesión cerrada.';

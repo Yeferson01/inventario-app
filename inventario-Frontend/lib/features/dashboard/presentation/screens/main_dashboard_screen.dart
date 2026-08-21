@@ -6,6 +6,7 @@ import '../../../../core/providers/device_provider.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
+import '../../application/dashboard_module_access.dart';
 import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sync/application/app_context_models.dart';
@@ -101,12 +102,14 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
   Future<void> _openCashDashboard() async {
     final appContext = _appContext;
+    final access = DashboardModuleAccess.fromContext(appContext);
 
-    if (appContext == null) {
+    if (appContext == null || !access.canUseCash) {
       _showInfoSheet(
-        title: 'Falta contexto',
-        message:
-            'Selecciona un negocio y una sucursal antes de abrir el módulo de caja.',
+        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        message: appContext == null
+            ? 'Selecciona un negocio y una sucursal antes de abrir el módulo de caja.'
+            : 'El contexto actual no posee permisos efectivos de caja.',
       );
       return;
     }
@@ -131,6 +134,9 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           profileId: profileId,
           appDeviceId: appContext.appDeviceId,
           deviceInstallationId: appContext.installationId,
+          canReadCash: access.canReadCash,
+          canOpenCash: access.canOpenCash,
+          canCloseCash: access.canCloseCash,
         ),
       ),
     );
@@ -140,11 +146,14 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
   Future<void> _openPurchases() async {
     final appContext = _appContext;
+    final access = DashboardModuleAccess.fromContext(appContext);
 
-    if (appContext == null) {
+    if (appContext == null || !access.canPurchaseInventory) {
       _showInfoSheet(
-        title: 'Falta contexto',
-        message: 'Selecciona un negocio y una sucursal antes de abrir compras.',
+        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        message: appContext == null
+            ? 'Selecciona un negocio y una sucursal antes de abrir compras.'
+            : 'Registrar compras requiere inventory.purchase.',
       );
       return;
     }
@@ -182,12 +191,14 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
   Future<void> _openInventory() async {
     final appContext = _appContext;
+    final access = DashboardModuleAccess.fromContext(appContext);
 
-    if (appContext == null) {
+    if (appContext == null || !access.canReadInventory) {
       _showInfoSheet(
-        title: 'Falta contexto',
-        message:
-            'Selecciona un negocio y una sucursal antes de abrir inventario.',
+        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        message: appContext == null
+            ? 'Selecciona un negocio y una sucursal antes de abrir inventario.'
+            : 'Consultar inventario requiere inventory.read.',
       );
       return;
     }
@@ -215,11 +226,14 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
   void _openPosGate() {
     final appContext = _appContext;
+    final access = DashboardModuleAccess.fromContext(appContext);
 
-    if (appContext == null) {
+    if (appContext == null || !access.canCreateSales) {
       _showInfoSheet(
-        title: 'Falta contexto',
-        message: 'Selecciona un negocio y una sucursal antes de abrir el POS.',
+        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        message: appContext == null
+            ? 'Selecciona un negocio y una sucursal antes de abrir el POS.'
+            : 'Crear ventas requiere sales.create.',
       );
       return;
     }
@@ -330,6 +344,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final moduleAccess = DashboardModuleAccess.fromContext(_appContext);
+
     return Theme(
       data: CronosTheme.light(),
       child: Builder(
@@ -343,11 +359,12 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                   icon: const Icon(Icons.refresh_outlined),
                   tooltip: 'Actualizar',
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.settings_outlined),
-                  tooltip: 'Configuración',
-                ),
+                if (moduleAccess.canManageSettings)
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: 'Configuración',
+                  ),
               ],
             ),
             body: AppGradientBackground(
@@ -368,6 +385,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                       delay: const Duration(milliseconds: 80),
                       child: _QuickStatusRow(
                         appContext: _appContext,
+                        moduleAccess: moduleAccess,
                         cashSummary: _cashSummary,
                         cashReadiness: _cashReadiness,
                       ),
@@ -381,7 +399,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                     AppAnimatedEntrance(
                       delay: const Duration(milliseconds: 120),
                       child: _ModulesGrid(
-                        appContext: _appContext,
+                        moduleAccess: moduleAccess,
                         cashSummary: _cashSummary,
                         cashReadiness: _cashReadiness,
                         onOpenCash: _openCashDashboard,
@@ -392,13 +410,14 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: CronosSpacing.lg),
-                    AppAnimatedEntrance(
-                      delay: const Duration(milliseconds: 180),
-                      child: _TodaySummaryCard(
-                        cashSummary: _cashSummary,
-                        cashReadiness: _cashReadiness,
+                    if (moduleAccess.canCreateSales || moduleAccess.canReadCash)
+                      AppAnimatedEntrance(
+                        delay: const Duration(milliseconds: 180),
+                        child: _TodaySummaryCard(
+                          cashSummary: _cashSummary,
+                          cashReadiness: _cashReadiness,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -441,7 +460,7 @@ class _DashboardHeader extends StatelessWidget {
     } else {
       final role = appContext?.roleName;
       subtitle =
-          'Negocio activo: ${appContext!.businessId}. Rol: ${role ?? 'sin rol local'}.';
+          'Negocio activo: ${appContext!.businessId}. Roles efectivos: ${role ?? 'sin descripción local'}.';
     }
 
     return AppGlassCard(
@@ -501,11 +520,13 @@ class _DashboardHeader extends StatelessWidget {
 class _QuickStatusRow extends StatelessWidget {
   const _QuickStatusRow({
     required this.appContext,
+    required this.moduleAccess,
     required this.cashSummary,
     required this.cashReadiness,
   });
 
   final AppCurrentContext? appContext;
+  final DashboardModuleAccess moduleAccess;
   final Map<String, dynamic>? cashSummary;
   final Map<String, dynamic>? cashReadiness;
 
@@ -527,27 +548,29 @@ class _QuickStatusRow extends StatelessWidget {
               ? Icons.warning_amber_outlined
               : Icons.verified_outlined,
         ),
-        AppStatusChip(
-          label: status == 'open'
-              ? 'Caja abierta'
-              : status == 'closed'
-                  ? 'Caja cerrada'
-                  : 'Sin caja',
-          tone: status == 'open'
-              ? AppStatusTone.success
-              : status == 'closed'
-                  ? AppStatusTone.warning
-                  : AppStatusTone.neutral,
-          icon: Icons.point_of_sale_outlined,
-        ),
-        AppStatusChip(
-          label: blockedReason == null ? 'POS habilitado' : 'POS bloqueado',
-          tone: blockedReason == null
-              ? AppStatusTone.success
-              : AppStatusTone.danger,
-          icon: Icons.shopping_cart_checkout_outlined,
-        ),
-        if (dirtyCash)
+        if (moduleAccess.canUseCash)
+          AppStatusChip(
+            label: status == 'open'
+                ? 'Caja abierta'
+                : status == 'closed'
+                    ? 'Caja cerrada'
+                    : 'Sin caja',
+            tone: status == 'open'
+                ? AppStatusTone.success
+                : status == 'closed'
+                    ? AppStatusTone.warning
+                    : AppStatusTone.neutral,
+            icon: Icons.point_of_sale_outlined,
+          ),
+        if (moduleAccess.canCreateSales)
+          AppStatusChip(
+            label: blockedReason == null ? 'POS habilitado' : 'POS bloqueado',
+            tone: blockedReason == null
+                ? AppStatusTone.success
+                : AppStatusTone.danger,
+            icon: Icons.shopping_cart_checkout_outlined,
+          ),
+        if (moduleAccess.canUseCash && dirtyCash)
           const AppStatusChip(
             label: 'Cash pendiente',
             tone: AppStatusTone.warning,
@@ -560,7 +583,7 @@ class _QuickStatusRow extends StatelessWidget {
 
 class _ModulesGrid extends StatelessWidget {
   const _ModulesGrid({
-    required this.appContext,
+    required this.moduleAccess,
     required this.cashSummary,
     required this.cashReadiness,
     required this.onOpenCash,
@@ -570,7 +593,7 @@ class _ModulesGrid extends StatelessWidget {
     required this.onComingSoon,
   });
 
-  final AppCurrentContext? appContext;
+  final DashboardModuleAccess moduleAccess;
   final Map<String, dynamic>? cashSummary;
   final Map<String, dynamic>? cashReadiness;
   final VoidCallback onOpenCash;
@@ -612,87 +635,93 @@ class _ModulesGrid extends StatelessWidget {
         blockedReason == null ? AppStatusTone.success : AppStatusTone.danger;
 
     final modules = [
-      _DashboardModule(
-        title: 'Caja',
-        subtitle: 'Abrir, cerrar, sincronizar y revisar efectivo.',
-        icon: Icons.point_of_sale_outlined,
-        gradient: CronosColors.successGradient,
-        statusLabel: cashLabel,
-        statusTone: cashTone,
-        onTap: onOpenCash,
-      ),
-      _DashboardModule(
-        title: 'POS',
-        subtitle: blockedReason == null
-            ? 'Caja lista. Puedes iniciar ventas.'
-            : 'Primero debes dejar caja lista para vender.',
-        icon: Icons.shopping_cart_checkout_outlined,
-        gradient: CronosColors.primaryGradient,
-        statusLabel: posLabel,
-        statusTone: posTone,
-        onTap: onOpenPos,
-      ),
-      _DashboardModule(
-        title: 'Inventario',
-        subtitle: 'Consultar stock operativo de la sucursal actual.',
-        icon: Icons.inventory_2_outlined,
-        gradient: CronosColors.warningGradient,
-        statusLabel: 'Operativo local',
-        statusTone: AppStatusTone.success,
-        onTap: onOpenInventory,
-      ),
-      _DashboardModule(
-        title: 'Compras',
-        subtitle: 'Registrar compras y aumentar stock.',
-        icon: Icons.local_shipping_outlined,
-        gradient: const LinearGradient(
-          colors: [
-            CronosColors.secondary,
-            CronosColors.accent,
-          ],
+      if (moduleAccess.canUseCash)
+        _DashboardModule(
+          title: 'Caja',
+          subtitle: 'Abrir, cerrar, sincronizar y revisar efectivo.',
+          icon: Icons.point_of_sale_outlined,
+          gradient: CronosColors.successGradient,
+          statusLabel: cashLabel,
+          statusTone: cashTone,
+          onTap: onOpenCash,
         ),
-        statusLabel: 'Operativo local',
-        statusTone: AppStatusTone.success,
-        onTap: onOpenPurchases,
-      ),
-      _DashboardModule(
-        title: 'Movimientos',
-        subtitle: 'Trazabilidad de entradas y salidas.',
-        icon: Icons.timeline_outlined,
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF0F766E),
-            Color(0xFF14B8A6),
-          ],
+      if (moduleAccess.canCreateSales)
+        _DashboardModule(
+          title: 'POS',
+          subtitle: blockedReason == null
+              ? 'Caja lista. Puedes iniciar ventas.'
+              : 'Primero debes dejar caja lista para vender.',
+          icon: Icons.shopping_cart_checkout_outlined,
+          gradient: CronosColors.primaryGradient,
+          statusLabel: posLabel,
+          statusTone: posTone,
+          onTap: onOpenPos,
         ),
-        statusLabel: 'Pendiente',
-        statusTone: AppStatusTone.neutral,
-        onTap: () {
-          onComingSoon(
-            title: 'Movimientos',
-            message: 'Mostraremos movimientos de inventario y auditoría.',
-          );
-        },
-      ),
-      _DashboardModule(
-        title: 'Sync',
-        subtitle: 'Estado de cola, pendientes y errores.',
-        icon: Icons.sync_outlined,
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF334155),
-            Color(0xFF64748B),
-          ],
+      if (moduleAccess.canReadInventory)
+        _DashboardModule(
+          title: 'Inventario',
+          subtitle: 'Consultar stock operativo de la sucursal actual.',
+          icon: Icons.inventory_2_outlined,
+          gradient: CronosColors.warningGradient,
+          statusLabel: 'Operativo local',
+          statusTone: AppStatusTone.success,
+          onTap: onOpenInventory,
         ),
-        statusLabel: 'Interno',
-        statusTone: AppStatusTone.neutral,
-        onTap: () {
-          onComingSoon(
-            title: 'Sync',
-            message: 'El monitor visual de sync viene después.',
-          );
-        },
-      ),
+      if (moduleAccess.canPurchaseInventory)
+        _DashboardModule(
+          title: 'Compras',
+          subtitle: 'Registrar compras y aumentar stock.',
+          icon: Icons.local_shipping_outlined,
+          gradient: const LinearGradient(
+            colors: [
+              CronosColors.secondary,
+              CronosColors.accent,
+            ],
+          ),
+          statusLabel: 'Operativo local',
+          statusTone: AppStatusTone.success,
+          onTap: onOpenPurchases,
+        ),
+      if (moduleAccess.canReadInventory)
+        _DashboardModule(
+          title: 'Movimientos',
+          subtitle: 'Trazabilidad de entradas y salidas.',
+          icon: Icons.timeline_outlined,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF0F766E),
+              Color(0xFF14B8A6),
+            ],
+          ),
+          statusLabel: 'Pendiente',
+          statusTone: AppStatusTone.neutral,
+          onTap: () {
+            onComingSoon(
+              title: 'Movimientos',
+              message: 'Mostraremos movimientos de inventario y auditoría.',
+            );
+          },
+        ),
+      if (moduleAccess.hasEffectiveAuthorization)
+        _DashboardModule(
+          title: 'Sync',
+          subtitle: 'Estado de cola, pendientes y errores.',
+          icon: Icons.sync_outlined,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF334155),
+              Color(0xFF64748B),
+            ],
+          ),
+          statusLabel: 'Interno',
+          statusTone: AppStatusTone.neutral,
+          onTap: () {
+            onComingSoon(
+              title: 'Sync',
+              message: 'El monitor visual de sync viene después.',
+            );
+          },
+        ),
     ];
 
     return LayoutBuilder(

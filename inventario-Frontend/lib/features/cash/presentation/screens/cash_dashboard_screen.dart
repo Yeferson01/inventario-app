@@ -18,6 +18,9 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
     required this.businessId,
     required this.branchId,
     required this.profileId,
+    required this.canReadCash,
+    required this.canOpenCash,
+    required this.canCloseCash,
     this.appDeviceId,
     this.deviceInstallationId,
   });
@@ -25,6 +28,9 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
   final String businessId;
   final String branchId;
   final String profileId;
+  final bool canReadCash;
+  final bool canOpenCash;
+  final bool canCloseCash;
   final String? appDeviceId;
   final String? deviceInstallationId;
 
@@ -461,16 +467,18 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         appBar: AppBar(
           title: const Text('Caja'),
           actions: [
-            IconButton(
-              onPressed: _isBusy ? null : _syncCash,
-              icon: const Icon(Icons.cloud_sync_outlined),
-              tooltip: 'Sincronizar pendientes',
-            ),
-            IconButton(
-              onPressed: _isBusy ? null : _load,
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Actualizar',
-            ),
+            if (widget.canReadCash)
+              IconButton(
+                onPressed: _isBusy ? null : _syncCash,
+                icon: const Icon(Icons.cloud_sync_outlined),
+                tooltip: 'Sincronizar pendientes',
+              ),
+            if (widget.canReadCash)
+              IconButton(
+                onPressed: _isBusy ? null : _load,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Actualizar',
+              ),
           ],
         ),
         body: AppGradientBackground(
@@ -508,30 +516,37 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                CashStatusCard(
-                  summary: summary,
-                  readiness: readiness,
-                ),
-                const SizedBox(height: 12),
+                if (widget.canReadCash) ...[
+                  CashStatusCard(
+                    summary: summary,
+                    readiness: readiness,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _CashActionsSection(
                   summary: summary,
                   readiness: readiness,
                   isBusy: _isBusy,
+                  allowRead: widget.canReadCash,
+                  allowOpen: widget.canOpenCash,
+                  allowClose: widget.canCloseCash,
                   onOpenCash: _openCashSessionDialog,
                   onSyncCash: _syncCash,
                   onCloseCash: _closeCashSessionDialog,
                   onRefresh: _load,
                 ),
-                const SizedBox(height: 12),
-                _CashIdentitySection(summary: summary),
-                const SizedBox(height: 12),
-                _CashAmountsSection(summary: summary),
-                const SizedBox(height: 12),
-                _CashSyncSection(readiness: readiness),
-                const SizedBox(height: 12),
-                _PaymentsByMethodSection(summary: summary),
-                const SizedBox(height: 12),
-                _NextActionsSection(summary: summary, readiness: readiness),
+                if (widget.canReadCash) ...[
+                  const SizedBox(height: 12),
+                  _CashIdentitySection(summary: summary),
+                  const SizedBox(height: 12),
+                  _CashAmountsSection(summary: summary),
+                  const SizedBox(height: 12),
+                  _CashSyncSection(readiness: readiness),
+                  const SizedBox(height: 12),
+                  _PaymentsByMethodSection(summary: summary),
+                  const SizedBox(height: 12),
+                  _NextActionsSection(summary: summary, readiness: readiness),
+                ],
               ],
             ),
           ),
@@ -546,6 +561,9 @@ class _CashActionsSection extends StatelessWidget {
     required this.summary,
     required this.readiness,
     required this.isBusy,
+    required this.allowRead,
+    required this.allowOpen,
+    required this.allowClose,
     required this.onOpenCash,
     required this.onSyncCash,
     required this.onCloseCash,
@@ -555,6 +573,9 @@ class _CashActionsSection extends StatelessWidget {
   final Map<String, dynamic>? summary;
   final Map<String, dynamic>? readiness;
   final bool isBusy;
+  final bool allowRead;
+  final bool allowOpen;
+  final bool allowClose;
   final VoidCallback onOpenCash;
   final VoidCallback onSyncCash;
   final VoidCallback onCloseCash;
@@ -567,8 +588,8 @@ class _CashActionsSection extends StatelessWidget {
     final isClosed = status == 'closed';
     final hasDirtyCash = _int(readiness?['dirty_cash_register_count']) > 0 ||
         _int(readiness?['dirty_cash_session_count']) > 0;
-    final canClose = isOpen;
-    final canOpen = summary == null || isClosed;
+    final canClose = allowClose && isOpen;
+    final canOpen = allowOpen && (summary == null || isClosed);
 
     return Card(
       child: Padding(
@@ -582,21 +603,23 @@ class _CashActionsSection extends StatelessWidget {
               icon: const Icon(Icons.lock_open_outlined),
               label: Text(isClosed ? 'Abrir nueva caja' : 'Abrir caja'),
             ),
-            FilledButton.icon(
-              onPressed: isBusy || !hasDirtyCash ? null : onSyncCash,
-              icon: const Icon(Icons.sync),
-              label: const Text('Sincronizar cash'),
-            ),
+            if (allowRead)
+              FilledButton.icon(
+                onPressed: isBusy || !hasDirtyCash ? null : onSyncCash,
+                icon: const Icon(Icons.sync),
+                label: const Text('Sincronizar cash'),
+              ),
             FilledButton.icon(
               onPressed: isBusy || !canClose ? null : onCloseCash,
               icon: const Icon(Icons.lock_outline),
               label: const Text('Cerrar caja'),
             ),
-            OutlinedButton.icon(
-              onPressed: isBusy ? null : onRefresh,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Actualizar'),
-            ),
+            if (allowRead)
+              OutlinedButton.icon(
+                onPressed: isBusy ? null : onRefresh,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Actualizar'),
+              ),
           ],
         ),
       ),

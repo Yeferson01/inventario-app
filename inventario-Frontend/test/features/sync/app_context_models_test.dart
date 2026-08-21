@@ -102,6 +102,7 @@ void main() {
         businessId: 'business-1',
         installationId: 'installation-1',
         isOnline: true,
+        authorizationContextReady: true,
         permissions: AppPermissionSet.fromIterable([
           'products.read',
           'inventory.adjust',
@@ -117,6 +118,18 @@ void main() {
         ]),
         isTrue,
       );
+    });
+
+    test('does not authorize from permissions without an active projection',
+        () {
+      final context = AppCurrentContext(
+        businessId: 'business-1',
+        installationId: 'installation-1',
+        isOnline: false,
+        permissions: AppPermissionSet.fromIterable(const ['sales.create']),
+      );
+
+      expect(context.hasPermission('sales.create'), isFalse);
     });
   });
 }

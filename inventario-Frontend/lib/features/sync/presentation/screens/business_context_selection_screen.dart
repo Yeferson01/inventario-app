@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/models/authorized_operational_context_models.dart';
 import '../widgets/app_business_context_selector.dart';
 
-class BusinessContextSelectionScreen extends ConsumerWidget {
+class BusinessContextSelectionScreen extends StatelessWidget {
   const BusinessContextSelectionScreen({
-    required this.profileId,
+    required this.contexts,
+    required this.onContextSelected,
     this.title = 'Selecciona tu negocio',
     this.subtitle = 'Elige el negocio y la sucursal con la que vas a trabajar.',
-    this.onContextSelected,
+    this.isSubmitting = false,
     super.key,
   });
 
-  final String profileId;
+  final List<AuthorizedOperationalContext> contexts;
+  final ValueChanged<AuthorizedOperationalContext> onContextSelected;
   final String title;
   final String subtitle;
-  final VoidCallback? onContextSelected;
+  final bool isSubmitting;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -49,18 +51,9 @@ class BusinessContextSelectionScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
                       AppBusinessContextSelector(
-                        profileId: profileId,
-                        onSelected: (_) {
-                          onContextSelected?.call();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Negocio seleccionado correctamente.',
-                              ),
-                            ),
-                          );
-                        },
+                        contexts: contexts,
+                        isSubmitting: isSubmitting,
+                        onSelected: onContextSelected,
                       ),
                       const SizedBox(height: 16),
                       Text(

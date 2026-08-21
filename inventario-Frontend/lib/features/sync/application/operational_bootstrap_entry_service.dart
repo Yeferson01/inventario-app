@@ -87,7 +87,7 @@ class OperationalBootstrapEntryService {
       if (contexts.isEmpty) {
         await _clearSelectedContext(profileId);
         return _result(
-          outcome: OperationalBootstrapEntryOutcome.authorizationRevoked,
+          outcome: OperationalBootstrapEntryOutcome.noAuthorizedContexts,
           contexts: contexts,
           profileId: profileId,
           message: 'No authorized operational context is available.',

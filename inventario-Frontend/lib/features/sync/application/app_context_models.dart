@@ -78,15 +78,15 @@ class AppCurrentContext {
   final String? lastSyncStatus;
 
   bool hasPermission(String permission) {
-    return permissions.has(permission);
+    return authorizationContextReady && permissions.has(permission);
   }
 
   bool hasAnyPermission(Iterable<String> values) {
-    return permissions.hasAny(values);
+    return authorizationContextReady && permissions.hasAny(values);
   }
 
   bool hasAllPermissions(Iterable<String> values) {
-    return permissions.hasAll(values);
+    return authorizationContextReady && permissions.hasAll(values);
   }
 
   Map<String, dynamic> toJson() {

@@ -1022,6 +1022,9 @@ class _AppE2ERealControlledTestScreenState
               businessId: businessId,
               branchId: branchId,
               profileId: user,
+              canReadCash: true,
+              canOpenCash: true,
+              canCloseCash: true,
               appDeviceId: appDeviceId,
               deviceInstallationId: preflight.installationId,
             );

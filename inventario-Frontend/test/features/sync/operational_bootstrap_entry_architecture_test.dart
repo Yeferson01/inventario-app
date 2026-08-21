@@ -25,4 +25,23 @@ void main() {
     expect(source, isNot(contains('OperationalBootstrap')));
     expect(source, isNot(contains('operational_bootstrap')));
   });
+
+  test('productive context gate depends on server-authoritative entry provider',
+      () {
+    final gate = File(
+      'lib/features/sync/presentation/widgets/'
+      'business_context_required_gate.dart',
+    ).readAsStringSync();
+    final selector = File(
+      'lib/features/sync/presentation/widgets/'
+      'app_business_context_selector.dart',
+    ).readAsStringSync();
+
+    expect(gate, contains('productiveOperationalEntryProvider'));
+    expect(gate, isNot(contains('app_business_selection_provider.dart')));
+    expect(selector, contains('AuthorizedOperationalContext'));
+    expect(selector, isNot(contains('AppBusinessSelectionService')));
+    expect(selector, isNot(contains('Supabase')));
+    expect(selector, isNot(contains('.rpc(')));
+  });
 }
