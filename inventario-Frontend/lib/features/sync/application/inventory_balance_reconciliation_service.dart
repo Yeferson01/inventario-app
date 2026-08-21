@@ -50,8 +50,9 @@ class InventoryBalanceReconciliationService {
   final InventoryReconciliationBeforeFinalization? beforeFinalization;
 
   Future<InventoryBalanceReconciliationResult> reconcile(
-    InventoryBalanceReconciliationRequest request,
-  ) async {
+    InventoryBalanceReconciliationRequest request, {
+    bool restart = false,
+  }) async {
     String? lastSnapshotId;
     var movementsChecked = 0;
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -71,6 +72,7 @@ class InventoryBalanceReconciliationService {
           dataset: 'product_stock_balances',
           limit: request.pageLimit,
         ),
+        restart: restart && attempt == 1,
       );
       lastSnapshotId = download.snapshotId;
 

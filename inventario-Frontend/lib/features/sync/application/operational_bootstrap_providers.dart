@@ -17,8 +17,10 @@ import '../data/datasources/inventory_movement_acknowledgement_remote_datasource
 import 'category_snapshot_applier.dart';
 import 'core_context_snapshot_applier.dart';
 import 'operational_bootstrap_download_service.dart';
+import 'operational_bootstrap_orchestration_models.dart';
 import 'operational_bootstrap_page_applier.dart';
 import 'operational_bootstrap_page_applier_router.dart';
+import 'operational_bootstrap_service.dart';
 import 'product_barcode_snapshot_applier.dart';
 import 'product_operational_reconciliation_support.dart';
 import 'product_snapshot_applier.dart';
@@ -205,5 +207,37 @@ final operationalBootstrapDownloadServiceProvider =
     pageApplier: ref.watch(operationalBootstrapPageApplierProvider),
     authorizationContextDao:
         ref.watch(authorizedOperationalContextLocalDaoProvider),
+  );
+});
+
+class OperationalBootstrapProgressNotifier
+    extends Notifier<OperationalBootstrapProgress> {
+  @override
+  OperationalBootstrapProgress build() {
+    return const OperationalBootstrapProgress.idle();
+  }
+
+  void publish(OperationalBootstrapProgress progress) {
+    state = progress;
+  }
+}
+
+final operationalBootstrapProgressProvider = NotifierProvider<
+    OperationalBootstrapProgressNotifier, OperationalBootstrapProgress>(
+  OperationalBootstrapProgressNotifier.new,
+);
+
+final operationalBootstrapServiceProvider =
+    Provider<OperationalBootstrapService>((ref) {
+  return OperationalBootstrapService(
+    downloadService: ref.watch(operationalBootstrapDownloadServiceProvider),
+    inventoryService: ref.watch(inventoryBalanceReconciliationServiceProvider),
+    cashPosRecoveryService: ref.watch(cashPosRecoveryServiceProvider),
+    authorizationContextDao:
+        ref.watch(authorizedOperationalContextLocalDaoProvider),
+    checkpointDao: ref.watch(operationalBootstrapCheckpointLocalDaoProvider),
+    issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
+    authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
+    onProgress: ref.read(operationalBootstrapProgressProvider.notifier).publish,
   );
 });
