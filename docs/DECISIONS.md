@@ -295,3 +295,19 @@ tenant para proponer cambios de la autoridad global para revisarlos.
 desde su contexto empresarial, pero inicialmente solo `service_role` puede
 revisarlas y escribir MasterProducts o códigos globales. Los roles y permisos
 del negocio no sustituyen una futura capability administrativa de plataforma.
+
+### D-019 — Contrato único de creación empresarial de Product
+
+**Estado:** vigente.
+
+**Decisión:** todos los entry points de creación empresarial de Product usan
+`BusinessProductCreationService`, la fachada Application offline-first que
+prioriza el Product empresarial existente, puede materializar una sugerencia
+del catálogo maestro local y delega creación manual, vínculo posterior y
+outbox a los servicios de catálogo ya establecidos.
+
+**Consecuencias:** Presentation no forma mutaciones ni consulta Supabase durante
+el lookup. Crear exige `products.create`; vincular un Product existente a master
+exige `products.update`. Los precios, `category_id`, `minimum_stock`, unidad y
+overrides pertenecen al negocio; la identidad y metadata descriptiva global son
+master-owned/sugeridas y no sobrescriben esos campos comerciales.

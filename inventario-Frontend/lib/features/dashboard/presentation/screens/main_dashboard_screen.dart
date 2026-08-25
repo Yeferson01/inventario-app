@@ -178,6 +178,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           profileId: profileId,
           appDeviceId: appContext.appDeviceId,
           deviceInstallationId: appContext.installationId,
+          effectivePermissions: appContext.permissions.values,
         ),
       ),
     );

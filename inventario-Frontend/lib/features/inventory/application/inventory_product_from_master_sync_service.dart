@@ -1,3 +1,4 @@
+import '../../../core/database/app_database.dart';
 import '../../sync/application/local_sync_outbox_service.dart';
 import '../../sync/data/models/local_sync_outbox_models.dart';
 import 'inventory_product_creation_models.dart';
@@ -56,11 +57,14 @@ class InventoryProductMasterLinkSyncResult {
 
 class InventoryProductFromMasterSyncService {
   InventoryProductFromMasterSyncService({
+    required AppDatabase database,
     required InventoryProductCreationService productCreationService,
     required LocalSyncOutboxService outboxService,
-  })  : _productCreationService = productCreationService,
+  })  : _database = database,
+        _productCreationService = productCreationService,
         _outboxService = outboxService;
 
+  final AppDatabase _database;
   final InventoryProductCreationService _productCreationService;
   final LocalSyncOutboxService _outboxService;
 
@@ -138,92 +142,98 @@ class InventoryProductFromMasterSyncService {
 
   Future<InventoryManualProductSyncResult> createManualProductAndQueueSync(
     CreateManualLocalProductInput input,
-  ) async {
-    final createdProduct =
-        await _productCreationService.createManualLocalProduct(input);
+  ) {
+    return _database.transaction(() async {
+      final createdProduct =
+          await _productCreationService.createManualLocalProduct(input);
 
-    final mutations = createdProduct.pendingMutations
-        .map(mapPendingCatalogMutationToLocalSyncDraft)
-        .toList();
+      final mutations = createdProduct.pendingMutations
+          .map(mapPendingCatalogMutationToLocalSyncDraft)
+          .toList();
 
-    final outboxResult = await _outboxService.enqueueCatalogMutations(
-      businessId: input.businessId,
-      branchId: input.branchId,
-      appDeviceId: input.appDeviceId,
-      profileId: input.profileId,
-      deviceInstallationId: input.deviceInstallationId,
-      mutations: mutations,
-      metadata: {
-        'source': 'quick_purchase_manual_product',
-        'product_id': createdProduct.productId,
-        'barcode_normalized': createdProduct.barcodeNormalized,
-        'catalog_status': 'manual_unmatched',
-      },
-    );
+      final outboxResult = await _outboxService.enqueueCatalogMutations(
+        businessId: input.businessId,
+        branchId: input.branchId,
+        appDeviceId: input.appDeviceId,
+        profileId: input.profileId,
+        deviceInstallationId: input.deviceInstallationId,
+        mutations: mutations,
+        metadata: {
+          'source': 'quick_purchase_manual_product',
+          'product_id': createdProduct.productId,
+          'barcode_normalized': createdProduct.barcodeNormalized,
+          'catalog_status': 'manual_unmatched',
+        },
+      );
 
-    return InventoryManualProductSyncResult(
-      createdProduct: createdProduct,
-      outboxResult: outboxResult,
-    );
+      return InventoryManualProductSyncResult(
+        createdProduct: createdProduct,
+        outboxResult: outboxResult,
+      );
+    });
   }
 
   Future<InventoryProductFromMasterSyncResult> createProductAndQueueSync(
     CreateProductFromMasterInput input,
-  ) async {
-    final createdProduct =
-        await _productCreationService.createLocalProductFromMaster(input);
+  ) {
+    return _database.transaction(() async {
+      final createdProduct =
+          await _productCreationService.createLocalProductFromMaster(input);
 
-    final mutations = createdProduct.pendingMutations
-        .map(mapPendingCatalogMutationToLocalSyncDraft)
-        .toList();
+      final mutations = createdProduct.pendingMutations
+          .map(mapPendingCatalogMutationToLocalSyncDraft)
+          .toList();
 
-    final outboxResult = await _outboxService.enqueueCatalogMutations(
-      businessId: input.businessId,
-      branchId: input.branchId,
-      appDeviceId: input.appDeviceId,
-      profileId: input.profileId,
-      deviceInstallationId: input.deviceInstallationId,
-      mutations: mutations,
-      metadata: {
-        'source': 'inventory_product_from_master',
-        'product_id': createdProduct.productId,
-        'master_product_id': createdProduct.masterProductId,
-        'barcode_normalized': createdProduct.barcodeNormalized,
-      },
-    );
+      final outboxResult = await _outboxService.enqueueCatalogMutations(
+        businessId: input.businessId,
+        branchId: input.branchId,
+        appDeviceId: input.appDeviceId,
+        profileId: input.profileId,
+        deviceInstallationId: input.deviceInstallationId,
+        mutations: mutations,
+        metadata: {
+          'source': 'inventory_product_from_master',
+          'product_id': createdProduct.productId,
+          'master_product_id': createdProduct.masterProductId,
+          'barcode_normalized': createdProduct.barcodeNormalized,
+        },
+      );
 
-    return InventoryProductFromMasterSyncResult(
-      createdProduct: createdProduct,
-      outboxResult: outboxResult,
-    );
+      return InventoryProductFromMasterSyncResult(
+        createdProduct: createdProduct,
+        outboxResult: outboxResult,
+      );
+    });
   }
 
   Future<InventoryProductMasterLinkSyncResult> linkProductToMasterAndQueueSync(
     LinkLocalProductToMasterInput input,
-  ) async {
-    final linkedProduct =
-        await _productCreationService.linkLocalProductToMaster(input);
-    final mutations = linkedProduct.pendingMutations
-        .map(mapPendingCatalogMutationToLocalSyncDraft)
-        .toList();
-    final outboxResult = await _outboxService.enqueueCatalogMutations(
-      businessId: input.businessId,
-      branchId: input.branchId,
-      appDeviceId: input.appDeviceId,
-      profileId: input.profileId,
-      deviceInstallationId: input.deviceInstallationId,
-      mutations: mutations,
-      metadata: {
-        'source': 'manual_product_master_link',
-        'product_id': input.productId,
-        'master_product_id': input.masterProductId,
-        'business_barcode_id': linkedProduct.businessBarcodeId,
-      },
-    );
-    return InventoryProductMasterLinkSyncResult(
-      linkedProduct: linkedProduct,
-      outboxResult: outboxResult,
-    );
+  ) {
+    return _database.transaction(() async {
+      final linkedProduct =
+          await _productCreationService.linkLocalProductToMaster(input);
+      final mutations = linkedProduct.pendingMutations
+          .map(mapPendingCatalogMutationToLocalSyncDraft)
+          .toList();
+      final outboxResult = await _outboxService.enqueueCatalogMutations(
+        businessId: input.businessId,
+        branchId: input.branchId,
+        appDeviceId: input.appDeviceId,
+        profileId: input.profileId,
+        deviceInstallationId: input.deviceInstallationId,
+        mutations: mutations,
+        metadata: {
+          'source': 'manual_product_master_link',
+          'product_id': input.productId,
+          'master_product_id': input.masterProductId,
+          'business_barcode_id': linkedProduct.businessBarcodeId,
+        },
+      );
+      return InventoryProductMasterLinkSyncResult(
+        linkedProduct: linkedProduct,
+        outboxResult: outboxResult,
+      );
+    });
   }
 }
 

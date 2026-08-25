@@ -71,6 +71,7 @@ class CreateProductFromMasterInput {
     this.categoryId,
     this.nameOverride,
     this.description,
+    this.minimumStock = 0,
     this.unit,
     this.clientSequenceStart = 1,
   });
@@ -89,6 +90,7 @@ class CreateProductFromMasterInput {
   final String? categoryId;
   final String? nameOverride;
   final String? description;
+  final int minimumStock;
   final String? unit;
 
   final int clientSequenceStart;
@@ -155,6 +157,7 @@ class CreateManualLocalProductInput {
     this.barcode,
     this.categoryId,
     this.description,
+    this.minimumStock = 0,
     this.unit,
     this.clientSequenceStart = 1,
   });
@@ -171,6 +174,7 @@ class CreateManualLocalProductInput {
   final double salePrice;
   final String? categoryId;
   final String? description;
+  final int minimumStock;
   final String? unit;
 
   final int clientSequenceStart;

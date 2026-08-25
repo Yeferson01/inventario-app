@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
-import '../../application/inventory_product_creation_models.dart';
+import '../../application/business_product_creation_models.dart';
 import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../../application/purchase_local_models.dart';
@@ -20,6 +20,7 @@ class PurchaseEntryScreen extends ConsumerStatefulWidget {
     required this.profileId,
     required this.appDeviceId,
     required this.deviceInstallationId,
+    required this.effectivePermissions,
   });
 
   final String businessId;
@@ -27,6 +28,7 @@ class PurchaseEntryScreen extends ConsumerStatefulWidget {
   final String profileId;
   final String? appDeviceId;
   final String deviceInstallationId;
+  final Set<String> effectivePermissions;
 
   @override
   ConsumerState<PurchaseEntryScreen> createState() =>
@@ -256,15 +258,19 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
     );
   }
 
-  void _addCreatedManualProductToCart(
-    CreatedManualLocalProductResult result,
-  ) {
+  void _addBusinessProductToCart(BusinessProductCreationResult result) {
+    final product = result.product;
+    if (product == null || result.productId == null) {
+      _showMessage('El producto local no pudo resolverse.');
+      return;
+    }
+
     _addProductToCart({
       'product_id': result.productId,
-      'product_name': result.name,
-      'barcode': result.barcode,
+      'product_name': _string(product['name']) ?? 'Producto sin nombre',
+      'barcode': result.barcode ?? _string(product['barcode']),
       'quantity_available': 0,
-      'purchase_price': _double(result.productPayload['purchase_price']),
+      'purchase_price': _double(product['purchase_price']),
       'stock_average_cost': 0,
     });
   }
@@ -283,6 +289,8 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         var barcode = '';
         var purchaseCostText = '';
         var salePriceText = '';
+        var minimumStockText = '0';
+        var unit = 'unidad';
 
         return AlertDialog(
           title: const Text('Crear producto rápido'),
@@ -378,6 +386,41 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                       salePriceText = value;
                     },
                   ),
+                  const SizedBox(height: CronosSpacing.md),
+                  TextFormField(
+                    initialValue: '0',
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Stock mínimo',
+                      prefixIcon: Icon(Icons.notification_important_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      final parsed = int.tryParse((value ?? '').trim());
+                      if (parsed == null || parsed < 0) {
+                        return 'Usa un entero igual o mayor a cero.';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      minimumStockText = value;
+                    },
+                  ),
+                  const SizedBox(height: CronosSpacing.md),
+                  TextFormField(
+                    initialValue: 'unidad',
+                    decoration: const InputDecoration(
+                      labelText: 'Unidad',
+                      prefixIcon: Icon(Icons.straighten_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => (value ?? '').trim().isEmpty
+                        ? 'La unidad es requerida.'
+                        : null,
+                    onChanged: (value) {
+                      unit = value;
+                    },
+                  ),
                 ],
               ),
             ),
@@ -404,6 +447,8 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                     barcode: barcode.trim().isEmpty ? null : barcode.trim(),
                     purchaseCost: purchaseCost,
                     salePrice: salePrice,
+                    minimumStock: int.parse(minimumStockText.trim()),
+                    unit: unit.trim(),
                   ),
                 );
               },
@@ -424,30 +469,57 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
     });
 
     try {
-      final service = ref.read(inventoryProductFromMasterSyncServiceProvider);
+      final service = ref.read(businessProductCreationServiceProvider);
+      final productContext = BusinessProductCreationContext(
+        businessId: widget.businessId,
+        branchId: widget.branchId,
+        profileId: widget.profileId,
+        appDeviceId: widget.appDeviceId,
+        deviceInstallationId: widget.deviceInstallationId,
+        effectivePermissions: widget.effectivePermissions,
+      );
+      final resolution = await service.resolveCode(
+        context: productContext,
+        code: draft.barcode,
+      );
 
-      final syncResult = await service.createManualProductAndQueueSync(
-        CreateManualLocalProductInput(
-          businessId: widget.businessId,
-          branchId: widget.branchId,
-          profileId: widget.profileId,
-          appDeviceId: widget.appDeviceId,
-          deviceInstallationId: widget.deviceInstallationId,
-          name: draft.name,
-          barcode: draft.barcode,
-          purchasePrice: draft.purchaseCost,
-          salePrice: draft.salePrice ?? 0,
-          unit: 'unidad',
-          clientSequenceStart: DateTime.now()
-              .toUtc()
-              .microsecondsSinceEpoch
-              .remainder(2000000000),
+      if (!mounted) {
+        return;
+      }
+      if (resolution.type == BusinessProductCodeResolutionType.invalid) {
+        _showMessage(resolution.message);
+        return;
+      }
+
+      var confirmedDraft = draft;
+      if (resolution.hasMasterSuggestion) {
+        final confirmation = await _confirmMasterSuggestion(
+          draft: draft,
+          masterProduct: resolution.masterProduct,
+        );
+        if (!mounted || confirmation == null) {
+          return;
+        }
+        confirmedDraft = confirmation;
+      }
+
+      final result = await service.createOrUse(
+        context: productContext,
+        code: confirmedDraft.barcode,
+        fields: BusinessProductOwnedFields(
+          name: confirmedDraft.name,
+          purchasePrice: confirmedDraft.purchaseCost,
+          salePrice: confirmedDraft.salePrice ?? 0,
+          minimumStock: confirmedDraft.minimumStock,
+          unit: confirmedDraft.unit,
         ),
       );
 
-      final result = syncResult.createdProduct;
-
       if (!mounted) {
+        return;
+      }
+      if (!result.succeeded) {
+        _showMessage(result.message);
         return;
       }
 
@@ -461,25 +533,31 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         ),
       );
 
+      final productName =
+          _string(result.product?['name']) ?? confirmedDraft.name;
       setState(() {
-        _searchController.text = result.name;
-        _query = result.name;
+        _searchController.text = productName;
+        _query = productName;
       });
 
-      _addCreatedManualProductToCart(result);
+      _addBusinessProductToCart(result);
 
       await showDialog<void>(
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text('Producto creado y agregado'),
+            title: Text(
+              result.outcome == BusinessProductCreationOutcome.existing
+                  ? 'Producto existente agregado'
+                  : 'Producto creado y agregado',
+            ),
             content: Text(
-              'Se creó el producto localmente y se agregó al carrito de compra.\n\n'
-              'Nombre: ${result.name}\n'
+              '${result.message}\n\n'
+              'Nombre: $productName\n'
               'Código: ${result.barcode ?? 'sin código'}\n'
-              'Costo: ${_money(_double(result.productPayload['purchase_price']))}\n'
-              'Estado catálogo: manual sin vincular\n'
-              'Sync catálogo: en cola local\n\n'
+              'Costo: ${_money(_double(result.product?['purchase_price']))}\n'
+              'Estado catálogo: ${result.masterProductId == null ? 'manual sin vincular' : 'vinculado a master'}\n'
+              'Sync catálogo: ${result.created ? 'en cola local' : 'sin cambios'}\n\n'
               'Cuando registres la compra, el stock local subirá con la cantidad recibida.',
             ),
             actions: [
@@ -491,8 +569,10 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
           );
         },
       );
-    } catch (error) {
-      _showMessage('No se pudo crear el producto: $error');
+    } catch (_) {
+      _showMessage(
+        'No se pudo completar la operación local del producto. Intenta nuevamente.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -500,6 +580,86 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         });
       }
     }
+  }
+
+  Future<_QuickProductDraft?> _confirmMasterSuggestion({
+    required _QuickProductDraft draft,
+    required Map<String, dynamic>? masterProduct,
+  }) {
+    var name = _string(
+          masterProduct?['product_name'] ?? masterProduct?['name'],
+        ) ??
+        draft.name;
+    final brand = _string(masterProduct?['brand']);
+    final packageSize = _string(masterProduct?['package_size']);
+    final packageUnit = _string(masterProduct?['package_unit']);
+
+    return showDialog<_QuickProductDraft>(
+      context: context,
+      builder: (dialogContext) {
+        final formKey = GlobalKey<FormState>();
+        return AlertDialog(
+          title: const Text('Coincidencia en catálogo local'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  [
+                    if (brand != null) 'Marca: $brand',
+                    if (packageSize != null || packageUnit != null)
+                      'Presentación: ${[
+                        packageSize,
+                        packageUnit
+                      ].whereType<String>().join(' ')}',
+                  ].isEmpty
+                      ? 'Se encontró metadata maestra para este código.'
+                      : [
+                          if (brand != null) 'Marca: $brand',
+                          if (packageSize != null || packageUnit != null)
+                            'Presentación: ${[
+                              packageSize,
+                              packageUnit
+                            ].whereType<String>().join(' ')}',
+                        ].join('\n'),
+                ),
+                const SizedBox(height: CronosSpacing.md),
+                TextFormField(
+                  initialValue: name,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre para este negocio',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => (value ?? '').trim().length < 2
+                      ? 'El nombre es requerido.'
+                      : null,
+                  onChanged: (value) => name = value,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop(
+                  draft.copyWith(name: name.trim()),
+                );
+              },
+              child: const Text('Usar sugerencia'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _syncPendingPurchases() async {
@@ -1350,6 +1510,8 @@ class _QuickProductDraft {
   const _QuickProductDraft({
     required this.name,
     required this.purchaseCost,
+    required this.minimumStock,
+    required this.unit,
     this.barcode,
     this.salePrice,
   });
@@ -1358,6 +1520,19 @@ class _QuickProductDraft {
   final String? barcode;
   final double purchaseCost;
   final double? salePrice;
+  final int minimumStock;
+  final String unit;
+
+  _QuickProductDraft copyWith({String? name}) {
+    return _QuickProductDraft(
+      name: name ?? this.name,
+      purchaseCost: purchaseCost,
+      minimumStock: minimumStock,
+      unit: unit,
+      barcode: barcode,
+      salePrice: salePrice,
+    );
+  }
 }
 
 class _PurchaseMetricPill extends StatelessWidget {

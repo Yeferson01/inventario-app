@@ -55,8 +55,11 @@ class InventoryProductCreationService {
   Future<CreatedLocalProductResult> createLocalProductFromMaster(
     CreateProductFromMasterInput input,
   ) async {
-    if (input.salePrice < 0 || input.purchasePrice < 0) {
-      throw ArgumentError('Los precios no pueden ser negativos.');
+    if (input.salePrice < 0 ||
+        input.purchasePrice < 0 ||
+        input.minimumStock < 0) {
+      throw ArgumentError(
+          'Los precios y el stock mínimo no pueden ser negativos.');
     }
 
     final draft = buildDraftFromMaster(
@@ -99,7 +102,7 @@ class InventoryProductCreationService {
       'purchase_price': input.purchasePrice,
       'sale_price': input.salePrice,
       'stock_quantity': 0,
-      'minimum_stock': 0,
+      'minimum_stock': input.minimumStock,
       'unit': input.unit ?? draft.packageUnit ?? draft.unitType ?? 'unidad',
       'status': 'active',
       'simple_category': draft.categoryName,
@@ -197,8 +200,11 @@ class InventoryProductCreationService {
       throw ArgumentError('El nombre del producto es requerido.');
     }
 
-    if (input.purchasePrice < 0 || input.salePrice < 0) {
-      throw ArgumentError('Los precios no pueden ser negativos.');
+    if (input.purchasePrice < 0 ||
+        input.salePrice < 0 ||
+        input.minimumStock < 0) {
+      throw ArgumentError(
+          'Los precios y el stock mínimo no pueden ser negativos.');
     }
 
     final now = DateTime.now().toUtc();
@@ -238,7 +244,7 @@ class InventoryProductCreationService {
       'purchase_price': input.purchasePrice,
       'sale_price': input.salePrice,
       'stock_quantity': 0,
-      'minimum_stock': 0,
+      'minimum_stock': input.minimumStock,
       'unit': input.unit ?? 'unidad',
       'status': 'active',
       'simple_category': null,
