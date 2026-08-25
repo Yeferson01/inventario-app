@@ -135,6 +135,7 @@ class ProductOperationalReconciliationSupport {
   ) {
     return _string(local['business_id']) == remote.businessId &&
         _string(local['category_id']) == remote.categoryId &&
+        _string(local['master_product_id']) == remote.masterProductId &&
         _string(local['barcode']) == remote.barcode &&
         _string(local['name']) == remote.name &&
         _string(local['description']) == remote.description &&

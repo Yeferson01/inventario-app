@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
@@ -9,7 +9,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates schema 8 to 9 without replacing existing balance IDs',
+  test('migrates schema 8 to 10 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -27,7 +27,7 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 9);
+    expect(database.schemaVersion, 10);
     expect(balance.read<String>('id'), 'random-local-uuid');
     expect(balance.read<int>('quantity_on_hand'), 8);
 
@@ -50,6 +50,8 @@ void main() {
 
     final saleItemColumns = await _columnNames(database, 'sale_items');
     expect(saleItemColumns, contains('deleted_at'));
+    final productColumns = await _columnNames(database, 'products');
+    expect(productColumns, contains('master_product_id'));
 
     final recoveryTables = await database.customSelect(
       '''
@@ -77,6 +79,40 @@ void main() {
       ),
       throwsA(anything),
     );
+  });
+
+  test('migrates schema 9 to 10 preserving Product identity', () async {
+    final executor = NativeDatabase.memory(
+      setup: (rawDatabase) {
+        for (final statement in _schema9IdentitySetupStatements) {
+          rawDatabase.execute(statement);
+        }
+      },
+    );
+    final database = AppDatabase.executor(executor);
+    addTearDown(database.close);
+
+    expect(database.schemaVersion, 10);
+    final product = await database.customSelect(
+      'select id, name, master_product_id from products where id = ?',
+      variables: [const Variable<String>('legacy-product')],
+    ).getSingle();
+    expect(product.read<String>('id'), 'legacy-product');
+    expect(product.read<String>('name'), 'Legacy Product');
+    expect(product.readNullable<String>('master_product_id'), isNull);
+
+    final indexes = await database.customSelect(
+      '''
+      select name from sqlite_master
+      where type = 'index'
+        and name in (
+          'idx_products_business_master_product',
+          'idx_local_product_barcodes_business_lookup',
+          'idx_local_product_barcodes_global_lookup'
+        )
+      ''',
+    ).get();
+    expect(indexes, hasLength(3));
   });
 
   test('enables SQLite foreign keys on every AppDatabase connection', () async {
@@ -245,4 +281,105 @@ const _schema8SetupStatements = <String>[
     local_status text not null default 'dirty', created_at integer not null
   )
   ''',
+  '''
+  create table products (
+    id text primary key not null,
+    business_id text,
+    category_id text,
+    barcode text,
+    name text not null,
+    description text,
+    purchase_price real not null default 0,
+    sale_price real not null,
+    stock_quantity integer not null default 0,
+    minimum_stock integer not null default 0,
+    unit text not null default 'unidad',
+    status text not null default 'active',
+    created_at integer not null,
+    updated_at integer not null,
+    deleted_at integer,
+    simple_category text,
+    sync_status integer not null default 0
+  )
+  ''',
+  '''
+  insert into products (
+    id, business_id, name, sale_price, created_at, updated_at
+  ) values (
+    'legacy-product', 'business-a', 'Legacy Product', 10, 1, 1
+  )
+  ''',
+  '''
+  create table local_product_barcodes (
+    id text primary key not null,
+    scope text not null,
+    business_id text,
+    product_id text,
+    master_product_id text,
+    barcode text not null,
+    barcode_normalized text not null,
+    barcode_type text,
+    is_primary integer not null default 0,
+    status text not null default 'active',
+    source text,
+    confidence_score real,
+    sync_status text not null default 'synced',
+    local_status text not null default 'clean',
+    version integer not null default 1,
+    created_at integer not null default 1,
+    updated_at integer not null default 1,
+    deleted_at integer,
+    last_synced_at integer,
+    metadata_json text
+  )
+  ''',
+];
+
+final _schema9IdentitySetupStatements = <String>[
+  ..._schema8SetupStatements,
+  '''
+  create table local_operational_bootstrap_checkpoints (
+    id text primary key not null,
+    profile_id text not null,
+    business_id text not null,
+    branch_id text not null,
+    app_device_id text not null,
+    bundle text not null,
+    dataset text not null
+  )
+  ''',
+  '''
+  create table local_operational_bootstrap_seen_records (
+    id text primary key not null,
+    snapshot_id text not null,
+    profile_id text not null,
+    business_id text not null,
+    branch_id text not null,
+    bundle text not null,
+    dataset text not null,
+    entity_id text not null
+  )
+  ''',
+  '''
+  create table local_reconciliation_issues (
+    id text primary key not null,
+    profile_id text not null,
+    business_id text not null,
+    branch_id text not null,
+    domain text not null,
+    entity_type text,
+    entity_id text,
+    status text not null,
+    severity text not null
+  )
+  ''',
+  '''
+  create table local_authorized_operational_contexts (
+    id text primary key not null,
+    profile_id text not null,
+    business_id text not null,
+    branch_id text not null
+  )
+  ''',
+  'pragma user_version = 9',
 ];

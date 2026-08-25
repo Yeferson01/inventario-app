@@ -16097,6 +16097,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('REFERENCES categories (id)'));
+  static const VerificationMeta _masterProductIdMeta =
+      const VerificationMeta('masterProductId');
+  @override
+  late final GeneratedColumn<String> masterProductId = GeneratedColumn<String>(
+      'master_product_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _barcodeMeta =
       const VerificationMeta('barcode');
   @override
@@ -16198,6 +16204,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         id,
         businessId,
         categoryId,
+        masterProductId,
         barcode,
         name,
         description,
@@ -16239,6 +16246,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           _categoryIdMeta,
           categoryId.isAcceptableOrUnknown(
               data['category_id']!, _categoryIdMeta));
+    }
+    if (data.containsKey('master_product_id')) {
+      context.handle(
+          _masterProductIdMeta,
+          masterProductId.isAcceptableOrUnknown(
+              data['master_product_id']!, _masterProductIdMeta));
     }
     if (data.containsKey('barcode')) {
       context.handle(_barcodeMeta,
@@ -16321,6 +16334,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.string, data['${effectivePrefix}business_id']),
       categoryId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}category_id']),
+      masterProductId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}master_product_id']),
       barcode: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}barcode']),
       name: attachedDatabase.typeMapping
@@ -16366,6 +16381,7 @@ class Product extends DataClass implements Insertable<Product> {
   final String id;
   final String? businessId;
   final String? categoryId;
+  final String? masterProductId;
   final String? barcode;
   final String name;
   final String? description;
@@ -16384,6 +16400,7 @@ class Product extends DataClass implements Insertable<Product> {
       {required this.id,
       this.businessId,
       this.categoryId,
+      this.masterProductId,
       this.barcode,
       required this.name,
       this.description,
@@ -16407,6 +16424,9 @@ class Product extends DataClass implements Insertable<Product> {
     }
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
+    }
+    if (!nullToAbsent || masterProductId != null) {
+      map['master_product_id'] = Variable<String>(masterProductId);
     }
     if (!nullToAbsent || barcode != null) {
       map['barcode'] = Variable<String>(barcode);
@@ -16445,6 +16465,9 @@ class Product extends DataClass implements Insertable<Product> {
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
+      masterProductId: masterProductId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(masterProductId),
       barcode: barcode == null && nullToAbsent
           ? const Value.absent()
           : Value(barcode),
@@ -16477,6 +16500,7 @@ class Product extends DataClass implements Insertable<Product> {
       id: serializer.fromJson<String>(json['id']),
       businessId: serializer.fromJson<String?>(json['businessId']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
+      masterProductId: serializer.fromJson<String?>(json['masterProductId']),
       barcode: serializer.fromJson<String?>(json['barcode']),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
@@ -16501,6 +16525,7 @@ class Product extends DataClass implements Insertable<Product> {
       'id': serializer.toJson<String>(id),
       'businessId': serializer.toJson<String?>(businessId),
       'categoryId': serializer.toJson<String?>(categoryId),
+      'masterProductId': serializer.toJson<String?>(masterProductId),
       'barcode': serializer.toJson<String?>(barcode),
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
@@ -16523,6 +16548,7 @@ class Product extends DataClass implements Insertable<Product> {
           {String? id,
           Value<String?> businessId = const Value.absent(),
           Value<String?> categoryId = const Value.absent(),
+          Value<String?> masterProductId = const Value.absent(),
           Value<String?> barcode = const Value.absent(),
           String? name,
           Value<String?> description = const Value.absent(),
@@ -16541,6 +16567,9 @@ class Product extends DataClass implements Insertable<Product> {
         id: id ?? this.id,
         businessId: businessId.present ? businessId.value : this.businessId,
         categoryId: categoryId.present ? categoryId.value : this.categoryId,
+        masterProductId: masterProductId.present
+            ? masterProductId.value
+            : this.masterProductId,
         barcode: barcode.present ? barcode.value : this.barcode,
         name: name ?? this.name,
         description: description.present ? description.value : this.description,
@@ -16564,6 +16593,9 @@ class Product extends DataClass implements Insertable<Product> {
           data.businessId.present ? data.businessId.value : this.businessId,
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
+      masterProductId: data.masterProductId.present
+          ? data.masterProductId.value
+          : this.masterProductId,
       barcode: data.barcode.present ? data.barcode.value : this.barcode,
       name: data.name.present ? data.name.value : this.name,
       description:
@@ -16597,6 +16629,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('id: $id, ')
           ..write('businessId: $businessId, ')
           ..write('categoryId: $categoryId, ')
+          ..write('masterProductId: $masterProductId, ')
           ..write('barcode: $barcode, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
@@ -16620,6 +16653,7 @@ class Product extends DataClass implements Insertable<Product> {
       id,
       businessId,
       categoryId,
+      masterProductId,
       barcode,
       name,
       description,
@@ -16641,6 +16675,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.id == this.id &&
           other.businessId == this.businessId &&
           other.categoryId == this.categoryId &&
+          other.masterProductId == this.masterProductId &&
           other.barcode == this.barcode &&
           other.name == this.name &&
           other.description == this.description &&
@@ -16661,6 +16696,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String> id;
   final Value<String?> businessId;
   final Value<String?> categoryId;
+  final Value<String?> masterProductId;
   final Value<String?> barcode;
   final Value<String> name;
   final Value<String?> description;
@@ -16680,6 +16716,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.id = const Value.absent(),
     this.businessId = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.masterProductId = const Value.absent(),
     this.barcode = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
@@ -16700,6 +16737,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     required String id,
     this.businessId = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.masterProductId = const Value.absent(),
     this.barcode = const Value.absent(),
     required String name,
     this.description = const Value.absent(),
@@ -16722,6 +16760,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? id,
     Expression<String>? businessId,
     Expression<String>? categoryId,
+    Expression<String>? masterProductId,
     Expression<String>? barcode,
     Expression<String>? name,
     Expression<String>? description,
@@ -16742,6 +16781,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (id != null) 'id': id,
       if (businessId != null) 'business_id': businessId,
       if (categoryId != null) 'category_id': categoryId,
+      if (masterProductId != null) 'master_product_id': masterProductId,
       if (barcode != null) 'barcode': barcode,
       if (name != null) 'name': name,
       if (description != null) 'description': description,
@@ -16764,6 +16804,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       {Value<String>? id,
       Value<String?>? businessId,
       Value<String?>? categoryId,
+      Value<String?>? masterProductId,
       Value<String?>? barcode,
       Value<String>? name,
       Value<String?>? description,
@@ -16783,6 +16824,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       id: id ?? this.id,
       businessId: businessId ?? this.businessId,
       categoryId: categoryId ?? this.categoryId,
+      masterProductId: masterProductId ?? this.masterProductId,
       barcode: barcode ?? this.barcode,
       name: name ?? this.name,
       description: description ?? this.description,
@@ -16812,6 +16854,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (masterProductId.present) {
+      map['master_product_id'] = Variable<String>(masterProductId.value);
     }
     if (barcode.present) {
       map['barcode'] = Variable<String>(barcode.value);
@@ -16868,6 +16913,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('id: $id, ')
           ..write('businessId: $businessId, ')
           ..write('categoryId: $categoryId, ')
+          ..write('masterProductId: $masterProductId, ')
           ..write('barcode: $barcode, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
@@ -33022,6 +33068,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   required String id,
   Value<String?> businessId,
   Value<String?> categoryId,
+  Value<String?> masterProductId,
   Value<String?> barcode,
   required String name,
   Value<String?> description,
@@ -33042,6 +33089,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> id,
   Value<String?> businessId,
   Value<String?> categoryId,
+  Value<String?> masterProductId,
   Value<String?> barcode,
   Value<String> name,
   Value<String?> description,
@@ -33135,6 +33183,10 @@ class $$ProductsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get barcode => $composableBuilder(
       column: $table.barcode, builder: (column) => ColumnFilters(column));
@@ -33276,6 +33328,10 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get barcode => $composableBuilder(
       column: $table.barcode, builder: (column) => ColumnOrderings(column));
 
@@ -33374,6 +33430,9 @@ class $$ProductsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get masterProductId => $composableBuilder(
+      column: $table.masterProductId, builder: (column) => column);
 
   GeneratedColumn<String> get barcode =>
       $composableBuilder(column: $table.barcode, builder: (column) => column);
@@ -33531,6 +33590,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String?> businessId = const Value.absent(),
             Value<String?> categoryId = const Value.absent(),
+            Value<String?> masterProductId = const Value.absent(),
             Value<String?> barcode = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String?> description = const Value.absent(),
@@ -33551,6 +33611,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             id: id,
             businessId: businessId,
             categoryId: categoryId,
+            masterProductId: masterProductId,
             barcode: barcode,
             name: name,
             description: description,
@@ -33571,6 +33632,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             required String id,
             Value<String?> businessId = const Value.absent(),
             Value<String?> categoryId = const Value.absent(),
+            Value<String?> masterProductId = const Value.absent(),
             Value<String?> barcode = const Value.absent(),
             required String name,
             Value<String?> description = const Value.absent(),
@@ -33591,6 +33653,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             id: id,
             businessId: businessId,
             categoryId: categoryId,
+            masterProductId: masterProductId,
             barcode: barcode,
             name: name,
             description: description,

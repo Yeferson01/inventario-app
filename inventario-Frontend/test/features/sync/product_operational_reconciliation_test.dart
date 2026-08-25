@@ -37,7 +37,11 @@ void main() {
     await _insertProduct(database, id: 'product-1', name: 'Viejo');
     final harness = _Harness(database, [
       _productResponse([
-        productOperationalProductRow(id: 'product-1', name: 'Nuevo'),
+        productOperationalProductRow(
+          id: 'product-1',
+          name: 'Nuevo',
+          masterProductId: 'master-1',
+        ),
       ]),
     ]);
 
@@ -46,6 +50,7 @@ void main() {
 
     expect(result.completed, isTrue);
     expect(product.name, 'Nuevo');
+    expect(product.masterProductId, 'master-1');
     expect(product.syncStatus, SyncStatus.synced);
     expect(await database.select(database.localSyncBatches).get(), isEmpty);
     expect(await database.select(database.localSyncMutations).get(), isEmpty);

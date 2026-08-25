@@ -161,11 +161,17 @@ class InventoryProductCreationService {
       );
     });
 
+    final persistedProductPayload = await _readPersistedProductSyncPayload(
+      businessId: input.businessId,
+      productId: productId,
+      branchId: input.branchId,
+    );
+
     final mutations = _buildPendingMutations(
       input: input,
       productId: productId,
       businessBarcodeId: businessBarcodeId,
-      productPayload: productPayload,
+      productPayload: persistedProductPayload,
       barcodePayload: barcodePayload,
     );
 
@@ -176,7 +182,7 @@ class InventoryProductCreationService {
       barcode: draft.barcode,
       barcodeNormalized: draft.barcodeNormalized,
       name: productName,
-      productPayload: productPayload,
+      productPayload: persistedProductPayload,
       businessBarcodePayload: barcodePayload,
       pendingMutations: mutations,
     );
@@ -202,8 +208,9 @@ class InventoryProductCreationService {
     final hasBarcode = rawBarcode != null && rawBarcode.isNotEmpty;
     final barcodeNormalized =
         hasBarcode ? BarcodeNormalizer.normalize(rawBarcode) : null;
-    final barcodeType =
-        hasBarcode ? BarcodeNormalizer.inferBarcodeType(rawBarcode) : null;
+    final barcodeType = hasBarcode
+        ? BarcodeNormalizer.inferBusinessBarcodeType(rawBarcode)
+        : null;
 
     final productSyncStatus = await _pendingSyncValueForColumn(
       tableName: 'products',
@@ -297,11 +304,17 @@ class InventoryProductCreationService {
       }
     });
 
+    final persistedProductPayload = await _readPersistedProductSyncPayload(
+      businessId: input.businessId,
+      productId: productId,
+      branchId: input.branchId,
+    );
+
     final pendingMutations = _buildManualPendingMutations(
       input: input,
       productId: productId,
       businessBarcodeId: businessBarcodeId,
-      productPayload: productPayload,
+      productPayload: persistedProductPayload,
       barcodePayload: barcodePayload,
     );
 
@@ -311,8 +324,187 @@ class InventoryProductCreationService {
       name: productName,
       barcode: hasBarcode ? rawBarcode : null,
       barcodeNormalized: barcodeNormalized,
-      productPayload: productPayload,
+      productPayload: persistedProductPayload,
       businessBarcodePayload: barcodePayload,
+      pendingMutations: pendingMutations,
+    );
+  }
+
+  Future<LinkedLocalProductToMasterResult> linkLocalProductToMaster(
+    LinkLocalProductToMasterInput input,
+  ) async {
+    final businessId = input.businessId.trim();
+    final productId = input.productId.trim();
+    final masterProductId = input.masterProductId.trim();
+    if (businessId.isEmpty || productId.isEmpty || masterProductId.isEmpty) {
+      throw ArgumentError(
+        'businessId, productId y masterProductId son requeridos.',
+      );
+    }
+
+    final product = await _getActiveBusinessProduct(
+      businessId: businessId,
+      productId: productId,
+    );
+    if (product == null) {
+      throw StateError('El Product empresarial no existe o no está activo.');
+    }
+
+    final currentMasterProductId = _string(product['master_product_id']);
+    if (currentMasterProductId != null &&
+        currentMasterProductId != masterProductId) {
+      throw StateError(
+        'El Product ya está vinculado a otro MasterProduct.',
+      );
+    }
+
+    final master = await _db.customSelect(
+      '''
+      select id
+      from local_master_products_catalog
+      where id = ? and deleted_at is null
+      limit 1
+      ''',
+      variables: [Variable<String>(masterProductId)],
+      readsFrom: {_db.localMasterProductsCatalog},
+    ).getSingleOrNull();
+    if (master == null) {
+      throw StateError('El MasterProduct no existe en el catálogo local.');
+    }
+
+    final now = DateTime.now().toUtc();
+    final productSyncStatus = await _pendingSyncValueForColumn(
+      tableName: 'products',
+      columnName: 'sync_status',
+      textValue: 'pending_upload',
+      intValue: 1,
+    );
+
+    Map<String, dynamic>? barcodePayload;
+    String? businessBarcodeId;
+    final barcodeRecord = input.barcodeRecord;
+    final rawBarcode = _string(barcodeRecord?['barcode']);
+    if (rawBarcode != null) {
+      final recordMasterId = _string(barcodeRecord?['master_product_id']);
+      if (recordMasterId != null && recordMasterId != masterProductId) {
+        throw StateError(
+          'El código seleccionado pertenece a otro MasterProduct.',
+        );
+      }
+
+      final barcodeType = _string(barcodeRecord?['barcode_type']) ??
+          BarcodeNormalizer.inferBarcodeType(rawBarcode);
+      if (BarcodeNormalizer.isInternalBusinessType(barcodeType)) {
+        throw StateError(
+          'Un código interno no puede materializar una identidad master.',
+        );
+      }
+
+      final barcodeNormalized = _string(barcodeRecord?['barcode_normalized']) ??
+          BarcodeNormalizer.normalize(rawBarcode);
+      if (barcodeNormalized.isEmpty) {
+        throw StateError('El código master no puede normalizarse vacío.');
+      }
+
+      final existingBarcode = await _getActiveBusinessBarcode(
+        businessId: businessId,
+        barcodeNormalized: barcodeNormalized,
+      );
+      final existingProductId = _string(existingBarcode?['product_id']);
+      if (existingProductId != null && existingProductId != productId) {
+        throw StateError(
+          'El código ya pertenece a otro Product activo del negocio.',
+        );
+      }
+
+      businessBarcodeId = _string(existingBarcode?['id']) ?? AppUuid.v7();
+      final alreadyHasPrimary = await _hasActivePrimaryBusinessCode(
+        businessId: businessId,
+        productId: productId,
+        excludingBarcodeId: businessBarcodeId,
+      );
+      final isPrimary = existingBarcode == null
+          ? !alreadyHasPrimary
+          : _intOrDefault(existingBarcode['is_primary'], 0) == 1;
+
+      barcodePayload = <String, dynamic>{
+        'id': businessBarcodeId,
+        'scope': 'business',
+        'business_id': businessId,
+        'product_id': productId,
+        'master_product_id': masterProductId,
+        'barcode': rawBarcode,
+        'barcode_normalized': barcodeNormalized,
+        'barcode_type': barcodeType,
+        'is_primary': isPrimary ? 1 : 0,
+        'status': 'active',
+        'source': _string(existingBarcode?['source']) ?? 'master_link',
+        'confidence_score': _double(
+          barcodeRecord?['confidence_score'] ??
+              existingBarcode?['confidence_score'],
+        ),
+        'sync_status': 'pending_upload',
+        'local_status': 'dirty',
+        'version': _intOrDefault(existingBarcode?['version'], 1),
+        'created_at': _isoStringOrFallback(
+          existingBarcode?['created_at'],
+          now,
+        ),
+        'updated_at': now.toIso8601String(),
+        'deleted_at': null,
+        'last_synced_at': null,
+      };
+    }
+
+    await _db.transaction(() async {
+      await _db.customStatement(
+        '''
+        update products
+        set master_product_id = ?, sync_status = ?, updated_at = ?
+        where id = ? and business_id = ? and deleted_at is null
+        ''',
+        [
+          masterProductId,
+          productSyncStatus,
+          now.millisecondsSinceEpoch ~/ 1000,
+          productId,
+          businessId,
+        ],
+      );
+
+      if (barcodePayload != null) {
+        await _insertOrUpdateExistingColumns(
+          tableName: 'local_product_barcodes',
+          values: barcodePayload,
+        );
+      }
+    });
+
+    final persistedProductPayload = await _readPersistedProductSyncPayload(
+      businessId: businessId,
+      productId: productId,
+      branchId: input.branchId,
+    );
+    final persistedBarcodePayload = businessBarcodeId == null
+        ? null
+        : await _readPersistedBusinessBarcodePayload(
+            businessId: businessId,
+            barcodeId: businessBarcodeId,
+          );
+    final pendingMutations = _buildMasterLinkPendingMutations(
+      input: input,
+      productPayload: persistedProductPayload,
+      barcodeId: businessBarcodeId,
+      barcodePayload: persistedBarcodePayload,
+    );
+
+    return LinkedLocalProductToMasterResult(
+      productId: productId,
+      businessId: businessId,
+      masterProductId: masterProductId,
+      businessBarcodeId: businessBarcodeId,
+      productPayload: persistedProductPayload,
+      businessBarcodePayload: persistedBarcodePayload,
       pendingMutations: pendingMutations,
     );
   }
@@ -361,6 +553,67 @@ class InventoryProductCreationService {
           changedFields: barcodePayload.keys.toList(),
           idempotencyKey:
               '$installationId:product_barcodes:$businessBarcodeId:insert:$barcodeSequence',
+          businessId: input.businessId,
+          branchId: input.branchId,
+          profileId: input.profileId,
+          appDeviceId: input.appDeviceId,
+        ),
+      );
+    }
+
+    return mutations;
+  }
+
+  List<PendingCatalogSyncMutationDraft> _buildMasterLinkPendingMutations({
+    required LinkLocalProductToMasterInput input,
+    required Map<String, dynamic> productPayload,
+    required String? barcodeId,
+    required Map<String, dynamic>? barcodePayload,
+  }) {
+    final installationId = input.deviceInstallationId?.trim().isNotEmpty == true
+        ? input.deviceInstallationId!.trim()
+        : 'local-device';
+    final productSequence = input.clientSequenceStart;
+    final mutations = <PendingCatalogSyncMutationDraft>[
+      PendingCatalogSyncMutationDraft(
+        clientMutationId:
+            '$installationId:master-link:products:${input.productId}:${input.masterProductId}',
+        clientSequence: productSequence,
+        entityTable: 'products',
+        entityId: input.productId,
+        operation: 'upsert',
+        payload: productPayload,
+        changedFields: const ['master_product_id', 'updated_at'],
+        idempotencyKey:
+            '$installationId:master-link:products:${input.productId}:${input.masterProductId}',
+        businessId: input.businessId,
+        branchId: input.branchId,
+        profileId: input.profileId,
+        appDeviceId: input.appDeviceId,
+      ),
+    ];
+
+    if (barcodeId != null && barcodePayload != null) {
+      mutations.add(
+        PendingCatalogSyncMutationDraft(
+          clientMutationId:
+              '$installationId:master-link:product-barcodes:$barcodeId',
+          clientSequence: productSequence + 1,
+          entityTable: 'product_barcodes',
+          entityId: barcodeId,
+          operation: 'upsert',
+          payload: barcodePayload,
+          changedFields: const [
+            'master_product_id',
+            'barcode',
+            'barcode_normalized',
+            'barcode_type',
+            'is_primary',
+            'status',
+            'updated_at',
+          ],
+          idempotencyKey:
+              '$installationId:master-link:product-barcodes:$barcodeId',
           businessId: input.businessId,
           branchId: input.branchId,
           profileId: input.profileId,
@@ -431,9 +684,8 @@ class InventoryProductCreationService {
       whereParts.add('pr.deleted_at is null');
     }
 
-    // En algunas versiones del SQLite local products todavía no tiene
-    // master_product_id. Si existe, filtramos solo productos manuales.
-    // Si no existe, no lo referenciamos para evitar "no such column".
+    // El repair de compras solo crea drafts para Products todavía manuales.
+    // La guarda mantiene compatibilidad con bases anteriores a schema 10.
     if (productColumns.contains('master_product_id')) {
       whereParts.add(
         "trim(coalesce(cast(pr.master_product_id as text), '')) = ''",
@@ -614,7 +866,7 @@ class InventoryProductCreationService {
       'unit': _string(product['unit']) ?? 'unidad',
       'status': _string(product['status']) ?? 'active',
       'simple_category': _string(product['simple_category']),
-      'master_product_id': null,
+      'master_product_id': _string(product['master_product_id']),
       'catalog_match_confidence': null,
       'catalog_linked_at': null,
       'sync_status': productSyncStatus,
@@ -644,11 +896,11 @@ class InventoryProductCreationService {
         'scope': _string(barcodeRow['scope']) ?? 'business',
         'business_id': businessId,
         'product_id': productId,
-        'master_product_id': null,
+        'master_product_id': _string(product['master_product_id']),
         'barcode': rawBarcode,
         'barcode_normalized': barcodeNormalized,
         'barcode_type': _string(barcodeRow['barcode_type']) ??
-            BarcodeNormalizer.inferBarcodeType(rawBarcode),
+            BarcodeNormalizer.inferBusinessBarcodeType(rawBarcode),
         'is_primary': _intOrDefault(barcodeRow['is_primary'], 1),
         'status': _string(barcodeRow['status']) ?? 'active',
         'source':
@@ -768,6 +1020,164 @@ class InventoryProductCreationService {
     ];
   }
 
+  Future<Map<String, dynamic>?> _getActiveBusinessProduct({
+    required String businessId,
+    required String productId,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select *
+      from products
+      where id = ?
+        and business_id = ?
+        and deleted_at is null
+        and status = 'active'
+      limit 1
+      ''',
+      variables: [
+        Variable<String>(productId),
+        Variable<String>(businessId),
+      ],
+      readsFrom: {_db.products},
+    ).getSingleOrNull();
+    return row == null ? null : Map<String, dynamic>.from(row.data);
+  }
+
+  Future<Map<String, dynamic>?> _getActiveBusinessBarcode({
+    required String businessId,
+    required String barcodeNormalized,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select *
+      from local_product_barcodes
+      where scope = 'business'
+        and business_id = ?
+        and barcode_normalized = ?
+        and status = 'active'
+        and deleted_at is null
+      order by updated_at desc, id
+      limit 1
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(barcodeNormalized),
+      ],
+      readsFrom: {_db.localProductBarcodes},
+    ).getSingleOrNull();
+    return row == null ? null : Map<String, dynamic>.from(row.data);
+  }
+
+  Future<bool> _hasActivePrimaryBusinessCode({
+    required String businessId,
+    required String productId,
+    required String excludingBarcodeId,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select 1
+      from local_product_barcodes
+      where scope = 'business'
+        and business_id = ?
+        and product_id = ?
+        and id <> ?
+        and is_primary = 1
+        and status = 'active'
+        and deleted_at is null
+      limit 1
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(productId),
+        Variable<String>(excludingBarcodeId),
+      ],
+      readsFrom: {_db.localProductBarcodes},
+    ).getSingleOrNull();
+    return row != null;
+  }
+
+  Future<Map<String, dynamic>> _readPersistedProductSyncPayload({
+    required String businessId,
+    required String productId,
+    String? branchId,
+  }) async {
+    final product = await _getActiveBusinessProduct(
+      businessId: businessId,
+      productId: productId,
+    );
+    if (product == null) {
+      throw StateError('No se pudo releer el Product persistido.');
+    }
+
+    final now = DateTime.now().toUtc();
+    return <String, dynamic>{
+      'id': productId,
+      'business_id': businessId,
+      'branch_id': branchId,
+      'category_id': _string(product['category_id']),
+      'barcode': _string(product['barcode']),
+      'name': _requiredString(product, 'name'),
+      'description': _string(product['description']),
+      'purchase_price': _double(product['purchase_price']) ?? 0,
+      'sale_price': _double(product['sale_price']) ?? 0,
+      'stock_quantity': _intOrDefault(product['stock_quantity'], 0),
+      'minimum_stock': _intOrDefault(product['minimum_stock'], 0),
+      'unit': _string(product['unit']) ?? 'unidad',
+      'status': _string(product['status']) ?? 'active',
+      'simple_category': _string(product['simple_category']),
+      'master_product_id': _string(product['master_product_id']),
+      'created_at': _isoStringOrFallback(product['created_at'], now),
+      'updated_at': _isoStringOrFallback(product['updated_at'], now),
+      'deleted_at': null,
+    };
+  }
+
+  Future<Map<String, dynamic>> _readPersistedBusinessBarcodePayload({
+    required String businessId,
+    required String barcodeId,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select *
+      from local_product_barcodes
+      where id = ?
+        and scope = 'business'
+        and business_id = ?
+        and status = 'active'
+        and deleted_at is null
+      limit 1
+      ''',
+      variables: [
+        Variable<String>(barcodeId),
+        Variable<String>(businessId),
+      ],
+      readsFrom: {_db.localProductBarcodes},
+    ).getSingleOrNull();
+    if (row == null) {
+      throw StateError('No se pudo releer el código empresarial persistido.');
+    }
+    final barcode = Map<String, dynamic>.from(row.data);
+    final now = DateTime.now().toUtc();
+    return <String, dynamic>{
+      'id': barcodeId,
+      'scope': 'business',
+      'business_id': businessId,
+      'product_id': _requiredString(barcode, 'product_id'),
+      'master_product_id': _string(barcode['master_product_id']),
+      'barcode': _requiredString(barcode, 'barcode'),
+      'barcode_normalized': _requiredString(barcode, 'barcode_normalized'),
+      'barcode_type': _string(barcode['barcode_type']) ?? 'unknown',
+      'is_primary': _intOrDefault(barcode['is_primary'], 0),
+      'status': _string(barcode['status']) ?? 'active',
+      'source': _string(barcode['source']),
+      'confidence_score': _double(barcode['confidence_score']),
+      'version': _intOrDefault(barcode['version'], 1),
+      'created_at': _isoStringOrFallback(barcode['created_at'], now),
+      'updated_at': _isoStringOrFallback(barcode['updated_at'], now),
+      'deleted_at': null,
+    };
+  }
+
   Future<void> _insertOrUpdateExistingColumns({
     required String tableName,
     required Map<String, Object?> values,
@@ -777,7 +1187,10 @@ class InventoryProductCreationService {
     final filtered = <String, Object?>{};
     for (final entry in values.entries) {
       if (columns.contains(entry.key)) {
-        filtered[entry.key] = _normalizeSqlValue(entry.value);
+        filtered[entry.key] = _normalizeSqlValue(
+          entry.value,
+          columnName: entry.key,
+        );
       }
     }
 
@@ -837,9 +1250,19 @@ class InventoryProductCreationService {
     return fallback.toIso8601String();
   }
 
-  Object? _normalizeSqlValue(Object? value) {
+  Object? _normalizeSqlValue(
+    Object? value, {
+    required String columnName,
+  }) {
     if (value is DateTime) {
-      return value.toUtc().toIso8601String();
+      return value.toUtc().millisecondsSinceEpoch ~/ 1000;
+    }
+
+    if (value is String && columnName.endsWith('_at')) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) {
+        return parsed.toUtc().millisecondsSinceEpoch ~/ 1000;
+      }
     }
 
     if (value is Map || value is List) {

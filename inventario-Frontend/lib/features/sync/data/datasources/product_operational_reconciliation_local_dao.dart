@@ -56,6 +56,7 @@ class ProductOperationalReconciliationLocalDao {
             id: remote.id,
             businessId: Value(remote.businessId),
             categoryId: Value(remote.categoryId),
+            masterProductId: Value(remote.masterProductId),
             barcode: Value(remote.barcode),
             name: remote.name,
             description: Value(remote.description),

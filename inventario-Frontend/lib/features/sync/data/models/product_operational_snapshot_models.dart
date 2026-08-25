@@ -41,6 +41,7 @@ class ProductOperationalProductSnapshot {
     required this.id,
     required this.businessId,
     required this.categoryId,
+    required this.masterProductId,
     required this.barcode,
     required this.name,
     required this.description,
@@ -65,6 +66,7 @@ class ProductOperationalProductSnapshot {
       id: _requiredString(json, 'id'),
       businessId: _requiredString(json, 'business_id'),
       categoryId: _optionalString(json['category_id']),
+      masterProductId: _optionalString(json['master_product_id']),
       barcode: _optionalString(json['barcode']),
       name: _requiredString(json, 'name'),
       description: _optionalString(json['description']),
@@ -84,6 +86,7 @@ class ProductOperationalProductSnapshot {
   final String id;
   final String businessId;
   final String? categoryId;
+  final String? masterProductId;
   final String? barcode;
   final String name;
   final String? description;

@@ -109,6 +109,8 @@ class Products extends Table {
   TextColumn get id => text()();
   TextColumn get businessId => text().nullable().references(Businesses, #id)();
   TextColumn get categoryId => text().nullable().references(Categories, #id)();
+  TextColumn get masterProductId =>
+      text().nullable().named('master_product_id')();
   TextColumn get barcode => text().nullable()();
   TextColumn get name => text()();
   TextColumn get description => text().nullable()();
@@ -1150,7 +1152,187 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
+
+  Future<void> _createProductIdentityIndexesAndTriggers() async {
+    await customStatement('''
+      create index if not exists idx_products_business_master_product
+      on products (business_id, master_product_id)
+      where master_product_id is not null and deleted_at is null
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_barcodes_business_lookup
+      on local_product_barcodes (
+        scope,
+        business_id,
+        barcode_normalized,
+        status,
+        deleted_at
+      )
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_barcodes_global_lookup
+      on local_product_barcodes (
+        scope,
+        barcode_normalized,
+        status,
+        deleted_at
+      )
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_barcodes_product
+      on local_product_barcodes (business_id, product_id)
+      where scope = 'business' and deleted_at is null
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_product_barcodes_master
+      on local_product_barcodes (master_product_id)
+      where master_product_id is not null and deleted_at is null
+    ''');
+
+    for (final operation in const ['insert', 'update']) {
+      await customStatement('''
+        create trigger if not exists
+          trg_local_product_barcodes_validate_$operation
+        before $operation on local_product_barcodes
+        begin
+          select case
+            when new.scope not in ('global', 'business')
+            then raise(abort, 'Unsupported product barcode scope')
+          end;
+
+          select case
+            when new.barcode_type is not null
+              and new.barcode_type not in (
+                'gtin', 'ean13', 'ean8', 'upc',
+                'local_sku', 'internal', 'unknown'
+              )
+            then raise(abort, 'Unsupported product barcode type')
+          end;
+
+          select case
+            when new.scope = 'global'
+              and (
+                new.business_id is not null
+                or new.product_id is not null
+                or new.master_product_id is null
+              )
+            then raise(abort, 'Global barcode requires only master_product_id')
+          end;
+
+          select case
+            when new.scope = 'business'
+              and (new.business_id is null or new.product_id is null)
+            then raise(abort, 'Business barcode requires business_id and product_id')
+          end;
+
+          select case
+            when new.scope = 'global'
+              and new.barcode_type in ('internal', 'local_sku')
+            then raise(abort, 'Internal product codes cannot be global')
+          end;
+
+          select case
+            when new.scope = 'business'
+              and not exists (
+                select 1
+                from products p
+                where p.id = new.product_id
+                  and p.business_id = new.business_id
+                  and p.deleted_at is null
+              )
+            then raise(abort, 'Business barcode product is unavailable')
+          end;
+
+          select case
+            when new.scope = 'business'
+              and new.master_product_id is not null
+              and exists (
+                select 1
+                from products p
+                where p.id = new.product_id
+                  and p.master_product_id is not null
+                  and p.master_product_id <> new.master_product_id
+              )
+            then raise(abort, 'Barcode master does not match product master')
+          end;
+
+          select case
+            when new.status = 'active'
+              and new.deleted_at is null
+              and new.scope = 'business'
+              and exists (
+                select 1
+                from local_product_barcodes pb
+                where pb.id <> new.id
+                  and pb.scope = 'business'
+                  and pb.business_id = new.business_id
+                  and pb.barcode_normalized = new.barcode_normalized
+                  and pb.status = 'active'
+                  and pb.deleted_at is null
+              )
+            then raise(abort, 'Active business product code already exists')
+          end;
+
+          select case
+            when new.status = 'active'
+              and new.deleted_at is null
+              and new.scope = 'global'
+              and exists (
+                select 1
+                from local_product_barcodes pb
+                where pb.id <> new.id
+                  and pb.scope = 'global'
+                  and pb.barcode_normalized = new.barcode_normalized
+                  and pb.status = 'active'
+                  and pb.deleted_at is null
+              )
+            then raise(abort, 'Active global product code already exists')
+          end;
+
+          select case
+            when new.is_primary = 1
+              and new.status = 'active'
+              and new.deleted_at is null
+              and new.scope = 'business'
+              and exists (
+                select 1
+                from local_product_barcodes pb
+                where pb.id <> new.id
+                  and pb.scope = 'business'
+                  and pb.product_id = new.product_id
+                  and pb.is_primary = 1
+                  and pb.status = 'active'
+                  and pb.deleted_at is null
+              )
+            then raise(abort, 'Business product already has a primary code')
+          end;
+
+          select case
+            when new.is_primary = 1
+              and new.status = 'active'
+              and new.deleted_at is null
+              and new.scope = 'global'
+              and exists (
+                select 1
+                from local_product_barcodes pb
+                where pb.id <> new.id
+                  and pb.scope = 'global'
+                  and pb.master_product_id = new.master_product_id
+                  and pb.is_primary = 1
+                  and pb.status = 'active'
+                  and pb.deleted_at is null
+              )
+            then raise(abort, 'Master product already has a primary code')
+          end;
+        end
+      ''');
+    }
+  }
 
   Future<void> _createCashSessionIndexes() async {
     final cashRegistersTable = await customSelect(
@@ -1436,6 +1618,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+          await _createProductIdentityIndexesAndTriggers();
           await _createCashSessionIndexes();
 
           await _createAppContextIndexes();
@@ -1447,6 +1630,11 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 10) {
+            await m.addColumn(products, products.masterProductId);
+            await _createProductIdentityIndexesAndTriggers();
+          }
+
           if (from < 9) {
             await m.createTable(localOperationalBootstrapCheckpoints);
             await m.createTable(localOperationalBootstrapSeenRecords);
@@ -1561,6 +1749,7 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await customStatement('pragma foreign_keys = on');
+          await _createProductIdentityIndexesAndTriggers();
           await _createCashSessionIndexes();
           await _createProductStockBalanceIndexes();
           await _createOperationalRecoveryIndexes();

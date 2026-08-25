@@ -250,3 +250,19 @@ operacional no exige cerrar caja.
 sus permission keys reales. Un usuario puede operar simultáneamente los módulos
 que su unión de permisos autorice. El gating de UI mejora la UX, pero no
 sustituye los guards de Application/Domain ni la autorización backend.
+
+### D-016 — Identidad de Product, MasterProduct y códigos
+
+**Estado:** vigente.
+
+**Decisión:** `products.id` es la identidad empresarial estable;
+`master_product_id` es una identidad global opcional y vinculable después sin
+cambiar el Product UUID. Los códigos se modelan como asociaciones 1:N. Un
+código `internal`/`local_sku` pertenece exclusivamente a un business y nunca es
+identidad inter-tenant. Solo un vínculo explícito con MasterProduct y sus
+códigos globales permite correlación automática entre negocios.
+
+**Consecuencias:** un Product sin master ni GS1 continúa siendo válido para
+compras, ventas e inventario. El lookup prioriza el código empresarial; los
+códigos internos no caen al catálogo global. Imágenes u otra metadata global se
+resuelven mediante `master_product_id`, sin duplicarlas en Product.

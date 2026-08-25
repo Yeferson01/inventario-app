@@ -176,6 +176,63 @@ class CreateManualLocalProductInput {
   final int clientSequenceStart;
 }
 
+class LinkLocalProductToMasterInput {
+  const LinkLocalProductToMasterInput({
+    required this.businessId,
+    required this.productId,
+    required this.masterProductId,
+    this.barcodeRecord,
+    this.branchId,
+    this.profileId,
+    this.appDeviceId,
+    this.deviceInstallationId,
+    this.clientSequenceStart = 1,
+  });
+
+  final String businessId;
+  final String productId;
+  final String masterProductId;
+  final Map<String, dynamic>? barcodeRecord;
+  final String? branchId;
+  final String? profileId;
+  final String? appDeviceId;
+  final String? deviceInstallationId;
+  final int clientSequenceStart;
+}
+
+class LinkedLocalProductToMasterResult {
+  const LinkedLocalProductToMasterResult({
+    required this.productId,
+    required this.businessId,
+    required this.masterProductId,
+    required this.productPayload,
+    required this.pendingMutations,
+    this.businessBarcodeId,
+    this.businessBarcodePayload,
+  });
+
+  final String productId;
+  final String businessId;
+  final String masterProductId;
+  final String? businessBarcodeId;
+  final Map<String, dynamic> productPayload;
+  final Map<String, dynamic>? businessBarcodePayload;
+  final List<PendingCatalogSyncMutationDraft> pendingMutations;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'product_id': productId,
+      'business_id': businessId,
+      'master_product_id': masterProductId,
+      'business_barcode_id': businessBarcodeId,
+      'product_payload': productPayload,
+      'business_barcode_payload': businessBarcodePayload,
+      'pending_mutations':
+          pendingMutations.map((item) => item.toJson()).toList(),
+    };
+  }
+}
+
 class CreatedManualLocalProductResult {
   const CreatedManualLocalProductResult({
     required this.productId,

@@ -37,6 +37,23 @@ class InventoryManualProductSyncResult {
   }
 }
 
+class InventoryProductMasterLinkSyncResult {
+  const InventoryProductMasterLinkSyncResult({
+    required this.linkedProduct,
+    required this.outboxResult,
+  });
+
+  final LinkedLocalProductToMasterResult linkedProduct;
+  final LocalSyncEnqueueResult outboxResult;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'linked_product': linkedProduct.toJson(),
+      'outbox_result': outboxResult.toJson(),
+    };
+  }
+}
+
 class InventoryProductFromMasterSyncService {
   InventoryProductFromMasterSyncService({
     required InventoryProductCreationService productCreationService,
@@ -177,6 +194,34 @@ class InventoryProductFromMasterSyncService {
 
     return InventoryProductFromMasterSyncResult(
       createdProduct: createdProduct,
+      outboxResult: outboxResult,
+    );
+  }
+
+  Future<InventoryProductMasterLinkSyncResult> linkProductToMasterAndQueueSync(
+    LinkLocalProductToMasterInput input,
+  ) async {
+    final linkedProduct =
+        await _productCreationService.linkLocalProductToMaster(input);
+    final mutations = linkedProduct.pendingMutations
+        .map(mapPendingCatalogMutationToLocalSyncDraft)
+        .toList();
+    final outboxResult = await _outboxService.enqueueCatalogMutations(
+      businessId: input.businessId,
+      branchId: input.branchId,
+      appDeviceId: input.appDeviceId,
+      profileId: input.profileId,
+      deviceInstallationId: input.deviceInstallationId,
+      mutations: mutations,
+      metadata: {
+        'source': 'manual_product_master_link',
+        'product_id': input.productId,
+        'master_product_id': input.masterProductId,
+        'business_barcode_id': linkedProduct.businessBarcodeId,
+      },
+    );
+    return InventoryProductMasterLinkSyncResult(
+      linkedProduct: linkedProduct,
       outboxResult: outboxResult,
     );
   }

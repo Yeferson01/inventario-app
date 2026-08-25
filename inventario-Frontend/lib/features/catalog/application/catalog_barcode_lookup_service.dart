@@ -5,6 +5,7 @@ import '../domain/entities/barcode_scan_result.dart';
 typedef CatalogLocalLookupFn = Future<LocalBarcodeLookupResult> Function({
   required String businessId,
   required String barcode,
+  required bool allowMasterMatch,
 });
 
 class CatalogBarcodeLookupService {
@@ -17,6 +18,7 @@ class CatalogBarcodeLookupService {
   Future<BarcodeScanResult> scanBarcode({
     required String businessId,
     required String rawBarcode,
+    bool allowMasterMatch = true,
   }) async {
     final normalizedBarcode = BarcodeNormalizer.normalize(rawBarcode);
 
@@ -35,6 +37,7 @@ class CatalogBarcodeLookupService {
     final localLookup = await _lookupByBarcode(
       businessId: businessId,
       barcode: normalizedBarcode,
+      allowMasterMatch: allowMasterMatch,
     );
 
     if (!localLookup.found) {

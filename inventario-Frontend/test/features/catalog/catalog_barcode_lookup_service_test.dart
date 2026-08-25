@@ -12,6 +12,7 @@ void main() {
         lookupByBarcode: ({
           required String businessId,
           required String barcode,
+          required bool allowMasterMatch,
         }) async {
           wasCalled = true;
           return LocalBarcodeLookupResult.none(barcode);
@@ -35,6 +36,7 @@ void main() {
         lookupByBarcode: ({
           required String businessId,
           required String barcode,
+          required bool allowMasterMatch,
         }) async {
           return LocalBarcodeLookupResult(
             found: true,
@@ -72,6 +74,7 @@ void main() {
         lookupByBarcode: ({
           required String businessId,
           required String barcode,
+          required bool allowMasterMatch,
         }) async {
           return LocalBarcodeLookupResult(
             found: true,
@@ -110,6 +113,7 @@ void main() {
         lookupByBarcode: ({
           required String businessId,
           required String barcode,
+          required bool allowMasterMatch,
         }) async {
           return LocalBarcodeLookupResult.none(barcode);
         },
@@ -126,6 +130,30 @@ void main() {
           BarcodeScanSuggestedAction.createManualProduct);
       expect(result.requiresManualCreation, isTrue);
       expect(result.normalizedBarcode, equals('SKU001'));
+    });
+
+    test('business-only internal lookup cannot fall back to master', () async {
+      var receivedAllowMasterMatch = true;
+      final service = CatalogBarcodeLookupService(
+        lookupByBarcode: ({
+          required String businessId,
+          required String barcode,
+          required bool allowMasterMatch,
+        }) async {
+          receivedAllowMasterMatch = allowMasterMatch;
+          return LocalBarcodeLookupResult.none(barcode);
+        },
+      );
+
+      final result = await service.scanBarcode(
+        businessId: 'business-1',
+        rawBarcode: 'ARROZ-001',
+        allowMasterMatch: false,
+      );
+
+      expect(receivedAllowMasterMatch, isFalse);
+      expect(result.matchType, BarcodeScanMatchType.none);
+      expect(result.requiresManualCreation, isTrue);
     });
   });
 }

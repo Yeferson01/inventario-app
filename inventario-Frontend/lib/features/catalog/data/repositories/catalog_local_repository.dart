@@ -9,10 +9,12 @@ class CatalogLocalRepository {
   Future<LocalBarcodeLookupResult> lookupByBarcode({
     required String businessId,
     required String barcode,
+    bool allowMasterMatch = true,
   }) {
     return _dao.lookupByBarcode(
       businessId: businessId,
       barcode: barcode,
+      allowMasterMatch: allowMasterMatch,
     );
   }
 

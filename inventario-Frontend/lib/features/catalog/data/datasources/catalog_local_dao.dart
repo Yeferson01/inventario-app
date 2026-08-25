@@ -16,6 +16,7 @@ class CatalogLocalDao {
   Future<LocalBarcodeLookupResult> lookupByBarcode({
     required String businessId,
     required String barcode,
+    bool allowMasterMatch = true,
   }) async {
     final normalized = BarcodeNormalizer.normalize(barcode);
 
@@ -63,7 +64,7 @@ class CatalogLocalDao {
             mp.image_hash as master_product_image_hash,
             mp.confidence_score as master_product_confidence_score
           from local_product_barcodes pb
-          left join products p
+          join products p
             on p.id = pb.product_id
           left join local_master_products_catalog mp
             on mp.id = pb.master_product_id
@@ -72,6 +73,8 @@ class CatalogLocalDao {
             and pb.barcode_normalized = ?
             and pb.status = 'active'
             and pb.deleted_at is null
+            and p.deleted_at is null
+            and p.status = 'active'
           order by pb.is_primary desc, pb.updated_at desc
           limit 1
           ''',
@@ -93,6 +96,10 @@ class CatalogLocalDao {
         localProduct: _localProductFromLookup(data),
         masterProduct: _masterProductFromLookup(data),
       );
+    }
+
+    if (!allowMasterMatch) {
+      return LocalBarcodeLookupResult.none(normalized);
     }
 
     final globalMatch = await db.customSelect(
