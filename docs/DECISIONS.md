@@ -282,3 +282,16 @@ nueva ni estado local dirty.
 incompleto y reanudable, no success. Reaplicar páginas es seguro y preferible a
 omitir registros; catálogo maestro y bootstrap operacional conservan
 mecanismos separados.
+
+### D-018 — Autoridad del catálogo maestro
+
+**Estado:** vigente.
+
+**Decisión:** los permisos empresariales sobre Products nunca conceden autoridad
+sobre el catálogo maestro global. Las contribuciones separan la autoridad
+tenant para proponer cambios de la autoridad global para revisarlos.
+
+**Consecuencias:** un usuario autenticado y autorizado puede enviar propuestas
+desde su contexto empresarial, pero inicialmente solo `service_role` puede
+revisarlas y escribir MasterProducts o códigos globales. Los roles y permisos
+del negocio no sustituyen una futura capability administrativa de plataforma.
