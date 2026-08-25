@@ -5,21 +5,26 @@ import '../../inventory/data/datasources/purchase_local_dao.dart';
 import '../data/datasources/purchases_sync_remote_datasource.dart';
 import '../data/models/catalog_upload_models.dart';
 import 'local_sync_outbox_service.dart';
+import 'purchase_product_dependency_resolver.dart';
+import 'purchases_sync_upload_models.dart';
 
 class PurchasesSyncUploadService {
   PurchasesSyncUploadService({
     required LocalSyncOutboxService outboxService,
     required PurchasesSyncRemoteDataSource remoteDataSource,
     required PurchaseLocalDao purchaseLocalDao,
+    required PurchaseProductDependencyResolver dependencyResolver,
   })  : _outboxService = outboxService,
         _remoteDataSource = remoteDataSource,
-        _purchaseLocalDao = purchaseLocalDao;
+        _purchaseLocalDao = purchaseLocalDao,
+        _dependencyResolver = dependencyResolver;
 
   final LocalSyncOutboxService _outboxService;
   final PurchasesSyncRemoteDataSource _remoteDataSource;
   final PurchaseLocalDao _purchaseLocalDao;
+  final PurchaseProductDependencyResolver _dependencyResolver;
 
-  Future<CatalogUploadRunResult> uploadPendingPurchasesBatches({
+  Future<PurchasesSyncUploadRunResult> uploadPendingPurchasesBatches({
     required String businessId,
     String? branchId,
     int batchLimit = 10,
@@ -39,15 +44,47 @@ class PurchasesSyncUploadService {
     var partial = 0;
     var failed = 0;
     var mutationsUploaded = 0;
+    var waitingForDependencies = 0;
+    var blockedByDependencies = 0;
+    final waitingProductIds = <String>{};
+    final blockedProductIds = <String>{};
+    final dependencyIssues = <PurchaseProductDependencyIssue>[];
 
     for (final batch in pendingBatches) {
       final localBatchId = _requiredString(batch, 'id');
 
       try {
-        await _outboxService.markBatchUploading(localBatchId);
-
         final mutations =
             await _outboxService.getMutationsForBatch(localBatchId);
+        final dependencyResolution = await _dependencyResolver.resolve(
+          businessId: businessId,
+          purchaseMutations: mutations,
+        );
+
+        if (dependencyResolution.status ==
+            PurchaseProductDependencyStatus.waiting) {
+          waitingForDependencies++;
+          waitingProductIds.addAll(dependencyResolution.waitingProductIds);
+          AppLogger.info(
+            'Purchases batch deferred while Product dependencies are pending: '
+            'local=$localBatchId products=${dependencyResolution.waitingProductIds.join(',')}',
+          );
+          continue;
+        }
+
+        if (dependencyResolution.status ==
+            PurchaseProductDependencyStatus.blocked) {
+          blockedByDependencies++;
+          blockedProductIds.addAll(dependencyResolution.blockedProductIds);
+          dependencyIssues.addAll(dependencyResolution.issues);
+          AppLogger.warning(
+            'Purchases batch blocked by Product dependencies: '
+            'local=$localBatchId products=${dependencyResolution.blockedProductIds.join(',')}',
+          );
+          continue;
+        }
+
+        await _outboxService.markBatchUploading(localBatchId);
 
         final allRemoteEntitiesAlreadyExist =
             await _remoteDataSource.allPurchaseMutationEntitiesAlreadyExist(
@@ -160,13 +197,21 @@ class PurchasesSyncUploadService {
       }
     }
 
-    return CatalogUploadRunResult(
+    final sortedWaitingProductIds = waitingProductIds.toList()..sort();
+    final sortedBlockedProductIds = blockedProductIds.toList()..sort();
+
+    return PurchasesSyncUploadRunResult(
       batchesChecked: pendingBatches.length,
       batchesUploaded: uploaded,
       batchesCompleted: completed,
       batchesPartial: partial,
       batchesFailed: failed,
       mutationsUploaded: mutationsUploaded,
+      batchesWaitingForDependencies: waitingForDependencies,
+      batchesBlockedByDependencies: blockedByDependencies,
+      waitingProductIds: List.unmodifiable(sortedWaitingProductIds),
+      blockedProductIds: List.unmodifiable(sortedBlockedProductIds),
+      dependencyIssues: List.unmodifiable(dependencyIssues),
     );
   }
 

@@ -293,6 +293,10 @@ class LocalSyncOutboxDao {
             b.status = 'completed'
             and m.status = 'applied'
           )
+          or (
+            b.status = 'partial'
+            and m.status = 'applied'
+          )
         )
       limit 1
       ''',

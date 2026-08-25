@@ -539,43 +539,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         batchLimit: 250,
       );
 
-      if (catalogUploadResult.batchesPartial > 0 ||
-          catalogUploadResult.batchesFailed > 0) {
-        if (!mounted) {
-          return;
-        }
-
-        await showDialog<void>(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('Catálogo pendiente'),
-              content: Text(
-                'No se subieron las compras porque primero deben sincronizarse '
-                'correctamente los productos del catálogo.\n\n'
-                'Catálogo\n'
-                'Productos manuales encolados: $catalogBackfillCount\n'
-                'Batches revisados: ${catalogUploadResult.batchesChecked}\n'
-                'Batches subidos: ${catalogUploadResult.batchesUploaded}\n'
-                'Completados: ${catalogUploadResult.batchesCompleted}\n'
-                'Parciales: ${catalogUploadResult.batchesPartial}\n'
-                'Fallidos: ${catalogUploadResult.batchesFailed}\n'
-                'Mutaciones subidas: ${catalogUploadResult.mutationsUploaded}\n\n'
-                'Cuando catálogo quede completo, vuelve a sincronizar compras.',
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Entendido'),
-                ),
-              ],
-            );
-          },
-        );
-
-        return;
-      }
-
       final enqueueResult = await outboxService.enqueuePendingPurchases(
         businessId: widget.businessId,
         branchId: widget.branchId,
@@ -611,7 +574,9 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
           final hasIssues = catalogUploadResult.batchesPartial > 0 ||
               catalogUploadResult.batchesFailed > 0 ||
               uploadResult.batchesPartial > 0 ||
-              uploadResult.batchesFailed > 0;
+              uploadResult.batchesFailed > 0 ||
+              uploadResult.batchesWaitingForDependencies > 0 ||
+              uploadResult.batchesBlockedByDependencies > 0;
 
           return AlertDialog(
             title: Text(
@@ -642,6 +607,8 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
               'Completados: ${uploadResult.batchesCompleted}\n'
               'Parciales: ${uploadResult.batchesPartial}\n'
               'Fallidos: ${uploadResult.batchesFailed}\n'
+              'Esperando Products: ${uploadResult.batchesWaitingForDependencies}\n'
+              'Bloqueados por Product: ${uploadResult.batchesBlockedByDependencies}\n'
               'Mutaciones subidas: ${uploadResult.mutationsUploaded}',
             ),
             actions: [

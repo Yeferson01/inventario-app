@@ -97,12 +97,42 @@ class CatalogSyncRemoteDataSource {
       },
     );
 
-    return CatalogUploadBatchResult.fromProcessResult(
+    final batchResult = CatalogUploadBatchResult.fromProcessResult(
       localBatchId: localBatchId,
       serverBatchId: serverBatchId,
       fallbackMutationCount: localMutations.length,
       value: processResult,
     );
+
+    final mutationResults = await _readMutationResults(
+      serverBatchId: serverBatchId,
+    );
+
+    return batchResult.withMutationResults(mutationResults);
+  }
+
+  Future<List<CatalogUploadMutationResult>> _readMutationResults({
+    required String serverBatchId,
+  }) async {
+    final rows = await _client
+        .from('sync_mutations')
+        .select(
+          'id, idempotency_key, entity_table, entity_id, status, error_code, error_message',
+        )
+        .eq('sync_batch_id', serverBatchId);
+
+    return rows.map((row) {
+      final data = Map<String, dynamic>.from(row as Map);
+      return CatalogUploadMutationResult(
+        serverMutationId: _requiredString(data, 'id'),
+        idempotencyKey: _requiredString(data, 'idempotency_key'),
+        entityTable: _requiredString(data, 'entity_table'),
+        entityId: _requiredString(data, 'entity_id'),
+        status: _requiredString(data, 'status'),
+        errorCode: _string(data['error_code']),
+        errorMessage: _string(data['error_message']),
+      );
+    }).toList(growable: false);
   }
 
   Future<bool> duplicateCatalogConflictsAreIdempotent({

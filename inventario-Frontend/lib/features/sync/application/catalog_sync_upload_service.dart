@@ -131,6 +131,14 @@ class CatalogSyncUploadService {
     required List<Map<String, dynamic>> mutations,
     required CatalogUploadBatchResult result,
   }) async {
+    if (result.mutationResults.isNotEmpty) {
+      await _markMutationsFromRemoteResults(
+        mutations: mutations,
+        remoteResults: result.mutationResults,
+      );
+      return;
+    }
+
     if (result.conflictCount > 0) {
       for (final mutation in mutations) {
         final localMutationId = _requiredString(mutation, 'id');
@@ -161,6 +169,64 @@ class CatalogSyncUploadService {
     }
 
     await _markBatchMutationsApplied(mutations: mutations);
+  }
+
+  Future<void> _markMutationsFromRemoteResults({
+    required List<Map<String, dynamic>> mutations,
+    required List<CatalogUploadMutationResult> remoteResults,
+  }) async {
+    final byIdempotencyKey = {
+      for (final result in remoteResults) result.idempotencyKey: result,
+    };
+
+    for (final mutation in mutations) {
+      final localMutationId = _requiredString(mutation, 'id');
+      final idempotencyKey = _requiredString(mutation, 'idempotency_key');
+      final remote = byIdempotencyKey[idempotencyKey];
+
+      if (remote == null) {
+        await _outboxService.markMutationError(
+          localMutationId: localMutationId,
+          errorCode: 'remote_mutation_ack_missing',
+          error: 'El backend no devolvió ACK para la mutación de catálogo.',
+        );
+        continue;
+      }
+
+      switch (remote.status) {
+        case 'applied':
+          await _outboxService.markMutationApplied(
+            localMutationId: localMutationId,
+            serverSyncMutationId: remote.serverMutationId,
+          );
+          continue;
+        case 'conflict':
+          await _outboxService.markMutationConflict(
+            localMutationId: localMutationId,
+            errorCode: remote.errorCode ?? 'remote_catalog_conflict',
+            errorMessage: remote.errorMessage ??
+                'La mutación de catálogo tiene un conflicto remoto.',
+          );
+          continue;
+        case 'error':
+          await _outboxService.markMutationError(
+            localMutationId: localMutationId,
+            errorCode: remote.errorCode ?? 'remote_catalog_error',
+            error: remote.errorMessage ??
+                'La mutación de catálogo reportó un error remoto.',
+          );
+          continue;
+        default:
+          await _outboxService.markMutationConflict(
+            localMutationId: localMutationId,
+            errorCode: remote.errorCode ?? 'remote_catalog_not_applied',
+            errorMessage: remote.errorMessage ??
+                'La mutación de catálogo no quedó aplicada remotamente '
+                    '(status=${remote.status}).',
+          );
+          continue;
+      }
+    }
   }
 
   String _requiredString(Map<String, dynamic> source, String key) {

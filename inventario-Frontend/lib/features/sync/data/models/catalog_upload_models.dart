@@ -9,6 +9,7 @@ class CatalogUploadBatchResult {
     required this.conflictCount,
     required this.errorCount,
     required this.raw,
+    this.mutationResults = const [],
   });
 
   final String localBatchId;
@@ -20,6 +21,7 @@ class CatalogUploadBatchResult {
   final int conflictCount;
   final int errorCount;
   final Map<String, dynamic> raw;
+  final List<CatalogUploadMutationResult> mutationResults;
 
   bool get completed =>
       status == 'completed' && errorCount == 0 && conflictCount == 0;
@@ -37,8 +39,28 @@ class CatalogUploadBatchResult {
       'skipped_count': skippedCount,
       'conflict_count': conflictCount,
       'error_count': errorCount,
+      'mutation_results': mutationResults
+          .map((result) => result.toJson())
+          .toList(growable: false),
       'raw': raw,
     };
+  }
+
+  CatalogUploadBatchResult withMutationResults(
+    List<CatalogUploadMutationResult> results,
+  ) {
+    return CatalogUploadBatchResult(
+      localBatchId: localBatchId,
+      serverBatchId: serverBatchId,
+      status: status,
+      mutationCount: mutationCount,
+      appliedCount: appliedCount,
+      skippedCount: skippedCount,
+      conflictCount: conflictCount,
+      errorCount: errorCount,
+      raw: raw,
+      mutationResults: List.unmodifiable(results),
+    );
   }
 
   factory CatalogUploadBatchResult.fromProcessResult({
@@ -112,6 +134,38 @@ class CatalogUploadBatchResult {
     }
 
     return int.tryParse(value.toString());
+  }
+}
+
+class CatalogUploadMutationResult {
+  const CatalogUploadMutationResult({
+    required this.serverMutationId,
+    required this.idempotencyKey,
+    required this.entityTable,
+    required this.entityId,
+    required this.status,
+    this.errorCode,
+    this.errorMessage,
+  });
+
+  final String serverMutationId;
+  final String idempotencyKey;
+  final String entityTable;
+  final String entityId;
+  final String status;
+  final String? errorCode;
+  final String? errorMessage;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'server_mutation_id': serverMutationId,
+      'idempotency_key': idempotencyKey,
+      'entity_table': entityTable,
+      'entity_id': entityId,
+      'status': status,
+      'error_code': errorCode,
+      'error_message': errorMessage,
+    };
   }
 }
 
