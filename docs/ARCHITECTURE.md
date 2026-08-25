@@ -282,6 +282,12 @@ código normalizado
 consulta Supabase por cada escaneo. La red interviene después mediante upload de
 mutaciones/contribuciones y pull delta del catálogo.
 
+El pull del catálogo maestro usa una ventana delimitada y tokens firmados. El
+cursor temporal comprometido solo avanza al completar la unión de productos
+maestros y códigos globales/empresariales; una pausa por presupuesto conserva
+un checkpoint reanudable. La aplicación de cada página y ese checkpoint es
+atómica en Drift, incluye tombstones y rechaza versiones remotas más antiguas.
+
 ## Inventario
 
 El modelo separa datos comerciales, saldo y ledger:

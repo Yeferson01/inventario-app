@@ -166,39 +166,109 @@ class CatalogLocalDao {
   Future<CatalogDeltaApplyResult> applyCatalogDeltaRecords(
     List<Map<String, dynamic>> records,
   ) async {
+    return db.transaction(() => _applyCatalogDeltaRecords(records));
+  }
+
+  Future<CatalogDeltaApplyResult> applyCatalogDeltaPage({
+    required String businessId,
+    required List<Map<String, dynamic>> records,
+    required DateTime? committedSince,
+    required DateTime windowUpperBound,
+    required int? catalogVersion,
+    required Map<String, dynamic>? pageToken,
+    required bool completed,
+    required bool isSyncing,
+  }) {
+    return db.transaction(() async {
+      final result = await _applyCatalogDeltaRecords(records);
+      await _saveCatalogSyncProgress(
+        businessId: businessId,
+        committedSince: committedSince,
+        windowUpperBound: windowUpperBound,
+        catalogVersion: catalogVersion,
+        pageToken: pageToken,
+        completed: completed,
+        isSyncing: isSyncing,
+      );
+      return result;
+    });
+  }
+
+  Future<CatalogDeltaApplyResult> _applyCatalogDeltaRecords(
+    List<Map<String, dynamic>> records,
+  ) async {
     var masterProducts = 0;
     var productBarcodes = 0;
     var ignored = 0;
+    var tombstones = 0;
+    var stale = 0;
+    var dirty = 0;
 
-    await db.transaction(() async {
-      for (final record in records) {
-        final entityType = _entityType(record);
-        final payload = _payload(record);
+    for (final record in records) {
+      final entityType = _entityType(record);
+      final payload = _payload(record);
+      _CatalogRecordApplyOutcome? outcome;
 
-        if (entityType == 'master_product') {
-          await upsertMasterProduct(payload);
+      if (entityType == 'master_product') {
+        outcome = await _applyMasterProduct(payload);
+        if (outcome.isApplied) {
           masterProducts++;
-        } else if (entityType == 'global_barcode' ||
-            entityType == 'business_barcode') {
-          await upsertProductBarcode(payload);
-          productBarcodes++;
-        } else {
-          ignored++;
         }
+      } else if (entityType == 'global_barcode' ||
+          entityType == 'business_barcode') {
+        outcome = await _applyProductBarcode(payload);
+        if (outcome.isApplied) {
+          productBarcodes++;
+        }
+      } else {
+        ignored++;
       }
-    });
+
+      switch (outcome) {
+        case _CatalogRecordApplyOutcome.tombstoneApplied:
+          tombstones++;
+        case _CatalogRecordApplyOutcome.staleIgnored:
+          stale++;
+          ignored++;
+        case _CatalogRecordApplyOutcome.dirtySkipped:
+          dirty++;
+          ignored++;
+        case _CatalogRecordApplyOutcome.applied:
+        case null:
+          break;
+      }
+    }
 
     return CatalogDeltaApplyResult(
       masterProductsUpserted: masterProducts,
       productBarcodesUpserted: productBarcodes,
       ignoredRecords: ignored,
+      tombstonesApplied: tombstones,
+      staleRecordsIgnored: stale,
+      dirtyRecordsSkipped: dirty,
     );
   }
 
   Future<void> upsertMasterProduct(Map<String, dynamic> payload) async {
+    await _applyMasterProduct(payload);
+  }
+
+  Future<_CatalogRecordApplyOutcome> _applyMasterProduct(
+    Map<String, dynamic> payload,
+  ) async {
     final now = DateTime.now().toUtc();
     final id = _requiredString(payload, 'id');
+    final incomingVersion = _int(payload['version']) ?? 1;
     final updatedAt = _dateTime(payload['updated_at']) ?? now;
+    final decision = await _decideIncomingVersion(
+      table: 'local_master_products_catalog',
+      id: id,
+      incomingVersion: incomingVersion,
+    );
+
+    if (decision != null) {
+      return decision;
+    }
 
     await _customStatement(
       db,
@@ -283,20 +353,40 @@ class CatalogLocalDao {
         _double(payload['confidence_score']),
         _int(payload['catalog_version']) ?? 1,
         _string(payload['sync_status']) ?? 'synced',
-        _int(payload['version']) ?? 1,
+        incomingVersion,
         updatedAt,
         _dateTime(payload['deleted_at']),
         now,
       ]),
     );
+
+    return payload['deleted_at'] == null
+        ? _CatalogRecordApplyOutcome.applied
+        : _CatalogRecordApplyOutcome.tombstoneApplied;
   }
 
   Future<void> upsertProductBarcode(Map<String, dynamic> payload) async {
+    await _applyProductBarcode(payload);
+  }
+
+  Future<_CatalogRecordApplyOutcome> _applyProductBarcode(
+    Map<String, dynamic> payload,
+  ) async {
     final now = DateTime.now().toUtc();
     final id = _requiredString(payload, 'id');
+    final incomingVersion = _int(payload['version']) ?? 1;
     final rawBarcode = _string(payload['barcode']) ?? '';
     final normalized = _string(payload['barcode_normalized']) ??
         BarcodeNormalizer.normalize(rawBarcode);
+    final decision = await _decideIncomingVersion(
+      table: 'local_product_barcodes',
+      id: id,
+      incomingVersion: incomingVersion,
+    );
+
+    if (decision != null) {
+      return decision;
+    }
 
     await _customStatement(
       db,
@@ -354,19 +444,53 @@ class CatalogLocalDao {
         _string(payload['source']),
         _double(payload['confidence_score']),
         _string(payload['sync_status']) ?? 'synced',
-        _int(payload['version']) ?? 1,
+        incomingVersion,
         _dateTime(payload['updated_at']) ?? now,
         _dateTime(payload['deleted_at']),
         now,
       ]),
     );
+
+    return payload['deleted_at'] == null
+        ? _CatalogRecordApplyOutcome.applied
+        : _CatalogRecordApplyOutcome.tombstoneApplied;
   }
 
-  Future<void> saveCatalogSyncSuccess({
+  Future<_CatalogRecordApplyOutcome?> _decideIncomingVersion({
+    required String table,
+    required String id,
+    required int incomingVersion,
+  }) async {
+    final row = await db.customSelect(
+      'select version, local_status from $table where id = ? limit 1',
+      variables: [Variable<String>(id)],
+    ).getSingleOrNull();
+
+    if (row == null) {
+      return null;
+    }
+
+    final localStatus = _string(row.data['local_status']) ?? 'clean';
+    if (localStatus != 'clean') {
+      return _CatalogRecordApplyOutcome.dirtySkipped;
+    }
+
+    final localVersion = _int(row.data['version']) ?? 1;
+    if (incomingVersion <= localVersion) {
+      return _CatalogRecordApplyOutcome.staleIgnored;
+    }
+
+    return null;
+  }
+
+  Future<void> _saveCatalogSyncProgress({
     required String businessId,
-    required DateTime serverTime,
+    required DateTime? committedSince,
+    required DateTime windowUpperBound,
     required int? catalogVersion,
-    Map<String, dynamic>? pageToken,
+    required Map<String, dynamic>? pageToken,
+    required bool completed,
+    required bool isSyncing,
   }) async {
     final now = DateTime.now().toUtc();
 
@@ -388,10 +512,16 @@ class CatalogLocalDao {
       )
       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
-        last_catalog_pull_at = excluded.last_catalog_pull_at,
+        last_catalog_pull_at = coalesce(
+          excluded.last_catalog_pull_at,
+          local_catalog_sync_state.last_catalog_pull_at
+        ),
         last_server_time = excluded.last_server_time,
         last_since_updated_at = excluded.last_since_updated_at,
-        last_catalog_version = excluded.last_catalog_version,
+        last_catalog_version = coalesce(
+          excluded.last_catalog_version,
+          local_catalog_sync_state.last_catalog_version
+        ),
         last_page_token = excluded.last_page_token,
         is_syncing = excluded.is_syncing,
         last_error = excluded.last_error,
@@ -400,15 +530,62 @@ class CatalogLocalDao {
       normalizeSqliteParameters([
         businessId,
         businessId,
-        now,
-        serverTime.toUtc(),
-        serverTime.toUtc(),
-        catalogVersion,
+        completed ? now : null,
+        windowUpperBound.toUtc(),
+        completed ? windowUpperBound.toUtc() : committedSince?.toUtc(),
+        completed ? catalogVersion : null,
         pageToken == null ? null : jsonEncode(pageToken),
-        0,
+        isSyncing ? 1 : 0,
         null,
         now,
         now,
+      ]),
+    );
+  }
+
+  Future<void> resetCatalogSyncResume({
+    required String businessId,
+    required bool clearCommittedCursor,
+  }) async {
+    final now = DateTime.now().toUtc();
+
+    await _customStatement(
+      db,
+      '''
+      insert into local_catalog_sync_state (
+        id,
+        business_id,
+        last_since_updated_at,
+        last_server_time,
+        last_page_token,
+        is_syncing,
+        last_error,
+        created_at,
+        updated_at
+      )
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        last_since_updated_at = case
+          when ? = 1 then null
+          else local_catalog_sync_state.last_since_updated_at
+        end,
+        last_server_time = null,
+        last_page_token = null,
+        is_syncing = excluded.is_syncing,
+        last_error = null,
+        updated_at = excluded.updated_at
+      ''',
+      normalizeSqliteParameters([
+        businessId,
+        businessId,
+        null,
+        null,
+        null,
+        1,
+        null,
+        now,
+        now,
+        clearCommittedCursor ? 1 : 0,
       ]),
     );
   }
@@ -834,6 +1011,15 @@ class CatalogLocalDao {
 
     return 0;
   }
+}
+
+enum _CatalogRecordApplyOutcome {
+  applied,
+  tombstoneApplied,
+  staleIgnored,
+  dirtySkipped;
+
+  bool get isApplied => this == applied || this == tombstoneApplied;
 }
 
 Future<void> _customStatement(

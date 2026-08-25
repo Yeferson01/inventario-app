@@ -266,3 +266,19 @@ códigos globales permite correlación automática entre negocios.
 compras, ventas e inventario. El lookup prioriza el código empresarial; los
 códigos internos no caen al catálogo global. Imágenes u otra metadata global se
 resuelven mediante `master_product_id`, sin duplicarlas en Product.
+
+### D-017 — Convergencia del catálogo maestro por ventanas
+
+**Estado:** vigente.
+
+**Decisión:** el cursor comprometido del catálogo avanza únicamente cuando la
+ventana completa termina. Cada página y su token de reanudación se persisten en
+la misma transacción local; una interrupción reanuda la ventana firmada o la
+repite desde el último cursor comprometido. Los tombstones forman parte del
+pull y las filas se aplican por `version`, sin sobrescribir una versión más
+nueva ni estado local dirty.
+
+**Consecuencias:** alcanzar el presupuesto de páginas produce un resultado
+incompleto y reanudable, no success. Reaplicar páginas es seguro y preferible a
+omitir registros; catálogo maestro y bootstrap operacional conservan
+mecanismos separados.

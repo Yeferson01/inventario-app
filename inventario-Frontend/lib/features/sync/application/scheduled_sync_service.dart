@@ -1,5 +1,6 @@
 import '../../../core/logging/app_logger.dart';
 import '../../catalog/application/catalog_sync_service.dart';
+import '../../catalog/data/models/catalog_remote_models.dart';
 import 'catalog_sync_upload_service.dart';
 import 'scheduled_sync_models.dart';
 import 'scheduled_sync_policy.dart';
@@ -76,12 +77,22 @@ class ScheduledSyncService {
         businessId: businessId,
       );
 
-      await _stateStore.markSlotCompleted(decision.slotKey);
+      if (pullResult.completed) {
+        await _stateStore.markSlotCompleted(decision.slotKey);
+      }
+
+      final resultReason = switch (pullResult.status) {
+        CatalogSyncRunStatus.complete => decision.reason,
+        CatalogSyncRunStatus.incomplete =>
+          'Catálogo incompleto y reanudable; el slot no fue completado.',
+        CatalogSyncRunStatus.failed =>
+          'Pull de catálogo falló (${pullResult.failureClassification}).',
+      };
 
       final result = ScheduledSyncRunResult(
         didRun: true,
         trigger: decision.trigger,
-        reason: decision.reason,
+        reason: resultReason,
         startedAt: startedAt,
         finishedAt: DateTime.now().toUtc(),
         catalogUploadResult: uploadResult.toJson(),
@@ -90,10 +101,17 @@ class ScheduledSyncService {
 
       await _stateStore.saveLastResult(result.toJson());
 
-      AppLogger.info(
-        'Scheduled sync completed: trigger=${decision.trigger.code} '
-        'business=$businessId slot=${decision.slotKey}',
-      );
+      if (pullResult.completed) {
+        AppLogger.info(
+          'Scheduled sync completed: trigger=${decision.trigger.code} '
+          'business=$businessId slot=${decision.slotKey}',
+        );
+      } else {
+        AppLogger.warning(
+          'Scheduled sync did not complete catalog pull: '
+          'status=${pullResult.status.name} business=$businessId',
+        );
+      }
 
       return result;
     } catch (error, stackTrace) {

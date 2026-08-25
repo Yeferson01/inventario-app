@@ -1,7 +1,34 @@
 import '../datasources/catalog_local_dao.dart';
 import '../models/catalog_local_models.dart';
 
-class CatalogLocalRepository {
+abstract interface class CatalogSyncLocalStore {
+  Future<void> markCatalogSyncStarted(String businessId);
+
+  Future<Map<String, dynamic>?> getCatalogSyncState(String businessId);
+
+  Future<CatalogDeltaApplyResult> applyCatalogDeltaPage({
+    required String businessId,
+    required List<Map<String, dynamic>> records,
+    required DateTime? committedSince,
+    required DateTime windowUpperBound,
+    required int? catalogVersion,
+    required Map<String, dynamic>? pageToken,
+    required bool completed,
+    required bool isSyncing,
+  });
+
+  Future<void> resetCatalogSyncResume({
+    required String businessId,
+    required bool clearCommittedCursor,
+  });
+
+  Future<void> markCatalogSyncFailed({
+    required String businessId,
+    required Object error,
+  });
+}
+
+class CatalogLocalRepository implements CatalogSyncLocalStore {
   CatalogLocalRepository(this._dao);
 
   final CatalogLocalDao _dao;
@@ -38,24 +65,35 @@ class CatalogLocalRepository {
     return _dao.applyCatalogDeltaRecords(records);
   }
 
-  Future<void> saveCatalogSyncSuccess({
+  @override
+  Future<CatalogDeltaApplyResult> applyCatalogDeltaPage({
     required String businessId,
-    required DateTime serverTime,
+    required List<Map<String, dynamic>> records,
+    required DateTime? committedSince,
+    required DateTime windowUpperBound,
     required int? catalogVersion,
-    Map<String, dynamic>? pageToken,
+    required Map<String, dynamic>? pageToken,
+    required bool completed,
+    required bool isSyncing,
   }) {
-    return _dao.saveCatalogSyncSuccess(
+    return _dao.applyCatalogDeltaPage(
       businessId: businessId,
-      serverTime: serverTime,
+      records: records,
+      committedSince: committedSince,
+      windowUpperBound: windowUpperBound,
       catalogVersion: catalogVersion,
       pageToken: pageToken,
+      completed: completed,
+      isSyncing: isSyncing,
     );
   }
 
+  @override
   Future<void> markCatalogSyncStarted(String businessId) {
     return _dao.markCatalogSyncStarted(businessId);
   }
 
+  @override
   Future<void> markCatalogSyncFailed({
     required String businessId,
     required Object error,
@@ -66,8 +104,20 @@ class CatalogLocalRepository {
     );
   }
 
+  @override
   Future<Map<String, dynamic>?> getCatalogSyncState(String businessId) {
     return _dao.getCatalogSyncState(businessId);
+  }
+
+  @override
+  Future<void> resetCatalogSyncResume({
+    required String businessId,
+    required bool clearCommittedCursor,
+  }) {
+    return _dao.resetCatalogSyncResume(
+      businessId: businessId,
+      clearCommittedCursor: clearCommittedCursor,
+    );
   }
 
   Future<String> queueContribution({

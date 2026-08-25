@@ -44,11 +44,17 @@ class CatalogDeltaApplyResult {
     required this.masterProductsUpserted,
     required this.productBarcodesUpserted,
     required this.ignoredRecords,
+    this.tombstonesApplied = 0,
+    this.staleRecordsIgnored = 0,
+    this.dirtyRecordsSkipped = 0,
   });
 
   final int masterProductsUpserted;
   final int productBarcodesUpserted;
   final int ignoredRecords;
+  final int tombstonesApplied;
+  final int staleRecordsIgnored;
+  final int dirtyRecordsSkipped;
 
   int get totalApplied => masterProductsUpserted + productBarcodesUpserted;
 
@@ -57,6 +63,9 @@ class CatalogDeltaApplyResult {
       'master_products_upserted': masterProductsUpserted,
       'product_barcodes_upserted': productBarcodesUpserted,
       'ignored_records': ignoredRecords,
+      'tombstones_applied': tombstonesApplied,
+      'stale_records_ignored': staleRecordsIgnored,
+      'dirty_records_skipped': dirtyRecordsSkipped,
       'total_applied': totalApplied,
     };
   }

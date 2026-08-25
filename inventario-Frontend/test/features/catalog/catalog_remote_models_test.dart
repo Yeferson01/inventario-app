@@ -15,9 +15,11 @@ void main() {
           },
         ],
         'server_time': '2026-06-23T12:00:00Z',
-        'catalog_version': 10,
-        'next_page_token': {'offset': 500},
+        'since_updated_at': '2026-06-22T12:00:00Z',
+        'current_catalog_version': 10,
+        'next_page_token': {'token_version': 1, 'token': 'signed'},
         'has_more': true,
+        'complete': false,
       });
 
       expect(response.records, hasLength(1));
@@ -27,25 +29,21 @@ void main() {
       expect(response.serverTime.toIso8601String(), contains('2026-06-23'));
     });
 
-    test('parses list response as records fallback', () {
-      final response = CatalogPullResponse.fromRpc([
-        {
-          'entity_type': 'global_barcode',
-          'payload': {
-            'id': 'barcode-1',
-          },
-        },
-      ]);
-
-      expect(response.records, hasLength(1));
-      expect(response.hasMore, isFalse);
+    test('rejects a non-object response instead of declaring it complete', () {
+      expect(
+        () => CatalogPullResponse.fromRpc(<Object>[]),
+        throwsA(isA<CatalogPullProtocolException>()),
+      );
     });
 
-    test('empty next_page_token does not imply hasMore', () {
+    test('parses an explicitly complete empty page', () {
       final response = CatalogPullResponse.fromRpc({
         'records': [],
         'server_time': '2026-06-23T12:00:00Z',
-        'next_page_token': {},
+        'since_updated_at': '1970-01-01T00:00:00Z',
+        'next_page_token': null,
+        'has_more': false,
+        'complete': true,
       });
 
       expect(response.nextPageToken, isNull);

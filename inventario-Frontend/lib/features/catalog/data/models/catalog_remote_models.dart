@@ -28,40 +28,72 @@ class CatalogPullResponse {
   const CatalogPullResponse({
     required this.records,
     required this.serverTime,
+    required this.sinceUpdatedAt,
     required this.catalogVersion,
     required this.nextPageToken,
     required this.hasMore,
+    required this.complete,
     required this.raw,
   });
 
   final List<Map<String, dynamic>> records;
   final DateTime serverTime;
+  final DateTime sinceUpdatedAt;
   final int? catalogVersion;
   final Map<String, dynamic>? nextPageToken;
   final bool hasMore;
+  final bool complete;
   final Map<String, dynamic> raw;
 
   factory CatalogPullResponse.fromRpc(dynamic value) {
-    final map = _asMap(value);
+    if (value is! Map) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull response must be a JSON object.',
+      );
+    }
+
+    final map = Map<String, dynamic>.from(value);
 
     final records = <Map<String, dynamic>>[];
     final rawRecords = map['records'] ?? map['data'] ?? map['items'] ?? [];
 
-    if (rawRecords is List) {
-      for (final item in rawRecords) {
-        if (item is Map<String, dynamic>) {
-          records.add(item);
-        } else if (item is Map) {
-          records.add(Map<String, dynamic>.from(item));
-        }
+    if (rawRecords is! List) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull records must be a JSON array.',
+      );
+    }
+
+    for (final item in rawRecords) {
+      if (item is Map<String, dynamic>) {
+        records.add(item);
+      } else if (item is Map) {
+        records.add(Map<String, dynamic>.from(item));
+      } else {
+        throw const CatalogPullProtocolException(
+          'Catalog pull contains a malformed record.',
+        );
       }
     }
 
-    final serverTime = _dateTime(map['server_time'] ?? map['serverTime']) ??
-        DateTime.now().toUtc();
+    final serverTime = _dateTime(
+      map['window_upper_bound'] ??
+          map['windowUpperBound'] ??
+          map['server_time'] ??
+          map['serverTime'],
+    );
+    final sinceUpdatedAt = _dateTime(
+      map['since_updated_at'] ?? map['sinceUpdatedAt'],
+    );
+
+    if (serverTime == null || sinceUpdatedAt == null) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull response is missing its window bounds.',
+      );
+    }
 
     final catalogVersion = _int(
-      map['catalog_version'] ??
+      map['current_catalog_version'] ??
+          map['catalog_version'] ??
           map['catalogVersion'] ??
           map['last_catalog_version'],
     );
@@ -73,41 +105,44 @@ class CatalogPullResponse {
           map['pageToken'],
     );
 
-    final hasMore = _bool(map['has_more'] ?? map['hasMore'] ?? map['more']) ??
-        (nextPageToken != null && nextPageToken.isNotEmpty);
+    final hasMore = _bool(map['has_more'] ?? map['hasMore'] ?? map['more']);
+
+    if (hasMore == null) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull response is missing has_more.',
+      );
+    }
+
+    if (hasMore && nextPageToken == null) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull response has more rows but no continuation token.',
+      );
+    }
+
+    if (!hasMore && nextPageToken != null) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull response is complete but still has a continuation token.',
+      );
+    }
+
+    final complete = _bool(map['complete']) ?? !hasMore;
+
+    if (complete == hasMore) {
+      throw const CatalogPullProtocolException(
+        'Catalog pull response has inconsistent completion metadata.',
+      );
+    }
 
     return CatalogPullResponse(
       records: records,
       serverTime: serverTime,
+      sinceUpdatedAt: sinceUpdatedAt,
       catalogVersion: catalogVersion,
       nextPageToken: nextPageToken,
       hasMore: hasMore,
+      complete: complete,
       raw: map,
     );
-  }
-
-  static Map<String, dynamic> _asMap(dynamic value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
-    }
-
-    if (value is List) {
-      return {
-        'records': value,
-        'server_time': DateTime.now().toUtc().toIso8601String(),
-        'has_more': false,
-      };
-    }
-
-    return {
-      'records': <Map<String, dynamic>>[],
-      'server_time': DateTime.now().toUtc().toIso8601String(),
-      'has_more': false,
-    };
   }
 
   static Map<String, dynamic>? _nullableMap(dynamic value) {
@@ -185,6 +220,21 @@ class CatalogPullResponse {
   }
 }
 
+class CatalogPullProtocolException implements Exception {
+  const CatalogPullProtocolException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'CatalogPullProtocolException: $message';
+}
+
+enum CatalogSyncRunStatus {
+  complete,
+  incomplete,
+  failed,
+}
+
 class CatalogSyncRunResult {
   const CatalogSyncRunResult({
     required this.pagesPulled,
@@ -193,7 +243,15 @@ class CatalogSyncRunResult {
     required this.masterProductsUpserted,
     required this.productBarcodesUpserted,
     required this.ignoredRecords,
-    required this.completed,
+    required this.status,
+    required this.resumed,
+    required this.committedCursorAdvanced,
+    required this.nextPageTokenPresent,
+    this.tombstonesApplied = 0,
+    this.staleRecordsIgnored = 0,
+    this.dirtyRecordsSkipped = 0,
+    this.failureClassification,
+    this.failureMessage,
   });
 
   final int pagesPulled;
@@ -202,7 +260,17 @@ class CatalogSyncRunResult {
   final int masterProductsUpserted;
   final int productBarcodesUpserted;
   final int ignoredRecords;
-  final bool completed;
+  final int tombstonesApplied;
+  final int staleRecordsIgnored;
+  final int dirtyRecordsSkipped;
+  final CatalogSyncRunStatus status;
+  final bool resumed;
+  final bool committedCursorAdvanced;
+  final bool nextPageTokenPresent;
+  final String? failureClassification;
+  final String? failureMessage;
+
+  bool get completed => status == CatalogSyncRunStatus.complete;
 
   Map<String, dynamic> toJson() {
     return {
@@ -212,7 +280,16 @@ class CatalogSyncRunResult {
       'master_products_upserted': masterProductsUpserted,
       'product_barcodes_upserted': productBarcodesUpserted,
       'ignored_records': ignoredRecords,
+      'tombstones_applied': tombstonesApplied,
+      'stale_records_ignored': staleRecordsIgnored,
+      'dirty_records_skipped': dirtyRecordsSkipped,
+      'status': status.name,
       'completed': completed,
+      'resumed': resumed,
+      'committed_cursor_advanced': committedCursorAdvanced,
+      'next_page_token_present': nextPageTokenPresent,
+      'failure_classification': failureClassification,
+      'failure_message': failureMessage,
     };
   }
 }
