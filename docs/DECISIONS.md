@@ -311,3 +311,38 @@ el lookup. Crear exige `products.create`; vincular un Product existente a master
 exige `products.update`. Los precios, `category_id`, `minimum_stock`, unidad y
 overrides pertenecen al negocio; la identidad y metadata descriptiva global son
 master-owned/sugeridas y no sobrescriben esos campos comerciales.
+
+### D-020 — Lectura global del catálogo y ACL mínimas
+
+**Estado:** vigente.
+
+**Decisión:** los datos de referencia activos y sincronizados del catálogo
+maestro global son legibles directamente por usuarios autenticados. Ese acceso
+de lectura no concede autoridad de mutación global. Los clientes envían
+propuestas mediante el RPC de contribuciones; solo la autoridad administrativa
+de plataforma puede revisarlas.
+
+Los roles cliente reciben ACL explícitas y mínimas. RLS delimita las filas que
+puede leer un rol autorizado, pero no sustituye la revocación de privilegios
+destructivos de tabla como `TRUNCATE`, `REFERENCES` o `TRIGGER`. Los tombstones
+necesarios para sincronización permanecen disponibles mediante el RPC
+`SECURITY DEFINER`, no mediante el `SELECT` directo.
+
+**Consecuencias:** `anon` no accede directamente a las tres tablas endurecidas
+ni a los RPCs de pull/submit/review; `authenticated` tiene lectura directa
+acotada y usa los RPCs autorizados para pull/submit; la revisión global
+permanece reservada a `service_role`.
+
+### D-021 — Inmutabilidad de migraciones compartidas
+
+**Estado:** vigente.
+
+**Decisión:** una migración se vuelve inmutable cuando ha sido aplicada a un
+entorno compartido o remoto. Una migración que nunca fue desplegada remotamente
+puede corregirse antes de su primer despliegue cuando hacerlo evita publicar un
+estado intermedio conocido como inválido.
+
+**Consecuencias:** la corrección PostgreSQL del token vacío queda incorporada
+directamente en CATALOG-2B antes de su primer despliegue y la migración local
+redundante CATALOG-2B.1 se retira del conjunto futuro. Esta excepción no permite
+reescribir migraciones ya compartidas.

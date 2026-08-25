@@ -63,7 +63,7 @@ begin
       message = 'Invalid catalog page token';
   end if;
 
-  if jsonb_object_length(v_page_token) = 0 then
+  if v_page_token = '{}'::jsonb then
     v_window_upper_bound := clock_timestamp();
   else
     if coalesce(v_page_token->>'token_version', '') <> '1'

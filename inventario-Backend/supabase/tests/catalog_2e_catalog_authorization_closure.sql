@@ -1,5 +1,5 @@
 -- Focused CATALOG-2E authorization checks.
--- Run only after migrations through 20260825160000 on a disposable database.
+-- Run after migrations through CATALOG-2F on a disposable database.
 
 begin;
 
@@ -104,7 +104,7 @@ select lives_ok(
   '4. products.create user can create its business Product'
 );
 
-select lives_ok(
+select throws_ok(
   $$insert into public.product_barcodes (
       id, business_id, product_id, master_product_id, barcode,
       barcode_normalized, barcode_type, scope
@@ -115,8 +115,11 @@ select lives_ok(
       'e2000000-0000-0000-0000-000000000301',
       'C2E-A-001', 'C2EA001', 'internal', 'business'
     )$$,
-  '5. products.create/update user can create a business code and reference an existing MasterProduct'
+  '42501', null,
+  '5. tenant ProductBarcode writes use sync instead of direct table DML'
 );
+
+reset role;
 
 select ok(
   private.has_sync_entity_permission(
@@ -127,6 +130,9 @@ select ok(
   ),
   '6. legitimate Product creator passes ProductBarcode sync authorization'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'e2000000-0000-0000-0000-000000000101', true);
 
 select throws_ok(
   $$insert into public.product_barcodes (
@@ -140,6 +146,9 @@ select throws_ok(
   '7. tenant user cannot create a barcode for another business'
 );
 
+reset role;
+set local role service_role;
+
 select throws_ok(
   $$insert into public.product_barcodes (
       business_id, product_id, barcode, barcode_normalized, barcode_type, scope
@@ -151,6 +160,10 @@ select throws_ok(
   'P0001', 'product_id does not belong to barcode business_id',
   '8. business barcode cannot reference a Product owned by another business'
 );
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'e2000000-0000-0000-0000-000000000101', true);
 
 select throws_ok(
   $$insert into public.product_barcodes (
@@ -186,6 +199,8 @@ select lives_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'e2000000-0000-0000-0000-000000000102', true);
+
+reset role;
 
 select is(
   private.has_sync_entity_permission(
