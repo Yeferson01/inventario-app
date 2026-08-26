@@ -446,7 +446,7 @@ begin
   end if;
 end;
 $$;
-select pass('13. cashier in A creates B as owner without changing membership in A');
+select pass('13. provisioning engine preserves A while creating invited tenant B');
 
 -- 14. An existing business id cannot be claimed by another authenticated user.
 select set_config(
@@ -687,7 +687,7 @@ select is(
 );
 
 select ok(
-  has_function_privilege(
+  not has_function_privilege(
     'authenticated',
     'public.create_business(uuid,uuid,text,text,text,text,jsonb)',
     'EXECUTE'
@@ -702,7 +702,7 @@ select ok(
     'public.create_business(uuid,uuid,text,text,text,text,jsonb)',
     'EXECUTE'
   ),
-  '24. create_business ACL grants authenticated/service_role and rejects anon'
+  '24. final create_business ACL is service-role only after ORG-1B'
 );
 
 select is(

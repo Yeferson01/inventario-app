@@ -226,6 +226,26 @@ Para una migración Supabase:
 Una migración presente en el repositorio no demuestra que haya sido aplicada ni
 probada en una instancia concreta.
 
+### Issue conocido: denegación de funciones en Supabase local
+
+En el stack local usado durante ORG-1B.1, PostgreSQL 17.6 con la imagen Supabase
+PostgreSQL 17.6.1.111 puede terminar el proceso con `SIGSEGV` cuando `anon` o
+`authenticated` invocan una función para la que no tienen `EXECUTE`. El entorno
+afectado usa Supabase CLI 2.115.0 y PostgREST 14.5. El repro ocurre incluso con
+una función mínima sin `EXECUTE`, antes de ejecutar su cuerpo; la misma función
+opera normalmente con `service_role`. `PGRST001` es una consecuencia del crash
+y recovery de PostgreSQL, no su causa.
+
+En stacks locales afectados, los tests de denegación deben comprobar
+`has_function_privilege(...)=false` y los ACL de `pg_proc.proacl`. Cuando una
+Edge Function exponga el RPC, también debe verificarse que rechace al caller no
+autorizado antes de invocar la función administrativa. La Edge Function de
+ORG-1B ya devuelve 403 para `authenticated` ordinario y Owner antes del RPC.
+
+Esta limitación conocida del entorno local de testing **no justifica conceder
+`EXECUTE` a `anon` o `authenticated` ni debilitar ACLs de producción**. Debe
+reevaluarse después de actualizar Supabase PostgreSQL/supautils.
+
 ## Fallos de entorno
 
 Si Codex o una persona no puede ejecutar una prueba, el reporte debe incluir:

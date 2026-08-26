@@ -136,6 +136,40 @@ inventario y payloads de sincronización.
 La ausencia o selección incorrecta de contexto no es un detalle visual: cambia
 el tenant, la sucursal y las autorizaciones de una operación.
 
+## Onboarding privado de plataforma
+
+La creación inicial de un tenant no es una capability empresarial ni una
+facultad de cualquier usuario autenticado. La autoridad durable es una
+invitación privada emitida exclusivamente por `service_role` y almacenada en
+`private.platform_business_invitations`.
+
+La invitación fija desde su emisión los IDs canónicos de `business` y de la
+primera `branch`. `accept_platform_business_invitation` valida al usuario y su
+email, bloquea y consume la invitación y reutiliza `create_business` como único
+motor de aprovisionamiento dentro de la misma transacción. El RPC histórico
+`create_business` ya no es invocable directamente por `authenticated`.
+
+La primera sucursal activa queda identificada formalmente mediante
+`branches.is_primary`; existe como máximo una sucursal primaria no eliminada
+por negocio. El Owner inicial continúa siendo una membership business-wide y
+no representa autoridad administrativa sobre la plataforma.
+
+La Edge Function `platform-business-invitations` es una frontera server-side:
+valida al emisor mediante el RPC reservado a `service_role`, solicita el envío
+de Auth y registra por separado su estado de entrega. La entrega del email no
+es la autoridad de aceptación y un usuario Auth ya existente puede aceptar una
+invitación durable válida sin crear otra cuenta.
+
+El onboarding no crea `app_device`. Después de aceptar se conserva la cadena:
+
+```text
+discovery → selección → register_or_update_app_device → runtime → bootstrap
+```
+
+La preparación operacional y la preparación del catálogo maestro son estados
+distintos. `operationalReady` no implica `catalogReady`; el bootstrap inicial
+del catálogo pertenece a ORG-1D.
+
 ## Arquitectura de sincronización
 
 ### Outbox común

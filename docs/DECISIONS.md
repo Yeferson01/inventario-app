@@ -346,3 +346,28 @@ estado intermedio conocido como inválido.
 directamente en CATALOG-2B antes de su primer despliegue y la migración local
 redundante CATALOG-2B.1 se retira del conjunto futuro. Esta excepción no permite
 reescribir migraciones ya compartidas.
+
+### D-022 — Onboarding privado mediante invitación durable
+
+**Estado:** vigente.
+
+**Decisión:** crear un nuevo tenant requiere una invitación durable de
+plataforma emitida exclusivamente por `service_role`. Business Owner/Admin no
+es autoridad de plataforma. La invitación fija los IDs canónicos de Business y
+de su Branch primaria; su aceptación autenticada consume la invitación y
+reutiliza `create_business` en una única transacción. `create_business` no es
+una capability directa del rol `authenticated`.
+
+La primera Branch activa tiene identidad formal mediante `is_primary` y existe
+como máximo una primaria no eliminada por Business. El Owner inicial conserva
+membership business-wide (`branch_id IS NULL`). El `app_device` se registra
+después de discovery y selección, no durante la aceptación.
+
+**Motivo:** impedir signup empresarial abierto, replay y duplicación accidental
+por retries con UUID nuevos, sin crear un segundo motor de aprovisionamiento ni
+confundir autoridad de tenant con autoridad global de Cronos.
+
+**Consecuencias:** la emisión y el estado de entrega de email son server-side y
+separados de la autoridad de aceptación. Usuarios y negocios existentes no
+requieren invitaciones retroactivas. `operationalReady` y `catalogReady` son
+estados distintos; la inicialización del catálogo se implementará en ORG-1D.
