@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
 import '../../../../core/utils/app_uuid.dart';
+import '../../../../core/utils/barcode_normalizer.dart';
 import '../models/product_stock_balance_models.dart';
 
 class ProductStockBalanceLocalDao {
@@ -309,8 +310,10 @@ class ProductStockBalanceLocalDao {
   Future<List<Map<String, dynamic>>> getProductsWithLocalStock({
     required String businessId,
     required String branchId,
+    String searchTerm = '',
     int? limit = 100,
   }) async {
+    final search = _ProductStockSearch.from(searchTerm);
     final limitClause = limit == null ? '' : 'limit ?';
     final rows = await _db.customSelect(
       '''
@@ -340,18 +343,23 @@ class ProductStockBalanceLocalDao {
       where p.business_id = ?
         and p.status = 'active'
         and p.deleted_at is null
-      order by lower(p.name) asc
+        ${search.whereClause}
+      order by
+        ${search.orderByPrefix}
+        lower(p.name) asc
       $limitClause
       ''',
       variables: [
         Variable<String>(branchId),
         Variable<String>(branchId),
         Variable<String>(businessId),
+        ...search.variables,
         if (limit != null) Variable<int>(limit),
       ],
       readsFrom: {
         _db.products,
         _db.localProductStockBalances,
+        if (search.isActive) _db.localProductBarcodes,
       },
     ).get();
 
@@ -361,8 +369,10 @@ class ProductStockBalanceLocalDao {
   Stream<List<Map<String, dynamic>>> watchProductsWithLocalStock({
     required String businessId,
     required String branchId,
+    String searchTerm = '',
     int? limit = 100,
   }) {
+    final search = _ProductStockSearch.from(searchTerm);
     final limitClause = limit == null ? '' : 'limit ?';
 
     return _db
@@ -394,18 +404,23 @@ class ProductStockBalanceLocalDao {
           where p.business_id = ?
             and p.status = 'active'
             and p.deleted_at is null
-          order by lower(p.name) asc
+            ${search.whereClause}
+          order by
+            ${search.orderByPrefix}
+            lower(p.name) asc
           $limitClause
           ''',
           variables: [
             Variable<String>(branchId),
             Variable<String>(branchId),
             Variable<String>(businessId),
+            ...search.variables,
             if (limit != null) Variable<int>(limit),
           ],
           readsFrom: {
             _db.products,
             _db.localProductStockBalances,
+            if (search.isActive) _db.localProductBarcodes,
           },
         )
         .watch()
@@ -521,5 +536,88 @@ class ProductStockBalanceLocalDao {
       sql,
       normalizeSqliteParameters(parameters),
     );
+  }
+}
+
+class _ProductStockSearch {
+  const _ProductStockSearch._({
+    required this.whereClause,
+    required this.orderByPrefix,
+    required this.variables,
+    required this.isActive,
+  });
+
+  factory _ProductStockSearch.from(String rawTerm) {
+    final nameTerm = rawTerm.trim().toLowerCase();
+
+    if (nameTerm.isEmpty) {
+      return const _ProductStockSearch._(
+        whereClause: '',
+        orderByPrefix: '',
+        variables: <Variable>[],
+        isActive: false,
+      );
+    }
+
+    final barcodeTerm = BarcodeNormalizer.normalize(rawTerm);
+    final variables = <Variable>[
+      Variable<String>('%${_escapeLike(nameTerm)}%'),
+    ];
+    var barcodeClause = '';
+    var orderByPrefix = '';
+
+    if (barcodeTerm.isNotEmpty) {
+      barcodeClause = '''
+        or exists (
+          select 1
+          from local_product_barcodes pb
+          where pb.scope = 'business'
+            and pb.business_id = p.business_id
+            and pb.product_id = p.id
+            and pb.status = 'active'
+            and pb.deleted_at is null
+            and pb.barcode_normalized like ? escape '\\'
+        )
+      ''';
+      orderByPrefix = '''
+        case when exists (
+          select 1
+          from local_product_barcodes exact_pb
+          where exact_pb.scope = 'business'
+            and exact_pb.business_id = p.business_id
+            and exact_pb.product_id = p.id
+            and exact_pb.status = 'active'
+            and exact_pb.deleted_at is null
+            and exact_pb.barcode_normalized = ?
+        ) then 0 else 1 end,
+      ''';
+      variables
+        ..add(Variable<String>('%${_escapeLike(barcodeTerm)}%'))
+        ..add(Variable<String>(barcodeTerm));
+    }
+
+    return _ProductStockSearch._(
+      whereClause: '''
+        and (
+          lower(p.name) like ? escape '\\'
+          $barcodeClause
+        )
+      ''',
+      orderByPrefix: orderByPrefix,
+      variables: variables,
+      isActive: true,
+    );
+  }
+
+  final String whereClause;
+  final String orderByPrefix;
+  final List<Variable> variables;
+  final bool isActive;
+
+  static String _escapeLike(String value) {
+    return value
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
   }
 }

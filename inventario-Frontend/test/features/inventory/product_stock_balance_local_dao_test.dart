@@ -291,6 +291,248 @@ void main() {
     expect(streamedProducts, hasLength(101));
   });
 
+  test('search supports empty terms and case-insensitive partial names',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'rice',
+      businessId: businessId,
+      name: 'Arroz Integral',
+    );
+    await _insertProduct(
+      database,
+      id: 'coffee',
+      businessId: businessId,
+      name: 'Cafe Molido',
+    );
+
+    final unfiltered = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: '   ',
+      limit: null,
+    );
+    final filtered = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: ' RRoZ ',
+      limit: null,
+    );
+
+    expect(unfiltered, hasLength(2));
+    expect(filtered.single['product_id'], 'rice');
+    expect(filtered.single['quantity_on_hand'], 0);
+  });
+
+  test('business barcodes search once per product and prioritize exact codes',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'exact',
+      businessId: businessId,
+      name: 'Z producto exacto',
+    );
+    await _insertProduct(
+      database,
+      id: 'partial',
+      businessId: businessId,
+      name: 'A producto parcial',
+    );
+    await _insertBarcode(
+      database,
+      id: 'exact-primary',
+      businessId: businessId,
+      productId: 'exact',
+      barcode: 'SKU-001',
+      normalized: 'SKU001',
+      barcodeType: 'local_sku',
+    );
+    await _insertBarcode(
+      database,
+      id: 'exact-secondary',
+      businessId: businessId,
+      productId: 'exact',
+      barcode: 'ALT-001',
+      normalized: 'ALT001',
+      barcodeType: 'internal',
+    );
+    await _insertBarcode(
+      database,
+      id: 'partial-code',
+      businessId: businessId,
+      productId: 'partial',
+      barcode: 'XX-SKU-001-YY',
+      normalized: 'XXSKU001YY',
+      barcodeType: 'internal',
+    );
+
+    final exactFirst = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: ' sku-001 ',
+      limit: null,
+    );
+    final multipleCodeMatch = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: '001',
+      limit: null,
+    );
+
+    expect(
+      exactFirst.map((product) => product['product_id']),
+      ['exact', 'partial'],
+    );
+    expect(
+      multipleCodeMatch.map((product) => product['product_id']).toSet(),
+      {'exact', 'partial'},
+    );
+    expect(multipleCodeMatch, hasLength(2));
+  });
+
+  test('barcode search excludes other businesses and inactive local rows',
+      () async {
+    await database.into(database.businesses).insert(
+          BusinessesCompanion.insert(
+            id: 'business-2',
+            name: 'Otro negocio',
+          ),
+        );
+    await _insertProduct(
+      database,
+      id: 'other-business-product',
+      businessId: 'business-2',
+      name: 'Producto ajeno',
+    );
+    await _insertProduct(
+      database,
+      id: 'visible-product',
+      businessId: businessId,
+      name: 'Producto visible',
+    );
+    await _insertProduct(
+      database,
+      id: 'inactive-code-product',
+      businessId: businessId,
+      name: 'Producto código inactivo',
+    );
+    await _insertProduct(
+      database,
+      id: 'deleted-code-product',
+      businessId: businessId,
+      name: 'Producto código eliminado',
+    );
+    await _insertBarcode(
+      database,
+      id: 'other-business-code',
+      businessId: 'business-2',
+      productId: 'other-business-product',
+      barcode: 'PRIVATE-77',
+      normalized: 'PRIVATE77',
+    );
+    await _insertBarcode(
+      database,
+      id: 'visible-code',
+      businessId: businessId,
+      productId: 'visible-product',
+      barcode: 'PRIVATE-77',
+      normalized: 'PRIVATE77',
+    );
+    await _insertBarcode(
+      database,
+      id: 'inactive-code',
+      businessId: businessId,
+      productId: 'inactive-code-product',
+      barcode: 'PRIVATE-77',
+      normalized: 'PRIVATE77',
+      status: 'inactive',
+    );
+    await _insertBarcode(
+      database,
+      id: 'deleted-code',
+      businessId: businessId,
+      productId: 'deleted-code-product',
+      barcode: 'PRIVATE-77',
+      normalized: 'PRIVATE77',
+      deletedAt: DateTime.utc(2026, 8, 1),
+    );
+    await database.into(database.localMasterProductsCatalog).insert(
+          LocalMasterProductsCatalogCompanion.insert(
+            id: 'master-only',
+            name: const Value('Producto master sin alta local'),
+          ),
+        );
+    await database.into(database.localProductBarcodes).insert(
+          LocalProductBarcodesCompanion.insert(
+            id: 'global-code',
+            scope: 'global',
+            masterProductId: const Value('master-only'),
+            barcode: 'PRIVATE-77',
+            barcodeNormalized: 'PRIVATE77',
+          ),
+        );
+    await _insertBalance(
+      database,
+      id: 'visible-current-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'visible-product',
+      quantityOnHand: 4,
+    );
+    await _insertBalance(
+      database,
+      id: 'visible-other-branch-balance',
+      businessId: businessId,
+      branchId: 'branch-2',
+      productId: 'visible-product',
+      quantityOnHand: 99,
+    );
+
+    final products = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: 'private-77',
+      limit: null,
+    );
+
+    expect(products, hasLength(1));
+    expect(products.single['product_id'], 'visible-product');
+    expect(products.single['quantity_on_hand'], 4);
+  });
+
+  test('active search reacts when a local business barcode is created',
+      () async {
+    final match = dao
+        .watchProductsWithLocalStock(
+          businessId: businessId,
+          branchId: branchId,
+          searchTerm: 'new-123',
+          limit: null,
+        )
+        .firstWhere((rows) => rows.isNotEmpty);
+    await Future<void>.delayed(Duration.zero);
+
+    await _insertProduct(
+      database,
+      id: 'new-product',
+      businessId: businessId,
+      name: 'Producto creado',
+    );
+    await _insertBarcode(
+      database,
+      id: 'new-code',
+      businessId: businessId,
+      productId: 'new-product',
+      barcode: 'NEW-123',
+      normalized: 'NEW123',
+      barcodeType: 'internal',
+    );
+
+    final products = await match;
+    expect(products.single['product_id'], 'new-product');
+    expect(products.single['quantity_on_hand'], 0);
+  });
+
   test('remote base upsert reconciles by scope and preserves local row ID',
       () async {
     await _insertProduct(
@@ -405,6 +647,32 @@ Future<void> _insertBalance(
           productId: productId,
           quantityOnHand: Value(quantityOnHand),
           quantityAvailable: Value(quantityOnHand),
+          deletedAt: Value(deletedAt),
+        ),
+      );
+}
+
+Future<void> _insertBarcode(
+  AppDatabase database, {
+  required String id,
+  required String businessId,
+  required String productId,
+  required String barcode,
+  required String normalized,
+  String barcodeType = 'internal',
+  String status = 'active',
+  DateTime? deletedAt,
+}) {
+  return database.into(database.localProductBarcodes).insert(
+        LocalProductBarcodesCompanion.insert(
+          id: id,
+          scope: 'business',
+          businessId: Value(businessId),
+          productId: Value(productId),
+          barcode: barcode,
+          barcodeNormalized: normalized,
+          barcodeType: Value(barcodeType),
+          status: Value(status),
           deletedAt: Value(deletedAt),
         ),
       );

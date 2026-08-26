@@ -76,6 +76,82 @@ void main() {
     expect(find.text('Stock: 999'), findsNothing);
     expect(find.text('Stock: 40'), findsNothing);
   });
+
+  testWidgets('searches through the application provider and clears results', (
+    tester,
+  ) async {
+    final products = [
+      {
+        'product_id': 'product-1',
+        'product_name': 'Arroz',
+        'barcode': '7701234567890',
+        'quantity_on_hand': 15,
+      },
+      {
+        'product_id': 'product-2',
+        'product_name': 'Cafe',
+        'barcode': null,
+        'quantity_on_hand': 0,
+      },
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localProductsWithStockProvider.overrideWith((ref, key) {
+            final term = key.searchTerm.trim().toLowerCase();
+            if (term.isEmpty) {
+              return Stream.value(products);
+            }
+            if (term == 'arr') {
+              return Stream.value([products.first]);
+            }
+            return Stream.value(const <Map<String, dynamic>>[]);
+          }),
+        ],
+        child: const MaterialApp(
+          home: InventoryProductStockListScreen(
+            businessId: 'business-1',
+            branchId: 'branch-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Buscar por nombre o código'), findsOneWidget);
+    expect(find.text('Arroz'), findsOneWidget);
+    expect(find.text('Cafe'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('inventory-search-field')),
+      'arr',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Arroz'), findsOneWidget);
+    expect(find.text('Cafe'), findsNothing);
+    expect(find.byKey(const Key('inventory-search-clear')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('inventory-search-field')),
+      'sin coincidencias',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('inventory-search-empty')), findsOneWidget);
+    expect(find.text('No se encontraron productos'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('inventory-search-clear')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Arroz'), findsOneWidget);
+    expect(find.text('Cafe'), findsOneWidget);
+    expect(find.byKey(const Key('inventory-search-clear')), findsNothing);
+  });
 }
 
 Future<void> _pumpScreen(

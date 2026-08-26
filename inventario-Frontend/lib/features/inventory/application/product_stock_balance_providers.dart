@@ -37,11 +37,13 @@ class ProductsWithLocalStockKey {
   const ProductsWithLocalStockKey({
     required this.businessId,
     required this.branchId,
+    this.searchTerm = '',
     this.limit = 100,
   });
 
   final String businessId;
   final String branchId;
+  final String searchTerm;
   final int? limit;
 
   @override
@@ -49,6 +51,7 @@ class ProductsWithLocalStockKey {
     return other is ProductsWithLocalStockKey &&
         other.businessId == businessId &&
         other.branchId == branchId &&
+        other.searchTerm == searchTerm &&
         other.limit == limit;
   }
 
@@ -56,6 +59,7 @@ class ProductsWithLocalStockKey {
   int get hashCode => Object.hash(
         businessId,
         branchId,
+        searchTerm,
         limit,
       );
 }
@@ -101,6 +105,7 @@ final localProductsWithStockProvider = StreamProvider.family<
   return dao.watchProductsWithLocalStock(
     businessId: key.businessId,
     branchId: key.branchId,
+    searchTerm: key.searchTerm,
     limit: key.limit,
   );
 });

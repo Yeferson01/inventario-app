@@ -5,7 +5,7 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../application/product_stock_balance_providers.dart';
 
-class InventoryProductStockListScreen extends ConsumerWidget {
+class InventoryProductStockListScreen extends ConsumerStatefulWidget {
   const InventoryProductStockListScreen({
     super.key,
     required this.businessId,
@@ -16,16 +16,45 @@ class InventoryProductStockListScreen extends ConsumerWidget {
   final String branchId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InventoryProductStockListScreen> createState() =>
+      _InventoryProductStockListScreenState();
+}
+
+class _InventoryProductStockListScreenState
+    extends ConsumerState<InventoryProductStockListScreen> {
+  final _searchController = TextEditingController();
+  String _searchTerm = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchTerm = value;
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final productsAsync = ref.watch(
       localProductsWithStockProvider(
         ProductsWithLocalStockKey(
-          businessId: businessId,
-          branchId: branchId,
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+          searchTerm: _searchTerm,
           limit: null,
         ),
       ),
     );
+    final hasSearch = _searchTerm.trim().isNotEmpty;
 
     return Theme(
       data: CronosTheme.light(),
@@ -34,45 +63,88 @@ class InventoryProductStockListScreen extends ConsumerWidget {
           title: const Text('Inventario'),
         ),
         body: AppGradientBackground(
-          child: productsAsync.when(
-            loading: () => const Center(
-              key: Key('inventory-loading'),
-              child: CircularProgressIndicator(),
-            ),
-            error: (error, _) => _InventoryStateMessage(
-              key: const Key('inventory-error'),
-              icon: Icons.error_outline,
-              title: 'No se pudo cargar el inventario',
-              message: error.toString(),
-            ),
-            data: (products) {
-              if (products.isEmpty) {
-                return const _InventoryStateMessage(
-                  key: Key('inventory-empty'),
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Sin productos',
-                  message:
-                      'No hay productos visibles para el negocio seleccionado.',
-                );
-              }
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  CronosSpacing.md,
+                  CronosSpacing.md,
+                  CronosSpacing.md,
+                  0,
+                ),
+                child: TextField(
+                  key: const Key('inventory-search-field'),
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar por nombre o código',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: hasSearch
+                        ? IconButton(
+                            key: const Key('inventory-search-clear'),
+                            tooltip: 'Limpiar búsqueda',
+                            onPressed: _clearSearch,
+                            icon: const Icon(Icons.clear),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: productsAsync.when(
+                  loading: () => const Center(
+                    key: Key('inventory-loading'),
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (error, _) => _InventoryStateMessage(
+                    key: const Key('inventory-error'),
+                    icon: Icons.error_outline,
+                    title: 'No se pudo cargar el inventario',
+                    message: error.toString(),
+                  ),
+                  data: (products) {
+                    if (products.isEmpty) {
+                      if (hasSearch) {
+                        return const _InventoryStateMessage(
+                          key: Key('inventory-search-empty'),
+                          icon: Icons.search_off,
+                          title: 'No se encontraron productos',
+                          message:
+                              'Prueba con otro nombre o código del producto.',
+                        );
+                      }
 
-              return ListView.separated(
-                key: const Key('inventory-product-list'),
-                padding: const EdgeInsets.all(CronosSpacing.md),
-                itemCount: products.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: CronosSpacing.sm),
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  final productId = _string(product['product_id']) ?? '$index';
+                      return const _InventoryStateMessage(
+                        key: Key('inventory-empty'),
+                        icon: Icons.inventory_2_outlined,
+                        title: 'Sin productos',
+                        message:
+                            'No hay productos visibles para el negocio seleccionado.',
+                      );
+                    }
 
-                  return _InventoryProductCard(
-                    key: Key('inventory-product-$productId'),
-                    product: product,
-                  );
-                },
-              );
-            },
+                    return ListView.separated(
+                      key: const Key('inventory-product-list'),
+                      padding: const EdgeInsets.all(CronosSpacing.md),
+                      itemCount: products.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: CronosSpacing.sm),
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        final productId =
+                            _string(product['product_id']) ?? '$index';
+
+                        return _InventoryProductCard(
+                          key: Key('inventory-product-$productId'),
+                          product: product,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
