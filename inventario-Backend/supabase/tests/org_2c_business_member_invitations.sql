@@ -304,10 +304,18 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'fc200000-0000-0000-0000-000000000002', true);
-select throws_ok(
-  $$select public.list_business_member_invitations('fc200000-0000-0000-0000-000000000101')$$,
-  '42501', 'Business-wide members.invite permission is required',
-  '22. branch-specific inviter cannot enumerate all Business invitations'
+select ok(
+  (
+    select jsonb_array_length(response -> 'invitations') = 1
+      and response -> 'invitations' -> 0 ->> 'branch_id'
+        = 'fc200000-0000-0000-0000-000000000111'
+    from (
+      select public.list_business_member_invitations(
+        'fc200000-0000-0000-0000-000000000101'
+      ) response
+    ) listed
+  ),
+  '22. branch-specific inviter lists only invitations from its Branch'
 );
 reset role;
 
@@ -596,7 +604,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'fc200000-0000-0000-0000-000000000001', true);
 select throws_ok(
   $$select public.list_business_member_invitations('fc200000-0000-0000-0000-000000000102')$$,
-  '42501', 'Business-wide members.invite permission is required',
+  '42501', 'members.invite permission is required for this Business',
   '43. Business A inviter cannot list Business B invitations'
 );
 select throws_ok(

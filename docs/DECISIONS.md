@@ -440,3 +440,19 @@ scope.
 `business_members`. Owner, Admin, roles custom y cambios de lifecycle o role se
 deferirán a ORG-3. ORG-2D integrará estas invitaciones en el resolver de acceso
 sin crear device ni ejecutar bootstrap durante la aceptación.
+
+### D-027 — Opciones y listado de invitaciones derivados por scope
+
+**Estado:** vigente.
+
+**Decisión:** los roles target y scopes disponibles para administrar
+invitaciones se obtienen online mediante
+`list_business_member_invitation_options`. El RPC deriva el actor de
+`auth.uid()`, devuelve únicamente roles aceptados por la allowlist ORG-2C y
+distingue autoridad business-wide de las Branches activas administrables.
+
+**Consecuencias:** Flutter no hardcodea role UUIDs ni lee `roles` directamente.
+`list_business_member_invitations` expone todo el Business solo con autoridad
+business-wide; un actor branch-specific ve exclusivamente las invitaciones de
+sus Branches administrables actuales. `settings.branches` no participa en esta
+autoridad.

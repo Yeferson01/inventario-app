@@ -227,6 +227,13 @@ invitaciones de plataforma e invitaciones de miembros antes de continuar con
 selección, device y bootstrap; la aceptación no crea `app_device` ni ejecuta
 bootstrap.
 
+Los datos read-side para esa UI también son server-authoritative.
+`list_business_member_invitation_options` deriva de `auth.uid()` los scopes
+administrables, el indicador business-wide y los IDs canónicos de los tres
+roles delegables; Flutter no consulta `roles` ni resuelve sus UUIDs. El listado
+administrativo devuelve todas las invitaciones con autoridad business-wide o
+solo las Branches activas cubiertas por las memberships actuales del actor.
+
 ## Arquitectura de sincronización
 
 ### Outbox común

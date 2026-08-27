@@ -301,6 +301,15 @@ Edge Function usan Auth y Mailpit locales: comprueban 401 sin token, 403 de
 autoridad, usuario nuevo, usuario Auth existente y ausencia de credenciales
 server-side en la respuesta. ORG-2B, ORG-1B y R1.1c son regresiones focales.
 
+ORG-2C.1 valida que las opciones devuelvan exactamente los roles delegables,
+que el flag business-wide y las Branches provengan de `members.invite` vigente
+y que Branches inactivas/eliminadas no aparezcan. El listado administrativo
+debe cubrir todo el Business para autoridad business-wide y solo A+C para un
+actor multi-Branch con esos scopes, sin filtrar por quien emitió originalmente
+la invitación. Una invitación pending listada debe ser compatible con el RPC de
+revocación mientras la autoridad permanezca vigente; ORG-2C 44/44 es la
+regresión focal obligatoria.
+
 ## Fallos de entorno
 
 Si Codex o una persona no puede ejecutar una prueba, el reporte debe incluir:

@@ -87,6 +87,9 @@ inventario, transferencias, conteos o conflictos.
   entrega, aceptación y revocación usan autoridad durable separada de
   plataforma, `members.invite` por scope y una allowlist temporal de roles; el
   DML cliente sobre memberships quedó cerrado.
+- ✅ **ORG-2C.1 — Contrato read-side de invitaciones.** Las opciones server-side
+  entregan role IDs canónicos, autoridad business-wide y Branches administrables;
+  el listado administrativo queda filtrado por el scope vigente del actor.
 - ⏳ **ORG-2D — UI de Administración.** Pendiente para Sucursales y Equipo.
 
 El lifecycle de primary, edición, desactivación y eliminación de Branches queda
