@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/logging/app_logger.dart';
+import '../../../catalog/application/catalog_local_providers.dart';
 import '../../application/app_sync_coordinator_models.dart';
 import '../../application/local_sync_outbox_providers.dart';
 
@@ -94,6 +95,16 @@ class _AppSyncLifecycleGateState extends ConsumerState<AppSyncLifecycleGate>
       if (!mounted || input == null) {
         return;
       }
+
+      await ref
+          .read(initialCatalogBootstrapCoordinatorProvider)
+          .ensureCatalogReady(
+            businessId: input.businessId,
+            operationalReady: true,
+            shouldContinue: () => mounted,
+          );
+
+      if (!mounted) return;
 
       final coordinator = ref.read(appSyncCoordinatorServiceProvider);
 

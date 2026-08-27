@@ -70,8 +70,10 @@ inventario, transferencias, conteos o conflictos.
 - ✅ **ORG-1C — Auth productivo y UX de invitaciones privadas.** El router usa
   sesión Supabase, no existe signup público, el resolver combina contextos e
   invitaciones y la aceptación vuelve a discovery/runtime/bootstrap.
-- ⏳ **ORG-1D — Inicialización del catálogo.** Continúa separado de
-  `operationalReady`; no forma parte de ORG-1C.
+- ✅ **ORG-1D — Inicialización del catálogo.** Después de `operationalReady`, el
+  catálogo maestro inicia o reanuda inmediatamente CATALOG-2B sin bloquear la
+  operación ni esperar las ventanas programadas. `catalogReady` exige una
+  primera ventana completa y permanece durable ante errores delta posteriores.
 
 ## 6.20 — Producto rápido desde Compras
 

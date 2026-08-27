@@ -109,6 +109,10 @@ class CatalogLocalRepository implements CatalogSyncLocalStore {
     return _dao.getCatalogSyncState(businessId);
   }
 
+  Stream<Map<String, dynamic>?> watchCatalogSyncState(String businessId) {
+    return _dao.watchCatalogSyncState(businessId);
+  }
+
   @override
   Future<void> resetCatalogSyncResume({
     required String businessId,

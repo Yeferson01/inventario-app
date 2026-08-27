@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Variable;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
+import 'package:inventario_frontend/core/database/utils/sqlite_parameter_utils.dart';
 import 'package:inventario_frontend/features/catalog/application/catalog_sync_service.dart';
 import 'package:inventario_frontend/features/catalog/data/datasources/catalog_local_dao.dart';
 import 'package:inventario_frontend/features/catalog/data/datasources/catalog_remote_datasource.dart';
@@ -59,6 +61,28 @@ void main() {
         remote.requests.every((request) => request.sinceUpdatedAt == null),
         isTrue,
       );
+    });
+
+    test('coalesces concurrent catalog pulls into one effective run', () async {
+      final store = _MemoryCatalogSyncStore();
+      final remote = _BlockingCatalogRemote();
+      final service = CatalogSyncService(
+        remoteDataSource: remote,
+        localRepository: store,
+      );
+
+      final first = service.pullCatalogDelta(businessId: 'business-1');
+      final second = service.pullCatalogDelta(businessId: 'business-1');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(identical(first, second), isTrue);
+      expect(remote.requests, 1);
+
+      remote.release.complete();
+      final results = await Future.wait([first, second]);
+
+      expect(results.every((result) => result.completed), isTrue);
+      expect(remote.requests, 1);
     });
   });
 
@@ -150,6 +174,44 @@ void main() {
       expect(productCount.read<int>('count'), 0);
       expect(stateCount.read<int>('count'), 0);
     });
+
+    test('epoch replay clears legacy completion evidence', () async {
+      await database.customStatement(
+        '''
+        insert into local_catalog_sync_state (
+          id,
+          business_id,
+          last_catalog_pull_at,
+          last_server_time,
+          last_since_updated_at,
+          last_catalog_version,
+          last_page_token,
+          is_syncing
+        ) values (?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        normalizeSqliteParameters([
+          'business-1',
+          'business-1',
+          DateTime.parse('2026-08-24T12:00:00Z'),
+          DateTime.parse('2026-08-24T12:00:00Z'),
+          DateTime.parse('2026-08-24T12:00:00Z'),
+          1,
+          jsonEncode({'offset': 10000}),
+          false,
+        ]),
+      );
+
+      await dao.resetCatalogSyncResume(
+        businessId: 'business-1',
+        clearCommittedCursor: true,
+      );
+      final state = await dao.getCatalogSyncState('business-1');
+
+      expect(state?['last_catalog_pull_at'], isNull);
+      expect(state?['last_since_updated_at'], isNull);
+      expect(state?['last_catalog_version'], isNull);
+      expect(state?['last_page_token'], isNull);
+    });
   });
 }
 
@@ -215,6 +277,31 @@ class _PagedCatalogRemote implements CatalogRemoteDataSource {
       nextPageToken: nextToken,
       hasMore: hasMore,
       complete: !hasMore,
+      raw: const {},
+    );
+  }
+}
+
+class _BlockingCatalogRemote implements CatalogRemoteDataSource {
+  final Completer<void> release = Completer<void>();
+  int requests = 0;
+
+  @override
+  Future<CatalogPullResponse> pullProductCatalogDelta(
+    CatalogPullRequest request,
+  ) async {
+    requests++;
+    await release.future;
+    final serverTime = DateTime.parse('2026-08-27T12:00:00Z');
+    return CatalogPullResponse(
+      records: const [],
+      serverTime: serverTime,
+      sinceUpdatedAt:
+          request.sinceUpdatedAt ?? DateTime.parse('1970-01-01T00:00:00Z'),
+      catalogVersion: 1,
+      nextPageToken: null,
+      hasMore: false,
+      complete: true,
       raw: const {},
     );
   }

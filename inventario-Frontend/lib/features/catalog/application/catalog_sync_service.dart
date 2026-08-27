@@ -16,16 +16,46 @@ class CatalogSyncService {
 
   final CatalogRemoteDataSource _remoteDataSource;
   final CatalogSyncLocalStore _localRepository;
+  final Map<_CatalogPullKey, Future<CatalogSyncRunResult>> _activePulls = {};
+  Future<void> _pullQueue = Future<void>.value();
 
   Future<CatalogSyncRunResult> pullCatalogDelta({
     required String businessId,
     int pageLimit = 500,
     int maxPages = 20,
-  }) async {
+  }) {
     if (pageLimit <= 0 || maxPages <= 0) {
       throw ArgumentError('pageLimit and maxPages must be greater than zero.');
     }
 
+    final key = _CatalogPullKey(businessId, pageLimit, maxPages);
+    final active = _activePulls[key];
+    if (active != null) return active;
+
+    final run = _pullQueue.then(
+      (_) => _pullCatalogDelta(
+        businessId: businessId,
+        pageLimit: pageLimit,
+        maxPages: maxPages,
+      ),
+    );
+    _activePulls[key] = run;
+    _pullQueue = run.then<void>(
+      (_) {},
+      onError: (_, __) {},
+    );
+    run.then<void>(
+      (_) => _removeActivePull(key, run),
+      onError: (_, __) => _removeActivePull(key, run),
+    );
+    return run;
+  }
+
+  Future<CatalogSyncRunResult> _pullCatalogDelta({
+    required String businessId,
+    required int pageLimit,
+    required int maxPages,
+  }) async {
     await _localRepository.markCatalogSyncStarted(businessId);
 
     var pagesPulled = 0;
@@ -277,4 +307,31 @@ class CatalogSyncService {
     }
     return 'transient_or_unknown';
   }
+
+  void _removeActivePull(
+    _CatalogPullKey key,
+    Future<CatalogSyncRunResult> run,
+  ) {
+    if (identical(_activePulls[key], run)) {
+      _activePulls.remove(key);
+    }
+  }
+}
+
+class _CatalogPullKey {
+  const _CatalogPullKey(this.businessId, this.pageLimit, this.maxPages);
+
+  final String businessId;
+  final int pageLimit;
+  final int maxPages;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _CatalogPullKey &&
+      businessId == other.businessId &&
+      pageLimit == other.pageLimit &&
+      maxPages == other.maxPages;
+
+  @override
+  int get hashCode => Object.hash(businessId, pageLimit, maxPages);
 }

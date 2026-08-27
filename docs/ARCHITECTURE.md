@@ -182,7 +182,8 @@ y una invitación pendiente no reemplaza el acceso existente a otros negocios.
 
 La preparación operacional y la preparación del catálogo maestro son estados
 distintos. `operationalReady` no implica `catalogReady`; el bootstrap inicial
-del catálogo pertenece a ORG-1D.
+del catálogo se inicia después de alcanzar el primero, sin bloquear la UI ni
+depender de las ventanas programadas.
 
 ## Arquitectura de sincronización
 
@@ -335,6 +336,13 @@ cursor temporal comprometido solo avanza al completar la unión de productos
 maestros y códigos globales/empresariales; una pausa por presupuesto conserva
 un checkpoint reanudable. La aplicación de cada página y ese checkpoint es
 atómica en Drift, incluye tombstones y rechaza versiones remotas más antiguas.
+
+`catalogReady` se deriva de `local_catalog_sync_state`: exige evidencia durable
+de al menos una ventana completa, incluso si el catálogo estaba vacío. El
+coordinador inicial reutiliza `CatalogSyncService`, continúa runs incompletos
+con trabajo acotado y reanuda en startup/resume. Un error posterior conserva
+readiness y se representa como freshness/error; los pulls de todos los triggers
+comparten exclusión single-flight en el servicio de catálogo.
 
 ## Inventario
 

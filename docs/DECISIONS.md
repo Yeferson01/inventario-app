@@ -387,3 +387,17 @@ aceptan invitaciones adicionales. Usuarios sin contexto ni invitación reciben
 un estado de cuenta no autorizada y pueden cerrar sesión. El Hosted Auth de
 producción debe mantener deshabilitado `Allow new users to sign up`; las altas
 nuevas llegan exclusivamente mediante la invitación server-side.
+
+### D-024 — Readiness inicial del catálogo maestro
+
+**Estado:** vigente.
+
+**Decisión:** `operationalReady` y `catalogReady` son independientes. El segundo
+se alcanza después de una ventana inicial completa de CATALOG-2B y se deriva de
+`local_catalog_sync_state`, no del conteo de productos. La inicialización es
+inmediata, reanudable y no bloqueante; no pasa por la política horaria.
+
+**Consecuencias:** un catálogo completo pero vacío queda ready; un run
+incompleto conserva su checkpoint; un error antes de completar no revoca la
+operación; y un error delta posterior no revoca readiness. Los datos master son
+globales, aunque el cursor y la autorización del pull siguen business-scoped.

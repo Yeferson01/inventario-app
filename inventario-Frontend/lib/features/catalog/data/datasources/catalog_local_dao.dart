@@ -565,9 +565,17 @@ class CatalogLocalDao {
       )
       values (?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
+        last_catalog_pull_at = case
+          when ? = 1 then null
+          else local_catalog_sync_state.last_catalog_pull_at
+        end,
         last_since_updated_at = case
           when ? = 1 then null
           else local_catalog_sync_state.last_since_updated_at
+        end,
+        last_catalog_version = case
+          when ? = 1 then null
+          else local_catalog_sync_state.last_catalog_version
         end,
         last_server_time = null,
         last_page_token = null,
@@ -585,6 +593,8 @@ class CatalogLocalDao {
         null,
         now,
         now,
+        clearCommittedCursor ? 1 : 0,
+        clearCommittedCursor ? 1 : 0,
         clearCommittedCursor ? 1 : 0,
       ]),
     );
@@ -668,6 +678,24 @@ class CatalogLocalDao {
     }
 
     return Map<String, dynamic>.from(row.data);
+  }
+
+  Stream<Map<String, dynamic>?> watchCatalogSyncState(String businessId) {
+    return db
+        .customSelect(
+          '''
+          select *
+          from local_catalog_sync_state
+          where business_id = ?
+          limit 1
+          ''',
+          variables: [Variable<String>(businessId)],
+          readsFrom: {db.localCatalogSyncState},
+        )
+        .watchSingleOrNull()
+        .map(
+          (row) => row == null ? null : Map<String, dynamic>.from(row.data),
+        );
   }
 
   Future<String> queueContribution({

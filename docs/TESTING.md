@@ -262,6 +262,16 @@ Android real invitación nueva, usuario existente, recuperación de contraseña 
 reinicio con sesión persistida. La falta de red al consultar invitaciones no
 debe bloquear un contexto operacional local previamente válido.
 
+## Readiness inicial del catálogo maestro
+
+ORG-1D debe probar `operationalReady` y `catalogReady` por separado. La señal de
+readiness proviene de una ventana completa persistida en
+`local_catalog_sync_state`, no de contar MasterProducts. Cubrir catálogo vacío,
+checkpoint incompleto/reanudado, fallo antes y después del primer completion,
+reinicio de providers y concurrencia entre triggers. El bootstrap inicial no
+depende de las horas 11/23 y un fallo exclusivo de catálogo no debe convertirse
+en error de auth, contexto o bootstrap operacional.
+
 ## Fallos de entorno
 
 Si Codex o una persona no puede ejecutar una prueba, el reporte debe incluir:
