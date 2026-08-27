@@ -401,3 +401,21 @@ inmediata, reanudable y no bloqueante; no pasa por la política horaria.
 incompleto conserva su checkpoint; un error antes de completar no revoca la
 operación; y un error delta posterior no revoca readiness. Los datos master son
 globales, aunque el cursor y la autorización del pull siguen business-scoped.
+
+### D-025 — Creación online y server-authoritative de Branch
+
+**Estado:** vigente.
+
+**Decisión:** una Branch adicional se crea exclusivamente mediante
+`create_business_branch`. El actor proviene de `auth.uid()` y debe recibir
+`settings.branches` desde una membership activa business-wide. El servidor
+genera el UUID y una idempotency key durable devuelve los mismos IDs ante retry.
+
+La nueva Branch siempre es secundaria y exige que el Business ya tenga
+exactamente una primary activa. Branch, caja canónica y secuencia de recibos se
+materializan atómicamente. El cliente no dispone de INSERT/UPDATE/DELETE directo
+sobre `branches`, y `ensure_business_runtime_setup` no crea Branches ausentes.
+
+**Consecuencias:** la administración de sucursales no usa outbox ni funciona
+offline. `create_business` continúa reservado al onboarding de la primera
+Branch. Primary transfer, update, disable y delete quedan fuera de ORG-2B.

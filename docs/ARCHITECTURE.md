@@ -185,6 +185,25 @@ distintos. `operationalReady` no implica `catalogReady`; el bootstrap inicial
 del catálogo se inicia después de alcanzar el primero, sin bloquear la UI ni
 depender de las ventanas programadas.
 
+## Administración de sucursales
+
+La creación de una sucursal adicional es una operación organizacional online y
+server-authoritative. `create_business_branch` deriva el actor de `auth.uid()` y
+exige que `settings.branches` provenga de una membership activa business-wide;
+una membership limitada a una sucursal no puede ampliar la topología del
+negocio.
+
+El servidor genera el Branch UUID y una solicitud durable privada conserva la
+relación `business + idempotency_key → branch`. En una sola transacción se crean
+la sucursal secundaria, su caja canónica y su secuencia de recibos. La operación
+no crea sesión de caja, dispositivo, productos, movimientos ni saldos.
+
+Los clientes autenticados conservan la lectura de `branches`, pero no tienen
+DML directo. `ensure_business_runtime_setup` solo completa runtime de una
+sucursal ya existente; el onboarding privado conserva `create_business` como
+ruta separada para la primera sucursal. El cambio de primary y el lifecycle de
+desactivación/eliminación permanecen diferidos.
+
 ## Arquitectura de sincronización
 
 ### Outbox común

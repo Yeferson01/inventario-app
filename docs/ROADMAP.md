@@ -75,6 +75,21 @@ inventario, transferencias, conteos o conflictos.
   operación ni esperar las ventanas programadas. `catalogReady` exige una
   primera ventana completa y permanece durable ante errores delta posteriores.
 
+## ORG-2 — Administración empresarial
+
+- ✅ **ORG-2A — Auditoría de Branches y miembros.** Se reconstruyeron schema,
+  permisos, memberships, rutas históricas y límites de delegación.
+- ✅ **ORG-2B — Creación y listado seguro de Branches.** La creación online usa
+  autoridad business-wide basada en `settings.branches`, idempotencia durable y
+  runtime canónico atómico; el DML cliente y la creación histórica mediante
+  runtime setup quedaron cerrados.
+- ⏳ **ORG-2C — Invitaciones de miembros del Business.** Pendiente; no comparte
+  autoridad ni persistencia con invitaciones privadas de plataforma.
+- ⏳ **ORG-2D — UI de Administración.** Pendiente para Sucursales y Equipo.
+
+El lifecycle de primary, edición, desactivación y eliminación de Branches queda
+fuera de ORG-2B.
+
 ## 6.20 — Producto rápido desde Compras
 
 **Estado general:** ✅ completado funcionalmente.

@@ -272,6 +272,21 @@ reinicio de providers y concurrencia entre triggers. El bootstrap inicial no
 depende de las horas 11/23 y un fallo exclusivo de catálogo no debe convertirse
 en error de auth, contexto o bootstrap operacional.
 
+## Administración segura de Branches
+
+ORG-2B debe validar mediante pgTAP que `authenticated` conserva solamente
+`SELECT` sobre `branches`, que no quedan policies de escritura directa y que
+`create_business_branch` es la única función cliente capaz de insertar una
+Branch. Las denegaciones por ACL se comprueban por introspección para evitar el
+issue local de funciones sin EXECUTE.
+
+El contrato funcional cubre membership business-wide más
+`settings.branches`, denegación branch-specific/cross-business, precondición de
+una única primary, caja y receipt sequence atómicas, retry con los mismos IDs,
+payload incompatible, conflicto de nombre y discovery posterior. La regresión
+R1.1c debe confirmar que el onboarding privado aún crea la primera Branch,
+mientras `ensure_business_runtime_setup` rechaza una Branch ausente.
+
 ## Fallos de entorno
 
 Si Codex o una persona no puede ejecutar una prueba, el reporte debe incluir:
