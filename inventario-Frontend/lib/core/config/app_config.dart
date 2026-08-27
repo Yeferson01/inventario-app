@@ -24,6 +24,19 @@ class AppConfig {
     defaultValue: '',
   );
 
+  static const String _configuredAuthRedirectUrl = String.fromEnvironment(
+    'AUTH_REDIRECT_URL',
+    defaultValue: '',
+  );
+
+  static String get authRedirectUrl {
+    final configured = _configuredAuthRedirectUrl.trim();
+    if (configured.isNotEmpty) return configured;
+    return isProd
+        ? 'cronosmanagement://auth-callback'
+        : 'cronosmanagement-dev://auth-callback';
+  }
+
   static bool get isDev => environment == 'dev';
   static bool get isProd => environment == 'prod';
 

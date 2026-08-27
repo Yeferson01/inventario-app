@@ -3,30 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/supabase/supabase_client_provider.dart';
-import '../data/datasources/authorized_operational_context_remote_datasource.dart';
+import '../../auth/application/authenticated_access_models.dart';
+import '../../auth/application/authenticated_access_providers.dart';
 import 'app_installation_id_store.dart';
-import 'authorized_operational_context_service.dart';
+import 'authorized_operational_context_providers.dart';
 import 'local_sync_outbox_providers.dart';
 import 'operational_bootstrap_entry_models.dart';
 import 'operational_bootstrap_entry_service.dart';
 import 'operational_bootstrap_orchestration_models.dart';
 import 'operational_bootstrap_providers.dart';
-
-final authorizedOperationalContextRemoteDataSourceProvider =
-    Provider<AuthorizedOperationalContextRemoteDataSource>((ref) {
-  return AuthorizedOperationalContextRemoteDataSource(
-    ref.watch(supabaseClientProvider),
-  );
-});
-
-final authorizedOperationalContextServiceProvider =
-    Provider<AuthorizedOperationalContextService>((ref) {
-  return AuthorizedOperationalContextService(
-    remoteDataSource:
-        ref.watch(authorizedOperationalContextRemoteDataSourceProvider),
-    authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
-  );
-});
 
 final operationalBootstrapEntryServiceProvider =
     Provider<OperationalBootstrapEntryService>((ref) {
@@ -101,11 +86,28 @@ final productiveOperationalEntryProvider = FutureProvider.family<
       );
     }
 
+    final access = await ref.watch(
+      authenticatedAccessResolverProvider(request.profileId).future,
+    );
+    if (access.outcome == AuthenticatedAccessOutcome.failure) {
+      return OperationalBootstrapEntryResult(
+        outcome: access.isTransientFailure
+            ? OperationalBootstrapEntryOutcome.transientFailure
+            : OperationalBootstrapEntryOutcome.failed,
+        contexts: access.contexts,
+        profileId: request.profileId,
+        message: access.message,
+        offlineReady: false,
+        canRequestAdministrativeSetup: false,
+      );
+    }
+
     final packageInfo = await PackageInfo.fromPlatform();
     return ref.watch(operationalBootstrapEntryRunnerProvider)(
       OperationalBootstrapEntryRequest(
         mode: OperationalBootstrapMode.recovery,
         selection: request.selection,
+        discoveredContexts: access.contexts,
         deviceName: _productiveDeviceName(),
         platform: defaultTargetPlatform.name,
         appVersion: packageInfo.version,

@@ -6,6 +6,7 @@ import '../../../../core/providers/device_provider.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
+import '../../../auth/application/productive_auth_providers.dart';
 import '../../application/dashboard_module_access.dart';
 import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
@@ -225,6 +226,20 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     );
   }
 
+  Future<void> _signOut() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(productiveSignOutProvider)();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _lastError = 'No fue posible cerrar la sesión.';
+        _isLoading = false;
+      });
+    }
+  }
+
   void _openPosGate() {
     final appContext = _appContext;
     final access = DashboardModuleAccess.fromContext(appContext);
@@ -366,6 +381,11 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                     icon: const Icon(Icons.settings_outlined),
                     tooltip: 'Configuración',
                   ),
+                IconButton(
+                  onPressed: _isLoading ? null : _signOut,
+                  icon: const Icon(Icons.logout_outlined),
+                  tooltip: 'Cerrar sesión',
+                ),
               ],
             ),
             body: AppGradientBackground(
@@ -453,7 +473,8 @@ class _DashboardHeader extends StatelessWidget {
       subtitle = 'Cargando contexto operativo...';
     } else if (lastError != null) {
       title = 'No se pudo cargar el dashboard';
-      subtitle = lastError.toString();
+      subtitle =
+          'No fue posible cargar el contexto operativo. Intenta actualizar.';
     } else if (appContext == null) {
       title = 'Selecciona un contexto';
       subtitle =

@@ -10,6 +10,7 @@ class BusinessContextSelectionScreen extends StatelessWidget {
     this.title = 'Selecciona tu negocio',
     this.subtitle = 'Elige el negocio y la sucursal con la que vas a trabajar.',
     this.isSubmitting = false,
+    this.additionalContent,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class BusinessContextSelectionScreen extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool isSubmitting;
+  final Widget? additionalContent;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +57,10 @@ class BusinessContextSelectionScreen extends StatelessWidget {
                         isSubmitting: isSubmitting,
                         onSelected: onContextSelected,
                       ),
+                      if (additionalContent != null) ...[
+                        const SizedBox(height: 24),
+                        additionalContent!,
+                      ],
                       const SizedBox(height: 16),
                       Text(
                         'Esta selección se usará para permisos, inventario, ventas y sincronización offline.',

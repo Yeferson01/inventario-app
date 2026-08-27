@@ -29,6 +29,7 @@ class OperationalBootstrapEntryRequest {
   const OperationalBootstrapEntryRequest({
     required this.mode,
     this.selection,
+    this.discoveredContexts,
     this.deviceName,
     this.platform,
     this.appVersion,
@@ -39,6 +40,7 @@ class OperationalBootstrapEntryRequest {
 
   final OperationalBootstrapMode mode;
   final OperationalContextSelection? selection;
+  final List<AuthorizedOperationalContext>? discoveredContexts;
   final String? deviceName;
   final String? platform;
   final String? appVersion;

@@ -83,7 +83,7 @@ class OperationalBootstrapEntryService {
         );
       }
 
-      contexts = await _discover();
+      contexts = request.discoveredContexts ?? await _discover();
       if (contexts.isEmpty) {
         await _clearSelectedContext(profileId);
         return _result(

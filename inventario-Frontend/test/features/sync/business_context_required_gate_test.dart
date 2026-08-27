@@ -1,12 +1,84 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventario_frontend/features/auth/application/authenticated_access_models.dart';
+import 'package:inventario_frontend/features/auth/application/authenticated_access_providers.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_entry_models.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_entry_providers.dart';
 import 'package:inventario_frontend/features/sync/data/models/authorized_operational_context_models.dart';
 import 'package:inventario_frontend/features/sync/presentation/widgets/business_context_required_gate.dart';
 
 void main() {
+  testWidgets(
+      'stale authorization data is not rendered while access refreshes to ready',
+      (tester) async {
+    final readyCompleter = Completer<OperationalBootstrapEntryResult>();
+    var executions = 0;
+    final container = ProviderContainer(
+      overrides: [
+        productiveOperationalEntryProvider.overrideWith((ref, request) {
+          executions += 1;
+          if (executions == 1) {
+            return const OperationalBootstrapEntryResult(
+              outcome: OperationalBootstrapEntryOutcome.authorizationRevoked,
+              contexts: [],
+              message: 'stale pre-login authorization result',
+              offlineReady: false,
+              canRequestAdministrativeSetup: false,
+            );
+          }
+          return readyCompleter.future;
+        }),
+        authenticatedAccessResolverProvider.overrideWith(
+          (ref, profileId) async => _accessWithContext(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const request = ProductiveOperationalEntryRequest(profileId: 'profile-1');
+
+    final stale = await container
+        .read(productiveOperationalEntryProvider(request).future);
+    expect(
+      stale.outcome,
+      OperationalBootstrapEntryOutcome.authorizationRevoked,
+    );
+
+    container.invalidate(productiveOperationalEntryProvider(request));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: BusinessContextRequiredGate(
+            profileId: 'profile-1',
+            child: Text('PRODUCTIVE CHILD'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Autorización no disponible'), findsNothing);
+
+    readyCompleter.complete(
+      OperationalBootstrapEntryResult(
+        outcome:
+            OperationalBootstrapEntryOutcome.runtimeReadyAndBootstrapCompleted,
+        contexts: [_context()],
+        message: 'ready',
+        offlineReady: true,
+        canRequestAdministrativeSetup: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('PRODUCTIVE CHILD'), findsOneWidget);
+    expect(find.text('Autorización no disponible'), findsNothing);
+  });
+
   testWidgets(
       'zero contexts renders a typed state instead of an empty selector',
       (tester) async {
@@ -106,6 +178,11 @@ Widget _app(
       productiveCachedContextAvailabilityProvider.overrideWith(
         (ref, profileId) async => cachedContextAvailable,
       ),
+      authenticatedAccessResolverProvider.overrideWith(
+        (ref, profileId) async => result.contexts.isEmpty
+            ? _noAuthorizedAccess()
+            : _accessWithContext(),
+      ),
     ],
     child: const MaterialApp(
       home: BusinessContextRequiredGate(
@@ -115,6 +192,25 @@ Widget _app(
     ),
   );
 }
+
+AuthenticatedAccessResult _accessWithContext() {
+  return AuthenticatedAccessResult(
+    outcome: AuthenticatedAccessOutcome.existingContexts,
+    contexts: [_context()],
+    pendingInvitations: const [],
+    message: 'authorized',
+  );
+}
+
+const AuthenticatedAccessResult _noAuthorizedAccessResult =
+    AuthenticatedAccessResult(
+  outcome: AuthenticatedAccessOutcome.noAuthorizedAccess,
+  contexts: [],
+  pendingInvitations: [],
+  message: 'no access',
+);
+
+AuthenticatedAccessResult _noAuthorizedAccess() => _noAuthorizedAccessResult;
 
 AuthorizedOperationalContext _context({
   String branchId = 'branch-x',

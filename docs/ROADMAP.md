@@ -63,6 +63,16 @@ inventario, transferencias, conteos o conflictos.
 | Reparación/idempotencia de compras | ✅ | Reparación de batches, reconciliación y manejo `completed_remote_already_exists`. |
 | UI final de inventario | ⏳ | La ruta actual sigue siendo temporal y la pantalla operativa 6.21 no existe. |
 
+## ORG-1 — Onboarding privado de plataforma
+
+- ✅ **ORG-1B — Invitación y aceptación atómica.** La autoridad durable,
+  provisioning canónico y primary Branch viven en backend.
+- ✅ **ORG-1C — Auth productivo y UX de invitaciones privadas.** El router usa
+  sesión Supabase, no existe signup público, el resolver combina contextos e
+  invitaciones y la aceptación vuelve a discovery/runtime/bootstrap.
+- ⏳ **ORG-1D — Inicialización del catálogo.** Continúa separado de
+  `operationalReady`; no forma parte de ORG-1C.
+
 ## 6.20 — Producto rápido desde Compras
 
 **Estado general:** ✅ completado funcionalmente.

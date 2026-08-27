@@ -246,6 +246,22 @@ Esta limitación conocida del entorno local de testing **no justifica conceder
 `EXECUTE` a `anon` o `authenticated` ni debilitar ACLs de producción**. Debe
 reevaluarse después de actualizar Supabase PostgreSQL/supautils.
 
+## Auth productivo e invitaciones privadas
+
+Las pruebas focales de ORG-1C deben separar sesión Auth de autorización de
+Business: sin sesión se espera Login; con sesión se prueban contextos,
+invitaciones y ausencia de acceso como resultados distintos. Los callbacks
+`cronosmanagement-dev://auth-callback` y
+`cronosmanagement://auth-callback` son procesados por `supabase_flutter`; no se
+construyen tokens manuales en tests.
+
+Antes de desplegar, Supabase Hosted debe allowlistear el redirect del entorno,
+la Edge Function debe configurar `PLATFORM_INVITATION_REDIRECT_URL` con ese
+valor exacto y `Allow new users to sign up` debe permanecer **OFF**. Validar en
+Android real invitación nueva, usuario existente, recuperación de contraseña y
+reinicio con sesión persistida. La falta de red al consultar invitaciones no
+debe bloquear un contexto operacional local previamente válido.
+
 ## Fallos de entorno
 
 Si Codex o una persona no puede ejecutar una prueba, el reporte debe incluir:

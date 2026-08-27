@@ -254,6 +254,7 @@ Deno.serve(async (request) => {
     {
       data: {
         platform_invitation_id: invitation.invitation_id,
+        platform_invitation_requires_password_setup: true,
       },
       ...(redirectTo ? { redirectTo } : {}),
     },

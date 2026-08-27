@@ -17,25 +17,24 @@ class AppRouterSyncShellGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authenticatedUser = ref.watch(currentSupabaseUserProvider);
     final bootstrapAsync = ref.watch(appRouterSyncBootstrapProvider);
 
     return bootstrapAsync.when(
       data: (bootstrap) {
-        if (!bootstrap.hasAuthenticatedUser) {
+        if (authenticatedUser == null) {
           return child;
+        }
+
+        if (!bootstrap.hasAuthenticatedUser) {
+          return const _AuthenticatedShellLoading();
         }
 
         final input = bootstrap.input;
 
         if (input == null) {
-          final user = ref.read(supabaseClientProvider).auth.currentUser;
-
-          if (user == null) {
-            return child;
-          }
-
           return BusinessContextRequiredGate(
-            profileId: user.id,
+            profileId: authenticatedUser.id,
             child: child,
           );
         }
@@ -50,22 +49,57 @@ class AppRouterSyncShellGate extends ConsumerWidget {
           ),
         );
       },
-      loading: () => child,
-      error: (error, stackTrace) {
-        return Material(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: SingleChildScrollView(
-                child: Text(
-                  'Error inicializando AppRouterSyncShellGate:\n\n$error',
-                  style: const TextStyle(color: Colors.red),
+      loading: () => authenticatedUser == null
+          ? child
+          : const _AuthenticatedShellLoading(),
+      error: (_, __) => authenticatedUser == null
+          ? child
+          : _AuthenticatedShellFailure(
+              onRetry: () => ref.invalidate(appRouterSyncBootstrapProvider),
+            ),
+    );
+  }
+}
+
+class _AuthenticatedShellFailure extends StatelessWidget {
+  const _AuthenticatedShellFailure({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('No fue posible preparar el acceso.'),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: onRetry,
+                  child: const Text('Reintentar'),
                 ),
-              ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthenticatedShellLoading extends StatelessWidget {
+  const _AuthenticatedShellLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
     );
   }
 }

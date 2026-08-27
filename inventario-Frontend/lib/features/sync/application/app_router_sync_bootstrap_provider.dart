@@ -28,8 +28,7 @@ final appInstallationIdStoreProvider = Provider<AppInstallationIdStore>((ref) {
 
 final appRouterSyncBootstrapProvider =
     FutureProvider<AppRouterSyncBootstrapData>((ref) async {
-  final supabase = ref.watch(supabaseClientProvider);
-  final user = supabase.auth.currentUser;
+  final user = ref.watch(currentSupabaseUserProvider);
 
   if (user == null) {
     return const AppRouterSyncBootstrapData(

@@ -9,10 +9,16 @@ final supabaseAuthProvider = Provider<GoTrueClient>((ref) {
   return ref.watch(supabaseClientProvider).auth;
 });
 
+final supabaseAuthStateProvider = StreamProvider<AuthState>((ref) {
+  return ref.watch(supabaseAuthProvider).onAuthStateChange;
+});
+
 final currentSupabaseSessionProvider = Provider<Session?>((ref) {
-  return ref.watch(supabaseAuthProvider).currentSession;
+  final auth = ref.watch(supabaseAuthProvider);
+  return ref.watch(supabaseAuthStateProvider).value?.session ??
+      auth.currentSession;
 });
 
 final currentSupabaseUserProvider = Provider<User?>((ref) {
-  return ref.watch(supabaseAuthProvider).currentUser;
+  return ref.watch(currentSupabaseSessionProvider)?.user;
 });

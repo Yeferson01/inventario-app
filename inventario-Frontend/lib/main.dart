@@ -10,6 +10,8 @@ import 'app/theme/dark_theme.dart';
 import 'app/theme/light_theme.dart';
 import 'core/config/app_config.dart';
 import 'features/debug/presentation/screens/debug_ping_screen.dart';
+import 'features/auth/application/productive_auth_providers.dart';
+import 'features/sync/application/app_router_sync_bootstrap_provider.dart';
 import 'features/sync/presentation/widgets/app_router_sync_shell_gate.dart';
 
 void main() {
@@ -153,7 +155,7 @@ class BootstrapErrorApp extends StatelessWidget {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   final String appName;
   final String apiUrl;
 
@@ -164,12 +166,19 @@ class MyApp extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+    ref.listen(productiveAuthSessionProvider, (previous, next) {
+      if (previous?.user?.id != next.user?.id ||
+          previous?.lastEvent != next.lastEvent) {
+        ref.invalidate(appRouterSyncBootstrapProvider);
+      }
+    });
     if (const bool.fromEnvironment('ROUTER_MINIMAL_DEBUG')) {
       debugPrint('ROUTER_MINIMAL_DEBUG activo: MaterialApp.router mínimo.');
       return MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        routerConfig: AppRouter.router,
+        routerConfig: router,
       );
     }
 
@@ -201,7 +210,7 @@ class MyApp extends StatelessWidget {
           theme: AppLightTheme.theme,
           darkTheme: AppDarkTheme.theme,
           themeMode: ThemeMode.system,
-          routerConfig: AppRouter.router,
+          routerConfig: router,
         );
       },
     );

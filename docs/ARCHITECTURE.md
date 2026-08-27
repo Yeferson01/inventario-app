@@ -166,6 +166,20 @@ El onboarding no crea `app_device`. Después de aceptar se conserva la cadena:
 discovery → selección → register_or_update_app_device → runtime → bootstrap
 ```
 
+La navegación productiva deriva de la sesión persistida por
+`supabase_flutter`, no de un flag local. Después de autenticar,
+`AuthenticatedAccessResolver` combina el discovery operacional existente con
+`list_my_platform_business_invitations()`. Tener un usuario Auth no concede por
+sí mismo acceso a un Business: una invitación solo se vuelve autoridad al ser
+validada y consumida por `accept_platform_business_invitation`.
+
+Los callbacks Auth usan URI exactos por entorno:
+`cronosmanagement-dev://auth-callback` en desarrollo y
+`cronosmanagement://auth-callback` en producción. El SDK procesa la sesión del
+deep link; Flutter no parsea ni persiste tokens manualmente. Los contextos ya
+materializados siguen utilizables si la consulta online de invitaciones falla,
+y una invitación pendiente no reemplaza el acceso existente a otros negocios.
+
 La preparación operacional y la preparación del catálogo maestro son estados
 distintos. `operationalReady` no implica `catalogReady`; el bootstrap inicial
 del catálogo pertenece a ORG-1D.

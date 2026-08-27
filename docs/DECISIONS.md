@@ -371,3 +371,19 @@ confundir autoridad de tenant con autoridad global de Cronos.
 separados de la autoridad de aceptación. Usuarios y negocios existentes no
 requieren invitaciones retroactivas. `operationalReady` y `catalogReady` son
 estados distintos; la inicialización del catálogo se implementará en ORG-1D.
+
+### D-023 — Sesión Auth y autorización empresarial son contratos distintos
+
+**Estado:** vigente.
+
+**Decisión:** el routing productivo usa la sesión real de Supabase Auth y no
+ofrece signup público. Después de autenticar, la app resuelve por separado los
+contextos operacionales y las invitaciones privadas del usuario. Un callback
+Auth o metadata de usuario solo orienta la UX de sesión/contraseña; nunca
+autoriza crear ni aceptar un Business.
+
+**Consecuencias:** usuarios existentes conservan sus contextos mientras ven y
+aceptan invitaciones adicionales. Usuarios sin contexto ni invitación reciben
+un estado de cuenta no autorizada y pueden cerrar sesión. El Hosted Auth de
+producción debe mantener deshabilitado `Allow new users to sign up`; las altas
+nuevas llegan exclusivamente mediante la invitación server-side.

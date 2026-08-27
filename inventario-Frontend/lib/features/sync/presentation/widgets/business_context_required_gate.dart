@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../auth/application/authenticated_access_models.dart';
+import '../../../auth/application/authenticated_access_providers.dart';
+import '../../../auth/application/productive_auth_providers.dart';
+import '../../../auth/data/models/platform_business_invitation_models.dart';
+import '../../../auth/presentation/screens/private_invitation_screen.dart';
+import '../../../auth/presentation/widgets/platform_invitation_access_panel.dart';
 import '../../application/app_current_context_provider.dart';
 import '../../application/app_router_sync_bootstrap_provider.dart';
 import '../../application/operational_bootstrap_entry_models.dart';
@@ -58,33 +64,85 @@ class _BusinessContextRequiredGateState
     });
 
     final entryAsync = ref.watch(entryProvider);
+    final access = ref
+        .watch(
+          authenticatedAccessResolverProvider(widget.profileId),
+        )
+        .value;
+    final previousOutcome = entryAsync.value?.outcome;
+    final isRefreshingAccessDenial = entryAsync.isLoading &&
+        (previousOutcome ==
+                OperationalBootstrapEntryOutcome.authorizationRevoked ||
+            previousOutcome ==
+                OperationalBootstrapEntryOutcome.noAuthorizedContexts);
+    if (isRefreshingAccessDenial) {
+      return widget.loading ?? const _OperationalEntryLoading();
+    }
     return entryAsync.when(
       loading: () => widget.loading ?? const _OperationalEntryLoading(),
-      error: (error, _) => _OperationalEntryStatus(
+      error: (_, __) => _OperationalEntryStatus(
         title: 'No se pudo preparar el contexto',
-        message: error.toString(),
+        message:
+            'No fue posible verificar el acceso operacional. Puedes reintentarlo.',
         actionLabel: 'Reintentar',
         onAction: () => ref.invalidate(entryProvider),
       ),
-      data: (result) => _buildResult(result, request),
+      data: (result) => _buildResult(result, request, access),
     );
   }
+
+  Future<AcceptedPlatformBusinessInvitation> _acceptInvitation(
+    String invitationId,
+  ) async {
+    final accepted =
+        await ref.read(platformInvitationAcceptorProvider)(invitationId);
+    if (!mounted) return accepted;
+    setState(() {
+      _selection = OperationalContextSelection(
+        businessId: accepted.businessId,
+        branchId: accepted.branchId,
+      );
+    });
+    ref.invalidate(authenticatedAccessResolverProvider(widget.profileId));
+    ref.invalidate(productiveOperationalEntryProvider);
+    return accepted;
+  }
+
+  Future<void> _signOut() => ref.read(productiveSignOutProvider)();
 
   Widget _buildResult(
     OperationalBootstrapEntryResult result,
     ProductiveOperationalEntryRequest request,
+    AuthenticatedAccessResult? access,
   ) {
     final entryProvider = productiveOperationalEntryProvider(request);
+    final invitations = access?.pendingInvitations ?? const [];
     switch (result.outcome) {
       case OperationalBootstrapEntryOutcome.noAuthorizedContexts:
-        return const _OperationalEntryStatus(
+        if (invitations.isNotEmpty) {
+          return PrivateInvitationScreen(
+            invitations: invitations,
+            onAccept: _acceptInvitation,
+            onSignOut: _signOut,
+          );
+        }
+        return _OperationalEntryStatus(
           title: 'Sin contextos operacionales autorizados',
           message:
-              'Tu usuario está autenticado, pero no tiene un negocio y una sucursal activos disponibles.',
+              'Esta cuenta no tiene un negocio autorizado. Contacta con el administrador de Cronos.',
+          actionLabel: 'Cerrar sesión',
+          onAction: _signOut,
         );
       case OperationalBootstrapEntryOutcome.selectionRequired:
         return BusinessContextSelectionScreen(
           contexts: result.contexts,
+          additionalContent: invitations.isEmpty
+              ? null
+              : PlatformInvitationAccessPanel(
+                  invitations: invitations,
+                  onAccept: _acceptInvitation,
+                  compact: true,
+                ),
           onContextSelected: (selected) {
             setState(() {
               _selection = OperationalContextSelection(
@@ -96,7 +154,13 @@ class _BusinessContextRequiredGateState
         );
       case OperationalBootstrapEntryOutcome.runtimeReadyAndBootstrapCompleted:
         if (result.offlineReady) {
-          return widget.child;
+          return invitations.isEmpty
+              ? widget.child
+              : _PendingInvitationsOverlay(
+                  invitations: invitations,
+                  onAccept: _acceptInvitation,
+                  child: widget.child,
+                );
         }
         return const _OperationalEntryStatus(
           title: 'Recuperación incompleta',
@@ -141,15 +205,17 @@ class _BusinessContextRequiredGateState
           loading: () => widget.loading ?? const _OperationalEntryLoading(),
           error: (_, __) => _OperationalEntryStatus(
             title: 'Red no disponible',
-            message: result.message,
+            message:
+                'No fue posible comprobar el acceso en línea. Puedes reintentarlo.',
             actionLabel: 'Reintentar',
             onAction: () => ref.invalidate(entryProvider),
           ),
         );
       case OperationalBootstrapEntryOutcome.authorizationRevoked:
-        return _OperationalEntryStatus(
+        return const _OperationalEntryStatus(
           title: 'Autorización no disponible',
-          message: result.message,
+          message:
+              'La autorización del contexto ya no está disponible para esta sesión.',
         );
       case OperationalBootstrapEntryOutcome.deviceBlocked:
         return const _OperationalEntryStatus(
@@ -160,11 +226,69 @@ class _BusinessContextRequiredGateState
       case OperationalBootstrapEntryOutcome.failed:
         return _OperationalEntryStatus(
           title: 'No se pudo preparar la operación',
-          message: result.message,
+          message:
+              'No fue posible completar la verificación del acceso. Puedes reintentarlo.',
           actionLabel: 'Reintentar',
           onAction: () => ref.invalidate(entryProvider),
         );
     }
+  }
+}
+
+class _PendingInvitationsOverlay extends StatelessWidget {
+  const _PendingInvitationsOverlay({
+    required this.invitations,
+    required this.onAccept,
+    required this.child,
+  });
+
+  final List<PlatformBusinessInvitation> invitations;
+  final PlatformInvitationAcceptAction onAccept;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        child,
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: FilledButton.tonalIcon(
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  showDragHandle: true,
+                  builder: (sheetContext) => SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: PlatformInvitationAccessPanel(
+                        invitations: invitations,
+                        onAccept: (id) async {
+                          final result = await onAccept(id);
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                          return result;
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.mark_email_unread_outlined),
+                label: Text(
+                  invitations.length == 1
+                      ? '1 invitación pendiente'
+                      : '${invitations.length} invitaciones pendientes',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

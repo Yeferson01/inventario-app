@@ -8,6 +8,9 @@ class AppRoutes {
   static const String registerPath = '/register';
   static const String registerName = 'register';
 
+  static const String passwordSetupPath = '/auth/password';
+  static const String passwordSetupName = 'password-setup';
+
   // --- Rutas Privadas (Requieren Auth) ---
   static const String dashboardPath = '/';
   static const String dashboardName = 'dashboard';
