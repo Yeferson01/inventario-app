@@ -83,12 +83,15 @@ inventario, transferencias, conteos o conflictos.
   autoridad business-wide basada en `settings.branches`, idempotencia durable y
   runtime canónico atómico; el DML cliente y la creación histórica mediante
   runtime setup quedaron cerrados.
-- ⏳ **ORG-2C — Invitaciones de miembros del Business.** Pendiente; no comparte
-  autoridad ni persistencia con invitaciones privadas de plataforma.
+- ✅ **ORG-2C — Invitaciones seguras de miembros del Business.** Emisión,
+  entrega, aceptación y revocación usan autoridad durable separada de
+  plataforma, `members.invite` por scope y una allowlist temporal de roles; el
+  DML cliente sobre memberships quedó cerrado.
 - ⏳ **ORG-2D — UI de Administración.** Pendiente para Sucursales y Equipo.
 
 El lifecycle de primary, edición, desactivación y eliminación de Branches queda
-fuera de ORG-2B.
+fuera de ORG-2B. La delegación de Owner/Admin/custom roles y el lifecycle de
+memberships permanecen diferidos a ORG-3.
 
 ## 6.20 — Producto rápido desde Compras
 

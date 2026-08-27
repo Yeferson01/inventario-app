@@ -419,3 +419,24 @@ sobre `branches`, y `ensure_business_runtime_setup` no crea Branches ausentes.
 **Consecuencias:** la administración de sucursales no usa outbox ni funciona
 offline. `create_business` continúa reservado al onboarding de la primera
 Branch. Primary transfer, update, disable y delete quedan fuera de ORG-2B.
+
+### D-026 — Invitaciones empresariales por capability y scope
+
+**Estado:** vigente.
+
+**Decisión:** una membership adicional se obtiene mediante una invitación
+durable de Business, distinta de la invitación privada de plataforma. El emisor
+proviene de `auth.uid()` y necesita `members.invite` en el scope solicitado.
+El email de aceptación proviene de `auth.users`; delivery y autoridad son
+estados independientes.
+
+La delegación temporal de ORG-2C admite solo system roles `cashier`,
+`warehouse` y `technician`. La aceptación reutiliza una membership activa del
+mismo role/scope —incluida cobertura business-wide sobre una Branch—, preserva
+memberships de otras Branches y rechaza reemplazar un role distinto en el mismo
+scope.
+
+**Consecuencias:** `authenticated` no dispone de INSERT/UPDATE directo sobre
+`business_members`. Owner, Admin, roles custom y cambios de lifecycle o role se
+deferirán a ORG-3. ORG-2D integrará estas invitaciones en el resolver de acceso
+sin crear device ni ejecutar bootstrap durante la aceptación.

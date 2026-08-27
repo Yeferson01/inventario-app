@@ -204,6 +204,29 @@ sucursal ya existente; el onboarding privado conserva `create_business` como
 ruta separada para la primera sucursal. El cambio de primary y el lifecycle de
 desactivación/eliminación permanecen diferidos.
 
+## Invitaciones de miembros del Business
+
+Agregar un empleado a un Business existente es otra operación organizacional
+online y server-authoritative, separada de las invitaciones privadas de
+plataforma. `create_business_member_invitation` deriva el emisor de
+`auth.uid()` y exige `members.invite` en el scope solicitado: una invitación
+business-wide requiere membership business-wide, mientras una invitación de
+Branch admite autoridad business-wide o de esa Branch concreta.
+
+La autoridad durable vive en `private.business_member_invitations`; el estado
+de entrega del email se registra por separado y no concede acceso. La
+aceptación compara el email de `auth.users`, bloquea y revalida Business,
+Branch y role, y crea o reutiliza atómicamente la membership sin reemplazar
+otro role del mismo scope. El DML cliente sobre `business_members` queda
+cerrado.
+
+ORG-2C delega únicamente los system roles `cashier`, `warehouse` y
+`technician`. Owner, Admin, roles custom y el lifecycle de memberships quedan
+reservados para ORG-3. La futura UI ORG-2D deberá combinar contextos,
+invitaciones de plataforma e invitaciones de miembros antes de continuar con
+selección, device y bootstrap; la aceptación no crea `app_device` ni ejecuta
+bootstrap.
+
 ## Arquitectura de sincronización
 
 ### Outbox común
