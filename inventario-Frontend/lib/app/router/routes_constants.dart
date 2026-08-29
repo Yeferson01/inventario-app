@@ -17,4 +17,13 @@ class AppRoutes {
 
   static const String inventarioPath = '/inventario';
   static const String inventarioName = 'inventario';
+
+  static const String administrationPath = '/administracion';
+  static const String administrationName = 'administracion';
+
+  static const String administrationBranchesPath = '/administracion/sucursales';
+  static const String administrationBranchesName = 'administracion-sucursales';
+
+  static const String administrationTeamPath = '/administracion/equipo';
+  static const String administrationTeamName = 'administracion-equipo';
 }

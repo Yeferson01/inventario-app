@@ -90,11 +90,17 @@ inventario, transferencias, conteos o conflictos.
 - ✅ **ORG-2C.1 — Contrato read-side de invitaciones.** Las opciones server-side
   entregan role IDs canónicos, autoridad business-wide y Branches administrables;
   el listado administrativo queda filtrado por el scope vigente del actor.
-- ⏳ **ORG-2D — UI de Administración.** Pendiente para Sucursales y Equipo.
+- ✅ **ORG-2D — UI de Administración.** El dashboard abre secciones por
+  capabilities efectivas; Sucursales lista/crea mediante ORG-2B y Equipo usa
+  opciones, emisión, listado y revocación server-authoritative de ORG-2C/2C.1.
+  El resolver productivo combina invitaciones de plataforma y de miembros y
+  reingresa al discovery/runtime/bootstrap normal después de aceptar.
 
 El lifecycle de primary, edición, desactivación y eliminación de Branches queda
 fuera de ORG-2B. La delegación de Owner/Admin/custom roles y el lifecycle de
 memberships permanecen diferidos a ORG-3.
+El directorio completo de miembros también queda pendiente de un contrato
+read-side explícito; ORG-2D muestra invitaciones, no infiere memberships.
 
 ## 6.20 — Producto rápido desde Compras
 

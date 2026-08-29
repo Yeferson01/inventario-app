@@ -10,6 +10,8 @@ class DashboardModuleAccess {
     required this.canReadInventory,
     required this.canPurchaseInventory,
     required this.canAdjustInventory,
+    required this.canManageBranches,
+    required this.canInviteMembers,
     required this.canManageSettings,
   });
 
@@ -27,6 +29,8 @@ class DashboardModuleAccess {
       canReadInventory: context.hasPermission('inventory.read'),
       canPurchaseInventory: context.hasPermission('inventory.purchase'),
       canAdjustInventory: context.hasPermission('inventory.adjust'),
+      canManageBranches: context.hasPermission('settings.branches'),
+      canInviteMembers: context.hasPermission('members.invite'),
       canManageSettings: context.hasAnyPermission(const [
         'settings.business',
         'settings.branches',
@@ -45,6 +49,8 @@ class DashboardModuleAccess {
         canReadInventory = false,
         canPurchaseInventory = false,
         canAdjustInventory = false,
+        canManageBranches = false,
+        canInviteMembers = false,
         canManageSettings = false;
 
   final bool hasEffectiveAuthorization;
@@ -55,7 +61,11 @@ class DashboardModuleAccess {
   final bool canReadInventory;
   final bool canPurchaseInventory;
   final bool canAdjustInventory;
+  final bool canManageBranches;
+  final bool canInviteMembers;
   final bool canManageSettings;
+
+  bool get canOpenAdministration => canManageBranches || canInviteMembers;
 
   bool get canUseCash => canReadCash || canOpenCash || canCloseCash;
 }

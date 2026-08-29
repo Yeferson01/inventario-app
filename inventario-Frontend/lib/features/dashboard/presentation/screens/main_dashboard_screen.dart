@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app/router/routes_constants.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/providers/device_provider.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
@@ -375,11 +377,11 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                   icon: const Icon(Icons.refresh_outlined),
                   tooltip: 'Actualizar',
                 ),
-                if (moduleAccess.canManageSettings)
+                if (moduleAccess.canOpenAdministration)
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () => context.push(AppRoutes.administrationPath),
                     icon: const Icon(Icons.settings_outlined),
-                    tooltip: 'Configuración',
+                    tooltip: 'Administración',
                   ),
                 IconButton(
                   onPressed: _isLoading ? null : _signOut,

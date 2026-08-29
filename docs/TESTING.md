@@ -310,6 +310,21 @@ la invitación. Una invitación pending listada debe ser compatible con el RPC d
 revocación mientras la autoridad permanezca vigente; ORG-2C 44/44 es la
 regresión focal obligatoria.
 
+## UI de Administración empresarial
+
+ORG-2D debe probar focalmente que el acceso a Administración depende de
+`settings.branches`/`members.invite` efectivos y no del nombre del role; que el
+datasource Flutter sólo llama los RPCs y la Edge Function aprobados; y que
+double submit/retry conserva una sola idempotency key por intento lógico.
+
+El resolver debe cubrir: invitación empresarial sin contexto, coexistencia de
+contextos e invitaciones de ambos tipos y fallo transitorio de una fuente sin
+convertir al usuario en no autorizado. La aceptación debe reanudar discovery y
+el entry flow normal; no se valida inventando un device ni llamando bootstrap
+desde el formulario. En revisión manual, recorrer estados loading/empty/403,
+scope business-wide/Branch, delivery sent/unknown/failed, revocación y cambio de
+cuenta sin datos administrativos stale.
+
 ## Fallos de entorno
 
 Si Codex o una persona no puede ejecutar una prueba, el reporte debe incluir:

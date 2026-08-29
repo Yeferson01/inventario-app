@@ -456,3 +456,28 @@ distingue autoridad business-wide de las Branches activas administrables.
 business-wide; un actor branch-specific ve exclusivamente las invitaciones de
 sus Branches administrables actuales. `settings.branches` no participa en esta
 autoridad.
+
+### D-028 — Administración Flutter por capabilities y contratos online
+
+**Estado:** vigente.
+
+**Decisión:** la entrada productiva de Administración se deriva de la
+proyección efectiva, sin conceder acceso por nombre de role. `members.invite`
+habilita Equipo según su scope. `settings.branches` inicia una comprobación
+online con `list_business_branches`; Sucursales solo queda disponible cuando el
+servidor confirma autoridad business-wide. Las operaciones organizacionales son
+online-only y Flutter consume los RPCs/Edge Function server-authoritative
+mediante Application; no usa DML de tabla ni outbox.
+
+El resolver autenticado único consulta contextos, invitaciones privadas de
+plataforma e invitaciones de miembros como fuentes tipadas distintas. Aceptar
+una invitación de miembro vuelve a discovery y al entry flow normal para
+selección, device, runtime y bootstrap. Una falla transitoria de invitaciones no
+se convierte en “sin acceso” ni elimina un contexto ya utilizable.
+
+**Consecuencias:** los formularios obtienen roles y Branches elegibles del
+servidor, mantienen una idempotency key por intento lógico y muestran errores
+productivos sin exponer payloads internos. ORG-3 sigue siendo responsable de
+Owner/Admin/custom roles y lifecycle de memberships o Branches.
+El directorio completo de miembros queda igualmente diferido hasta disponer de
+un contrato read-side explícito.

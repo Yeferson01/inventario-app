@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../administration/application/business_administration_providers.dart';
+import '../../../administration/data/models/business_administration_models.dart';
+import '../../../administration/presentation/widgets/business_invitation_access_panel.dart';
 import '../../../auth/application/authenticated_access_models.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../auth/application/productive_auth_providers.dart';
@@ -108,6 +111,28 @@ class _BusinessContextRequiredGateState
     return accepted;
   }
 
+  Future<AcceptedBusinessMemberInvitation> _acceptBusinessInvitation(
+    String invitationId,
+  ) async {
+    final accepted =
+        await ref.read(businessInvitationAcceptorProvider)(invitationId);
+    if (!mounted) return accepted;
+    setState(() {
+      _selection = accepted.branchId == null
+          ? null
+          : OperationalContextSelection(
+              businessId: accepted.businessId,
+              branchId: accepted.branchId!,
+            );
+    });
+    ref.invalidate(
+      myBusinessMemberInvitationsProvider(widget.profileId),
+    );
+    ref.invalidate(authenticatedAccessResolverProvider(widget.profileId));
+    ref.invalidate(productiveOperationalEntryProvider);
+    return accepted;
+  }
+
   Future<void> _signOut() => ref.read(productiveSignOutProvider)();
 
   Widget _buildResult(
@@ -117,12 +142,18 @@ class _BusinessContextRequiredGateState
   ) {
     final entryProvider = productiveOperationalEntryProvider(request);
     final invitations = access?.pendingInvitations ?? const [];
+    final businessInvitations = access?.pendingBusinessInvitations ??
+        const <BusinessMemberInvitation>[];
+    final hasInvitations =
+        invitations.isNotEmpty || businessInvitations.isNotEmpty;
     switch (result.outcome) {
       case OperationalBootstrapEntryOutcome.noAuthorizedContexts:
-        if (invitations.isNotEmpty) {
+        if (hasInvitations) {
           return PrivateInvitationScreen(
-            invitations: invitations,
-            onAccept: _acceptInvitation,
+            platformInvitations: invitations,
+            businessInvitations: businessInvitations,
+            onAcceptPlatform: _acceptInvitation,
+            onAcceptBusiness: _acceptBusinessInvitation,
             onSignOut: _signOut,
           );
         }
@@ -136,12 +167,13 @@ class _BusinessContextRequiredGateState
       case OperationalBootstrapEntryOutcome.selectionRequired:
         return BusinessContextSelectionScreen(
           contexts: result.contexts,
-          additionalContent: invitations.isEmpty
+          additionalContent: !hasInvitations
               ? null
-              : PlatformInvitationAccessPanel(
-                  invitations: invitations,
-                  onAccept: _acceptInvitation,
-                  compact: true,
+              : _InvitationPanels(
+                  platformInvitations: invitations,
+                  businessInvitations: businessInvitations,
+                  onAcceptPlatform: _acceptInvitation,
+                  onAcceptBusiness: _acceptBusinessInvitation,
                 ),
           onContextSelected: (selected) {
             setState(() {
@@ -154,11 +186,13 @@ class _BusinessContextRequiredGateState
         );
       case OperationalBootstrapEntryOutcome.runtimeReadyAndBootstrapCompleted:
         if (result.offlineReady) {
-          return invitations.isEmpty
+          return !hasInvitations
               ? widget.child
               : _PendingInvitationsOverlay(
-                  invitations: invitations,
-                  onAccept: _acceptInvitation,
+                  platformInvitations: invitations,
+                  businessInvitations: businessInvitations,
+                  onAcceptPlatform: _acceptInvitation,
+                  onAcceptBusiness: _acceptBusinessInvitation,
                   child: widget.child,
                 );
         }
@@ -237,13 +271,17 @@ class _BusinessContextRequiredGateState
 
 class _PendingInvitationsOverlay extends StatelessWidget {
   const _PendingInvitationsOverlay({
-    required this.invitations,
-    required this.onAccept,
+    required this.platformInvitations,
+    required this.businessInvitations,
+    required this.onAcceptPlatform,
+    required this.onAcceptBusiness,
     required this.child,
   });
 
-  final List<PlatformBusinessInvitation> invitations;
-  final PlatformInvitationAcceptAction onAccept;
+  final List<PlatformBusinessInvitation> platformInvitations;
+  final List<BusinessMemberInvitation> businessInvitations;
+  final PlatformInvitationAcceptAction onAcceptPlatform;
+  final BusinessInvitationAcceptAction onAcceptBusiness;
   final Widget child;
 
   @override
@@ -264,10 +302,18 @@ class _PendingInvitationsOverlay extends StatelessWidget {
                   builder: (sheetContext) => SafeArea(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
-                      child: PlatformInvitationAccessPanel(
-                        invitations: invitations,
-                        onAccept: (id) async {
-                          final result = await onAccept(id);
+                      child: _InvitationPanels(
+                        platformInvitations: platformInvitations,
+                        businessInvitations: businessInvitations,
+                        onAcceptPlatform: (id) async {
+                          final result = await onAcceptPlatform(id);
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                          return result;
+                        },
+                        onAcceptBusiness: (id) async {
+                          final result = await onAcceptBusiness(id);
                           if (sheetContext.mounted) {
                             Navigator.of(sheetContext).pop();
                           }
@@ -279,14 +325,51 @@ class _PendingInvitationsOverlay extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.mark_email_unread_outlined),
                 label: Text(
-                  invitations.length == 1
+                  platformInvitations.length + businessInvitations.length == 1
                       ? '1 invitación pendiente'
-                      : '${invitations.length} invitaciones pendientes',
+                      : '${platformInvitations.length + businessInvitations.length} invitaciones pendientes',
                 ),
               ),
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _InvitationPanels extends StatelessWidget {
+  const _InvitationPanels({
+    required this.platformInvitations,
+    required this.businessInvitations,
+    required this.onAcceptPlatform,
+    required this.onAcceptBusiness,
+  });
+
+  final List<PlatformBusinessInvitation> platformInvitations;
+  final List<BusinessMemberInvitation> businessInvitations;
+  final PlatformInvitationAcceptAction onAcceptPlatform;
+  final BusinessInvitationAcceptAction onAcceptBusiness;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (platformInvitations.isNotEmpty)
+          PlatformInvitationAccessPanel(
+            invitations: platformInvitations,
+            onAccept: onAcceptPlatform,
+            compact: true,
+          ),
+        if (platformInvitations.isNotEmpty && businessInvitations.isNotEmpty)
+          const SizedBox(height: 20),
+        if (businessInvitations.isNotEmpty)
+          BusinessInvitationAccessPanel(
+            invitations: businessInvitations,
+            onAccept: onAcceptBusiness,
+            compact: true,
+          ),
       ],
     );
   }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/administration/presentation/screens/administration_home_screen.dart';
+import '../../features/administration/presentation/screens/business_branches_screen.dart';
+import '../../features/administration/presentation/screens/business_team_screen.dart';
 import '../../features/auth/application/productive_auth_providers.dart';
 import '../../features/auth/presentation/screens/password_setup_screen.dart';
 import '../../features/auth/presentation/screens/productive_login_screen.dart';
@@ -97,6 +100,21 @@ class AppRouter {
           path: AppRoutes.inventarioPath,
           name: AppRoutes.inventarioName,
           builder: (context, state) => const TemporaryInventarioView(),
+        ),
+        GoRoute(
+          path: AppRoutes.administrationPath,
+          name: AppRoutes.administrationName,
+          builder: (context, state) => const AdministrationHomeScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.administrationBranchesPath,
+          name: AppRoutes.administrationBranchesName,
+          builder: (context, state) => const BusinessBranchesScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.administrationTeamPath,
+          name: AppRoutes.administrationTeamName,
+          builder: (context, state) => const BusinessTeamScreen(),
         ),
       ],
       errorBuilder: (context, state) => Scaffold(

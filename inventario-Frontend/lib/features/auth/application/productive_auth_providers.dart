@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
+import '../../administration/application/business_administration_providers.dart';
 import '../../sync/application/app_current_context_provider.dart';
 import '../../sync/application/app_router_sync_bootstrap_provider.dart';
 import '../../sync/application/operational_bootstrap_entry_providers.dart';
@@ -108,5 +109,10 @@ final productiveSignOutProvider = Provider<ProductiveSignOut>((ref) {
     ref.invalidate(productiveCachedContextAvailabilityProvider);
     ref.invalidate(appRouterSyncBootstrapProvider);
     ref.invalidate(appCurrentContextProvider);
+    ref.invalidate(administrationCurrentContextProvider);
+    ref.invalidate(businessBranchAdministrationProvider);
+    ref.invalidate(businessInvitationOptionsProvider);
+    ref.invalidate(adminBusinessInvitationsProvider);
+    ref.invalidate(myBusinessMemberInvitationsProvider);
   };
 });

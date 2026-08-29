@@ -222,10 +222,11 @@ cerrado.
 
 ORG-2C delega únicamente los system roles `cashier`, `warehouse` y
 `technician`. Owner, Admin, roles custom y el lifecycle de memberships quedan
-reservados para ORG-3. La futura UI ORG-2D deberá combinar contextos,
-invitaciones de plataforma e invitaciones de miembros antes de continuar con
-selección, device y bootstrap; la aceptación no crea `app_device` ni ejecuta
-bootstrap.
+reservados para ORG-3. La UI ORG-2D combina contextos, invitaciones de plataforma
+e invitaciones de miembros en el resolver de acceso existente. Después de una
+aceptación empresarial invalida el acceso resuelto y vuelve al flujo normal de
+discovery, selección, registro de device, runtime y bootstrap; el RPC de
+aceptación por sí mismo no crea `app_device` ni ejecuta bootstrap.
 
 Los datos read-side para esa UI también son server-authoritative.
 `list_business_member_invitation_options` deriva de `auth.uid()` los scopes
@@ -233,6 +234,21 @@ administrables, el indicador business-wide y los IDs canónicos de los tres
 roles delegables; Flutter no consulta `roles` ni resuelve sus UUIDs. El listado
 administrativo devuelve todas las invitaciones con autoridad business-wide o
 solo las Branches activas cubiertas por las memberships actuales del actor.
+
+Flutter registra `/administracion`, `/administracion/sucursales` y
+`/administracion/equipo`; el dashboard y el contenido de cada pantalla se
+habilitan únicamente cuando la proyección efectiva contiene
+`settings.branches` o `members.invite`, y el servidor revalida cada operación.
+Presentation delega en servicios y providers de Application; la capa Data usa
+exclusivamente los RPCs de ORG-2B,
+ORG-2C/2C.1 y la Edge Function de invitaciones. La creación de Branch y la
+emisión/revocación de invitaciones son online-only, no generan outbox y no usan
+DML directo. Los UUID de roles y los scopes elegibles provienen de
+`list_business_member_invitation_options`.
+
+La pantalla Equipo lista invitaciones, no un directorio de memberships. Un
+directorio completo de miembros requiere un contrato read-side posterior y no
+se reconstruye mediante `SELECT` cliente sobre `business_members`.
 
 ## Arquitectura de sincronización
 

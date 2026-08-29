@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/supabase/supabase_client_provider.dart';
+import '../../administration/application/business_administration_providers.dart';
+import '../../administration/data/models/business_administration_models.dart';
 import '../../sync/application/authorized_operational_context_providers.dart';
 import '../data/datasources/platform_business_invitation_remote_datasource.dart';
 import '../data/models/platform_business_invitation_models.dart';
@@ -20,8 +22,10 @@ final authenticatedAccessResolverServiceProvider =
     loadContexts: ref
         .watch(authorizedOperationalContextServiceProvider)
         .listAuthorizedContexts,
-    loadInvitations:
+    loadPlatformInvitations:
         ref.watch(platformBusinessInvitationRemoteDataSourceProvider).listMine,
+    loadBusinessInvitations:
+        ref.watch(businessAdministrationServiceProvider).listMyInvitations,
   );
 });
 
@@ -49,4 +53,12 @@ typedef PlatformInvitationAcceptor = Future<AcceptedPlatformBusinessInvitation>
 final platformInvitationAcceptorProvider =
     Provider<PlatformInvitationAcceptor>((ref) {
   return ref.watch(platformBusinessInvitationRemoteDataSourceProvider).accept;
+});
+
+typedef BusinessInvitationAcceptor = Future<AcceptedBusinessMemberInvitation>
+    Function(String invitationId);
+
+final businessInvitationAcceptorProvider =
+    Provider<BusinessInvitationAcceptor>((ref) {
+  return ref.watch(businessAdministrationServiceProvider).acceptInvitation;
 });
