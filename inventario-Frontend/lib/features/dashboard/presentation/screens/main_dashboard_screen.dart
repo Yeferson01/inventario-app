@@ -214,11 +214,17 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     final businessId = appContext.businessId.trim();
     final branchId = appContext.branchId?.trim();
+    final profileId = appContext.profileId?.trim();
 
-    if (businessId.isEmpty || branchId == null || branchId.isEmpty) {
+    if (businessId.isEmpty ||
+        branchId == null ||
+        branchId.isEmpty ||
+        profileId == null ||
+        profileId.isEmpty) {
       _showInfoSheet(
         title: 'Contexto incompleto',
-        message: 'Inventario necesita un negocio y una sucursal activos.',
+        message:
+            'Inventario necesita un perfil, negocio y sucursal operativos activos.',
       );
       return;
     }
@@ -228,6 +234,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         builder: (_) => InventoryProductStockListScreen(
           businessId: businessId,
           branchId: branchId,
+          profileId: profileId,
+          effectivePermissions: appContext.permissions.values,
         ),
       ),
     );

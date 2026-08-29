@@ -234,6 +234,58 @@ void main() {
     expect(await database.select(database.localSyncMutations).get(), isEmpty);
   });
 
+  test('server-authoritative transfer is preserved without ACK or double count',
+      () async {
+    await _insertMovement(
+      database,
+      id: 'transfer-movement',
+      productId: 'product-1',
+      sourceType: 'transfer',
+      sourceId: 'transfer-1',
+      quantity: -1,
+      serverApplied: true,
+    );
+    final harness = _Harness(
+      database,
+      rows: [_balanceRow('product-1', onHand: 29, averageCost: 0)],
+    );
+
+    expect((await harness.service.reconcile(_request)).converged, isTrue);
+    expect((await harness.service.reconcile(_request)).converged, isTrue);
+
+    expect(await _onHand(database, 'product-1'), 29);
+    expect(harness.requestedMovementIds, isEmpty);
+    expect(await database.select(database.localInventoryMovements).get(),
+        hasLength(1));
+    expect(await _issueRows(database), isEmpty);
+  });
+
+  test('unknown movement source remains a recovery blocker', () async {
+    await _insertBalance(database, 'product-1', operative: 10);
+    await _insertMovement(
+      database,
+      id: 'unknown-movement',
+      productId: 'product-1',
+      sourceType: 'unknown-source',
+      sourceId: 'unknown-1',
+      quantity: 1,
+      serverApplied: true,
+    );
+    final harness = _Harness(
+      database,
+      rows: [_balanceRow('product-1', onHand: 10)],
+    );
+
+    final result = await harness.service.reconcile(_request);
+
+    expect(result.converged, isFalse);
+    expect(await _onHand(database, 'product-1'), 10);
+    expect(
+      (await _issueRows(database)).single['issue_type'],
+      'unsupported_inventory_movement',
+    );
+  });
+
   test('partial outbox obeys ACK and terminal-applied plus not-found blocks',
       () async {
     await _insertBalance(database, 'applied', operative: 70);
@@ -779,6 +831,7 @@ Future<void> _insertMovement(
   String? sourceId,
   String? sourceItemId,
   double? unitCost,
+  bool serverApplied = false,
 }) {
   final metadataKey = sourceType == 'sale'
       ? 'sale_item_id'
@@ -797,6 +850,8 @@ Future<void> _insertMovement(
           sourceType: Value(sourceType),
           sourceId: Value(sourceId),
           idempotencyKey: 'key-$id',
+          syncStatus: Value(serverApplied ? 1 : 0),
+          localStatus: Value(serverApplied ? 'synced' : 'dirty'),
           occurredAt: DateTime.utc(2026, 8, 15, 8),
           metadataJson: Value(
             metadataKey == null || sourceItemId == null

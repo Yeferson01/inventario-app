@@ -8,6 +8,73 @@ class InventoryMovementLocalDao {
 
   final AppDatabase _db;
 
+  Future<void> upsertSyncedTransferMovement({
+    required String id,
+    required String businessId,
+    required String branchId,
+    required String productId,
+    required int quantityChange,
+    required double? unitCost,
+    required String transferId,
+    required String idempotencyKey,
+    required DateTime occurredAt,
+    required Map<String, dynamic> metadata,
+  }) {
+    final now = DateTime.now().toUtc();
+    return _customStatement(
+      _db,
+      '''
+      insert into local_inventory_movements (
+        id, business_id, branch_id, product_id, movement_type,
+        quantity_change, unit_cost, source_type, source_id,
+        reference_type, reference_id, notes, idempotency_key,
+        sync_status, local_status, version, occurred_at, metadata_json,
+        created_at, updated_at, last_synced_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        business_id = excluded.business_id,
+        branch_id = excluded.branch_id,
+        product_id = excluded.product_id,
+        quantity_change = excluded.quantity_change,
+        unit_cost = excluded.unit_cost,
+        source_type = excluded.source_type,
+        source_id = excluded.source_id,
+        reference_type = excluded.reference_type,
+        reference_id = excluded.reference_id,
+        idempotency_key = excluded.idempotency_key,
+        sync_status = excluded.sync_status,
+        local_status = excluded.local_status,
+        occurred_at = excluded.occurred_at,
+        metadata_json = excluded.metadata_json,
+        updated_at = excluded.updated_at,
+        last_synced_at = excluded.last_synced_at
+      ''',
+      [
+        id,
+        businessId,
+        branchId,
+        productId,
+        'transfer',
+        quantityChange,
+        unitCost,
+        'transfer',
+        transferId,
+        'inventory_transfer',
+        transferId,
+        'Transferencia de inventario sincronizada',
+        idempotencyKey,
+        1,
+        'synced',
+        1,
+        occurredAt,
+        jsonEncode(metadata),
+        now,
+        now,
+        now,
+      ],
+    );
+  }
+
   Future<void> insertInitialMovement({
     required String id,
     required String businessId,

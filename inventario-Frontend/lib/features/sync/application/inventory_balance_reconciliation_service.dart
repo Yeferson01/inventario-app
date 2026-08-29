@@ -418,6 +418,9 @@ class InventoryBalanceReconciliationService {
         message: 'A zero inventory movement cannot be acknowledged safely.',
       );
     }
+    if (movement.isAppliedServerAuthoritativeTransfer) {
+      return null;
+    }
     if (!movement.canRequestAcknowledgement) {
       return _MovementIssue(
         type: 'unsupported_inventory_movement',

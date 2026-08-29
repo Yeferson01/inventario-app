@@ -532,9 +532,12 @@ class ProductStockBalanceLocalDao {
     String sql,
     List<Object?> parameters,
   ) async {
-    await _db.customStatement(
+    await _db.customUpdate(
       sql,
-      normalizeSqliteParameters(parameters),
+      variables: normalizeSqliteParameters(parameters)
+          .map<Variable<Object>>((value) => Variable<Object>(value))
+          .toList(growable: false),
+      updates: {_db.localProductStockBalances},
     );
   }
 }

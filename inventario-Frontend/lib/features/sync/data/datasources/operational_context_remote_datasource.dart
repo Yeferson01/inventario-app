@@ -32,6 +32,7 @@ class OperationalContextRemoteDataSource {
           .from('business_members')
           .select()
           .eq('business_id', businessId)
+          .eq('profile_id', profileId)
           .isFilter('deleted_at', null),
     );
 

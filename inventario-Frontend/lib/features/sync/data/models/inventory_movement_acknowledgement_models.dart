@@ -47,6 +47,12 @@ class LocalInventoryMovementForReconciliation {
       quantityChange != 0 &&
       (!requiresSourceItemId || (sourceId != null && sourceItemId != null));
 
+  bool get isAppliedServerAuthoritativeTransfer =>
+      sourceType == 'transfer' &&
+      sourceId != null &&
+      quantityChange != 0 &&
+      transportState == InventoryMovementTransportState.terminalApplied;
+
   InventoryMovementAcknowledgementOperation get acknowledgementOperation {
     if (!canRequestAcknowledgement) {
       throw StateError('Movement $id cannot be acknowledged safely.');

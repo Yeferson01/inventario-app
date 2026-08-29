@@ -47,7 +47,13 @@ class OperationalContextLocalDao {
 
       appliedBusinessMembers = await _upsertMany(
         tableName: 'business_members',
-        records: snapshot.businessMembers,
+        records: snapshot.businessMembers
+            .where(
+              (record) =>
+                  record['business_id']?.toString() == businessId &&
+                  record['profile_id']?.toString() == profileId,
+            )
+            .toList(growable: false),
       );
 
       appliedRolePermissions = await _upsertMany(
