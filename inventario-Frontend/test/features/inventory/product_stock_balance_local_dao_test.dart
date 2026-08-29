@@ -206,15 +206,25 @@ void main() {
       quantityOnHand: 77,
     );
 
-    final products = await dao.getProductsWithLocalStock(
+    final principalProducts = await dao.getProductsWithLocalStock(
       businessId: businessId,
       branchId: branchId,
       limit: null,
     );
+    final vendeMasProducts = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: 'branch-2',
+      limit: null,
+    );
 
-    expect(products, hasLength(1));
-    expect(products.single['product_id'], 'product-a');
-    expect(products.single['quantity_on_hand'], 4);
+    expect(principalProducts, hasLength(1));
+    expect(principalProducts.single['product_id'], 'product-a');
+    expect(principalProducts.single['quantity_on_hand'], 4);
+    expect(vendeMasProducts, hasLength(1));
+    expect(vendeMasProducts.single['product_id'], 'product-a');
+    expect(vendeMasProducts.single['quantity_on_hand'], 99);
+    expect(principalProducts.single['quantity_on_hand'], isNot(103));
+    expect(vendeMasProducts.single['quantity_on_hand'], isNot(103));
   });
 
   test('watch emits again when the scoped Drift balance changes', () async {
@@ -305,6 +315,22 @@ void main() {
       businessId: businessId,
       name: 'Cafe Molido',
     );
+    await _insertBalance(
+      database,
+      id: 'rice-principal',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'rice',
+      quantityOnHand: 6,
+    );
+    await _insertBalance(
+      database,
+      id: 'rice-vendemas',
+      businessId: businessId,
+      branchId: 'branch-2',
+      productId: 'rice',
+      quantityOnHand: 13,
+    );
 
     final unfiltered = await dao.getProductsWithLocalStock(
       businessId: businessId,
@@ -318,10 +344,18 @@ void main() {
       searchTerm: ' RRoZ ',
       limit: null,
     );
+    final filteredOtherBranch = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: 'branch-2',
+      searchTerm: ' RRoZ ',
+      limit: null,
+    );
 
     expect(unfiltered, hasLength(2));
     expect(filtered.single['product_id'], 'rice');
-    expect(filtered.single['quantity_on_hand'], 0);
+    expect(filtered.single['quantity_on_hand'], 6);
+    expect(filteredOtherBranch.single['product_id'], 'rice');
+    expect(filteredOtherBranch.single['quantity_on_hand'], 13);
   });
 
   test('business barcodes search once per product and prioritize exact codes',

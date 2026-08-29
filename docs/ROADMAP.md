@@ -143,7 +143,7 @@ pero no equivale a la UI final del módulo. La ruta recuperada para esta fase es
 
 - ⏳ **6.21.1 — Listado de productos con stock.**
 - ⏳ **6.21.2 — Buscar por nombre/código.**
-- ⏳ **6.21.3 — Ver stock por sucursal.**
+- ✅ **6.21.3 — Ver stock por sucursal.**
 - ⏳ **6.21.4 — Ver costo promedio.**
 - ⏳ **6.21.5 — Ver stock mínimo.**
 - ⏳ **6.21.6 — Ver productos agotados.**

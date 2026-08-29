@@ -16,12 +16,14 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
     super.key,
     required this.businessId,
     required this.branchId,
+    required this.branchName,
     this.profileId,
     this.effectivePermissions = const {},
   });
 
   final String businessId;
   final String branchId;
+  final String branchName;
   final String? profileId;
   final Set<String> effectivePermissions;
 
@@ -133,7 +135,17 @@ class _InventoryProductStockListScreenState
       data: CronosTheme.light(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Inventario'),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Inventario'),
+              Text(
+                'Sucursal: ${widget.branchName}',
+                key: const Key('inventory-branch-context'),
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
         ),
         body: AppGradientBackground(
           child: Column(

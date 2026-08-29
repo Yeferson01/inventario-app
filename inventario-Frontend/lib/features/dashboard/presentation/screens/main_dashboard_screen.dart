@@ -198,7 +198,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     await _load();
   }
 
-  Future<void> _openInventory() async {
+  Future<void> _openInventory({String? branchName}) async {
     final appContext = _appContext;
     final access = DashboardModuleAccess.fromContext(appContext);
 
@@ -234,6 +234,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         builder: (_) => InventoryProductStockListScreen(
           businessId: businessId,
           branchId: branchId,
+          branchName: branchName ?? branchId,
           profileId: profileId,
           effectivePermissions: appContext.permissions.values,
         ),
@@ -500,7 +501,9 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                         cashReadiness: _cashReadiness,
                         onOpenCash: _openCashDashboard,
                         onOpenPos: _openPosGate,
-                        onOpenInventory: _openInventory,
+                        onOpenInventory: () => _openInventory(
+                          branchName: operationalContext?.branchName,
+                        ),
                         onOpenPurchases: _openPurchases,
                         onComingSoon: _showInfoSheet,
                       ),

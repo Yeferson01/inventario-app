@@ -113,6 +113,7 @@ void main() {
           home: InventoryProductStockListScreen(
             businessId: 'business-1',
             branchId: 'branch-1',
+            branchName: 'Principal',
           ),
         ),
       ),
@@ -152,6 +153,51 @@ void main() {
     expect(find.text('Cafe'), findsOneWidget);
     expect(find.byKey(const Key('inventory-search-clear')), findsNothing);
   });
+
+  testWidgets('branch switch changes the visible scoped stock and context', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        localProductsWithStockProvider.overrideWith((ref, key) {
+          final stock = key.branchId == 'branch-principal' ? 8 : 3;
+          return Stream.value([
+            {
+              'product_id': 'product-1',
+              'product_name': 'Arroz',
+              'quantity_on_hand': stock,
+            },
+          ]);
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    Future<void> pumpBranch(String branchId, String branchName) async {
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: InventoryProductStockListScreen(
+              businessId: 'business-1',
+              branchId: branchId,
+              branchName: branchName,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    await pumpBranch('branch-principal', 'Principal');
+    expect(find.text('Sucursal: Principal'), findsOneWidget);
+    expect(find.text('Stock: 8'), findsOneWidget);
+
+    await pumpBranch('branch-vendemas', 'VendeMás');
+    expect(find.text('Sucursal: VendeMás'), findsOneWidget);
+    expect(find.text('Stock: 3'), findsOneWidget);
+    expect(find.text('Stock: 8'), findsNothing);
+  });
 }
 
 Future<void> _pumpScreen(
@@ -172,6 +218,7 @@ Future<void> _pumpScreen(
         home: InventoryProductStockListScreen(
           businessId: 'business-1',
           branchId: 'branch-1',
+          branchName: 'Principal',
         ),
       ),
     ),
