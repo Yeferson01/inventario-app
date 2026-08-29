@@ -20,11 +20,13 @@ class BusinessContextRequiredGate extends ConsumerStatefulWidget {
   const BusinessContextRequiredGate({
     required this.profileId,
     required this.child,
+    this.businessId,
     this.loading,
     super.key,
   });
 
   final String profileId;
+  final String? businessId;
   final Widget child;
   final Widget? loading;
 
@@ -47,9 +49,15 @@ class _BusinessContextRequiredGateState
 
   @override
   Widget build(BuildContext context) {
+    final intent = ref.watch(productiveOperationalSelectionIntentProvider);
+    final intendedSelection = intent?.profileId == widget.profileId &&
+            (widget.businessId == null ||
+                intent?.businessId == widget.businessId)
+        ? intent?.selection
+        : null;
     final request = ProductiveOperationalEntryRequest(
       profileId: widget.profileId,
-      selection: _selection,
+      selection: intendedSelection ?? _selection,
     );
     final entryProvider = productiveOperationalEntryProvider(request);
 

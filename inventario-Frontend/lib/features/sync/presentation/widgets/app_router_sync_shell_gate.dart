@@ -41,6 +41,7 @@ class AppRouterSyncShellGate extends ConsumerWidget {
 
         return BusinessContextRequiredGate(
           profileId: input.profileId ?? '',
+          businessId: input.businessId,
           child: AppSyncLifecycleGate(
             inputBuilder: (_, trigger) async {
               return input.copyWithLifecycleTrigger(trigger.code);

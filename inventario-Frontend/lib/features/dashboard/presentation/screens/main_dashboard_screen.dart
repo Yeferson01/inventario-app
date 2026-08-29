@@ -8,12 +8,16 @@ import '../../../../core/providers/device_provider.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
+import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../auth/application/productive_auth_providers.dart';
 import '../../application/dashboard_module_access.dart';
 import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
+import '../../../sync/application/operational_bootstrap_entry_providers.dart';
+import '../../../sync/data/models/authorized_operational_context_models.dart';
+import '../../../sync/presentation/widgets/operational_branch_switcher.dart';
 import '../../../sales/presentation/sales_presentation.dart';
 
 class MainDashboardScreen extends ConsumerStatefulWidget {
@@ -26,6 +30,7 @@ class MainDashboardScreen extends ConsumerStatefulWidget {
 
 class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
   bool _isLoading = true;
+  bool _isSwitchingBranch = false;
   Object? _lastError;
 
   AppCurrentContext? _appContext;
@@ -242,6 +247,41 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     }
   }
 
+  void _switchOperationalBranch(AuthorizedOperationalContext target) {
+    if (_isSwitchingBranch) {
+      return;
+    }
+
+    final current = _appContext;
+    final profileId = current?.profileId;
+    if (current == null || profileId == null) {
+      _showInfoSheet(
+        title: 'Contexto incompleto',
+        message:
+            'No fue posible identificar el perfil y negocio operativos actuales.',
+      );
+      return;
+    }
+
+    setState(() => _isSwitchingBranch = true);
+    final accepted = ref
+        .read(productiveOperationalSelectionIntentProvider.notifier)
+        .requestSwitch(
+          currentProfileId: profileId,
+          currentBusinessId: current.businessId,
+          target: target,
+        );
+
+    if (!accepted && mounted) {
+      setState(() => _isSwitchingBranch = false);
+      _showInfoSheet(
+        title: 'Sucursal no autorizada',
+        message:
+            'La sucursal elegida no pertenece al perfil y negocio operativos actuales.',
+      );
+    }
+  }
+
   void _openPosGate() {
     final appContext = _appContext;
     final access = DashboardModuleAccess.fromContext(appContext);
@@ -363,6 +403,27 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final moduleAccess = DashboardModuleAccess.fromContext(_appContext);
+    final profileId = _appContext?.profileId;
+    final businessId = _appContext?.businessId;
+    final branchId = _appContext?.branchId;
+    final authorizedContexts = profileId == null
+        ? const <AuthorizedOperationalContext>[]
+        : ref
+                .watch(authenticatedAccessResolverProvider(profileId))
+                .value
+                ?.contexts ??
+            const <AuthorizedOperationalContext>[];
+    final branchContexts = profileId == null || businessId == null
+        ? const <AuthorizedOperationalContext>[]
+        : scopedOperationalBranchContexts(
+            contexts: authorizedContexts,
+            profileId: profileId,
+            businessId: businessId,
+          );
+    final operationalContext = _findOperationalContext(
+      branchContexts,
+      branchId,
+    );
 
     return Theme(
       data: CronosTheme.light(),
@@ -399,6 +460,10 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                     AppAnimatedEntrance(
                       child: _DashboardHeader(
                         appContext: _appContext,
+                        operationalContext: operationalContext,
+                        branchContexts: branchContexts,
+                        isSwitchingBranch: _isSwitchingBranch,
+                        onSwitchBranch: _switchOperationalBranch,
                         isLoading: _isLoading,
                         lastError: _lastError,
                       ),
@@ -455,11 +520,19 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.appContext,
+    required this.operationalContext,
+    required this.branchContexts,
+    required this.isSwitchingBranch,
+    required this.onSwitchBranch,
     required this.isLoading,
     required this.lastError,
   });
 
   final AppCurrentContext? appContext;
+  final AuthorizedOperationalContext? operationalContext;
+  final List<AuthorizedOperationalContext> branchContexts;
+  final bool isSwitchingBranch;
+  final ValueChanged<AuthorizedOperationalContext> onSwitchBranch;
   final bool isLoading;
   final Object? lastError;
 
@@ -483,8 +556,10 @@ class _DashboardHeader extends StatelessWidget {
           'Antes de operar debes seleccionar negocio, sucursal y perfil.';
     } else {
       final role = appContext?.roleName;
-      subtitle =
-          'Negocio activo: ${appContext!.businessId}. Roles efectivos: ${role ?? 'sin descripción local'}.';
+      final businessName = operationalContext?.businessName;
+      subtitle = businessName == null
+          ? 'Contexto operativo activo. Roles efectivos: ${role ?? 'sin descripción local'}.'
+          : 'Negocio: $businessName. Roles efectivos: ${role ?? 'sin descripción local'}.';
     }
 
     return AppGlassCard(
@@ -531,6 +606,16 @@ class _DashboardHeader extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.88),
                     ),
                   ),
+                  if (operationalContext != null) ...[
+                    const SizedBox(height: CronosSpacing.xs),
+                    OperationalBranchSwitcher(
+                      currentContext: operationalContext!,
+                      contexts: branchContexts,
+                      isSwitching: isSwitchingBranch,
+                      foregroundColor: Colors.white,
+                      onSelected: onSwitchBranch,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -539,6 +624,21 @@ class _DashboardHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+AuthorizedOperationalContext? _findOperationalContext(
+  Iterable<AuthorizedOperationalContext> contexts,
+  String? branchId,
+) {
+  if (branchId == null) {
+    return null;
+  }
+  for (final context in contexts) {
+    if (context.branchId == branchId) {
+      return context;
+    }
+  }
+  return null;
 }
 
 class _QuickStatusRow extends StatelessWidget {

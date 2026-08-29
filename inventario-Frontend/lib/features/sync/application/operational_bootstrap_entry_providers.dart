@@ -12,6 +12,75 @@ import 'operational_bootstrap_entry_models.dart';
 import 'operational_bootstrap_entry_service.dart';
 import 'operational_bootstrap_orchestration_models.dart';
 import 'operational_bootstrap_providers.dart';
+import '../data/models/authorized_operational_context_models.dart';
+
+class ProductiveOperationalSelectionIntent {
+  const ProductiveOperationalSelectionIntent({
+    required this.profileId,
+    required this.businessId,
+    required this.branchId,
+  });
+
+  final String profileId;
+  final String businessId;
+  final String branchId;
+
+  OperationalContextSelection get selection => OperationalContextSelection(
+        businessId: businessId,
+        branchId: branchId,
+      );
+}
+
+class ProductiveOperationalSelectionIntentNotifier
+    extends Notifier<ProductiveOperationalSelectionIntent?> {
+  @override
+  ProductiveOperationalSelectionIntent? build() => null;
+
+  bool requestSwitch({
+    required String currentProfileId,
+    required String currentBusinessId,
+    required AuthorizedOperationalContext target,
+  }) {
+    if (target.profileId != currentProfileId ||
+        target.businessId != currentBusinessId) {
+      return false;
+    }
+
+    state = ProductiveOperationalSelectionIntent(
+      profileId: target.profileId,
+      businessId: target.businessId,
+      branchId: target.branchId,
+    );
+    return true;
+  }
+}
+
+final productiveOperationalSelectionIntentProvider = NotifierProvider<
+    ProductiveOperationalSelectionIntentNotifier,
+    ProductiveOperationalSelectionIntent?>(
+  ProductiveOperationalSelectionIntentNotifier.new,
+);
+
+List<AuthorizedOperationalContext> scopedOperationalBranchContexts({
+  required Iterable<AuthorizedOperationalContext> contexts,
+  required String profileId,
+  required String businessId,
+}) {
+  final byBranchId = <String, AuthorizedOperationalContext>{};
+  for (final context in contexts) {
+    if (context.profileId != profileId ||
+        context.businessId != businessId ||
+        context.businessStatus != 'active' ||
+        context.branchStatus != 'active') {
+      continue;
+    }
+    byBranchId[context.branchId] = context;
+  }
+
+  final result = byBranchId.values.toList(growable: false)
+    ..sort((left, right) => left.branchName.compareTo(right.branchName));
+  return List<AuthorizedOperationalContext>.unmodifiable(result);
+}
 
 final operationalBootstrapEntryServiceProvider =
     Provider<OperationalBootstrapEntryService>((ref) {
