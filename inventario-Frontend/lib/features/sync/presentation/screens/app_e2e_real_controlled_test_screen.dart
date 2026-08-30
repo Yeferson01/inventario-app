@@ -62,10 +62,6 @@ class _AppE2ERealControlledTestScreenState
   final _purchaseSupplierNameController = TextEditingController(
     text: 'Proveedor E2E Local',
   );
-  final _cashRegisterNameController = TextEditingController(
-    text: 'Caja E2E Principal',
-  );
-  final _cashRegisterCodeController = TextEditingController(text: 'MAIN');
   final _cashOpeningAmountController = TextEditingController(text: '50000');
   final _cashClosingAmountController = TextEditingController(text: '50000');
 
@@ -365,7 +361,6 @@ class _AppE2ERealControlledTestScreenState
           'appDevicesId',
         ],
       );
-
       if (appDeviceId == null) {
         setState(() {
           _lastResult = {
@@ -605,7 +600,6 @@ class _AppE2ERealControlledTestScreenState
           'appDevicesId',
         ],
       );
-
       if (appDeviceId == null || appDeviceId.trim().isEmpty) {
         setState(() {
           _lastResult = {
@@ -1010,6 +1004,13 @@ class _AppE2ERealControlledTestScreenState
           'appDeviceId',
         ],
       );
+      final cashRegisterId = preflight.currentContext?.cashRegisterId?.trim();
+
+      if (cashRegisterId == null || cashRegisterId.isEmpty) {
+        throw StateError(
+          'El runtime canónico debe estar recuperado antes de abrir UI real de caja.',
+        );
+      }
 
       if (!mounted) {
         return;
@@ -1022,6 +1023,7 @@ class _AppE2ERealControlledTestScreenState
               businessId: businessId,
               branchId: branchId,
               profileId: user,
+              cashRegisterId: cashRegisterId,
               canReadCash: true,
               canOpenCash: true,
               canCloseCash: true,
@@ -1321,6 +1323,8 @@ class _AppE2ERealControlledTestScreenState
         ],
       );
 
+      final cashRegisterId = preflight.currentContext?.cashRegisterId?.trim();
+
       if (appDeviceId == null || appDeviceId.trim().isEmpty) {
         setState(() {
           _lastResult = {
@@ -1333,20 +1337,18 @@ class _AppE2ERealControlledTestScreenState
           'No se pudo resolver app_device_id real para abrir caja local.',
         );
       }
+      if (cashRegisterId == null || cashRegisterId.trim().isEmpty) {
+        throw StateError(
+          'Recuperación requerida: no se resolvió la caja canónica.',
+        );
+      }
 
       final result = await cashSessionService.openCashSession(
         OpenCashSessionInput(
           businessId: businessId,
           branchId: branchId,
           profileId: user,
-          cashRegisterName: _requiredText(
-            _cashRegisterNameController,
-            'Nombre de caja',
-          ),
-          cashRegisterCode: _requiredText(
-            _cashRegisterCodeController,
-            'Código de caja',
-          ),
+          cashRegisterId: cashRegisterId,
           openingCashAmount: _doubleFromController(
             _cashOpeningAmountController,
           ),
@@ -1370,10 +1372,11 @@ class _AppE2ERealControlledTestScreenState
           'business_id': businessId,
           'branch_id': branchId,
           'app_device_id': appDeviceId,
+          'cash_register_id': cashRegisterId,
           'result': result.toJson(),
           'open_session_after': openSession?.toJson(),
           'expected': {
-            'cash_register_created_first_time': true,
+            'cash_register_created_first_time': false,
             'cash_session_status': 'open',
             'reusing_same_open_session_on_repeat': true,
             'remote_should_not_change_yet': true,
@@ -2001,8 +2004,6 @@ class _AppE2ERealControlledTestScreenState
     _purchaseQuantityController.dispose();
     _purchaseUnitCostController.dispose();
     _purchaseSupplierNameController.dispose();
-    _cashRegisterNameController.dispose();
-    _cashRegisterCodeController.dispose();
     _cashOpeningAmountController.dispose();
     _cashClosingAmountController.dispose();
     super.dispose();
@@ -2298,22 +2299,6 @@ class _AppE2ERealControlledTestScreenState
             controller: _purchaseSupplierNameController,
             decoration: const InputDecoration(
               labelText: 'Proveedor compra local',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _cashRegisterNameController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre caja local',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _cashRegisterCodeController,
-            decoration: const InputDecoration(
-              labelText: 'Código caja local',
               border: OutlineInputBorder(),
             ),
           ),

@@ -122,6 +122,7 @@ class CashPosSnapshotApplier
         return false;
       }
     }
+    await _localDao.applyCashRegister(remote);
     if (remote.state == OperationalBootstrapRecordState.present) {
       final duplicates = await _localDao.rowsForScope(
         table: 'cash_registers',
@@ -142,6 +143,24 @@ class CashPosSnapshotApplier
           candidate,
         );
         if (!classification.canAcceptRemote) {
+          final retired = await _localDao.tryRetireOrphanLegacyCashRegister(
+            legacy: candidate,
+            canonicalCashRegisterId: remote.id,
+            businessId: snapshot.businessId,
+            branchId: snapshot.branchId,
+          );
+          if (retired) {
+            await _issueDao.resolveOpenIssue(
+              profileId: profileId,
+              businessId: snapshot.businessId,
+              branchId: snapshot.branchId,
+              domain: 'cash_pos',
+              issueType: 'canonical_entity_conflict',
+              entityType: 'cash_registers',
+              entityId: candidate['id'].toString(),
+            );
+            continue;
+          }
           await _openIssue(
             profileId,
             snapshot,
@@ -156,7 +175,6 @@ class CashPosSnapshotApplier
         }
       }
     }
-    await _localDao.applyCashRegister(remote);
     await _resolveEntityIssues(
       profileId,
       snapshot,

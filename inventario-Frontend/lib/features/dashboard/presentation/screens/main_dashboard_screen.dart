@@ -124,12 +124,16 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     final branchId = appContext.branchId;
     final profileId = appContext.profileId;
+    final cashRegisterId = appContext.cashRegisterId?.trim();
 
-    if (branchId == null || profileId == null) {
+    if (branchId == null ||
+        profileId == null ||
+        cashRegisterId == null ||
+        cashRegisterId.isEmpty) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
+        title: 'Recuperación requerida',
         message:
-            'El dashboard encontró negocio, pero falta sucursal o perfil operativo.',
+            'La caja canónica de esta sucursal todavía no está disponible localmente. Actualiza el contexto antes de abrir caja.',
       );
       return;
     }
@@ -140,6 +144,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           businessId: appContext.businessId,
           branchId: branchId,
           profileId: profileId,
+          cashRegisterId: cashRegisterId,
           appDeviceId: appContext.appDeviceId,
           deviceInstallationId: appContext.installationId,
           canReadCash: access.canReadCash,

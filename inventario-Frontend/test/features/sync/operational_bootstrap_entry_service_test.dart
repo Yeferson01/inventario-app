@@ -104,6 +104,8 @@ void main() {
     expect(input.appDeviceId, 'device-1');
     expect(input.runtime.cashRegisterId, 'cash-1');
     expect(input.runtime.cashSessionId, 'session-1');
+    expect(harness.savedRuntimeContext?.branchId, 'branch-x');
+    expect(harness.savedRuntimeContext?.cashRegisterId, 'cash-1');
     expect(result.offlineReady, isTrue);
   });
 
@@ -277,6 +279,7 @@ class _EntryHarness {
   int clearCalls = 0;
   RegisterAppDeviceInput? lastDeviceInput;
   OperationalBootstrapRequest? lastBootstrapRequest;
+  AppRuntimeContext? savedRuntimeContext;
 
   OperationalBootstrapEntryService get service =>
       OperationalBootstrapEntryService(
@@ -314,6 +317,9 @@ class _EntryHarness {
         clearSelectedContext: (profileId) async {
           clearCalls++;
           stored = null;
+        },
+        writeRuntimeContext: (context) async {
+          savedRuntimeContext = context;
         },
       );
 }

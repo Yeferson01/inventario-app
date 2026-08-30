@@ -31,6 +31,9 @@ typedef EntrySelectedContextWriter = Future<void> Function(
   AppSelectedSyncContext context,
 );
 typedef EntrySelectedContextClearer = Future<void> Function(String profileId);
+typedef EntryRuntimeContextWriter = Future<void> Function(
+  AppRuntimeContext context,
+);
 
 class OperationalBootstrapEntryService {
   OperationalBootstrapEntryService({
@@ -43,6 +46,7 @@ class OperationalBootstrapEntryService {
     required EntrySelectedContextReader readSelectedContext,
     required EntrySelectedContextWriter writeSelectedContext,
     required EntrySelectedContextClearer clearSelectedContext,
+    required EntryRuntimeContextWriter writeRuntimeContext,
   })  : _authenticatedProfileId = authenticatedProfileId,
         _discover = discover,
         _installationId = installationId,
@@ -51,7 +55,8 @@ class OperationalBootstrapEntryService {
         _bootstrap = bootstrap,
         _readSelectedContext = readSelectedContext,
         _writeSelectedContext = writeSelectedContext,
-        _clearSelectedContext = clearSelectedContext;
+        _clearSelectedContext = clearSelectedContext,
+        _writeRuntimeContext = writeRuntimeContext;
 
   final EntryAuthenticatedProfileResolver _authenticatedProfileId;
   final EntryDiscoveryRunner _discover;
@@ -62,6 +67,7 @@ class OperationalBootstrapEntryService {
   final EntrySelectedContextReader _readSelectedContext;
   final EntrySelectedContextWriter _writeSelectedContext;
   final EntrySelectedContextClearer _clearSelectedContext;
+  final EntryRuntimeContextWriter _writeRuntimeContext;
 
   Future<OperationalBootstrapEntryResult> run(
     OperationalBootstrapEntryRequest request,
@@ -171,6 +177,18 @@ class OperationalBootstrapEntryService {
         profileId: profileId,
         businessId: selected.businessId,
         branchId: selected.branchId,
+      );
+      await _writeRuntimeContext(
+        AppRuntimeContext(
+          businessId: runtime.businessId,
+          branchId: runtime.branchId,
+          profileId: profileId,
+          installationId: installationId,
+          appDeviceId: device.appDeviceId,
+          cashRegisterId: runtime.cashRegisterId,
+          cashSessionId: runtime.openCashSessionId,
+          receiptSequenceId: runtime.receiptSequenceId,
+        ),
       );
       if (!runtime.runtimeReady) {
         return _result(

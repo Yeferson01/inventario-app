@@ -18,6 +18,7 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
     required this.businessId,
     required this.branchId,
     required this.profileId,
+    required this.cashRegisterId,
     required this.canReadCash,
     required this.canOpenCash,
     required this.canCloseCash,
@@ -28,6 +29,7 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
   final String businessId;
   final String branchId;
   final String profileId;
+  final String cashRegisterId;
   final bool canReadCash;
   final bool canOpenCash;
   final bool canCloseCash;
@@ -137,8 +139,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
             businessId: widget.businessId,
             branchId: widget.branchId,
             profileId: widget.profileId,
-            cashRegisterName: result.registerName,
-            cashRegisterCode: result.registerCode,
+            cashRegisterId: widget.cashRegisterId,
             openingCashAmount: result.openingAmount,
             appDeviceId: widget.appDeviceId,
             deviceInstallationId: widget.deviceInstallationId,
@@ -843,16 +844,12 @@ class _OpenCashSessionDialog extends StatefulWidget {
 }
 
 class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
-  late final TextEditingController _nameController;
-  late final TextEditingController _codeController;
   late final TextEditingController _amountController;
 
   @override
   void initState() {
     super.initState();
 
-    _nameController = TextEditingController(text: 'Caja Principal');
-    _codeController = TextEditingController(text: 'MAIN');
     _amountController = TextEditingController(
       text: widget.suggestedOpeningAmount.toStringAsFixed(2),
     );
@@ -860,8 +857,6 @@ class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _codeController.dispose();
     _amountController.dispose();
 
     super.dispose();
@@ -875,22 +870,6 @@ class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre de caja',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _codeController,
-              decoration: const InputDecoration(
-                labelText: 'Código',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
             TextField(
               controller: _amountController,
               decoration: const InputDecoration(
@@ -926,12 +905,6 @@ class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
 
             Navigator.of(context).pop(
               _OpenCashDialogResult(
-                registerName: _nameController.text.trim().isEmpty
-                    ? 'Caja Principal'
-                    : _nameController.text.trim(),
-                registerCode: _codeController.text.trim().isEmpty
-                    ? 'MAIN'
-                    : _codeController.text.trim(),
                 openingAmount: amount,
               ),
             );
@@ -945,13 +918,9 @@ class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
 
 class _OpenCashDialogResult {
   const _OpenCashDialogResult({
-    required this.registerName,
-    required this.registerCode,
     required this.openingAmount,
   });
 
-  final String registerName;
-  final String registerCode;
   final double openingAmount;
 }
 

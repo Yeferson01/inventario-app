@@ -49,15 +49,19 @@ class AppContextService {
       return null;
     }
 
-    final runtimeContext = await _runtimeContextStore.getContext(
-      businessId: selectedContext.businessId,
-      installationId: installationId,
-    );
+    final branchId = _string(selectedContext.branchId);
+    final runtimeContext = branchId == null
+        ? null
+        : await _runtimeContextStore.getContext(
+            businessId: selectedContext.businessId,
+            branchId: branchId,
+            installationId: installationId,
+          );
 
-    final matchingRuntimeContext =
-        runtimeContext?.profileId == profileId ? runtimeContext : null;
-    final branchId =
-        selectedContext.branchId ?? matchingRuntimeContext?.branchId;
+    final matchingRuntimeContext = runtimeContext?.profileId == profileId &&
+            runtimeContext?.branchId == branchId
+        ? runtimeContext
+        : null;
 
     final authorizationContext = branchId == null
         ? null

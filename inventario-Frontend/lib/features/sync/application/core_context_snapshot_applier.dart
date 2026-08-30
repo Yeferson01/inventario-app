@@ -35,7 +35,7 @@ class CoreContextSnapshotApplier implements OperationalBootstrapPageApplier {
     final context = CoreContextSnapshot.fromBootstrapRow(page.rows.single);
     _validateScope(profileId, snapshot, context);
 
-    await _coreContextLocalDao.upsertBusinessAndBranch(context);
+    await _coreContextLocalDao.materializeContextParents(context);
     await _authorizationDao.replaceContext(
       AuthorizedOperationalContextProjection(
         profileId: context.profileId,

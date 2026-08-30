@@ -202,6 +202,34 @@ void main() {
     expect(harness.calls, isNot(contains('cash_pos')));
   });
 
+  test('repairable canonical cash conflict reaches cash reconciliation',
+      () async {
+    final harness = _Harness(
+      database,
+      permissions: const ['sales.create', 'cash.open', 'inventory.read'],
+    );
+    await harness.issueDao.openOrUpdateIssue(
+      const ReconciliationIssueDraft(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        domain: 'cash_pos',
+        entityType: 'cash_registers',
+        entityId: 'register-y',
+        issueType: 'canonical_entity_conflict',
+        severity: 'blocking',
+        message: 'Legacy register conflicts with canonical register-x.',
+      ),
+    );
+
+    final result = await harness.service.run(_request());
+
+    expect(harness.calls, contains('cash_pos'));
+    expect(result.outcome, OperationalBootstrapOutcome.ready);
+    expect(result.offlineReady, isTrue);
+    expect(result.blockingIssues, isEmpty);
+  });
+
   test('cash open-session conflict is blocking and creates no session',
       () async {
     final harness = _Harness(
@@ -696,6 +724,15 @@ class _Harness {
             status: Value('active'),
           ),
         );
+    await issueDao.resolveOpenIssue(
+      profileId: request.profileId,
+      businessId: request.businessId,
+      branchId: request.branchId,
+      domain: 'cash_pos',
+      issueType: 'canonical_entity_conflict',
+      entityType: 'cash_registers',
+      entityId: 'register-y',
+    );
     if (cashBlocked) {
       await issueDao.openOrUpdateIssue(
         const ReconciliationIssueDraft(

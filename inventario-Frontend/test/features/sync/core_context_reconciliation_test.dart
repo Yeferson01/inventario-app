@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
@@ -16,6 +18,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/core_context_snapshot_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/operational_bootstrap_models.dart';
+import 'package:inventario_frontend/features/sync/data/models/runtime_setup_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/operational_bootstrap_test_data.dart';
@@ -66,7 +69,7 @@ void main() {
     );
   });
 
-  test('applies business, branch and effective projection without outbox',
+  test('applies profile, business, branch and projection without outbox',
       () async {
     final snapshot = _coreSnapshot();
 
@@ -74,6 +77,7 @@ void main() {
 
     final businesses = await database.select(database.businesses).get();
     final branches = await database.select(database.branches).get();
+    final profiles = await database.select(database.profiles).get();
     final projection = await authorizationDao.getContextRecord(
       profileId: 'profile-a',
       businessId: 'business-a',
@@ -81,12 +85,13 @@ void main() {
     );
     expect(businesses.single.syncStatus, SyncStatus.synced);
     expect(branches.single.syncStatus, 0);
+    expect(profiles.single.id, 'profile-a');
+    expect(profiles.single.businessId, isNull);
     expect(projection?.snapshotId, 'core-snapshot-1');
     expect(projection?.isActive, isTrue);
     expect(projection?.effectivePermissions,
         ['inventory.read', 'products.read', 'sales.create']);
     expect(projection?.effectiveRoles, ['cashier', 'inventory_operator']);
-    expect(await database.select(database.profiles).get(), isEmpty);
     expect(await database.select(database.businessMembers).get(), isEmpty);
     expect(await database.select(database.roles).get(), isEmpty);
     expect(await database.select(database.rolePermissions).get(), isEmpty);
@@ -187,6 +192,98 @@ void main() {
       isOnline: false,
     );
     expect(branchY?.permissions.sorted(), ['inventory.adjust']);
+  });
+
+  test('stale legacy runtime converges to the selected branch canonical id',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'app_runtime_context.business-a.installation-1': jsonEncode({
+        'business_id': 'business-a',
+        'branch_id': 'branch-x',
+        'profile_id': 'profile-a',
+        'installation_id': 'installation-1',
+        'app_device_id': 'device-a',
+        'cash_register_id': 'cash-stale-x',
+      }),
+    });
+    await _apply(applier, _coreSnapshot(branchId: 'branch-y'));
+    final runtimeStore = AppRuntimeContextStore();
+    await runtimeStore.saveContext(
+      const AppRuntimeContext(
+        businessId: 'business-a',
+        branchId: 'branch-y',
+        profileId: 'profile-a',
+        installationId: 'installation-1',
+        appDeviceId: 'device-a',
+        cashRegisterId: 'cash-canonical-y',
+      ),
+    );
+    final service = _contextService(database, authorizationDao);
+    await service.selectBusinessContext(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-y',
+    );
+
+    final current = await service.loadCurrentContext(
+      profileId: 'profile-a',
+      installationId: 'installation-1',
+      isOnline: false,
+    );
+
+    expect(current?.branchId, 'branch-y');
+    expect(current?.cashRegisterId, 'cash-canonical-y');
+  });
+
+  test('branch switching preserves each branch canonical runtime id', () async {
+    await _apply(applier, _coreSnapshot(branchId: 'branch-x'));
+    await _apply(applier, _coreSnapshot(branchId: 'branch-y'));
+    final runtimeStore = AppRuntimeContextStore();
+    await runtimeStore.saveContext(
+      const AppRuntimeContext(
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        profileId: 'profile-a',
+        installationId: 'installation-1',
+        appDeviceId: 'device-a',
+        cashRegisterId: 'cash-canonical-x',
+      ),
+    );
+    await runtimeStore.saveContext(
+      const AppRuntimeContext(
+        businessId: 'business-a',
+        branchId: 'branch-y',
+        profileId: 'profile-a',
+        installationId: 'installation-1',
+        appDeviceId: 'device-a',
+        cashRegisterId: 'cash-canonical-y',
+      ),
+    );
+    final service = _contextService(database, authorizationDao);
+
+    await service.selectBusinessContext(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+    );
+    final principal = await service.loadCurrentContext(
+      profileId: 'profile-a',
+      installationId: 'installation-1',
+      isOnline: false,
+    );
+    await service.selectBusinessContext(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-y',
+    );
+    final vendeMas = await service.loadCurrentContext(
+      profileId: 'profile-a',
+      installationId: 'installation-1',
+      isOnline: false,
+    );
+
+    expect(principal?.cashRegisterId, 'cash-canonical-x');
+    expect(vendeMas?.cashRegisterId, 'cash-canonical-y');
   });
 
   test('revoked projection denies permissions without legacy fallback',

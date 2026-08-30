@@ -85,6 +85,7 @@ List<AuthorizedOperationalContext> scopedOperationalBranchContexts({
 final operationalBootstrapEntryServiceProvider =
     Provider<OperationalBootstrapEntryService>((ref) {
   final selectedStore = ref.watch(appSelectedSyncContextStoreProvider);
+  final runtimeStore = ref.watch(appRuntimeContextStoreProvider);
   final installationStore = AppInstallationIdStore();
   return OperationalBootstrapEntryService(
     authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
@@ -102,6 +103,7 @@ final operationalBootstrapEntryServiceProvider =
     writeSelectedContext: selectedStore.saveSelectedContext,
     clearSelectedContext: (profileId) =>
         selectedStore.clearSelectedContext(profileId: profileId),
+    writeRuntimeContext: runtimeStore.saveContext,
   );
 });
 

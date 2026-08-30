@@ -113,7 +113,7 @@ class CashSessionLocalService {
   ) async {
     _validateInput(input);
 
-    final cashRegister = await _getOrCreateCashRegister(input);
+    final cashRegister = await _getCanonicalCashRegister(input);
 
     final openSession = await _dao.getOpenCashSessionForRegister(
       businessId: input.businessId,
@@ -172,61 +172,27 @@ class CashSessionLocalService {
     return _sessionResult(session, created: false);
   }
 
-  Future<LocalCashRegisterResult> _getOrCreateCashRegister(
+  Future<LocalCashRegisterResult> _getCanonicalCashRegister(
     OpenCashSessionInput input,
   ) async {
-    if (input.cashRegisterId != null &&
-        input.cashRegisterId!.trim().isNotEmpty) {
-      final existing = await _dao.getCashRegisterById(
-        id: input.cashRegisterId!.trim(),
+    final cashRegisterId = input.cashRegisterId.trim();
+    final existing = await _dao.getCashRegisterById(
+      id: cashRegisterId,
+      businessId: input.businessId,
+      branchId: input.branchId,
+    );
+
+    if (existing == null) {
+      throw CashRecoveryRequiredException(
+        cashRegisterId: cashRegisterId,
         businessId: input.businessId,
         branchId: input.branchId,
       );
-
-      if (existing == null) {
-        throw CashRecoveryRequiredException(
-          cashRegisterId: input.cashRegisterId!.trim(),
-          businessId: input.businessId,
-          branchId: input.branchId,
-        );
-      }
-
-      return _registerResult(
-        existing,
-        created: false,
-      );
     }
-
-    final existing = await _dao.getActiveCashRegisterByCode(
-      businessId: input.businessId,
-      branchId: input.branchId,
-      code: input.cashRegisterCode,
-    );
-
-    if (existing != null) {
-      return _registerResult(
-        existing,
-        created: false,
-      );
-    }
-
-    final created = await _dao.createCashRegister(
-      businessId: input.businessId,
-      branchId: input.branchId,
-      name: input.cashRegisterName,
-      code: input.cashRegisterCode,
-      profileId: input.profileId,
-      appDeviceId: input.appDeviceId,
-      deviceInstallationId: input.deviceInstallationId,
-      metadata: {
-        ...input.metadata,
-        'source': 'cash_session_local_service',
-      },
-    );
 
     return _registerResult(
-      created,
-      created: true,
+      existing,
+      created: false,
     );
   }
 
@@ -274,12 +240,12 @@ class CashSessionLocalService {
       throw ArgumentError('profileId es requerido.');
     }
 
-    if (input.cashRegisterName.trim().isEmpty) {
-      throw ArgumentError('cashRegisterName es requerido.');
-    }
-
-    if (input.cashRegisterCode.trim().isEmpty) {
-      throw ArgumentError('cashRegisterCode es requerido.');
+    if (input.cashRegisterId.trim().isEmpty) {
+      throw CashRecoveryRequiredException(
+        cashRegisterId: input.cashRegisterId,
+        businessId: input.businessId,
+        branchId: input.branchId,
+      );
     }
 
     if (input.openingCashAmount < 0) {

@@ -8,7 +8,7 @@ class CoreContextLocalDao {
 
   final AppDatabase _db;
 
-  Future<void> upsertBusinessAndBranch(CoreContextSnapshot context) async {
+  Future<void> materializeContextParents(CoreContextSnapshot context) async {
     await _db.into(_db.businesses).insertOnConflictUpdate(
           BusinessesCompanion.insert(
             id: context.business.id,
@@ -25,6 +25,11 @@ class CoreContextLocalDao {
             deletedAt: Value(context.business.deletedAt),
             syncStatus: const Value(SyncStatus.synced),
           ),
+        );
+
+    await _db.into(_db.profiles).insert(
+          ProfilesCompanion.insert(id: context.profileId),
+          mode: InsertMode.insertOrIgnore,
         );
 
     await _db.into(_db.branches).insertOnConflictUpdate(

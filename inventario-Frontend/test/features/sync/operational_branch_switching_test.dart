@@ -227,6 +227,8 @@ void main() {
     expect(gate, isNot(contains('LocalSyncOutbox')));
     expect(dashboard, isNot(contains('.rpc(')));
     expect(dashboard, isNot(contains('deleteAll')));
+    expect(dashboard, contains('cashRegisterId: cashRegisterId'));
+    expect(dashboard, contains("title: 'Recuperación requerida'"));
     expect(MainDashboardScreen, isNotNull);
   });
 }

@@ -19,6 +19,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/cash_pos_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/operational_bootstrap_models.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import 'support/operational_bootstrap_test_data.dart';
 
@@ -76,15 +77,58 @@ void main() {
     );
   });
 
-  test('3 missing canonical register requires recovery and creates no Y',
+  test('3 unresolved or missing canonical register creates no fallback Y',
       () async {
     final service = CashSessionLocalService(dao: CashSessionLocalDao(database));
+
+    await expectLater(
+      service.openCashSession(_openInput(cashRegisterId: '')),
+      throwsA(isA<CashRecoveryRequiredException>()),
+    );
+    expect(await _count(database, 'cash_registers'), 0);
 
     await expectLater(
       service.openCashSession(_openInput(cashRegisterId: 'register-x')),
       throwsA(isA<CashRecoveryRequiredException>()),
     );
     expect(await _count(database, 'cash_registers'), 0);
+  });
+
+  test('3b profile parent enables canonical opening without creating Y',
+      () async {
+    await database.delete(database.profiles).go();
+    await _insertRegister(database, id: 'register-x');
+    final service = CashSessionLocalService(dao: CashSessionLocalDao(database));
+
+    await expectLater(
+      service.openCashSession(_openInput(cashRegisterId: 'register-x')),
+      throwsA(
+        isA<SqliteException>().having(
+          (error) => error.extendedResultCode,
+          'extendedResultCode',
+          787,
+        ),
+      ),
+    );
+    expect(await _count(database, 'businesses'), 2);
+    expect(await _count(database, 'branches'), 3);
+    expect(await _count(database, 'cash_registers'), 1);
+    expect(await _count(database, 'profiles'), 0);
+    expect(await _count(database, 'cash_sessions'), 0);
+
+    await database.into(database.profiles).insert(
+          ProfilesCompanion.insert(id: 'profile-a'),
+        );
+    final result = await service.openCashSession(
+      _openInput(cashRegisterId: 'register-x'),
+    );
+
+    expect(result.cashRegister.id, 'register-x');
+    expect(result.cashRegister.created, isFalse);
+    expect(result.cashSession.cashRegisterId, 'register-x');
+    expect(result.cashSession.openedByProfileId, 'profile-a');
+    expect(await _count(database, 'cash_registers'), 1);
+    expect(await _count(database, 'cash_sessions'), 1);
   });
 
   test('4 remote open session is materialized with remote identity', () async {
@@ -310,6 +354,13 @@ void main() {
       localStatus: 'dirty',
       syncStatus: SyncStatus.pendingInsert,
     );
+    await _insertSession(
+      database,
+      id: 'session-b',
+      cashRegisterId: 'register-y',
+      localStatus: 'dirty',
+      syncStatus: SyncStatus.pendingInsert,
+    );
     await _insertOutbox(
       database,
       domain: 'cash',
@@ -323,6 +374,112 @@ void main() {
     expect(result.cashContextReady, isFalse);
     expect(await _row(database, 'cash_registers', 'register-x'), isNotNull);
     expect(await _row(database, 'cash_registers', 'register-y'), isNotNull);
+    expect(await _row(database, 'cash_sessions', 'session-b'), isNotNull);
+    expect(
+      (await _issues(database)).map((row) => row['issue_type']),
+      contains('canonical_entity_conflict'),
+    );
+  });
+
+  test('14a orphan opening placeholders converge to canonical without blocker',
+      () async {
+    await _insertRegister(
+      database,
+      id: 'register-y',
+      localStatus: 'dirty',
+      syncStatus: SyncStatus.pendingInsert,
+      idempotencyKey:
+          'installation-a:cash_registers:business-a:branch-x:VendeMas',
+      metadataJson:
+          '{"source":"cash_session_local_dao","flow":"open_cash_session"}',
+    );
+    await _insertRegister(
+      database,
+      id: 'register-z',
+      localStatus: 'dirty',
+      syncStatus: SyncStatus.pendingInsert,
+      idempotencyKey: 'installation-a:cash_registers:business-a:branch-x:MAIN',
+      metadataJson:
+          '{"source":"cash_session_local_dao","flow":"open_cash_session"}',
+    );
+    await _insertRegister(
+      database,
+      id: 'register-retired',
+      localStatus: 'synced',
+      syncStatus: SyncStatus.synced,
+      idempotencyKey: 'installation-a:cash_registers:business-a:branch-x:OLD',
+      metadataJson:
+          '{"source":"cash_session_local_dao","flow":"open_cash_session"}',
+    );
+    await (database.update(database.cashRegisters)
+          ..where((row) => row.id.equals('register-retired')))
+        .write(
+      CashRegistersCompanion(
+        status: const Value('inactive'),
+        deletedAt: Value(DateTime.utc(2026, 8, 15)),
+      ),
+    );
+    for (final legacyId in ['register-y', 'register-z']) {
+      await ReconciliationIssueLocalDao(database).openOrUpdateIssue(
+        ReconciliationIssueDraft(
+          profileId: 'profile-a',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          domain: 'cash_pos',
+          entityType: 'cash_registers',
+          entityId: legacyId,
+          issueType: 'canonical_entity_conflict',
+          severity: 'blocking',
+          message: 'Legacy register conflicts with canonical register-x.',
+        ),
+      );
+    }
+    final harness = _Harness(database, [_cashResponse()]);
+
+    final result = await harness.recovery.recover(_request);
+
+    expect(result.cashContextReady, isTrue);
+    expect(await _row(database, 'cash_registers', 'register-x'), isNotNull);
+    for (final legacyId in ['register-y', 'register-z']) {
+      final legacy = await _row(database, 'cash_registers', legacyId);
+      expect(legacy!['status'], 'inactive');
+      expect(legacy['local_status'], 'synced');
+      expect(legacy['sync_status'], SyncStatus.synced.index);
+      expect(legacy['deleted_at'], isNotNull);
+    }
+    final alreadyRetired =
+        await _row(database, 'cash_registers', 'register-retired');
+    expect(alreadyRetired!['status'], 'inactive');
+    expect(alreadyRetired['deleted_at'], isNotNull);
+    expect(await _count(database, 'local_sync_mutations'), 0);
+    expect(
+      (await _issues(database)).where(
+        (row) =>
+            row['issue_type'] == 'canonical_entity_conflict' &&
+            row['status'] == 'open',
+      ),
+      isEmpty,
+    );
+  });
+
+  test('14b genuine orphan register is not auto-merged', () async {
+    await _insertRegister(
+      database,
+      id: 'register-y',
+      localStatus: 'dirty',
+      syncStatus: SyncStatus.pendingInsert,
+      idempotencyKey:
+          'installation-a:cash_registers:business-a:branch-x:SECOND',
+      metadataJson: '{"source":"cash_register_administration"}',
+    );
+    final harness = _Harness(database, [_cashResponse()]);
+
+    final result = await harness.recovery.recover(_request);
+    final legacy = await _row(database, 'cash_registers', 'register-y');
+
+    expect(result.cashContextReady, isFalse);
+    expect(legacy!['status'], 'active');
+    expect(legacy['deleted_at'], isNull);
     expect(
       (await _issues(database)).map((row) => row['issue_type']),
       contains('canonical_entity_conflict'),
@@ -616,7 +773,7 @@ const _downloadRequest = OperationalBootstrapDownloadRequest(
 );
 
 OpenCashSessionInput _openInput({
-  String? cashRegisterId,
+  required String cashRegisterId,
   double openingCashAmount = 0,
 }) =>
     OpenCashSessionInput(
@@ -813,6 +970,8 @@ Future<void> _insertRegister(
   String name = 'Caja Principal',
   String localStatus = 'synced',
   SyncStatus syncStatus = SyncStatus.synced,
+  String? idempotencyKey,
+  String? metadataJson,
 }) {
   return db.into(db.cashRegisters).insert(
         CashRegistersCompanion.insert(
@@ -821,8 +980,10 @@ Future<void> _insertRegister(
           branchId: Value(branchId),
           name: Value(name),
           code: const Value('MAIN'),
+          idempotencyKey: Value(idempotencyKey),
           localStatus: Value(localStatus),
           syncStatus: Value(syncStatus),
+          metadataJson: Value(metadataJson),
           createdAt: Value(DateTime.utc(2026, 8, 14)),
           updatedAt: Value(DateTime.utc(2026, 8, 14)),
         ),
@@ -832,6 +993,7 @@ Future<void> _insertRegister(
 Future<void> _insertSession(
   AppDatabase db, {
   required String id,
+  String cashRegisterId = 'register-x',
   double opening = 20,
   String localStatus = 'synced',
   SyncStatus syncStatus = SyncStatus.synced,
@@ -841,7 +1003,7 @@ Future<void> _insertSession(
           id: id,
           businessId: const Value('business-a'),
           branchId: const Value('branch-x'),
-          cashRegisterId: const Value('register-x'),
+          cashRegisterId: Value(cashRegisterId),
           openedByProfileId: const Value('profile-a'),
           openedAt: Value(DateTime.utc(2026, 8, 14)),
           openingCashAmount: Value(opening),

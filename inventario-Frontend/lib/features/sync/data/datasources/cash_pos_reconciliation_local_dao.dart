@@ -192,6 +192,116 @@ class CashPosReconciliationLocalDao {
     );
   }
 
+  Future<bool> tryRetireOrphanLegacyCashRegister({
+    required Map<String, dynamic> legacy,
+    required String canonicalCashRegisterId,
+    required String businessId,
+    required String branchId,
+  }) async {
+    final legacyId = legacy['id']?.toString().trim() ?? '';
+    final idempotencyKey = legacy['idempotency_key']?.toString().trim() ?? '';
+    final metadata = _decodeMetadata(legacy['metadata_json']);
+    final isGeneratedOpeningPlaceholder =
+        metadata?['source'] == 'cash_session_local_dao' &&
+            metadata?['flow'] == 'open_cash_session';
+
+    if (legacyId.isEmpty ||
+        legacyId == canonicalCashRegisterId ||
+        legacy['business_id'] != businessId ||
+        legacy['branch_id'] != branchId ||
+        legacy['status'] != 'active' ||
+        legacy['local_status'] != 'dirty' ||
+        legacy['sync_status'] != SyncStatus.pendingInsert.index ||
+        legacy['deleted_at'] != null ||
+        legacy['last_synced_at'] != null ||
+        !isGeneratedOpeningPlaceholder ||
+        !idempotencyKey.contains(
+          ':cash_registers:$businessId:$branchId:',
+        )) {
+      return false;
+    }
+
+    final references = await _db.customSelect(
+      '''
+      select
+        (select count(*) from cash_sessions
+          where cash_register_id = ?) as session_count,
+        (select count(*) from sales
+          where cash_register_id = ?) as sale_count,
+        (select count(*) from local_sync_mutations
+          where entity_id = ?
+             or instr(coalesce(payload_json, ''), ?) > 0
+             or instr(coalesce(before_payload_json, ''), ?) > 0
+             or instr(coalesce(metadata_json, ''), ?) > 0) as mutation_count,
+        (select count(*) from local_reconciliation_issues
+          where entity_type = 'cash_registers'
+            and entity_id = ?
+            and status = 'open'
+            and issue_type <> 'canonical_entity_conflict') as other_issue_count
+      ''',
+      variables: [
+        Variable<String>(legacyId),
+        Variable<String>(legacyId),
+        Variable<String>(legacyId),
+        Variable<String>(legacyId),
+        Variable<String>(legacyId),
+        Variable<String>(legacyId),
+        Variable<String>(legacyId),
+      ],
+      readsFrom: {
+        _db.cashSessions,
+        _db.sales,
+        _db.localSyncMutations,
+        _db.localReconciliationIssues,
+      },
+    ).getSingle();
+
+    if (_count(references.data['session_count']) > 0 ||
+        _count(references.data['sale_count']) > 0 ||
+        _count(references.data['mutation_count']) > 0 ||
+        _count(references.data['other_issue_count']) > 0) {
+      return false;
+    }
+
+    final now = DateTime.now().toUtc();
+    final retiredMetadata = _mergeMetadata(legacy['metadata_json'], {
+      'recovery_reconciliation': 'retired_orphan_legacy_cash_register',
+      'canonical_cash_register_id': canonicalCashRegisterId,
+      'reconciled_at': now.toIso8601String(),
+    });
+    final changed = await _db.customUpdate(
+      '''
+      update cash_registers
+      set status = 'inactive',
+          local_status = 'synced',
+          sync_status = ?,
+          metadata_json = ?,
+          updated_at = ?,
+          deleted_at = ?
+      where id = ?
+        and business_id = ?
+        and branch_id = ?
+        and status = 'active'
+        and local_status = 'dirty'
+        and sync_status = ?
+        and deleted_at is null
+        and last_synced_at is null
+      ''',
+      variables: [
+        Variable<int>(SyncStatus.synced.index),
+        Variable<String>(retiredMetadata),
+        Variable<DateTime>(now),
+        Variable<DateTime>(now),
+        Variable<String>(legacyId),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        Variable<int>(SyncStatus.pendingInsert.index),
+      ],
+      updates: {_db.cashRegisters},
+    );
+    return changed == 1;
+  }
+
   Future<void> applyCashSession(CashSessionSnapshotRow row) async {
     final openedBy = await profileExists(row.openedByProfileId)
         ? row.openedByProfileId
@@ -570,6 +680,21 @@ class CashPosReconciliationLocalDao {
     }
     return jsonEncode({...decoded, ...extra});
   }
+
+  Map<String, Object?>? _decodeMetadata(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is Map) {
+        return decoded.map((key, item) => MapEntry('$key', item));
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
+  }
+
+  int _count(Object? value) => value is num ? value.toInt() : 0;
 
   DateTime? _dateOrNull(Object? value) {
     if (value is DateTime) return value.toUtc();

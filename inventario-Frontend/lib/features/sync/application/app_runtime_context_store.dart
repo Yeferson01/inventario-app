@@ -9,22 +9,48 @@ class AppRuntimeContextStore {
 
   Future<void> saveContext(AppRuntimeContext context) async {
     final preferences = await SharedPreferences.getInstance();
+    final branchId = _requiredBranchId(context.branchId);
 
     await preferences.setString(
-      _contextKey(context.businessId, context.installationId),
+      _contextKey(context.businessId, branchId, context.installationId),
       jsonEncode(context.toJson()),
     );
   }
 
   Future<AppRuntimeContext?> getContext({
     required String businessId,
+    required String branchId,
     required String installationId,
   }) async {
     final preferences = await SharedPreferences.getInstance();
 
-    final raw = preferences.getString(_contextKey(businessId, installationId));
+    final raw = preferences.getString(
+      _contextKey(businessId, branchId, installationId),
+    );
 
-    if (raw == null || raw.trim().isEmpty) {
+    if (raw != null && raw.trim().isNotEmpty) {
+      return _decodeContext(raw);
+    }
+
+    // Migrate the former business+installation cache only when its embedded
+    // branch matches the explicitly requested branch. A legacy context from a
+    // different branch must never supply runtime IDs for the selected branch.
+    final legacyRaw = preferences.getString(
+      _legacyContextKey(businessId, installationId),
+    );
+    if (legacyRaw == null || legacyRaw.trim().isEmpty) {
+      return null;
+    }
+    final legacy = _decodeContext(legacyRaw);
+    if (legacy == null || legacy.branchId != branchId) {
+      return null;
+    }
+    await saveContext(legacy);
+    return legacy;
+  }
+
+  AppRuntimeContext? _decodeContext(String raw) {
+    if (raw.trim().isEmpty) {
       return null;
     }
 
@@ -54,8 +80,24 @@ class AppRuntimeContextStore {
     );
   }
 
-  String _contextKey(String businessId, String installationId) {
+  String _contextKey(
+    String businessId,
+    String branchId,
+    String installationId,
+  ) {
+    return '$_contextPrefix.$businessId.$branchId.$installationId';
+  }
+
+  String _legacyContextKey(String businessId, String installationId) {
     return '$_contextPrefix.$businessId.$installationId';
+  }
+
+  String _requiredBranchId(String? value) {
+    final branchId = _string(value);
+    if (branchId == null) {
+      throw ArgumentError('AppRuntimeContext requiere branchId explícita.');
+    }
+    return branchId;
   }
 
   String _requiredString(Map<String, dynamic> map, String key) {

@@ -3,9 +3,7 @@ class OpenCashSessionInput {
     required this.businessId,
     required this.branchId,
     required this.profileId,
-    this.cashRegisterId,
-    this.cashRegisterName = 'Caja principal',
-    this.cashRegisterCode = 'MAIN',
+    required this.cashRegisterId,
     this.openingCashAmount = 0,
     this.appDeviceId,
     this.deviceInstallationId,
@@ -15,9 +13,7 @@ class OpenCashSessionInput {
   final String businessId;
   final String branchId;
   final String profileId;
-  final String? cashRegisterId;
-  final String cashRegisterName;
-  final String cashRegisterCode;
+  final String cashRegisterId;
   final double openingCashAmount;
   final String? appDeviceId;
   final String? deviceInstallationId;

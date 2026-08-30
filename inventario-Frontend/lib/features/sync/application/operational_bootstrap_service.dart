@@ -276,7 +276,9 @@ class OperationalBootstrapService {
           }
         }
 
-        final preCashBlockers = await _loadBlockingIssues(request);
+        final preCashBlockers = (await _loadBlockingIssues(request))
+            .where((issue) => !_canCashRecoveryReconcile(issue))
+            .toList(growable: false);
         if (preCashBlockers.isNotEmpty) {
           state.blockingIssues
             ..clear()
@@ -590,6 +592,12 @@ class OperationalBootstrapService {
       branchId: request.branchId,
     );
     return rows.map(_issueFromRow).toList(growable: false);
+  }
+
+  bool _canCashRecoveryReconcile(OperationalBootstrapBlockingIssue issue) {
+    return issue.domain == 'cash_pos' &&
+        issue.issueType == 'canonical_entity_conflict' &&
+        issue.entityType == 'cash_registers';
   }
 
   OperationalBootstrapBlockingIssue _issueFromRow(
