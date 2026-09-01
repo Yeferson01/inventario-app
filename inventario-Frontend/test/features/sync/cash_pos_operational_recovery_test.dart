@@ -295,6 +295,33 @@ void main() {
     );
   });
 
+  test('closed remote session is no longer considered open after recovery',
+      () async {
+    await _insertRegister(database, id: 'register-x');
+    await _insertSession(database, id: 'session-s');
+    final harness = _Harness(database, [
+      _cashResponse(
+        sessionRows: const [],
+        saleRows: const [],
+        itemRows: const [],
+        paymentRows: const [],
+      ),
+    ]);
+
+    await harness.recovery.recover(_request);
+
+    final openSession =
+        await CashSessionLocalDao(database).getOpenCashSessionForBranch(
+      businessId: 'business-a',
+      branchId: 'branch-x',
+    );
+    final recovered = await _row(database, 'cash_sessions', 'session-s');
+
+    expect(openSession, isNull);
+    expect(recovered!['status'], isNot('open'));
+    expect(recovered['deleted_at'], isNotNull);
+  });
+
   test('12 remote tombstone soft-invalidates clean register', () async {
     await _insertRegister(database, id: 'register-x');
     final harness = _Harness(database, [

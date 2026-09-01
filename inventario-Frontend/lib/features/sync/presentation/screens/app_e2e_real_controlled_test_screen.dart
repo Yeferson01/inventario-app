@@ -20,6 +20,7 @@ import '../../../inventory/application/product_stock_balance_providers.dart';
 import '../../../sales/application/pos_local_sale_models.dart';
 import '../../../sales/application/pos_local_sale_provider.dart';
 import '../../application/pos_sync_upload_provider.dart';
+import '../../application/unmaterialized_local_sale_discard_service.dart';
 import '../../../inventory/application/purchase_local_models.dart';
 import '../../../inventory/application/purchase_local_provider.dart';
 import '../../application/purchases_sync_upload_provider.dart';
@@ -64,6 +65,9 @@ class _AppE2ERealControlledTestScreenState
   );
   final _cashOpeningAmountController = TextEditingController(text: '50000');
   final _cashClosingAmountController = TextEditingController(text: '50000');
+  final _discardSaleIdController = TextEditingController(
+    text: '01a05831-1c20-72b9-a146-1b43e285b143',
+  );
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -1911,6 +1915,71 @@ class _AppE2ERealControlledTestScreenState
     }
   }
 
+  Future<void> _discardUnmaterializedTestSale() async {
+    final saleId = _requiredText(_discardSaleIdController, 'saleId');
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Descartar venta local de prueba'),
+            content: Text(
+              'Sale $saleId\n\n'
+              'Esta acción solo es válida si la venta NO ocurrió: '
+              'el cliente no pagó y no recibió producto. Se verificará Hosted '
+              'en modo read-only antes de modificar Drift.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Confirmo: la venta NO ocurrió'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+    try {
+      final result = await ref
+          .read(unmaterializedLocalSaleDiscardServiceProvider)
+          .discard(
+            DiscardUnmaterializedLocalSaleInput(
+              profileId: _requireCurrentUserId(),
+              businessId: _requiredText(_businessIdController, 'businessId'),
+              branchId: _requiredText(_branchIdController, 'branchId'),
+              saleId: saleId,
+              confirmedSaleDidNotOccur: true,
+              reason: 'Venta E2E confirmada como no realizada por el usuario.',
+            ),
+          );
+      if (!mounted) return;
+      setState(() {
+        _lastResult = {
+          'flow': 'discard_unmaterialized_local_sale',
+          ...result.toJson(),
+        };
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
   Future<void> _previewProductsWithLocalStock() async {
     setState(() {
       _isRunning = true;
@@ -2006,6 +2075,7 @@ class _AppE2ERealControlledTestScreenState
     _purchaseSupplierNameController.dispose();
     _cashOpeningAmountController.dispose();
     _cashClosingAmountController.dispose();
+    _discardSaleIdController.dispose();
     super.dispose();
   }
 
@@ -2324,6 +2394,19 @@ class _AppE2ERealControlledTestScreenState
           FilledButton.tonal(
             onPressed: _isRunning ? null : _runOperationalBootstrap,
             child: const Text('Operational Recovery / Bootstrap'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _discardSaleIdController,
+            decoration: const InputDecoration(
+              labelText: 'Sale ID local rechazada (solo debug)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: _isRunning ? null : _discardUnmaterializedTestSale,
+            child: const Text('Descartar venta NO ocurrida (solo debug)'),
           ),
           const SizedBox(height: 12),
           if (_showLegacyE2EDebugButtons) ...[

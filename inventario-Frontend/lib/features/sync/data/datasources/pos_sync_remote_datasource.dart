@@ -145,6 +145,66 @@ class PosSyncRemoteDataSource {
     return true;
   }
 
+  Future<UnmaterializedSaleRemoteEvidence> verifyUnmaterializedSale({
+    required String businessId,
+    required String branchId,
+    required String saleId,
+  }) async {
+    final value = await _client.rpc(
+      'verify_unmaterialized_sale_discard',
+      params: {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_sale_id': saleId,
+      },
+    );
+    if (value is! Map) {
+      throw const FormatException(
+        'verify_unmaterialized_sale_discard returned an invalid payload.',
+      );
+    }
+    final payload = Map<String, dynamic>.from(value);
+    final returnedBusinessId = _requiredString(payload, 'business_id');
+    final returnedBranchId = _requiredString(payload, 'branch_id');
+    final returnedSaleId = _requiredString(payload, 'sale_id');
+    final saleExists = _requiredBool(payload, 'sale_exists');
+    final itemsExist = _requiredBool(payload, 'items_exist');
+    final paymentsExist = _requiredBool(payload, 'payments_exist');
+    final movementsExist = _requiredBool(payload, 'movements_exist');
+    final expectedConflictExists =
+        _requiredBool(payload, 'expected_conflict_exists');
+    final safeToDiscard = _requiredBool(payload, 'safe_to_discard');
+    final expectedSafeToDiscard = !saleExists &&
+        !itemsExist &&
+        !paymentsExist &&
+        !movementsExist &&
+        expectedConflictExists;
+    if (safeToDiscard != expectedSafeToDiscard) {
+      throw const FormatException(
+        'verify_unmaterialized_sale_discard returned inconsistent evidence.',
+      );
+    }
+    final conflictReasons = switch (payload['conflict_reasons']) {
+      final List reasons => reasons.map(_string).whereType<String>().toSet(),
+      null => const <String>{},
+      _ => throw const FormatException(
+          'verify_unmaterialized_sale_discard returned invalid reasons.',
+        ),
+    };
+
+    return UnmaterializedSaleRemoteEvidence(
+      businessId: returnedBusinessId,
+      branchId: returnedBranchId,
+      saleId: returnedSaleId,
+      saleRows: saleExists ? 1 : 0,
+      saleItemRows: itemsExist ? 1 : 0,
+      salePaymentRows: paymentsExist ? 1 : 0,
+      inventoryMovementRows: movementsExist ? 1 : 0,
+      expectedConflictFound: expectedConflictExists,
+      conflictReasons: conflictReasons,
+    );
+  }
+
   Future<bool> _posEntityExists({
     required String table,
     required String entityId,
@@ -187,6 +247,112 @@ class PosSyncRemoteDataSource {
         .order('client_sequence');
 
     return rows.map((row) => Map<String, dynamic>.from(row as Map)).toList();
+  }
+
+  Future<List<PosInventoryApplyFailure>> getInventoryApplyFailures({
+    required String serverBatchId,
+  }) async {
+    final rows = await _client
+        .from('sync_batches')
+        .select('metadata')
+        .eq('id', serverBatchId)
+        .limit(1);
+    if (rows.isEmpty) return const [];
+
+    final row = Map<String, dynamic>.from(rows.first as Map);
+    final metadata = row['metadata'];
+    if (metadata is! Map) return const [];
+    final autoApply = metadata['pos_inventory_auto_apply'];
+    if (autoApply is! Map) return const [];
+    final result = autoApply['result'];
+    if (result is! Map) return const [];
+    final errors = result['errors'];
+    if (errors is! List) return const [];
+
+    return errors.whereType<Map>().map((error) {
+      return PosInventoryApplyFailure(
+        serverBatchId: serverBatchId,
+        saleId: _requiredString(
+          error.map((key, value) => MapEntry(key.toString(), value)),
+          'sale_id',
+        ),
+        message: _string(error['error_message']) ??
+            'Remote inventory application failed.',
+      );
+    }).toList(growable: false);
+  }
+
+  Future<List<PosCashSessionApplyFailure>> getCashSessionApplyFailures({
+    required String serverBatchId,
+  }) async {
+    final mutationRows = await _client
+        .from('sync_mutations')
+        .select('id')
+        .eq('sync_batch_id', serverBatchId)
+        .eq('entity_table', 'sales');
+    final mutationIds = mutationRows
+        .map((row) => _string((row as Map)['id']))
+        .whereType<String>()
+        .toList(growable: false);
+    if (mutationIds.isEmpty) return const [];
+
+    final conflictRows = await _client
+        .from('sync_conflicts')
+        .select(
+          'sync_batch_id, sync_mutation_id, entity_id, error_message, metadata',
+        )
+        .inFilter('sync_mutation_id', mutationIds);
+
+    return conflictRows.whereType<Map>().where((row) {
+      final metadata = row['metadata'];
+      return metadata is Map &&
+          _string(metadata['rule']) == 'sale_cash_session_invalid';
+    }).map((row) {
+      final metadata = Map<String, dynamic>.from(row['metadata'] as Map);
+      return PosCashSessionApplyFailure(
+        serverBatchId: _string(row['sync_batch_id']) ?? serverBatchId,
+        serverMutationId: _requiredString(
+          row.map((key, value) => MapEntry(key.toString(), value)),
+          'sync_mutation_id',
+        ),
+        saleId: _requiredString(
+          row.map((key, value) => MapEntry(key.toString(), value)),
+          'entity_id',
+        ),
+        cashSessionId: _string(metadata['cash_session_id']),
+        cashRegisterId: _string(metadata['cash_register_id']),
+        branchId: _string(metadata['branch_id']),
+        reason: _string(metadata['reason']) ?? 'missing',
+        message: _string(row['error_message']) ??
+            'Remote sale cash session validation failed.',
+      );
+    }).toList(growable: false);
+  }
+
+  Future<List<PosInventoryApplyFailure>> getInventoryApplyFailuresForMutations({
+    required List<Map<String, dynamic>> localMutations,
+  }) async {
+    final serverBatchIds = <String>{};
+    for (final mutation in localMutations) {
+      if (_string(mutation['entity_table']) != 'sales') continue;
+      final rows = await _client
+          .from('sync_mutations')
+          .select('sync_batch_id')
+          .eq('business_id', _requiredString(mutation, 'business_id'))
+          .eq('idempotency_key', _requiredString(mutation, 'idempotency_key'))
+          .limit(1);
+      if (rows.isEmpty) continue;
+      final batchId = _string((rows.first as Map)['sync_batch_id']);
+      if (batchId != null) serverBatchIds.add(batchId);
+    }
+
+    final failures = <PosInventoryApplyFailure>[];
+    for (final batchId in serverBatchIds) {
+      failures.addAll(
+        await getInventoryApplyFailures(serverBatchId: batchId),
+      );
+    }
+    return List.unmodifiable(failures);
   }
 
   Object _normalizedPosPayload(Map<String, dynamic> mutation) {
@@ -273,4 +439,88 @@ class PosSyncRemoteDataSource {
 
     return int.tryParse(value.toString());
   }
+
+  bool _requiredBool(Map<String, dynamic> source, String key) {
+    final value = source[key];
+    if (value is bool) {
+      return value;
+    }
+    throw FormatException('Boolean field required: $key');
+  }
+}
+
+class PosInventoryApplyFailure {
+  const PosInventoryApplyFailure({
+    required this.serverBatchId,
+    required this.saleId,
+    required this.message,
+  });
+
+  final String serverBatchId;
+  final String saleId;
+  final String message;
+}
+
+class PosCashSessionApplyFailure {
+  const PosCashSessionApplyFailure({
+    required this.serverBatchId,
+    required this.serverMutationId,
+    required this.saleId,
+    required this.cashSessionId,
+    required this.cashRegisterId,
+    required this.branchId,
+    required this.reason,
+    required this.message,
+  });
+
+  final String serverBatchId;
+  final String serverMutationId;
+  final String saleId;
+  final String? cashSessionId;
+  final String? cashRegisterId;
+  final String? branchId;
+  final String reason;
+  final String message;
+}
+
+class UnmaterializedSaleRemoteEvidence {
+  const UnmaterializedSaleRemoteEvidence({
+    required this.businessId,
+    required this.branchId,
+    required this.saleId,
+    required this.saleRows,
+    required this.saleItemRows,
+    required this.salePaymentRows,
+    required this.inventoryMovementRows,
+    required this.expectedConflictFound,
+    this.conflictReasons = const {},
+  });
+
+  final String businessId;
+  final String branchId;
+  final String saleId;
+  final int saleRows;
+  final int saleItemRows;
+  final int salePaymentRows;
+  final int inventoryMovementRows;
+  final bool expectedConflictFound;
+  final Set<String> conflictReasons;
+
+  bool get hasRemoteMaterialization =>
+      saleRows > 0 ||
+      saleItemRows > 0 ||
+      salePaymentRows > 0 ||
+      inventoryMovementRows > 0;
+
+  Map<String, dynamic> toJson() => {
+        'business_id': businessId,
+        'branch_id': branchId,
+        'sale_id': saleId,
+        'sale_rows': saleRows,
+        'sale_item_rows': saleItemRows,
+        'sale_payment_rows': salePaymentRows,
+        'inventory_movement_rows': inventoryMovementRows,
+        'expected_conflict_found': expectedConflictFound,
+        'conflict_reasons': conflictReasons.toList(growable: false),
+      };
 }

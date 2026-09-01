@@ -639,6 +639,417 @@ class PosLocalSaleDao {
     });
   }
 
+  Future<DiscardUnmaterializedLocalSaleLocalResult>
+      discardUnmaterializedLocalSale({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String saleId,
+    required String reason,
+  }) {
+    return _db.transaction(() async {
+      final now = DateTime.now().toUtc();
+      final saleRow = await _db.customSelect(
+        'select * from sales where id = ? limit 1',
+        variables: [Variable<String>(saleId)],
+        readsFrom: {_db.sales},
+      ).getSingleOrNull();
+      if (saleRow == null) {
+        throw StateError('No existe la venta local solicitada.');
+      }
+      final sale = Map<String, dynamic>.from(saleRow.data);
+      if (sale['business_id']?.toString() != businessId ||
+          sale['branch_id']?.toString() != branchId) {
+        throw StateError('La venta local no pertenece al contexto solicitado.');
+      }
+
+      final saleMetadata = _metadataMap(sale['metadata_json']);
+      if (sale['deleted_at'] != null) {
+        if (saleMetadata['local_resolution'] ==
+            'unmaterialized_sale_discarded') {
+          return DiscardUnmaterializedLocalSaleLocalResult(
+            saleId: saleId,
+            alreadyDiscarded: true,
+            movementsDiscarded: 0,
+            mutationsTerminalized: 0,
+            issuesResolved: 0,
+            restoredQuantityByProduct: const {},
+          );
+        }
+        throw StateError('La venta ya tiene un tombstone no relacionado.');
+      }
+      if (sale['local_status']?.toString() != 'dirty' ||
+          sale['sync_status'] == SyncStatus.synced.index) {
+        throw StateError(
+          'La venta no está dirty/pending y no puede descartarse con este contrato.',
+        );
+      }
+
+      final saleIssue = await _db.customSelect(
+        '''
+        select id, status, metadata_json
+        from local_reconciliation_issues
+        where profile_id = ? and business_id = ? and branch_id = ?
+          and domain = 'cash_pos'
+          and entity_type = 'sales' and entity_id = ?
+          and issue_type = 'sale_cash_session_rejected'
+          and severity = 'blocking'
+        order by case when status = 'open' then 0 else 1 end, created_at desc
+        limit 1
+        ''',
+        variables: [
+          Variable<String>(profileId),
+          Variable<String>(businessId),
+          Variable<String>(branchId),
+          Variable<String>(saleId),
+        ],
+        readsFrom: {_db.localReconciliationIssues},
+      ).getSingleOrNull();
+
+      final items = await _db.customSelect(
+        'select * from sale_items where sale_id = ? and deleted_at is null',
+        variables: [Variable<String>(saleId)],
+        readsFrom: {_db.saleItems},
+      ).get();
+      final payments = await _db.customSelect(
+        'select * from sale_payments where sale_id = ? and deleted_at is null',
+        variables: [Variable<String>(saleId)],
+        readsFrom: {_db.salePayments},
+      ).get();
+      final movements = await _db.customSelect(
+        '''
+        select * from local_inventory_movements
+        where source_type = 'sale' and source_id = ? and deleted_at is null
+        order by occurred_at, id
+        ''',
+        variables: [Variable<String>(saleId)],
+        readsFrom: {_db.localInventoryMovements},
+      ).get();
+      if (items.isEmpty || payments.isEmpty || movements.isEmpty) {
+        throw StateError(
+          'La venta no conserva todos sus hijos y movimientos locales.',
+        );
+      }
+
+      final itemIds = items.map((row) => row.data['id'].toString()).toSet();
+      final paymentIds =
+          payments.map((row) => row.data['id'].toString()).toSet();
+      final movementIds =
+          movements.map((row) => row.data['id'].toString()).toSet();
+      final restoredByProduct = <String, int>{};
+      for (final movementRow in movements) {
+        final movement = movementRow.data;
+        if (movement['business_id']?.toString() != businessId ||
+            movement['branch_id']?.toString() != branchId) {
+          throw StateError(
+            'Un movimiento de la venta pertenece a otro contexto.',
+          );
+        }
+        final quantity = (movement['quantity_change'] as num).toInt();
+        if (quantity >= 0) {
+          throw StateError(
+            'Un movimiento de venta no tiene un delta negativo seguro.',
+          );
+        }
+        final productId = movement['product_id'].toString();
+        restoredByProduct.update(
+          productId,
+          (current) => current - quantity,
+          ifAbsent: () => -quantity,
+        );
+      }
+
+      final mutationRows = await _db.customSelect(
+        '''
+        select m.*, b.status as batch_status, b.domain as batch_domain
+        from local_sync_mutations m
+        join local_sync_batches b on b.id = m.local_sync_batch_id
+        where m.business_id = ? and m.branch_id = ? and b.domain = 'pos'
+        order by m.client_sequence, m.id
+        ''',
+        variables: [
+          Variable<String>(businessId),
+          Variable<String>(branchId),
+        ],
+        readsFrom: {_db.localSyncMutations, _db.localSyncBatches},
+      ).get();
+      final relatedMutations = mutationRows.where((row) {
+        final table = row.data['entity_table']?.toString();
+        final entityId = row.data['entity_id']?.toString();
+        return (table == 'sales' && entityId == saleId) ||
+            (table == 'sale_items' && itemIds.contains(entityId)) ||
+            (table == 'sale_payments' && paymentIds.contains(entityId));
+      }).toList(growable: false);
+      if (relatedMutations.isEmpty ||
+          !relatedMutations.any(
+            (row) =>
+                row.data['entity_table'] == 'sales' &&
+                row.data['entity_id'] == saleId &&
+                const {'pending', 'error', 'conflict'}
+                    .contains(row.data['status']),
+          )) {
+        throw StateError(
+          'No existe la mutación rechazada de la venta requerida.',
+        );
+      }
+      if (relatedMutations.any(
+        (row) => const {'applied', 'skipped'}.contains(row.data['status']),
+      )) {
+        throw StateError(
+          'Existe evidencia local de materialización aplicada; discard abortado.',
+        );
+      }
+
+      final audit = <String, Object?>{
+        'local_resolution': 'unmaterialized_sale_discarded',
+        'confirmed_not_occurred': true,
+        'resolution_reason': reason,
+        'resolved_at': now.toIso8601String(),
+        'resolved_by_profile_id': profileId,
+        'local_blocker_issue_type': 'sale_cash_session_rejected',
+        'local_blocker_state_before_discard':
+            saleIssue?.data['status']?.toString() ?? 'missing',
+      };
+
+      for (final entry in restoredByProduct.entries) {
+        final balance = await _db.customSelect(
+          '''
+          select metadata_json from local_product_stock_balances
+          where business_id = ? and branch_id = ? and product_id = ?
+            and deleted_at is null limit 1
+          ''',
+          variables: [
+            Variable<String>(businessId),
+            Variable<String>(branchId),
+            Variable<String>(entry.key),
+          ],
+          readsFrom: {_db.localProductStockBalances},
+        ).getSingleOrNull();
+        if (balance == null) {
+          throw StateError(
+            'No existe el saldo local del producto ${entry.key}.',
+          );
+        }
+        final changed = await _db.customUpdate(
+          '''
+          update local_product_stock_balances
+          set quantity_on_hand = quantity_on_hand + ?,
+              quantity_available = quantity_available + ?,
+              last_movement_at = (
+                select max(occurred_at) from local_inventory_movements
+                where business_id = ? and branch_id = ? and product_id = ?
+                  and deleted_at is null
+                  and not (source_type = 'sale' and source_id = ?)
+              ),
+              metadata_json = ?, updated_at = ?
+          where business_id = ? and branch_id = ? and product_id = ?
+            and deleted_at is null
+          ''',
+          variables: [
+            Variable<int>(entry.value),
+            Variable<int>(entry.value),
+            Variable<String>(businessId),
+            Variable<String>(branchId),
+            Variable<String>(entry.key),
+            Variable<String>(saleId),
+            Variable<String>(jsonEncode({
+              ..._metadataMap(balance.data['metadata_json']),
+              'local_resolution': 'unmaterialized_sale_discarded',
+              'sale_id': saleId,
+              'restored_quantity': entry.value,
+              'resolved_at': now.toIso8601String(),
+            })),
+            Variable<DateTime>(now),
+            Variable<String>(businessId),
+            Variable<String>(branchId),
+            Variable<String>(entry.key),
+          ],
+          updates: {_db.localProductStockBalances},
+        );
+        if (changed != 1) {
+          throw StateError(
+            'No se pudo restaurar el saldo del producto ${entry.key}.',
+          );
+        }
+      }
+
+      await _customStatement(
+        '''
+        update sales set deleted_at = ?, local_status = 'synced',
+          sync_status = ?, metadata_json = ?, updated_at = ?
+        where id = ? and deleted_at is null
+        ''',
+        [
+          now,
+          SyncStatus.synced.index,
+          jsonEncode({...saleMetadata, ...audit}),
+          now,
+          saleId,
+        ],
+      );
+      for (final row in items) {
+        await _customStatement(
+          '''
+          update sale_items set deleted_at = ?, sync_status = ?,
+            metadata_json = ?, updated_at = ? where id = ?
+          ''',
+          [
+            now,
+            SyncStatus.synced.index,
+            jsonEncode({..._metadataMap(row.data['metadata_json']), ...audit}),
+            now,
+            row.data['id'],
+          ],
+        );
+      }
+      for (final row in payments) {
+        await _customStatement(
+          '''
+          update sale_payments set deleted_at = ?, local_status = 'synced',
+            sync_status = ?, metadata_json = ?, updated_at = ? where id = ?
+          ''',
+          [
+            now,
+            SyncStatus.synced.index,
+            jsonEncode({..._metadataMap(row.data['metadata_json']), ...audit}),
+            now,
+            row.data['id'],
+          ],
+        );
+      }
+      for (final row in movements) {
+        await _customStatement(
+          '''
+          update local_inventory_movements
+          set deleted_at = ?, local_status = 'synced', sync_status = ?,
+            metadata_json = ?, updated_at = ?, last_synced_at = ?
+          where id = ?
+          ''',
+          [
+            now,
+            SyncStatus.synced.index,
+            jsonEncode({..._metadataMap(row.data['metadata_json']), ...audit}),
+            now,
+            now,
+            row.data['id'],
+          ],
+        );
+      }
+
+      final batchIds = <String>{};
+      for (final row in relatedMutations) {
+        final mutation = row.data;
+        final batchId = mutation['local_sync_batch_id']?.toString();
+        if (batchId != null && batchId.isNotEmpty) batchIds.add(batchId);
+        await _customStatement(
+          '''
+          update local_sync_mutations
+          set status = 'conflict', resolved_at = ?, metadata_json = ?,
+            updated_at = ? where id = ?
+          ''',
+          [
+            now,
+            jsonEncode({..._metadataMap(mutation['metadata_json']), ...audit}),
+            now,
+            mutation['id'],
+          ],
+        );
+      }
+      for (final batchId in batchIds) {
+        final batch = await _db.customSelect(
+          'select metadata_json from local_sync_batches where id = ?',
+          variables: [Variable<String>(batchId)],
+          readsFrom: {_db.localSyncBatches},
+        ).getSingle();
+        await _customStatement(
+          '''
+          update local_sync_batches
+          set status = 'partial', metadata_json = ?, updated_at = ?
+          where id = ?
+          ''',
+          [
+            jsonEncode(
+                {..._metadataMap(batch.data['metadata_json']), ...audit}),
+            now,
+            batchId,
+          ],
+        );
+      }
+
+      var issuesResolved = 0;
+      final issues = await _db.customSelect(
+        '''
+        select id, metadata_json from local_reconciliation_issues
+        where profile_id = ? and business_id = ? and branch_id = ?
+          and status = 'open' and (
+            (domain = 'cash_pos' and entity_type = 'sales' and entity_id = ?
+              and issue_type = 'sale_cash_session_rejected')
+            or
+            (domain = 'inventory_balance' and entity_type = 'inventory_movements')
+          )
+        ''',
+        variables: [
+          Variable<String>(profileId),
+          Variable<String>(businessId),
+          Variable<String>(branchId),
+          Variable<String>(saleId),
+        ],
+        readsFrom: {_db.localReconciliationIssues},
+      ).get();
+      for (final row in issues) {
+        final issueId = row.data['id'].toString();
+        final isSaleIssue =
+            saleIssue != null && issueId == saleIssue.data['id'].toString();
+        if (!isSaleIssue) {
+          final issue = await _db.customSelect(
+            'select entity_id from local_reconciliation_issues where id = ?',
+            variables: [Variable<String>(issueId)],
+            readsFrom: {_db.localReconciliationIssues},
+          ).getSingle();
+          if (!movementIds.contains(issue.data['entity_id']?.toString())) {
+            continue;
+          }
+        }
+        await _customStatement(
+          '''
+          update local_reconciliation_issues
+          set status = 'resolved', resolved_at = ?, metadata_json = ?,
+            updated_at = ? where id = ? and status = 'open'
+          ''',
+          [
+            now,
+            jsonEncode({..._metadataMap(row.data['metadata_json']), ...audit}),
+            now,
+            issueId,
+          ],
+        );
+        issuesResolved++;
+      }
+
+      return DiscardUnmaterializedLocalSaleLocalResult(
+        saleId: saleId,
+        alreadyDiscarded: false,
+        movementsDiscarded: movements.length,
+        mutationsTerminalized: relatedMutations.length,
+        issuesResolved: issuesResolved,
+        restoredQuantityByProduct: Map.unmodifiable(restoredByProduct),
+      );
+    });
+  }
+
+  Map<String, dynamic> _metadataMap(Object? value) {
+    if (value is Map) {
+      return value.map((key, item) => MapEntry(key.toString(), item));
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      final decoded = jsonDecode(value);
+      if (decoded is Map) {
+        return decoded.map((key, item) => MapEntry(key.toString(), item));
+      }
+    }
+    return <String, dynamic>{};
+  }
+
   Future<void> _customStatement(
     String sql,
     List<Object?> parameters,
@@ -694,4 +1105,22 @@ class PosLocalSaleDao {
 
     return parsed;
   }
+}
+
+class DiscardUnmaterializedLocalSaleLocalResult {
+  const DiscardUnmaterializedLocalSaleLocalResult({
+    required this.saleId,
+    required this.alreadyDiscarded,
+    required this.movementsDiscarded,
+    required this.mutationsTerminalized,
+    required this.issuesResolved,
+    required this.restoredQuantityByProduct,
+  });
+
+  final String saleId;
+  final bool alreadyDiscarded;
+  final int movementsDiscarded;
+  final int mutationsTerminalized;
+  final int issuesResolved;
+  final Map<String, int> restoredQuantityByProduct;
 }

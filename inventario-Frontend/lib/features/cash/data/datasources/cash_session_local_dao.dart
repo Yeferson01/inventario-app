@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
 import '../../../../core/utils/app_uuid.dart';
+import '../models/cash_session_remote_models.dart';
 
 class CashSessionLocalDao {
   CashSessionLocalDao(this._db);
@@ -990,6 +991,106 @@ class CashSessionLocalDao {
         cashSessionId,
       ],
     );
+  }
+
+  Future<void> applyAuthoritativeCashSession(
+    AuthoritativeCashSessionSnapshot session,
+  ) async {
+    final conflictingOpen = await getOpenCashSessionForRegister(
+      businessId: session.businessId,
+      branchId: session.branchId,
+      cashRegisterId: session.cashRegisterId,
+    );
+    if (session.status == 'open' &&
+        conflictingOpen != null &&
+        conflictingOpen['id']?.toString() != session.id) {
+      throw StateError(
+        'Existe otra sesión local abierta para la caja canónica. '
+        'Se requiere reconciliación antes de continuar.',
+      );
+    }
+
+    final existing = await getCashSessionById(id: session.id);
+    final openedBy = await _profileExists(session.openedByProfileId)
+        ? session.openedByProfileId
+        : null;
+    final closedBy = await _profileExists(session.closedByProfileId)
+        ? session.closedByProfileId
+        : null;
+    final metadata = jsonEncode({
+      'source': 'server_authoritative_cash_session',
+      if (session.openedByProfileId != null)
+        'remote_opened_by_profile_id': session.openedByProfileId,
+      if (session.closedByProfileId != null)
+        'remote_closed_by_profile_id': session.closedByProfileId,
+      if (session.notes != null) 'remote_notes': session.notes,
+    });
+    final now = DateTime.now().toUtc();
+
+    await _customStatement(
+      '''
+      insert into cash_sessions (
+        id, business_id, branch_id, cash_register_id, opened_by_profile_id,
+        closed_by_profile_id, opened_at, closed_at, opening_cash_amount,
+        closing_cash_amount, expected_cash_amount, difference_amount, status,
+        idempotency_key, local_status, sync_status, version, metadata_json,
+        created_at, updated_at, deleted_at, last_synced_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, null, ?)
+      on conflict(id) do update set
+        business_id = excluded.business_id,
+        branch_id = excluded.branch_id,
+        cash_register_id = excluded.cash_register_id,
+        opened_by_profile_id = excluded.opened_by_profile_id,
+        closed_by_profile_id = excluded.closed_by_profile_id,
+        opened_at = excluded.opened_at,
+        closed_at = excluded.closed_at,
+        opening_cash_amount = excluded.opening_cash_amount,
+        closing_cash_amount = excluded.closing_cash_amount,
+        expected_cash_amount = excluded.expected_cash_amount,
+        difference_amount = excluded.difference_amount,
+        status = excluded.status,
+        local_status = 'synced',
+        sync_status = excluded.sync_status,
+        version = excluded.version,
+        metadata_json = excluded.metadata_json,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        deleted_at = null,
+        last_synced_at = excluded.last_synced_at
+      ''',
+      [
+        session.id,
+        session.businessId,
+        session.branchId,
+        session.cashRegisterId,
+        openedBy,
+        closedBy,
+        session.openedAt,
+        session.closedAt,
+        session.openingCashAmount,
+        session.closingCashAmount,
+        session.expectedCashAmount,
+        session.differenceAmount,
+        session.status,
+        existing?['idempotency_key'],
+        SyncStatus.synced.index,
+        session.version,
+        metadata,
+        session.createdAt,
+        session.updatedAt,
+        now,
+      ],
+    );
+  }
+
+  Future<bool> _profileExists(String? profileId) async {
+    if (profileId == null || profileId.trim().isEmpty) return false;
+    final row = await _db.customSelect(
+      'select 1 from profiles where id = ? limit 1',
+      variables: [Variable<String>(profileId)],
+      readsFrom: {_db.profiles},
+    ).getSingleOrNull();
+    return row != null;
   }
 
   Future<int> deleteOrphanCashOutboxBatches({

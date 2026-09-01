@@ -6,6 +6,8 @@ import '../../sales/data/datasources/pos_local_sale_dao.dart';
 import '../data/datasources/pos_sync_remote_datasource.dart';
 import '../data/models/catalog_upload_models.dart';
 import 'local_sync_outbox_service.dart';
+import 'pos_cash_session_failure_reconciliation_service.dart';
+import 'pos_inventory_failure_reconciliation_service.dart';
 
 class PosSyncUploadService {
   PosSyncUploadService({
@@ -13,15 +15,27 @@ class PosSyncUploadService {
     required PosSyncRemoteDataSource remoteDataSource,
     required PosLocalSaleDao posLocalSaleDao,
     required CashSessionLocalDao cashSessionLocalDao,
+    required PosCashSessionFailureReconciliationService
+        cashSessionFailureReconciliationService,
+    required PosInventoryFailureReconciliationService
+        inventoryFailureReconciliationService,
   })  : _outboxService = outboxService,
         _remoteDataSource = remoteDataSource,
         _posLocalSaleDao = posLocalSaleDao,
-        _cashSessionLocalDao = cashSessionLocalDao;
+        _cashSessionLocalDao = cashSessionLocalDao,
+        _cashSessionFailureReconciliationService =
+            cashSessionFailureReconciliationService,
+        _inventoryFailureReconciliationService =
+            inventoryFailureReconciliationService;
 
   final LocalSyncOutboxService _outboxService;
   final PosSyncRemoteDataSource _remoteDataSource;
   final CashSessionLocalDao _cashSessionLocalDao;
   final PosLocalSaleDao _posLocalSaleDao;
+  final PosCashSessionFailureReconciliationService
+      _cashSessionFailureReconciliationService;
+  final PosInventoryFailureReconciliationService
+      _inventoryFailureReconciliationService;
 
   Future<CatalogUploadRunResult> uploadPendingPosBatches({
     required String businessId,
@@ -76,6 +90,14 @@ class PosSyncUploadService {
         );
 
         if (remoteEntitiesAlreadyExist) {
+          final inventoryFailures =
+              await _remoteDataSource.getInventoryApplyFailuresForMutations(
+            localMutations: mutations,
+          );
+          await _recordInventoryFailures(
+            batch: batch,
+            failures: inventoryFailures,
+          );
           completed++;
 
           await _outboxService.markBatchCompleted(
@@ -106,6 +128,26 @@ class PosSyncUploadService {
           localBatch: batch,
           localMutations: mutations,
         );
+
+        final cashSessionFailures =
+            await _remoteDataSource.getCashSessionApplyFailures(
+          serverBatchId: result.serverBatchId,
+        );
+        await _recordCashSessionFailures(
+          batch: batch,
+          failures: cashSessionFailures,
+        );
+
+        final inventoryFailures =
+            await _remoteDataSource.getInventoryApplyFailures(
+          serverBatchId: result.serverBatchId,
+        );
+        if (inventoryFailures.isNotEmpty) {
+          await _recordInventoryFailures(
+            batch: batch,
+            failures: inventoryFailures,
+          );
+        }
 
         uploaded++;
         mutationsUploaded += result.mutationCount;
@@ -243,6 +285,32 @@ class PosSyncUploadService {
 
       return status == 'conflict' && errorCode == 'duplicate_key';
     });
+  }
+
+  Future<void> _recordInventoryFailures({
+    required Map<String, dynamic> batch,
+    required List<PosInventoryApplyFailure> failures,
+  }) async {
+    if (failures.isEmpty) return;
+    await _inventoryFailureReconciliationService.recordFailures(
+      profileId: _requiredString(batch, 'profile_id'),
+      businessId: _requiredString(batch, 'business_id'),
+      branchId: _requiredString(batch, 'branch_id'),
+      failures: failures,
+    );
+  }
+
+  Future<void> _recordCashSessionFailures({
+    required Map<String, dynamic> batch,
+    required List<PosCashSessionApplyFailure> failures,
+  }) async {
+    if (failures.isEmpty) return;
+    await _cashSessionFailureReconciliationService.recordFailures(
+      profileId: _requiredString(batch, 'profile_id'),
+      businessId: _requiredString(batch, 'business_id'),
+      branchId: _requiredString(batch, 'branch_id'),
+      failures: failures,
+    );
   }
 
   Future<void> _assertCashReadyForPosBatch(

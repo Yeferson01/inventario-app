@@ -205,77 +205,14 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
     final summary = _summary;
     final expected = _num(summary?['calculated_expected_cash_amount']);
 
-    final amountController = TextEditingController(
-      text: expected.toStringAsFixed(2),
-    );
-    final notesController = TextEditingController();
-
     final result = await showDialog<_CloseCashDialogResult>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Cerrar caja'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CashMetricTile(
-                label: 'Efectivo esperado',
-                value: _money(expected),
-                helper: 'Apertura + pagos en efectivo.',
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Monto contado',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notas',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final amount = double.tryParse(
-                  amountController.text.trim(),
-                );
-
-                if (amount == null || amount < 0) {
-                  return;
-                }
-
-                Navigator.of(context).pop(
-                  _CloseCashDialogResult(
-                    actualClosingAmount: amount,
-                    notes: notesController.text.trim().isEmpty
-                        ? null
-                        : notesController.text.trim(),
-                  ),
-                );
-              },
-              child: const Text('Cerrar'),
-            ),
-          ],
+      builder: (_) {
+        return _CloseCashSessionDialog(
+          expectedCashAmount: expected,
         );
       },
     );
-
-    amountController.dispose();
-    notesController.dispose();
 
     if (result == null) {
       return;
@@ -910,6 +847,101 @@ class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
             );
           },
           child: const Text('Abrir'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CloseCashSessionDialog extends StatefulWidget {
+  const _CloseCashSessionDialog({
+    required this.expectedCashAmount,
+  });
+
+  final double expectedCashAmount;
+
+  @override
+  State<_CloseCashSessionDialog> createState() =>
+      _CloseCashSessionDialogState();
+}
+
+class _CloseCashSessionDialogState extends State<_CloseCashSessionDialog> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _notesController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _amountController = TextEditingController(
+      text: widget.expectedCashAmount.toStringAsFixed(2),
+    );
+    _notesController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _notesController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cerrar caja'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CashMetricTile(
+            label: 'Efectivo esperado',
+            value: _money(widget.expectedCashAmount),
+            helper: 'Apertura + pagos en efectivo.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _amountController,
+            decoration: const InputDecoration(
+              labelText: 'Monto contado',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _notesController,
+            decoration: const InputDecoration(
+              labelText: 'Notas',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 2,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final amount = double.tryParse(_amountController.text.trim());
+
+            if (amount == null || amount < 0) {
+              return;
+            }
+
+            Navigator.of(context).pop(
+              _CloseCashDialogResult(
+                actualClosingAmount: amount,
+                notes: _notesController.text.trim().isEmpty
+                    ? null
+                    : _notesController.text.trim(),
+              ),
+            );
+          },
+          child: const Text('Cerrar'),
         ),
       ],
     );

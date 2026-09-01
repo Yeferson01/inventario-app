@@ -1,12 +1,17 @@
 import '../data/datasources/cash_session_local_dao.dart';
+import '../data/datasources/cash_session_remote_datasource.dart';
+import '../data/models/cash_session_remote_models.dart';
 import 'cash_session_local_models.dart';
 
 class CashSessionLocalService {
   CashSessionLocalService({
     required CashSessionLocalDao dao,
-  }) : _dao = dao;
+    CashSessionRemoteDataSource? remoteDataSource,
+  })  : _dao = dao,
+        _remoteDataSource = remoteDataSource;
 
   final CashSessionLocalDao _dao;
+  final CashSessionRemoteDataSource? _remoteDataSource;
 
   Future<Map<String, dynamic>> getLatestCashSessionSummaryForBranch({
     required String businessId,
@@ -44,6 +49,27 @@ class CashSessionLocalService {
 
     if (cashRegisterId.isEmpty) {
       throw StateError('La sesión abierta no tiene cash_register_id válido.');
+    }
+
+    final remoteDataSource = _remoteDataSource;
+    if (remoteDataSource != null) {
+      final snapshot = await remoteDataSource.closeAuthoritatively(
+        businessId: input.businessId,
+        branchId: input.branchId,
+        cashRegisterId: cashRegisterId,
+        cashSessionId: cashSessionId,
+        actualClosingAmount: input.actualClosingAmount,
+        notes: input.notes,
+      );
+      _validateAuthoritativeScope(
+        snapshot,
+        businessId: input.businessId,
+        branchId: input.branchId,
+        cashRegisterId: cashRegisterId,
+        cashSessionId: cashSessionId,
+      );
+      await _dao.applyAuthoritativeCashSession(snapshot);
+      return _closeResult(snapshot);
     }
 
     final expectedCashAmount = await _dao.calculateExpectedCashAmountForSession(
@@ -114,6 +140,33 @@ class CashSessionLocalService {
     _validateInput(input);
 
     final cashRegister = await _getCanonicalCashRegister(input);
+
+    final remoteDataSource = _remoteDataSource;
+    if (remoteDataSource != null) {
+      final snapshot = await remoteDataSource.openOrReuse(
+        businessId: input.businessId,
+        branchId: input.branchId,
+        cashRegisterId: cashRegister.id,
+        openingAmount: input.openingCashAmount,
+      );
+      _validateAuthoritativeScope(
+        snapshot,
+        businessId: input.businessId,
+        branchId: input.branchId,
+        cashRegisterId: cashRegister.id,
+      );
+      await _dao.applyAuthoritativeCashSession(snapshot);
+      final persisted = await _dao.getCashSessionById(id: snapshot.id);
+      if (persisted == null) {
+        throw StateError(
+            'La sesión canónica no pudo materializarse localmente.');
+      }
+      return OpenCashSessionResult(
+        cashRegister: cashRegister,
+        cashSession: _sessionResult(persisted, created: false),
+        reusedOpenSession: snapshot.reusedOpenSession,
+      );
+    }
 
     final openSession = await _dao.getOpenCashSessionForRegister(
       businessId: input.businessId,
@@ -251,6 +304,49 @@ class CashSessionLocalService {
     if (input.openingCashAmount < 0) {
       throw ArgumentError('openingCashAmount no puede ser negativo.');
     }
+  }
+
+  void _validateAuthoritativeScope(
+    AuthoritativeCashSessionSnapshot snapshot, {
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+    String? cashSessionId,
+  }) {
+    if (snapshot.businessId != businessId ||
+        snapshot.branchId != branchId ||
+        snapshot.cashRegisterId != cashRegisterId ||
+        (cashSessionId != null && snapshot.id != cashSessionId)) {
+      throw const CashRemoteStateUnavailableException(
+        'La sesión remota no coincide con el contexto solicitado.',
+      );
+    }
+  }
+
+  CloseCashSessionResult _closeResult(
+    AuthoritativeCashSessionSnapshot snapshot,
+  ) {
+    final expected = snapshot.expectedCashAmount;
+    final actual = snapshot.closingCashAmount;
+    final difference = snapshot.differenceAmount;
+    if (snapshot.status != 'closed' ||
+        expected == null ||
+        actual == null ||
+        difference == null) {
+      throw const CashRemoteStateUnavailableException(
+        'El servidor no devolvió un cierre de caja completo.',
+      );
+    }
+    return CloseCashSessionResult(
+      cashSessionId: snapshot.id,
+      cashRegisterId: snapshot.cashRegisterId,
+      businessId: snapshot.businessId,
+      branchId: snapshot.branchId,
+      expectedCashAmount: expected,
+      actualClosingAmount: actual,
+      differenceAmount: difference,
+      status: snapshot.status,
+    );
   }
 
   String _requiredString(Map<String, dynamic> source, String key) {
