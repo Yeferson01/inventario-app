@@ -7,6 +7,7 @@ import '../../auth/application/authenticated_access_models.dart';
 import '../../auth/application/authenticated_access_providers.dart';
 import 'app_installation_id_store.dart';
 import 'authorized_operational_context_providers.dart';
+import 'cash_repair_context_service.dart';
 import 'local_sync_outbox_providers.dart';
 import 'operational_bootstrap_entry_models.dart';
 import 'operational_bootstrap_entry_service.dart';
@@ -115,6 +116,26 @@ typedef OperationalBootstrapEntryRunner
 final operationalBootstrapEntryRunnerProvider =
     Provider<OperationalBootstrapEntryRunner>((ref) {
   return ref.watch(operationalBootstrapEntryServiceProvider).run;
+});
+
+final cashRepairContextServiceProvider = Provider<CashRepairContextService>((
+  ref,
+) {
+  return CashRepairContextService(
+    authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
+    resolveRuntime: ref.watch(runtimeResolutionServiceProvider).resolve,
+    recoverCash: (request) =>
+        ref.watch(cashPosRecoveryServiceProvider).recover(request),
+    loadOpenBlockingIssues:
+        ref.watch(reconciliationIssueLocalDaoProvider).getOpenBlockingIssues,
+    loadOpenSessions: ref
+        .watch(cashPosReconciliationLocalDaoProvider)
+        .openSessionsForRegister,
+    writeRuntimeContext: ref.watch(appRuntimeContextStoreProvider).saveContext,
+    reconcileOriginalSession: ref
+        .watch(cashPosReconciliationLocalDaoProvider)
+        .reconcileRejectedSaleOriginalOpenSession,
+  );
 });
 
 class ProductiveOperationalEntryRequest {

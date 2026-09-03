@@ -205,6 +205,99 @@ class PosSyncRemoteDataSource {
     );
   }
 
+  Future<SaleDidNotOccurRemoteResult> resolveUnmaterializedSaleDidNotOccur({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String saleId,
+    required String syncConflictId,
+    required String idempotencyKey,
+    required String reason,
+  }) async {
+    final value = await _client.rpc(
+      'resolve_unmaterialized_sale_did_not_occur',
+      params: {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_sale_id': saleId,
+        'p_sync_conflict_id': syncConflictId,
+        'p_idempotency_key': idempotencyKey,
+        'p_reason': reason,
+      },
+    );
+    if (value is! Map) {
+      throw const FormatException(
+        'resolve_unmaterialized_sale_did_not_occur returned an invalid payload.',
+      );
+    }
+    final result = SaleDidNotOccurRemoteResult.fromJson(
+      Map<String, dynamic>.from(value),
+    );
+    if (result.businessId != businessId ||
+        result.branchId != branchId ||
+        result.saleId != saleId ||
+        result.syncConflictId != syncConflictId ||
+        result.idempotencyKey != idempotencyKey ||
+        result.status != 'resolved' ||
+        result.resolutionStrategy != 'sale_did_not_occur') {
+      throw const FormatException(
+        'Sale did-not-occur response does not match the request.',
+      );
+    }
+    return result;
+  }
+
+  Future<IntentionalStaleSaleRemoteResult>
+      reconcileRejectedSaleToOpenCashSession({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String saleId,
+    required String syncConflictId,
+    required String destinationCashSessionId,
+    required String reconciliationId,
+    required String idempotencyKey,
+    required String reason,
+    required String cashTreatment,
+  }) async {
+    final value = await _client.rpc(
+      'reconcile_rejected_sale_to_open_cash_session',
+      params: {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_sale_id': saleId,
+        'p_sync_conflict_id': syncConflictId,
+        'p_destination_cash_session_id': destinationCashSessionId,
+        'p_reconciliation_id': reconciliationId,
+        'p_idempotency_key': idempotencyKey,
+        'p_reason': reason,
+        'p_cash_treatment': cashTreatment,
+      },
+    );
+    if (value is! Map) {
+      throw const FormatException(
+        'reconcile_rejected_sale_to_open_cash_session returned an invalid payload.',
+      );
+    }
+    final payload = Map<String, dynamic>.from(value);
+    final result = IntentionalStaleSaleRemoteResult.fromJson(payload);
+    if (result.businessId != businessId ||
+        result.branchId != branchId ||
+        result.saleId != saleId ||
+        result.reconciliationId != reconciliationId ||
+        result.syncConflictId != syncConflictId ||
+        result.destinationCashSessionId != destinationCashSessionId ||
+        result.cashTreatment != cashTreatment ||
+        result.status != 'completed') {
+      throw const FormatException(
+        'Stale Sale reconciliation response does not match the request.',
+      );
+    }
+    return result;
+  }
+
   Future<bool> _posEntityExists({
     required String table,
     required String entityId,
@@ -299,7 +392,7 @@ class PosSyncRemoteDataSource {
     final conflictRows = await _client
         .from('sync_conflicts')
         .select(
-          'sync_batch_id, sync_mutation_id, entity_id, error_message, metadata',
+          'id, sync_batch_id, sync_mutation_id, entity_id, error_message, metadata',
         )
         .inFilter('sync_mutation_id', mutationIds);
 
@@ -310,6 +403,10 @@ class PosSyncRemoteDataSource {
     }).map((row) {
       final metadata = Map<String, dynamic>.from(row['metadata'] as Map);
       return PosCashSessionApplyFailure(
+        syncConflictId: _requiredString(
+          row.map((key, value) => MapEntry(key.toString(), value)),
+          'id',
+        ),
         serverBatchId: _string(row['sync_batch_id']) ?? serverBatchId,
         serverMutationId: _requiredString(
           row.map((key, value) => MapEntry(key.toString(), value)),
@@ -327,6 +424,46 @@ class PosSyncRemoteDataSource {
             'Remote sale cash session validation failed.',
       );
     }).toList(growable: false);
+  }
+
+  Future<String?> findOpenClosedCashSessionSaleConflictId({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String saleId,
+  }) async {
+    final value = await _client.rpc(
+      'lookup_open_closed_cash_session_sale_conflict',
+      params: {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_sale_id': saleId,
+      },
+    );
+    if (value is! Map) {
+      throw const FormatException(
+        'Conflict lookup returned an invalid payload.',
+      );
+    }
+    final result = OpenClosedCashSessionSaleConflictLookup.fromJson(
+      Map<String, dynamic>.from(value),
+    );
+    if (result.businessId != businessId ||
+        result.branchId != branchId ||
+        result.saleId != saleId) {
+      throw const FormatException(
+        'Conflict lookup returned a mismatched scope.',
+      );
+    }
+    return switch (result.status) {
+      OpenClosedCashSessionSaleConflictLookupStatus.found => result.conflictId,
+      OpenClosedCashSessionSaleConflictLookupStatus.notFound => null,
+      OpenClosedCashSessionSaleConflictLookupStatus.ambiguous =>
+        throw StateError(
+          'Multiple open closed-session conflicts exist for the Sale.',
+        ),
+    };
   }
 
   Future<List<PosInventoryApplyFailure>> getInventoryApplyFailuresForMutations({
@@ -449,6 +586,81 @@ class PosSyncRemoteDataSource {
   }
 }
 
+enum OpenClosedCashSessionSaleConflictLookupStatus {
+  found,
+  notFound,
+  ambiguous,
+}
+
+class OpenClosedCashSessionSaleConflictLookup {
+  const OpenClosedCashSessionSaleConflictLookup({
+    required this.businessId,
+    required this.branchId,
+    required this.saleId,
+    required this.status,
+    required this.conflictCount,
+    required this.conflictId,
+  });
+
+  factory OpenClosedCashSessionSaleConflictLookup.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    String requiredString(String key) {
+      final value = json[key]?.toString().trim();
+      if (value == null || value.isEmpty) {
+        throw FormatException('Conflict lookup is missing $key.');
+      }
+      return value;
+    }
+
+    final status = switch (requiredString('status')) {
+      'found' => OpenClosedCashSessionSaleConflictLookupStatus.found,
+      'not_found' => OpenClosedCashSessionSaleConflictLookupStatus.notFound,
+      'ambiguous' => OpenClosedCashSessionSaleConflictLookupStatus.ambiguous,
+      _ => throw const FormatException(
+          'Conflict lookup returned an invalid status.',
+        ),
+    };
+    final count = json['conflict_count'];
+    if (count is! num || count.toInt() < 0) {
+      throw const FormatException(
+        'Conflict lookup returned an invalid conflict_count.',
+      );
+    }
+    final conflictId = _nullableString(json['conflict_id']);
+    if ((status == OpenClosedCashSessionSaleConflictLookupStatus.found &&
+            (count.toInt() != 1 || conflictId == null)) ||
+        (status == OpenClosedCashSessionSaleConflictLookupStatus.notFound &&
+            (count.toInt() != 0 || conflictId != null)) ||
+        (status == OpenClosedCashSessionSaleConflictLookupStatus.ambiguous &&
+            (count.toInt() < 2 || conflictId != null))) {
+      throw const FormatException(
+        'Conflict lookup returned inconsistent evidence.',
+      );
+    }
+    return OpenClosedCashSessionSaleConflictLookup(
+      businessId: requiredString('business_id'),
+      branchId: requiredString('branch_id'),
+      saleId: requiredString('sale_id'),
+      status: status,
+      conflictCount: count.toInt(),
+      conflictId: conflictId,
+    );
+  }
+
+  final String businessId;
+  final String branchId;
+  final String saleId;
+  final OpenClosedCashSessionSaleConflictLookupStatus status;
+  final int conflictCount;
+  final String? conflictId;
+
+  static String? _nullableString(Object? value) {
+    final normalized = value?.toString().trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
+}
+
 class PosInventoryApplyFailure {
   const PosInventoryApplyFailure({
     required this.serverBatchId,
@@ -463,6 +675,7 @@ class PosInventoryApplyFailure {
 
 class PosCashSessionApplyFailure {
   const PosCashSessionApplyFailure({
+    required this.syncConflictId,
     required this.serverBatchId,
     required this.serverMutationId,
     required this.saleId,
@@ -473,6 +686,7 @@ class PosCashSessionApplyFailure {
     required this.message,
   });
 
+  final String syncConflictId;
   final String serverBatchId;
   final String serverMutationId;
   final String saleId;
@@ -522,5 +736,180 @@ class UnmaterializedSaleRemoteEvidence {
         'inventory_movement_rows': inventoryMovementRows,
         'expected_conflict_found': expectedConflictFound,
         'conflict_reasons': conflictReasons.toList(growable: false),
+      };
+}
+
+class SaleDidNotOccurRemoteResult {
+  const SaleDidNotOccurRemoteResult({
+    required this.businessId,
+    required this.branchId,
+    required this.saleId,
+    required this.syncConflictId,
+    required this.status,
+    required this.resolutionStrategy,
+    required this.idempotencyKey,
+    required this.mutationsTerminalized,
+    required this.idempotent,
+  });
+
+  factory SaleDidNotOccurRemoteResult.fromJson(Map<String, dynamic> json) {
+    String requiredString(String key) {
+      final value = json[key]?.toString().trim();
+      if (value == null || value.isEmpty) {
+        throw FormatException('Sale did-not-occur response is missing $key.');
+      }
+      return value;
+    }
+
+    int requiredInt(String key) {
+      final value = json[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed == null) {
+        throw FormatException('Sale did-not-occur response has invalid $key.');
+      }
+      return parsed;
+    }
+
+    final idempotent = json['idempotent'];
+    if (idempotent is! bool) {
+      throw const FormatException(
+        'Sale did-not-occur response has invalid idempotent.',
+      );
+    }
+    return SaleDidNotOccurRemoteResult(
+      businessId: requiredString('business_id'),
+      branchId: requiredString('branch_id'),
+      saleId: requiredString('sale_id'),
+      syncConflictId: requiredString('sync_conflict_id'),
+      status: requiredString('status'),
+      resolutionStrategy: requiredString('resolution_strategy'),
+      idempotencyKey: requiredString('idempotency_key'),
+      mutationsTerminalized: requiredInt('mutations_terminalized'),
+      idempotent: idempotent,
+    );
+  }
+
+  final String businessId;
+  final String branchId;
+  final String saleId;
+  final String syncConflictId;
+  final String status;
+  final String resolutionStrategy;
+  final String idempotencyKey;
+  final int mutationsTerminalized;
+  final bool idempotent;
+
+  Map<String, dynamic> toJson() => {
+        'business_id': businessId,
+        'branch_id': branchId,
+        'sale_id': saleId,
+        'sync_conflict_id': syncConflictId,
+        'status': status,
+        'resolution_strategy': resolutionStrategy,
+        'idempotency_key': idempotencyKey,
+        'mutations_terminalized': mutationsTerminalized,
+        'idempotent': idempotent,
+      };
+}
+
+class IntentionalStaleSaleRemoteResult {
+  const IntentionalStaleSaleRemoteResult({
+    required this.reconciliationId,
+    required this.businessId,
+    required this.branchId,
+    required this.saleId,
+    required this.cashRegisterId,
+    required this.originalCashSessionId,
+    required this.destinationCashSessionId,
+    required this.syncConflictId,
+    required this.cashTreatment,
+    required this.cashReconciledTotal,
+    required this.cashAdjustmentTotal,
+    required this.cashAdjustmentAmount,
+    required this.projectedExpectedCash,
+    required this.status,
+    required this.idempotent,
+  });
+
+  factory IntentionalStaleSaleRemoteResult.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    String requiredString(String key) {
+      final value = json[key]?.toString().trim();
+      if (value == null || value.isEmpty) {
+        throw FormatException('Stale Sale response is missing $key.');
+      }
+      return value;
+    }
+
+    double requiredDouble(String key) {
+      final value = json[key];
+      if (value is num) return value.toDouble();
+      final parsed = double.tryParse(value?.toString() ?? '');
+      if (parsed == null) {
+        throw FormatException('Stale Sale response has invalid $key.');
+      }
+      return parsed;
+    }
+
+    final idempotent = json['idempotent'];
+    if (idempotent is! bool) {
+      throw const FormatException(
+        'Stale Sale response has invalid idempotent.',
+      );
+    }
+    return IntentionalStaleSaleRemoteResult(
+      reconciliationId: requiredString('reconciliation_id'),
+      businessId: requiredString('business_id'),
+      branchId: requiredString('branch_id'),
+      saleId: requiredString('sale_id'),
+      cashRegisterId: requiredString('cash_register_id'),
+      originalCashSessionId: requiredString('original_cash_session_id'),
+      destinationCashSessionId: requiredString('destination_cash_session_id'),
+      syncConflictId: requiredString('sync_conflict_id'),
+      cashTreatment: requiredString('cash_treatment'),
+      cashReconciledTotal: requiredDouble('cash_reconciled_total'),
+      cashAdjustmentTotal: requiredDouble('cash_adjustment_total'),
+      cashAdjustmentAmount: requiredDouble('cash_adjustment_amount'),
+      projectedExpectedCash: requiredDouble('projected_expected_cash'),
+      status: requiredString('status'),
+      idempotent: idempotent,
+    );
+  }
+
+  final String reconciliationId;
+  final String businessId;
+  final String branchId;
+  final String saleId;
+  final String cashRegisterId;
+  final String originalCashSessionId;
+  final String destinationCashSessionId;
+  final String syncConflictId;
+  final String cashTreatment;
+  final double cashReconciledTotal;
+  final double cashAdjustmentTotal;
+  final double cashAdjustmentAmount;
+  final double projectedExpectedCash;
+  final String status;
+  final bool idempotent;
+
+  Map<String, dynamic> toJson() => {
+        'reconciliation_id': reconciliationId,
+        'business_id': businessId,
+        'branch_id': branchId,
+        'sale_id': saleId,
+        'cash_register_id': cashRegisterId,
+        'original_cash_session_id': originalCashSessionId,
+        'destination_cash_session_id': destinationCashSessionId,
+        'sync_conflict_id': syncConflictId,
+        'cash_treatment': cashTreatment,
+        'cash_reconciled_total': cashReconciledTotal,
+        'cash_adjustment_total': cashAdjustmentTotal,
+        'cash_adjustment_amount': cashAdjustmentAmount,
+        'projected_expected_cash': projectedExpectedCash,
+        'status': status,
+        'idempotent': idempotent,
       };
 }

@@ -19,6 +19,9 @@ class PosCashSessionFailureReconciliationService {
   }) async {
     var recorded = 0;
     for (final failure in failures) {
+      if (failure.reason != 'closed') {
+        continue;
+      }
       await _issueDao.openOrUpdateIssue(
         ReconciliationIssueDraft(
           profileId: profileId,
@@ -38,6 +41,8 @@ class PosCashSessionFailureReconciliationService {
             'branch_id': failure.branchId ?? branchId,
             'server_sync_batch_id': failure.serverBatchId,
             'server_sync_mutation_id': failure.serverMutationId,
+            'sync_conflict_id': failure.syncConflictId,
+            'remote_rule': 'sale_cash_session_invalid',
             'remote_reason': failure.reason,
             'remote_error': failure.message,
           }),

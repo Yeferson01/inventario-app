@@ -6,11 +6,13 @@ import '../../application/cash_session_local_models.dart';
 import '../../application/cash_session_local_provider.dart';
 import '../widgets/cash_metric_tile.dart';
 import '../widgets/cash_status_card.dart';
+import '../widgets/productive_open_cash_session_dialog.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/app_animated_entrance.dart';
 import '../../../../shared/presentation/widgets/app_gradient_background.dart';
 import '../../../sales/application/pos_local_sale_provider.dart';
 import '../../../sync/application/pos_sync_upload_provider.dart';
+import '../../../sync/presentation/widgets/productive_stale_sale_reconciliation_presenter.dart';
 
 class CashDashboardScreen extends ConsumerStatefulWidget {
   const CashDashboardScreen({
@@ -22,6 +24,7 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
     required this.canReadCash,
     required this.canOpenCash,
     required this.canCloseCash,
+    this.effectivePermissions = const <String>{},
     this.appDeviceId,
     this.deviceInstallationId,
   });
@@ -33,6 +36,7 @@ class CashDashboardScreen extends ConsumerStatefulWidget {
   final bool canReadCash;
   final bool canOpenCash;
   final bool canCloseCash;
+  final Set<String> effectivePermissions;
   final String? appDeviceId;
   final String? deviceInstallationId;
 
@@ -47,6 +51,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   Object? _error;
   bool _isLoading = false;
   bool _isRunningAction = false;
+  int _pendingStaleSales = 0;
 
   bool get _isBusy => _isLoading || _isRunningAction;
 
@@ -87,6 +92,13 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         businessId: widget.businessId,
         branchId: widget.branchId,
       );
+      final pending = await ref
+          .read(productiveStaleSaleReconciliationServiceProvider)
+          .loadPending(
+            profileId: widget.profileId,
+            businessId: widget.businessId,
+            branchId: widget.branchId,
+          );
 
       if (!mounted) {
         return;
@@ -95,6 +107,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
       setState(() {
         _summary = summary;
         _readiness = readiness;
+        _pendingStaleSales = pending.length;
       });
     } catch (error) {
       if (!mounted) {
@@ -114,12 +127,12 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   }
 
   Future<void> _openCashSessionDialog() async {
-    final suggestedOpeningAmount = _suggestedOpeningAmount(_summary);
+    final suggestedOpeningAmount = suggestedProductiveOpeningAmount(_summary);
 
-    final result = await showDialog<_OpenCashDialogResult>(
+    final result = await showDialog<ProductiveOpenCashDialogResult>(
       context: context,
       builder: (_) {
-        return _OpenCashSessionDialog(
+        return ProductiveOpenCashSessionDialog(
           suggestedOpeningAmount: suggestedOpeningAmount,
         );
       },
@@ -199,6 +212,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         );
       },
     );
+    if (mounted) await _openPendingStaleSales();
   }
 
   Future<void> _closeCashSessionDialog() async {
@@ -278,6 +292,37 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         );
       },
     );
+    if (mounted) await _openPendingStaleSales();
+  }
+
+  Future<void> _openPendingStaleSales() async {
+    final appDeviceId = widget.appDeviceId?.trim();
+    if (appDeviceId == null || appDeviceId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Actualice el contexto antes de resolver ventas pendientes.',
+          ),
+        ),
+      );
+      return;
+    }
+    await ProductiveStaleSaleReconciliationPresenter.show(
+      context: context,
+      service: ref.read(productiveStaleSaleReconciliationServiceProvider),
+      profileId: widget.profileId,
+      businessId: widget.businessId,
+      branchId: widget.branchId,
+      appDeviceId: appDeviceId,
+      effectivePermissions: widget.effectivePermissions,
+      onOpenCash: ({
+        required saleId,
+        required originalCashSessionId,
+        required cashRegisterId,
+      }) =>
+          _openCashSessionDialog(),
+    );
+    await _load();
   }
 
   Future<_DomainCloseSyncUiSummary> _prepareAndUploadPosForCashClose() async {
@@ -458,6 +503,27 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                   CashStatusCard(
                     summary: summary,
                     readiness: readiness,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_pendingStaleSales > 0) ...[
+                  Card(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: ListTile(
+                      leading: const Icon(Icons.warning_amber_outlined),
+                      title: Text(
+                        _pendingStaleSales == 1
+                            ? '1 venta pendiente de reconciliación'
+                            : '$_pendingStaleSales ventas pendientes de reconciliación',
+                      ),
+                      subtitle: const Text(
+                        'La caja original estaba cerrada. Resuélvalas una por una.',
+                      ),
+                      trailing: FilledButton(
+                        onPressed: _isBusy ? null : _openPendingStaleSales,
+                        child: const Text('Resolver'),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -769,90 +835,6 @@ class _NextActionsSection extends StatelessWidget {
   }
 }
 
-class _OpenCashSessionDialog extends StatefulWidget {
-  const _OpenCashSessionDialog({
-    required this.suggestedOpeningAmount,
-  });
-
-  final double suggestedOpeningAmount;
-
-  @override
-  State<_OpenCashSessionDialog> createState() => _OpenCashSessionDialogState();
-}
-
-class _OpenCashSessionDialogState extends State<_OpenCashSessionDialog> {
-  late final TextEditingController _amountController;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _amountController = TextEditingController(
-      text: widget.suggestedOpeningAmount.toStringAsFixed(2),
-    );
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Abrir caja'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _amountController,
-              decoration: const InputDecoration(
-                labelText: 'Monto apertura',
-                helperText:
-                    'Sugerido desde el último cierre. Puedes cambiarlo.',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final amount = double.tryParse(
-              _amountController.text.trim(),
-            );
-
-            if (amount == null || amount < 0) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Monto de apertura inválido.'),
-                ),
-              );
-              return;
-            }
-
-            Navigator.of(context).pop(
-              _OpenCashDialogResult(
-                openingAmount: amount,
-              ),
-            );
-          },
-          child: const Text('Abrir'),
-        ),
-      ],
-    );
-  }
-}
-
 class _CloseCashSessionDialog extends StatefulWidget {
   const _CloseCashSessionDialog({
     required this.expectedCashAmount,
@@ -948,14 +930,6 @@ class _CloseCashSessionDialogState extends State<_CloseCashSessionDialog> {
   }
 }
 
-class _OpenCashDialogResult {
-  const _OpenCashDialogResult({
-    required this.openingAmount,
-  });
-
-  final double openingAmount;
-}
-
 class _DomainCloseSyncUiSummary {
   const _DomainCloseSyncUiSummary({
     required this.domainLabel,
@@ -1049,46 +1023,6 @@ class _CloseCashDialogResult {
 
   final double actualClosingAmount;
   final String? notes;
-}
-
-double _suggestedOpeningAmount(Map<String, dynamic>? summary) {
-  if (summary == null) {
-    return 50000;
-  }
-
-  final status = summary['status']?.toString();
-
-  if (status == 'closed') {
-    final closingCashAmount = _num(summary['closing_cash_amount']);
-
-    if (closingCashAmount > 0) {
-      return closingCashAmount;
-    }
-
-    final storedExpectedCashAmount = _num(
-      summary['stored_expected_cash_amount'],
-    );
-
-    if (storedExpectedCashAmount > 0) {
-      return storedExpectedCashAmount;
-    }
-
-    final calculatedExpectedCashAmount = _num(
-      summary['calculated_expected_cash_amount'],
-    );
-
-    if (calculatedExpectedCashAmount > 0) {
-      return calculatedExpectedCashAmount;
-    }
-  }
-
-  final openingCashAmount = _num(summary['opening_cash_amount']);
-
-  if (openingCashAmount > 0) {
-    return openingCashAmount;
-  }
-
-  return 50000;
 }
 
 String _money(Object? value) {

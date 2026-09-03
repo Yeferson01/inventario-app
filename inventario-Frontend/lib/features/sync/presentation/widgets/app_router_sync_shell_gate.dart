@@ -10,10 +10,12 @@ import 'business_context_required_gate.dart';
 class AppRouterSyncShellGate extends ConsumerWidget {
   const AppRouterSyncShellGate({
     required this.child,
+    this.navigatorContextResolver,
     super.key,
   });
 
   final Widget child;
+  final NavigatorContextResolver? navigatorContextResolver;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +37,8 @@ class AppRouterSyncShellGate extends ConsumerWidget {
         if (input == null) {
           return BusinessContextRequiredGate(
             profileId: authenticatedUser.id,
+            navigatorContextResolver: navigatorContextResolver,
+            navigatorHost: child,
             child: child,
           );
         }
@@ -42,6 +46,8 @@ class AppRouterSyncShellGate extends ConsumerWidget {
         return BusinessContextRequiredGate(
           profileId: input.profileId ?? '',
           businessId: input.businessId,
+          navigatorContextResolver: navigatorContextResolver,
+          navigatorHost: child,
           child: AppSyncLifecycleGate(
             inputBuilder: (_, trigger) async {
               return input.copyWithLifecycleTrigger(trigger.code);

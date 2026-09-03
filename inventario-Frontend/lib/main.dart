@@ -168,6 +168,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final rootNavigatorKey = ref.watch(appRootNavigatorKeyProvider);
     ref.listen(productiveAuthSessionProvider, (previous, next) {
       if (previous?.user?.id != next.user?.id ||
           previous?.lastEvent != next.lastEvent) {
@@ -202,6 +203,8 @@ class MyApp extends ConsumerWidget {
             }
 
             return AppRouterSyncShellGate(
+              navigatorContextResolver: () =>
+                  rootNavigatorKey.currentState?.overlay?.context,
               child: child ?? const SizedBox.shrink(),
             );
           },

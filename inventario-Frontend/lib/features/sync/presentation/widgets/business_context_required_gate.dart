@@ -10,11 +10,22 @@ import '../../../auth/application/productive_auth_providers.dart';
 import '../../../auth/data/models/platform_business_invitation_models.dart';
 import '../../../auth/presentation/screens/private_invitation_screen.dart';
 import '../../../auth/presentation/widgets/platform_invitation_access_panel.dart';
+import '../../../cash/application/cash_session_local_models.dart';
+import '../../../cash/application/cash_session_local_provider.dart';
+import '../../../cash/presentation/widgets/productive_open_cash_session_dialog.dart';
 import '../../application/app_current_context_provider.dart';
 import '../../application/app_router_sync_bootstrap_provider.dart';
+import '../../application/cash_repair_context_service.dart';
 import '../../application/operational_bootstrap_entry_models.dart';
 import '../../application/operational_bootstrap_entry_providers.dart';
+import '../../application/operational_bootstrap_orchestration_models.dart';
+import '../../application/pos_sync_upload_provider.dart';
+import '../../application/productive_stale_sale_reconciliation_service.dart';
+import '../../application/recovery_blocked_stale_sale_service.dart';
 import '../screens/business_context_selection_screen.dart';
+import 'productive_stale_sale_reconciliation_presenter.dart';
+
+typedef NavigatorContextResolver = BuildContext? Function();
 
 class BusinessContextRequiredGate extends ConsumerStatefulWidget {
   const BusinessContextRequiredGate({
@@ -22,6 +33,8 @@ class BusinessContextRequiredGate extends ConsumerStatefulWidget {
     required this.child,
     this.businessId,
     this.loading,
+    this.navigatorContextResolver,
+    this.navigatorHost,
     super.key,
   });
 
@@ -29,6 +42,8 @@ class BusinessContextRequiredGate extends ConsumerStatefulWidget {
   final String? businessId;
   final Widget child;
   final Widget? loading;
+  final NavigatorContextResolver? navigatorContextResolver;
+  final Widget? navigatorHost;
 
   @override
   ConsumerState<BusinessContextRequiredGate> createState() =>
@@ -38,6 +53,9 @@ class BusinessContextRequiredGate extends ConsumerStatefulWidget {
 class _BusinessContextRequiredGateState
     extends ConsumerState<BusinessContextRequiredGate> {
   OperationalContextSelection? _selection;
+  final _recoveryNavigatorHostKey =
+      GlobalKey<_RecoveryBlockedNavigatorHostState>();
+  bool _cashRepairRunning = false;
 
   @override
   void didUpdateWidget(covariant BusinessContextRequiredGate oldWidget) {
@@ -143,6 +161,174 @@ class _BusinessContextRequiredGateState
 
   Future<void> _signOut() => ref.read(productiveSignOutProvider)();
 
+  Future<CashRepairContextResult> _refreshCashForRecovery(
+    OperationalBootstrapEntryResult result, {
+    required String saleId,
+    required String originalCashSessionId,
+    required String cashRegisterId,
+  }) async {
+    final selected = result.selectedContext;
+    final appDeviceId = result.device?.appDeviceId.trim();
+    final installationId = result.installationId?.trim();
+    if (selected == null ||
+        appDeviceId == null ||
+        appDeviceId.isEmpty ||
+        installationId == null ||
+        installationId.isEmpty ||
+        cashRegisterId.trim().isEmpty) {
+      throw const CashRepairContextException(
+        'El contexto de caja está incompleto.',
+      );
+    }
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.showSnackBar(
+      const SnackBar(content: Text('Actualizando estado de caja…')),
+    );
+    try {
+      return await ref.read(cashRepairContextServiceProvider).refresh(
+            CashRepairContextRequest(
+              profileId: selected.profileId,
+              businessId: selected.businessId,
+              branchId: selected.branchId,
+              installationId: installationId,
+              appDeviceId: appDeviceId,
+              cashRegisterId: cashRegisterId,
+              originalCashSessionId: originalCashSessionId,
+              saleId: saleId,
+              effectivePermissions: selected.effectivePermissions.toSet(),
+            ),
+          );
+    } finally {
+      messenger?.hideCurrentSnackBar();
+    }
+  }
+
+  Future<void> _openCashForRecovery(
+    OperationalBootstrapEntryResult result, {
+    required String saleId,
+    required String originalCashSessionId,
+    required String cashRegisterId,
+  }) async {
+    if (_cashRepairRunning) return;
+    _cashRepairRunning = true;
+    try {
+      final refreshed = await _refreshCashForRecovery(
+        result,
+        saleId: saleId,
+        originalCashSessionId: originalCashSessionId,
+        cashRegisterId: cashRegisterId,
+      );
+      if (refreshed.openCashSessionId != null) return;
+
+      final dialogContext = _dialogContext;
+      if (dialogContext == null) return;
+      final selected = result.selectedContext!;
+      final appDeviceId = result.device!.appDeviceId.trim();
+      final installationId = result.installationId!.trim();
+
+      final service = ref.read(cashSessionLocalServiceProvider);
+      Map<String, dynamic>? summary;
+      try {
+        summary = await service.getLatestCashSessionSummaryForBranch(
+          businessId: selected.businessId,
+          branchId: selected.branchId,
+        );
+      } on StateError {
+        summary = null;
+      }
+      if (!mounted || !dialogContext.mounted) return;
+      _setRecoveryDialogVisible(true);
+      ProductiveOpenCashDialogResult? dialogResult;
+      try {
+        dialogResult = await showDialog<ProductiveOpenCashDialogResult>(
+          context: dialogContext,
+          builder: (_) => ProductiveOpenCashSessionDialog(
+            suggestedOpeningAmount: suggestedProductiveOpeningAmount(summary),
+          ),
+        );
+      } finally {
+        _setRecoveryDialogVisible(false);
+      }
+      if (dialogResult == null) return;
+      await service.openCashSession(
+        OpenCashSessionInput(
+          businessId: selected.businessId,
+          branchId: selected.branchId,
+          profileId: selected.profileId,
+          cashRegisterId: refreshed.runtime.cashRegisterId!,
+          openingCashAmount: dialogResult.openingAmount,
+          appDeviceId: appDeviceId,
+          deviceInstallationId: installationId,
+          metadata: const {
+            'source': 'business_context_required_gate',
+            'flow': 'recovery_stale_sale_open_cash_session',
+          },
+        ),
+      );
+      final afterOpen = await _refreshCashForRecovery(
+        result,
+        saleId: saleId,
+        originalCashSessionId: originalCashSessionId,
+        cashRegisterId: cashRegisterId,
+      );
+      if (afterOpen.openCashSessionId == null) {
+        throw const CashRepairContextException(
+          'La caja abierta no pudo confirmarse en el contexto actualizado.',
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Caja abierta correctamente.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        await _showRecoveryMessage(
+          'No se pudo abrir la caja',
+          error is CashRepairContextException
+              ? error.message
+              : 'No se pudo verificar el estado autoritativo de caja.',
+        );
+      }
+    } finally {
+      _cashRepairRunning = false;
+    }
+  }
+
+  Future<void> _showRecoveryMessage(String title, String message) async {
+    final dialogContext = _dialogContext;
+    if (dialogContext == null) return;
+    _setRecoveryDialogVisible(true);
+    try {
+      await showDialog<void>(
+        context: dialogContext,
+        builder: (messageContext) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(messageContext),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      _setRecoveryDialogVisible(false);
+    }
+  }
+
+  void _setRecoveryDialogVisible(bool visible) {
+    _recoveryNavigatorHostKey.currentState?.setBlockingOverlayVisible(!visible);
+  }
+
+  BuildContext? get _dialogContext {
+    final provided = widget.navigatorContextResolver?.call();
+    if (provided?.mounted == true) return provided;
+    return Navigator.maybeOf(context, rootNavigator: true)?.overlay?.context;
+  }
+
   Widget _buildResult(
     OperationalBootstrapEntryResult result,
     ProductiveOperationalEntryRequest request,
@@ -218,14 +404,52 @@ class _BusinessContextRequiredGateState
         );
       case OperationalBootstrapEntryOutcome.bootstrapRecoveryBlocked:
         final issues = result.bootstrapResult?.blockingIssues ?? const [];
-        final details = issues.isEmpty
-            ? result.message
-            : issues.map((issue) => issue.message).join('\n');
-        return _OperationalEntryStatus(
-          title: 'Recuperación bloqueada',
-          message: details,
-          actionLabel: 'Reintentar',
-          onAction: () => ref.invalidate(entryProvider),
+        final blocked = _RecoveryBlockedOperationalEntry(
+          key: ValueKey(
+            '${result.profileId}:${result.selectedContext?.businessId}:'
+            '${result.selectedContext?.branchId}:'
+            '${issues.map((issue) => '${issue.issueType}:${issue.entityId}').join('|')}',
+          ),
+          result: result,
+          issues: issues,
+          assessmentService: ref.read(
+            recoveryBlockedStaleSaleAssessmentServiceProvider,
+          ),
+          reconciliationController: ref.read(
+            productiveStaleSaleReconciliationServiceProvider,
+          ),
+          onRetry: () => ref.invalidate(entryProvider),
+          onRefreshCashContext: ({
+            required saleId,
+            required originalCashSessionId,
+            required cashRegisterId,
+          }) async {
+            await _refreshCashForRecovery(
+              result,
+              saleId: saleId,
+              originalCashSessionId: originalCashSessionId,
+              cashRegisterId: cashRegisterId,
+            );
+          },
+          onOpenCash: ({
+            required saleId,
+            required originalCashSessionId,
+            required cashRegisterId,
+          }) =>
+              _openCashForRecovery(
+            result,
+            saleId: saleId,
+            originalCashSessionId: originalCashSessionId,
+            cashRegisterId: cashRegisterId,
+          ),
+          navigatorContextResolver: () => _dialogContext,
+          onDialogVisibilityChanged: _setRecoveryDialogVisible,
+        );
+        return _RecoveryBlockedNavigatorHost(
+          key: _recoveryNavigatorHostKey,
+          navigatorHost: widget.navigatorHost ?? widget.child,
+          navigatorContextResolver: () => _dialogContext,
+          blocked: blocked,
         );
       case OperationalBootstrapEntryOutcome.transientFailure:
         final cached = ref.watch(
@@ -274,6 +498,253 @@ class _BusinessContextRequiredGateState
           onAction: () => ref.invalidate(entryProvider),
         );
     }
+  }
+}
+
+class _RecoveryBlockedNavigatorHost extends StatefulWidget {
+  const _RecoveryBlockedNavigatorHost({
+    required this.navigatorHost,
+    required this.navigatorContextResolver,
+    required this.blocked,
+    super.key,
+  });
+
+  final Widget navigatorHost;
+  final NavigatorContextResolver navigatorContextResolver;
+  final Widget blocked;
+
+  @override
+  State<_RecoveryBlockedNavigatorHost> createState() =>
+      _RecoveryBlockedNavigatorHostState();
+}
+
+class _RecoveryBlockedNavigatorHostState
+    extends State<_RecoveryBlockedNavigatorHost> {
+  OverlayEntry? _entry;
+  bool _installScheduled = false;
+  bool _suspended = false;
+
+  @override
+  void didUpdateWidget(covariant _RecoveryBlockedNavigatorHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _entry?.markNeedsBuild();
+  }
+
+  @override
+  void dispose() {
+    _entry?.remove();
+    _entry = null;
+    super.dispose();
+  }
+
+  void _scheduleInstall() {
+    if (_installScheduled || _entry != null) return;
+    _installScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _installScheduled = false;
+      if (!mounted || _entry != null) return;
+      final navigatorContext = widget.navigatorContextResolver();
+      final overlay = navigatorContext == null
+          ? null
+          : Overlay.maybeOf(navigatorContext, rootOverlay: true);
+      if (overlay == null) return;
+      final entry = OverlayEntry(builder: _buildBlockedOverlay);
+      overlay.insert(entry);
+      _entry = entry;
+      if (mounted) setState(() {});
+    });
+  }
+
+  void setBlockingOverlayVisible(bool visible) {
+    if (!mounted || visible == !_suspended) return;
+    if (!visible) {
+      _suspended = true;
+      _entry?.markNeedsBuild();
+      setState(() {});
+      return;
+    }
+    _suspended = false;
+    final navigatorContext = widget.navigatorContextResolver();
+    final overlay = navigatorContext == null
+        ? null
+        : Overlay.maybeOf(navigatorContext, rootOverlay: true);
+    if (overlay != null && _entry == null) {
+      final entry = OverlayEntry(builder: _buildBlockedOverlay);
+      overlay.insert(entry);
+      _entry = entry;
+    } else {
+      _entry?.markNeedsBuild();
+    }
+    setState(() {});
+  }
+
+  Widget _buildBlockedOverlay(BuildContext context) {
+    return Offstage(
+      offstage: _suspended,
+      child: IgnorePointer(
+        ignoring: _suspended,
+        child: widget.blocked,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _scheduleInstall();
+    if (_entry != null) return widget.navigatorHost;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        widget.navigatorHost,
+        _buildBlockedOverlay(context),
+      ],
+    );
+  }
+}
+
+class _RecoveryBlockedOperationalEntry extends StatefulWidget {
+  const _RecoveryBlockedOperationalEntry({
+    required this.result,
+    required this.issues,
+    required this.assessmentService,
+    required this.reconciliationController,
+    required this.onRetry,
+    required this.onRefreshCashContext,
+    required this.onOpenCash,
+    required this.navigatorContextResolver,
+    required this.onDialogVisibilityChanged,
+    super.key,
+  });
+
+  final OperationalBootstrapEntryResult result;
+  final List<OperationalBootstrapBlockingIssue> issues;
+  final RecoveryBlockedStaleSaleAssessmentService assessmentService;
+  final ProductiveStaleSaleReconciliationController reconciliationController;
+  final VoidCallback onRetry;
+  final ProductiveCashRepairAction onRefreshCashContext;
+  final ProductiveCashRepairAction onOpenCash;
+  final NavigatorContextResolver navigatorContextResolver;
+  final ValueChanged<bool> onDialogVisibilityChanged;
+
+  @override
+  State<_RecoveryBlockedOperationalEntry> createState() =>
+      _RecoveryBlockedOperationalEntryState();
+}
+
+class _RecoveryBlockedOperationalEntryState
+    extends State<_RecoveryBlockedOperationalEntry> {
+  late Future<RecoveryBlockedStaleSaleAssessment> _assessment;
+  bool _reviewing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _assessment = _assess();
+  }
+
+  Future<RecoveryBlockedStaleSaleAssessment> _assess() {
+    final result = widget.result;
+    final selected = result.selectedContext;
+    final profileId = result.profileId;
+    if (profileId == null || selected == null) {
+      return Future.error(
+        StateError('Operational recovery scope is incomplete.'),
+      );
+    }
+    return widget.assessmentService.assess(
+      profileId: profileId,
+      businessId: selected.businessId,
+      branchId: selected.branchId,
+      blockingIssues: widget.issues,
+    );
+  }
+
+  Future<void> _review() async {
+    if (_reviewing) return;
+    final result = widget.result;
+    final selected = result.selectedContext!;
+    final profileId = result.profileId!;
+    final appDeviceId = result.device?.appDeviceId.trim() ??
+        result.bootstrapResult?.appDeviceId.trim() ??
+        '';
+    if (appDeviceId.isEmpty) return;
+    final dialogContext = widget.navigatorContextResolver();
+    if (dialogContext == null || !dialogContext.mounted) return;
+    setState(() => _reviewing = true);
+    await ProductiveStaleSaleReconciliationPresenter.show(
+      context: dialogContext,
+      service: widget.reconciliationController,
+      profileId: profileId,
+      businessId: selected.businessId,
+      branchId: selected.branchId,
+      appDeviceId: appDeviceId,
+      effectivePermissions: selected.effectivePermissions.toSet(),
+      onRefreshCashContext: widget.onRefreshCashContext,
+      onOpenCash: widget.onOpenCash,
+      onDialogVisibilityChanged: widget.onDialogVisibilityChanged,
+      dialogBarrierColor: Theme.of(dialogContext).scaffoldBackgroundColor,
+    );
+    if (!mounted) return;
+    final remaining = await widget.reconciliationController.loadPending(
+      profileId: profileId,
+      businessId: selected.businessId,
+      branchId: selected.branchId,
+    );
+    if (!mounted) return;
+    if (remaining.isEmpty) {
+      widget.onRetry();
+      return;
+    }
+    setState(() {
+      _reviewing = false;
+      _assessment = _assess();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<RecoveryBlockedStaleSaleAssessment>(
+      future: _assessment,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _OperationalEntryLoading();
+        }
+        final assessment = snapshot.data;
+        if (assessment == null || !assessment.canReviewSales) {
+          return _OperationalEntryStatus(
+            title: 'Recuperación bloqueada',
+            message: _issueDetails(widget.result, widget.issues),
+            actionLabel: 'Reintentar',
+            onAction: widget.onRetry,
+          );
+        }
+        final count = assessment.sales.length;
+        final hardMessage = assessment.hardIssues.isEmpty
+            ? ''
+            : '\n\nAdemás existen otros bloqueos que deberán resolverse:\n'
+                '${assessment.hardIssues.map((issue) => issue.message).join('\n')}';
+        return _OperationalEntryStatus(
+          title: 'Recuperación requiere revisión',
+          message: 'Hay operaciones pendientes que necesitan revisión antes '
+              'de continuar.\n\n$count ${count == 1 ? 'venta no pudo' : 'ventas no pudieron'} '
+              'sincronizarse porque la caja original ya estaba cerrada.'
+              '$hardMessage',
+          actionLabel: 'Revisar ventas',
+          onAction: _reviewing ? null : _review,
+          secondaryActionLabel: 'Reintentar recuperación',
+          onSecondaryAction: _reviewing ? null : widget.onRetry,
+        );
+      },
+    );
+  }
+
+  String _issueDetails(
+    OperationalBootstrapEntryResult result,
+    List<OperationalBootstrapBlockingIssue> issues,
+  ) {
+    return issues.isEmpty
+        ? result.message
+        : issues.map((issue) => issue.message).join('\n');
   }
 }
 
@@ -412,12 +883,16 @@ class _OperationalEntryStatus extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   });
 
   final String title;
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -446,6 +921,14 @@ class _OperationalEntryStatus extends StatelessWidget {
                         FilledButton(
                           onPressed: onAction,
                           child: Text(actionLabel!),
+                        ),
+                      ],
+                      if (secondaryActionLabel != null &&
+                          onSecondaryAction != null) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          onPressed: onSecondaryAction,
+                          child: Text(secondaryActionLabel!),
                         ),
                       ],
                     ],

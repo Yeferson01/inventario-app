@@ -11,7 +11,9 @@ import '../data/datasources/operational_bootstrap_seen_record_local_dao.dart';
 import '../data/datasources/reconciliation_issue_local_dao.dart';
 import '../data/datasources/cash_pos_reconciliation_local_dao.dart';
 import '../data/datasources/product_operational_reconciliation_local_dao.dart';
+import '../data/datasources/pos_sync_remote_datasource.dart';
 import '../../inventory/application/product_stock_balance_providers.dart';
+import '../../sales/application/pos_local_sale_provider.dart';
 import '../data/datasources/inventory_balance_reconciliation_local_dao.dart';
 import '../data/datasources/inventory_movement_acknowledgement_remote_datasource.dart';
 import 'category_snapshot_applier.dart';
@@ -28,6 +30,7 @@ import 'inventory_balance_reconciliation_service.dart';
 import 'inventory_balance_snapshot_applier.dart';
 import 'cash_pos_snapshot_applier.dart';
 import 'cash_pos_recovery_service.dart';
+import 'confirmed_unmaterialized_sale_repair_service.dart';
 import '../../cash/application/cash_session_local_provider.dart';
 
 final operationalBootstrapRemoteDataSourceProvider =
@@ -227,6 +230,18 @@ final operationalBootstrapProgressProvider = NotifierProvider<
   OperationalBootstrapProgressNotifier.new,
 );
 
+final confirmedUnmaterializedSaleRepairServiceProvider =
+    Provider<ConfirmedUnmaterializedSaleRepairService>((ref) {
+  final remote = PosSyncRemoteDataSource(ref.watch(supabaseClientProvider));
+  return ConfirmedUnmaterializedSaleRepairService(
+    evidenceLoader: ref
+        .watch(posLocalSaleDaoProvider)
+        .loadDurableUnmaterializedSaleDiscardEvidence,
+    conflictResolver: remote.findOpenClosedCashSessionSaleConflictId,
+    remoteFinalizer: remote.resolveUnmaterializedSaleDidNotOccur,
+  );
+});
+
 final operationalBootstrapServiceProvider =
     Provider<OperationalBootstrapService>((ref) {
   return OperationalBootstrapService(
@@ -238,6 +253,8 @@ final operationalBootstrapServiceProvider =
     checkpointDao: ref.watch(operationalBootstrapCheckpointLocalDaoProvider),
     issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
     authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
+    confirmedDiscardRepairService:
+        ref.watch(confirmedUnmaterializedSaleRepairServiceProvider),
     onProgress: ref.read(operationalBootstrapProgressProvider.notifier).publish,
   );
 });

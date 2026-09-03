@@ -50,6 +50,8 @@ class CashPosReconciliationLocalDao {
     required String entityId,
     required Map<String, dynamic> local,
     String? parentSaleId,
+    String? profileId,
+    String? remoteCashSessionId,
   }) async {
     final localStatus = local['local_status']?.toString();
     final syncStatus = local['sync_status'];
@@ -75,7 +77,11 @@ class CashPosReconciliationLocalDao {
     final evidence = await _db
         .customSelect(
           '''
-      select m.status as mutation_status, m.uploaded_at as mutation_uploaded_at,
+      select m.entity_table, m.entity_id, m.business_id, m.branch_id,
+             m.status as mutation_status, m.resolved_at as mutation_resolved_at,
+             m.error_code as mutation_error_code,
+             m.metadata_json as mutation_metadata_json,
+             m.uploaded_at as mutation_uploaded_at,
              b.status as batch_status, b.uploaded_at as batch_uploaded_at
       from local_sync_mutations m
       left join local_sync_batches b on b.id = m.local_sync_batch_id
@@ -95,6 +101,34 @@ class CashPosReconciliationLocalDao {
             ? CashPosEntityState.dirtyWithoutOutbox
             : CashPosEntityState.cleanRemoteSynced,
         recognizedAt: null,
+      );
+    }
+
+    if (profileId != null &&
+        remoteCashSessionId != null &&
+        await _isAuthoritativeSupersededSaleReconciliation(
+          profileId: profileId,
+          businessId: businessId,
+          branchId: branchId,
+          entityTable: entityTable,
+          entityId: entityId,
+          parentSaleId: parentSaleId,
+          remoteCashSessionId: remoteCashSessionId,
+          local: local,
+          dirty: dirty,
+          targets: targets,
+          evidence: evidence,
+        )) {
+      DateTime? reconciledAt;
+      for (final row in evidence) {
+        final at = _dateOrNull(row.data['mutation_resolved_at']);
+        if (at != null && (reconciledAt == null || at.isAfter(reconciledAt))) {
+          reconciledAt = at;
+        }
+      }
+      return CashPosEntityClassification(
+        state: CashPosEntityState.remotelyApplied,
+        recognizedAt: reconciledAt,
       );
     }
 
@@ -142,6 +176,127 @@ class CashPosReconciliationLocalDao {
           : CashPosEntityState.transportAmbiguous,
       recognizedAt: recognizedAt,
     );
+  }
+
+  Future<bool> _isAuthoritativeSupersededSaleReconciliation({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String entityTable,
+    required String entityId,
+    required String? parentSaleId,
+    required String remoteCashSessionId,
+    required Map<String, dynamic> local,
+    required bool dirty,
+    required List<(String, String)> targets,
+    required List<QueryRow> evidence,
+  }) async {
+    if (dirty ||
+        local['deleted_at'] != null ||
+        !const {'sales', 'sale_items', 'sale_payments'}.contains(entityTable)) {
+      return false;
+    }
+
+    final saleId = entityTable == 'sales' ? entityId : parentSaleId;
+    if (saleId == null || saleId.isEmpty) return false;
+    if (entityTable != 'sales' && local['sale_id']?.toString() != saleId) {
+      return false;
+    }
+    if (entityTable == 'sale_payments' &&
+        (local['business_id']?.toString() != businessId ||
+            local['branch_id']?.toString() != branchId)) {
+      return false;
+    }
+
+    final localMetadata = _decodeMetadata(local['metadata_json']);
+    final reconciliationId =
+        localMetadata?['sale_reconciliation_id']?.toString().trim();
+    if (localMetadata?['local_resolution'] !=
+            'intentional_stale_sale_reconciled' ||
+        reconciliationId == null ||
+        reconciliationId.isEmpty ||
+        localMetadata?['destination_cash_session_id']?.toString() !=
+            remoteCashSessionId) {
+      return false;
+    }
+
+    final sale =
+        entityTable == 'sales' ? local : await getById('sales', saleId);
+    final saleMetadata = _decodeMetadata(sale?['metadata_json']);
+    if (sale == null ||
+        sale['business_id']?.toString() != businessId ||
+        sale['branch_id']?.toString() != branchId ||
+        sale['cash_session_id']?.toString() != remoteCashSessionId ||
+        sale['local_status']?.toString() != 'synced' ||
+        sale['sync_status'] != SyncStatus.synced.index ||
+        sale['deleted_at'] != null ||
+        saleMetadata?['local_resolution'] !=
+            'intentional_stale_sale_reconciled' ||
+        saleMetadata?['sale_reconciliation_id']?.toString() !=
+            reconciliationId ||
+        saleMetadata?['destination_cash_session_id']?.toString() !=
+            remoteCashSessionId) {
+      return false;
+    }
+
+    final evidenceTargets = evidence
+        .map(
+          (row) => (
+            row.data['entity_table']?.toString() ?? '',
+            row.data['entity_id']?.toString() ?? '',
+          ),
+        )
+        .toSet();
+    if (!targets.every(evidenceTargets.contains)) return false;
+
+    for (final row in evidence) {
+      final data = row.data;
+      final metadata = _decodeMetadata(data['mutation_metadata_json']);
+      final explicitMarker =
+          metadata?['superseded_by_sale_reconciliation'] == true;
+      // Reconciliations written before the explicit boolean marker still carry
+      // the full immutable audit tuple. Never recognize a generic skipped row.
+      final legacyAuthoritativeMarker = metadata?['local_resolution'] ==
+              'intentional_stale_sale_reconciled' &&
+          metadata?['sale_reconciliation_id']?.toString() == reconciliationId;
+      if (data['business_id']?.toString() != businessId ||
+          data['branch_id']?.toString() != branchId ||
+          data['mutation_status'] != 'skipped' ||
+          _dateOrNull(data['mutation_resolved_at']) == null ||
+          data['mutation_error_code'] != 'superseded_by_sale_reconciliation' ||
+          (!explicitMarker && !legacyAuthoritativeMarker) ||
+          metadata?['local_resolution'] !=
+              'intentional_stale_sale_reconciled' ||
+          metadata?['sale_reconciliation_id']?.toString() != reconciliationId ||
+          metadata?['sale_id']?.toString() != saleId ||
+          metadata?['destination_cash_session_id']?.toString() !=
+              remoteCashSessionId) {
+        return false;
+      }
+    }
+
+    final relatedIds = {entityId, saleId};
+    final blockingRows = await _db.customSelect(
+      '''
+      select entity_id, metadata_json
+      from local_reconciliation_issues
+      where profile_id = ? and business_id = ? and branch_id = ?
+        and severity = 'blocking' and status = 'open'
+      ''',
+      variables: [
+        Variable<String>(profileId),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+      ],
+      readsFrom: {_db.localReconciliationIssues},
+    ).get();
+    return !blockingRows.any((row) {
+      final metadata = _decodeMetadata(row.data['metadata_json']);
+      return relatedIds.contains(row.data['entity_id']?.toString()) ||
+          metadata?['sale_id']?.toString() == saleId ||
+          (metadata?['source_type']?.toString() == 'sale' &&
+              metadata?['source_id']?.toString() == saleId);
+    });
   }
 
   Future<void> applyCashRegister(CashRegisterSnapshotRow row) async {
@@ -380,6 +535,7 @@ class CashPosReconciliationLocalDao {
     CashPosSaleSnapshotRow row, {
     required String cashRegisterId,
   }) async {
+    final existing = await getById('sales', row.id);
     final userId = row.userId != null && await profileExists(row.userId!)
         ? row.userId
         : null;
@@ -432,7 +588,7 @@ class CashPosReconciliationLocalDao {
         row.paymentMethod,
         row.paymentStatus,
         row.idempotencyKey,
-        jsonEncode({
+        _mergeMetadata(existing?['metadata_json'], {
           ...?row.metadata,
           'recovery_source': 'cash_pos_snapshot',
           if (row.userId != null) 'remote_user_id': row.userId,
@@ -450,6 +606,7 @@ class CashPosReconciliationLocalDao {
   }
 
   Future<void> applySaleItem(CashPosSaleItemSnapshotRow row) async {
+    final existing = await getById('sale_items', row.id);
     await _statement(
       '''
       insert into sale_items (
@@ -486,7 +643,10 @@ class CashPosReconciliationLocalDao {
         row.taxTotal,
         row.subtotal,
         row.lineTotal,
-        jsonEncode({...?row.metadata, 'recovery_source': 'cash_pos_snapshot'}),
+        _mergeMetadata(existing?['metadata_json'], {
+          ...?row.metadata,
+          'recovery_source': 'cash_pos_snapshot',
+        }),
         row.createdAt,
         row.updatedAt,
         row.state == OperationalBootstrapRecordState.tombstone
@@ -501,6 +661,7 @@ class CashPosReconciliationLocalDao {
     CashPosSalePaymentSnapshotRow row, {
     required String branchId,
   }) async {
+    final existing = await getById('sale_payments', row.id);
     await _statement(
       '''
       insert into sale_payments (
@@ -534,7 +695,10 @@ class CashPosReconciliationLocalDao {
         row.currency,
         row.status,
         row.reference,
-        jsonEncode({...?row.metadata, 'recovery_source': 'cash_pos_snapshot'}),
+        _mergeMetadata(existing?['metadata_json'], {
+          ...?row.metadata,
+          'recovery_source': 'cash_pos_snapshot',
+        }),
         SyncStatus.synced.index,
         row.createdAt,
         row.updatedAt,
@@ -585,6 +749,155 @@ class CashPosReconciliationLocalDao {
       readsFrom: {_db.cashSessions},
     ).get();
     return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
+  }
+
+  Future<bool> reconcileRejectedSaleOriginalOpenSession({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+    required String originalCashSessionId,
+    required String? remoteOpenCashSessionId,
+    required String saleId,
+  }) {
+    return _db.transaction(() async {
+      if (remoteOpenCashSessionId == originalCashSessionId) return false;
+      final session = await getById('cash_sessions', originalCashSessionId);
+      final sale = await getById('sales', saleId);
+      if (session == null ||
+          sale == null ||
+          session['business_id']?.toString() != businessId ||
+          session['branch_id']?.toString() != branchId ||
+          session['cash_register_id']?.toString() != cashRegisterId ||
+          session['status']?.toString() != 'open' ||
+          session['deleted_at'] != null ||
+          sale['business_id']?.toString() != businessId ||
+          sale['branch_id']?.toString() != branchId ||
+          sale['cash_register_id']?.toString() != cashRegisterId ||
+          sale['cash_session_id']?.toString() != originalCashSessionId ||
+          sale['deleted_at'] != null) {
+        return false;
+      }
+      final classification = await classify(
+        businessId: businessId,
+        branchId: branchId,
+        domain: 'cash',
+        entityTable: 'cash_sessions',
+        entityId: originalCashSessionId,
+        local: session,
+      );
+      if (!classification.canAcceptRemote) return false;
+
+      final staleIssue = await _db.customSelect(
+        '''
+        select metadata_json
+        from local_reconciliation_issues
+        where profile_id = ? and business_id = ? and branch_id = ?
+          and domain = 'cash_pos' and entity_type = 'sales'
+          and entity_id = ? and issue_type = 'sale_cash_session_rejected'
+          and severity = 'blocking' and status = 'open'
+        limit 1
+        ''',
+        variables: [
+          Variable<String>(profileId),
+          Variable<String>(businessId),
+          Variable<String>(branchId),
+          Variable<String>(saleId),
+        ],
+        readsFrom: {_db.localReconciliationIssues},
+      ).getSingleOrNull();
+      final staleMetadata = _decodeMetadata(staleIssue?.data['metadata_json']);
+      if (staleMetadata?['remote_reason']?.toString() != 'closed' ||
+          staleMetadata?['cash_session_id']?.toString() !=
+              originalCashSessionId) {
+        return false;
+      }
+
+      QueryRow? conflict;
+      if (remoteOpenCashSessionId != null) {
+        conflict = await _db.customSelect(
+          '''
+        select id, metadata_json
+        from local_reconciliation_issues
+        where profile_id = ? and business_id = ? and branch_id = ?
+          and domain = 'cash_pos' and entity_type = 'cash_sessions'
+          and entity_id = ? and issue_type = 'cash_open_session_conflict'
+          and severity = 'blocking' and status = 'open'
+        limit 1
+        ''',
+          variables: [
+            Variable<String>(profileId),
+            Variable<String>(businessId),
+            Variable<String>(branchId),
+            Variable<String>(originalCashSessionId),
+          ],
+          readsFrom: {_db.localReconciliationIssues},
+        ).getSingleOrNull();
+        final conflictMetadata =
+            _decodeMetadata(conflict?.data['metadata_json']);
+        final localIds = conflictMetadata?['local_open_session_ids'];
+        if (conflict == null ||
+            conflictMetadata?['remote_cash_session_id']?.toString() !=
+                remoteOpenCashSessionId ||
+            conflictMetadata?['cash_register_id']?.toString() !=
+                cashRegisterId ||
+            localIds is! List ||
+            !localIds.map((value) => value.toString()).contains(
+                  originalCashSessionId,
+                )) {
+          return false;
+        }
+      }
+
+      final now = DateTime.now().toUtc();
+      final metadata = _mergeMetadata(session['metadata_json'], {
+        'recovery_reconciliation':
+            'projected_server_rejected_sale_original_cash_session_closed',
+        'sale_id': saleId,
+        if (remoteOpenCashSessionId != null)
+          'remote_open_cash_session_id': remoteOpenCashSessionId,
+        'reconciled_at': now.toIso8601String(),
+      });
+      final changed = await _db.customUpdate(
+        '''
+        update cash_sessions
+        set status = 'closed', local_status = 'synced', sync_status = ?,
+            metadata_json = ?, updated_at = ?, deleted_at = null,
+            last_synced_at = ?
+        where id = ? and business_id = ? and branch_id = ?
+          and cash_register_id = ? and status = 'open'
+          and deleted_at is null
+        ''',
+        variables: [
+          Variable<int>(SyncStatus.synced.index),
+          Variable<String>(metadata),
+          Variable<DateTime>(now),
+          Variable<DateTime>(now),
+          Variable<String>(originalCashSessionId),
+          Variable<String>(businessId),
+          Variable<String>(branchId),
+          Variable<String>(cashRegisterId),
+        ],
+        updates: {_db.cashSessions},
+      );
+      if (changed != 1) return false;
+      if (conflict != null) {
+        await _db.customUpdate(
+          '''
+        update local_reconciliation_issues
+        set status = 'resolved', resolved_at = ?, updated_at = ?
+        where id = ? and status = 'open'
+        ''',
+          variables: [
+            Variable<DateTime>(now),
+            Variable<DateTime>(now),
+            Variable<String>(conflict.read<String>('id')),
+          ],
+          updates: {_db.localReconciliationIssues},
+        );
+      }
+      return true;
+    });
   }
 
   Future<List<Map<String, dynamic>>> salesForSession(String cashSessionId) {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,8 +21,6 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/cash_pos_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/operational_bootstrap_models.dart';
-import 'package:sqlite3/sqlite3.dart';
-
 import 'support/operational_bootstrap_test_data.dart';
 
 void main() {
@@ -293,6 +293,77 @@ void main() {
       ),
       isEmpty,
     );
+  });
+
+  test('repair projects server-rejected clean S1 closed before applying S2',
+      () async {
+    await _insertRegister(database, id: 'register-x');
+    await _insertSession(database, id: 'session-s');
+    await _insertPendingSale(
+      database,
+      id: 'sale-stale',
+      total: 10,
+      paymentId: 'payment-stale',
+    );
+    final issues = ReconciliationIssueLocalDao(database);
+    await issues.openIssue(
+      ReconciliationIssueDraft(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        domain: 'cash_pos',
+        entityType: 'sales',
+        entityId: 'sale-stale',
+        issueType: 'sale_cash_session_rejected',
+        severity: 'blocking',
+        message: 'Remote rejected closed session.',
+        metadataJson: jsonEncode({
+          'remote_reason': 'closed',
+          'cash_session_id': 'session-s',
+        }),
+      ),
+    );
+    await issues.openIssue(
+      ReconciliationIssueDraft(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        domain: 'cash_pos',
+        entityType: 'cash_sessions',
+        entityId: 'session-s',
+        issueType: 'cash_open_session_conflict',
+        severity: 'blocking',
+        message: 'Remote S2 conflicts with local S1.',
+        metadataJson: jsonEncode({
+          'remote_cash_session_id': 'session-s2',
+          'cash_register_id': 'register-x',
+          'local_open_session_ids': ['session-s'],
+        }),
+      ),
+    );
+
+    final reconciled = await CashPosReconciliationLocalDao(database)
+        .reconcileRejectedSaleOriginalOpenSession(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      cashRegisterId: 'register-x',
+      originalCashSessionId: 'session-s',
+      remoteOpenCashSessionId: 'session-s2',
+      saleId: 'sale-stale',
+    );
+
+    final session = await _row(database, 'cash_sessions', 'session-s');
+    final sale = await _row(database, 'sales', 'sale-stale');
+    final conflict = (await _issues(database)).singleWhere(
+      (issue) => issue['issue_type'] == 'cash_open_session_conflict',
+    );
+    expect(reconciled, isTrue);
+    expect(session?['status'], 'closed');
+    expect(session?['deleted_at'], isNull);
+    expect(sale?['deleted_at'], isNull);
+    expect(sale?['local_status'], 'dirty');
+    expect(conflict['status'], 'resolved');
   });
 
   test('closed remote session is no longer considered open after recovery',
@@ -777,6 +848,160 @@ void main() {
     expect(result.cashSession.openedByProfileId, isNull);
     expect(result.reusedOpenSession, isTrue);
   });
+
+  test('26 authoritative superseded mutation is remotely recognized', () async {
+    await _seedAuthoritativeReconciledSale(database);
+    final local = await _row(database, 'sales', 'sale-r');
+
+    final classification =
+        await CashPosReconciliationLocalDao(database).classify(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'pos',
+      entityTable: 'sales',
+      entityId: 'sale-r',
+      local: local!,
+      remoteCashSessionId: 'session-s',
+    );
+
+    expect(classification.state, CashPosEntityState.remotelyApplied);
+    expect(classification.recognizedAt, isNotNull);
+  });
+
+  test('27 generic skipped mutation remains transport ambiguous', () async {
+    await _insertRegister(database, id: 'register-x');
+    await _insertSession(database, id: 'session-s');
+    await _insertPendingSale(
+      database,
+      id: 'sale-r',
+      total: 100,
+      paymentId: 'payment-r',
+    );
+    await database.customStatement('''
+      update sales
+      set local_status = 'synced', sync_status = 0
+      where id = 'sale-r'
+    ''');
+    await _insertOutbox(
+      database,
+      domain: 'pos',
+      entityTable: 'sales',
+      entityId: 'sale-r',
+      batchStatus: 'partial',
+      mutationStatus: 'skipped',
+    );
+    final local = await _row(database, 'sales', 'sale-r');
+
+    final classification =
+        await CashPosReconciliationLocalDao(database).classify(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'pos',
+      entityTable: 'sales',
+      entityId: 'sale-r',
+      local: local!,
+      remoteCashSessionId: 'session-s',
+    );
+
+    expect(classification.state, CashPosEntityState.transportAmbiguous);
+  });
+
+  test(
+      '28 reconciled sale aggregate converges all POS checkpoints without stock changes',
+      () async {
+    await _seedAuthoritativeReconciledSale(database);
+    final stockBefore = (await _row(
+      database,
+      'local_product_stock_balances',
+      'balance-r',
+    ))!['quantity_on_hand'];
+    final issues = ReconciliationIssueLocalDao(database);
+    for (final target in const {
+      'sales': 'sale-r',
+      'sale_items': 'item-r',
+      'sale_payments': 'payment-r',
+    }.entries) {
+      await issues.openOrUpdateIssue(
+        ReconciliationIssueDraft(
+          profileId: 'profile-a',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          domain: 'cash_pos',
+          entityType: target.key,
+          entityId: target.value,
+          issueType: 'dirty_vs_remote',
+          severity: 'warning',
+          message: 'False transport ambiguity.',
+        ),
+      );
+    }
+    final harness = _Harness(database, [_cashResponse()]);
+
+    final result = await harness.recovery.recover(_request);
+    final checkpoints = await database.customSelect('''
+      select dataset, status, convergence_status
+      from local_operational_bootstrap_checkpoints
+      where bundle = 'cash_pos'
+        and dataset in (
+          'session_sales', 'session_sale_items', 'session_sale_payments'
+        )
+      order by dataset
+    ''').get();
+    final stockAfter = (await _row(
+      database,
+      'local_product_stock_balances',
+      'balance-r',
+    ))!['quantity_on_hand'];
+    final batch = await _row(database, 'local_sync_batches', 'batch-sale-r');
+
+    expect(result.completed, isTrue);
+    expect(result.cashContextReady, isTrue);
+    expect(checkpoints, hasLength(3));
+    expect(
+      checkpoints.every(
+        (row) =>
+            row.data['status'] == 'complete' &&
+            row.data['convergence_status'] == 'complete',
+      ),
+      isTrue,
+    );
+    expect(
+      (await _issues(database)).where(
+        (issue) =>
+            issue['issue_type'] == 'dirty_vs_remote' &&
+            issue['status'] == 'open',
+      ),
+      isEmpty,
+    );
+    expect(stockAfter, stockBefore);
+    expect(stockAfter, 25);
+    expect(batch!['status'], 'partial');
+  });
+
+  test('29 pre-marker authoritative audit tuple remains remotely recognized',
+      () async {
+    await _seedAuthoritativeReconciledSale(
+      database,
+      includeExplicitMarker: false,
+    );
+    final local = await _row(database, 'sales', 'sale-r');
+
+    final classification =
+        await CashPosReconciliationLocalDao(database).classify(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'pos',
+      entityTable: 'sales',
+      entityId: 'sale-r',
+      local: local!,
+      remoteCashSessionId: 'session-s',
+    );
+
+    expect(classification.state, CashPosEntityState.remotelyApplied);
+  });
 }
 
 const _created = '2026-08-14T08:00:00Z';
@@ -1040,6 +1265,105 @@ Future<void> _insertSession(
           updatedAt: Value(DateTime.utc(2026, 8, 14)),
         ),
       );
+}
+
+Future<void> _seedAuthoritativeReconciledSale(
+  AppDatabase db, {
+  bool includeExplicitMarker = true,
+}) async {
+  const reconciliationId = '11111111-1111-4111-8111-111111111111';
+  final resolvedAt = DateTime.utc(2026, 9, 2, 19, 18);
+  final audit = jsonEncode({
+    'business_id': 'business-a',
+    'branch_id': 'branch-x',
+    'sale_id': 'sale-r',
+    'sale_reconciliation_id': reconciliationId,
+    'local_resolution': 'intentional_stale_sale_reconciled',
+    if (includeExplicitMarker) 'superseded_by_sale_reconciliation': true,
+    'destination_cash_session_id': 'session-s',
+    'resolved_at': resolvedAt.toIso8601String(),
+  });
+  await _insertRegister(db, id: 'register-x');
+  await _insertSession(db, id: 'session-s');
+  await db.into(db.sales).insert(
+        SalesCompanion.insert(
+          id: 'sale-r',
+          businessId: const Value('business-a'),
+          userId: const Value('profile-a'),
+          branchId: const Value('branch-x'),
+          cashRegisterId: const Value('register-x'),
+          cashSessionId: const Value('session-s'),
+          subtotal: const Value(100),
+          total: 100,
+          paymentMethod: const Value('cash'),
+          localStatus: const Value('synced'),
+          metadataJson: Value(audit),
+          syncStatus: const Value(SyncStatus.synced),
+        ),
+      );
+  await db.into(db.saleItems).insert(
+        SaleItemsCompanion.insert(
+          id: 'item-r',
+          saleId: const Value('sale-r'),
+          productId: const Value('product-1'),
+          productNameSnapshot: const Value('Product 1'),
+          quantity: 1,
+          unitPrice: 100,
+          subtotal: 100,
+          lineTotal: const Value(100),
+          metadataJson: Value(audit),
+          syncStatus: const Value(SyncStatus.synced),
+        ),
+      );
+  await db.into(db.salePayments).insert(
+        SalePaymentsCompanion.insert(
+          id: 'payment-r',
+          businessId: 'business-a',
+          branchId: const Value('branch-x'),
+          saleId: 'sale-r',
+          paymentMethod: 'cash',
+          amount: 100,
+          localStatus: const Value('synced'),
+          metadataJson: Value(audit),
+          syncStatus: const Value(SyncStatus.synced),
+        ),
+      );
+  await db.into(db.localProductStockBalances).insert(
+        LocalProductStockBalancesCompanion.insert(
+          id: 'balance-r',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          productId: 'product-1',
+          quantityOnHand: const Value(25),
+          quantityAvailable: const Value(25),
+          remoteQuantityOnHand: const Value(25),
+          remoteQuantityAvailable: const Value(25),
+        ),
+      );
+  for (final target in const {
+    'sales': 'sale-r',
+    'sale_items': 'item-r',
+    'sale_payments': 'payment-r',
+  }.entries) {
+    await _insertOutbox(
+      db,
+      domain: 'pos',
+      entityTable: target.key,
+      entityId: target.value,
+      batchStatus: 'partial',
+      mutationStatus: 'skipped',
+    );
+    await db.customStatement(
+      '''
+      update local_sync_mutations
+      set resolved_at = ?,
+          error_code = 'superseded_by_sale_reconciliation',
+          metadata_json = ?
+      where id = ?
+      ''',
+      [resolvedAt.toIso8601String(), audit, 'mutation-${target.value}'],
+    );
+  }
 }
 
 Future<void> _insertPendingSale(

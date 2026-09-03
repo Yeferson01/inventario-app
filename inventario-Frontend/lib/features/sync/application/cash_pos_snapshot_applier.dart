@@ -322,6 +322,8 @@ class CashPosSnapshotApplier
         'sales',
         remote.id,
         local,
+        profileId: profileId,
+        remoteCashSessionId: remote.cashSessionId,
       );
       if (!classification.canAcceptRemote) {
         await _preservedIssue(
@@ -392,6 +394,8 @@ class CashPosSnapshotApplier
         remote.id,
         local,
         parentSaleId: remote.saleId,
+        profileId: profileId,
+        remoteCashSessionId: sale['cash_session_id']?.toString(),
       );
       if (!classification.canAcceptRemote) {
         await _preservedIssue(
@@ -447,6 +451,8 @@ class CashPosSnapshotApplier
         remote.id,
         local,
         parentSaleId: remote.saleId,
+        profileId: profileId,
+        remoteCashSessionId: sale['cash_session_id']?.toString(),
       );
       if (!classification.canAcceptRemote) {
         await _preservedIssue(
@@ -677,6 +683,8 @@ class CashPosSnapshotApplier
     String entityId,
     Map<String, dynamic> local, {
     String? parentSaleId,
+    String? profileId,
+    String? remoteCashSessionId,
   }) =>
       _localDao.classify(
         businessId: snapshot.businessId,
@@ -686,6 +694,8 @@ class CashPosSnapshotApplier
         entityId: entityId,
         local: local,
         parentSaleId: parentSaleId,
+        profileId: profileId,
+        remoteCashSessionId: remoteCashSessionId,
       );
 
   Future<void> _preservedIssue(

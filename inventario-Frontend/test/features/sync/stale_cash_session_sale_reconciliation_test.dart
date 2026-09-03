@@ -15,6 +15,7 @@ void main() {
       issueDao: ReconciliationIssueLocalDao(database),
     );
     const failure = PosCashSessionApplyFailure(
+      syncConflictId: 'conflict-a',
       serverBatchId: 'batch-a',
       serverMutationId: 'mutation-a',
       saleId: 'sale-a',

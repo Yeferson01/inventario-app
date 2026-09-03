@@ -4,6 +4,7 @@ import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/features/sales/application/pos_sync_outbox_service.dart';
 import 'package:inventario_frontend/features/sales/data/datasources/pos_local_sale_dao.dart';
 import 'package:inventario_frontend/features/sync/application/local_sync_outbox_service.dart';
+import 'package:inventario_frontend/features/sync/application/confirmed_unmaterialized_sale_repair_service.dart';
 import 'package:inventario_frontend/features/sync/application/unmaterialized_local_sale_discard_service.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/local_sync_outbox_dao.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/pos_sync_remote_datasource.dart';
@@ -47,6 +48,7 @@ void main() {
         required saleId,
       }) async =>
           throw StateError('network unavailable'),
+      remoteFinalizer: _remoteFinalizer,
     );
 
     await expectLater(
@@ -64,11 +66,19 @@ void main() {
     expect(await _balance(database), 25);
   });
 
-  test('valid discard tombstones the aggregate and restores exact stock',
+  test(
+      'authoritative new discard finalizes remote before local and restores stock once',
       () async {
-    final result =
-        await _service(database, const _Evidence()).discard(_input());
+    var finalizedBeforeLocal = false;
+    final result = await _service(
+      database,
+      const _Evidence(),
+      onFinalize: () async {
+        finalizedBeforeLocal = await _saleDeletedAt(database) == null;
+      },
+    ).discard(_input());
 
+    expect(finalizedBeforeLocal, isTrue);
     expect(result.localResult.alreadyDiscarded, isFalse);
     expect(result.localResult.restoredQuantityByProduct, {'product-a': 1});
     expect(await _balance(database), 26);
@@ -139,6 +149,178 @@ void main() {
     expect(await _balance(database), 26);
   });
 
+  test(
+      'authoritative remote success plus local failure retries without double stock',
+      () async {
+    var finalizations = 0;
+    final service = _service(
+      database,
+      const _Evidence(),
+      onFinalize: () async => finalizations++,
+    );
+    await database.customStatement(
+      "delete from local_product_stock_balances where id = 'balance-a'",
+    );
+
+    await expectLater(
+      service.discard(_input()),
+      throwsA(
+        isA<UnmaterializedSaleDiscardException>().having(
+          (error) => error.kind,
+          'kind',
+          UnmaterializedSaleDiscardFailureKind.localValidationFailed,
+        ),
+      ),
+    );
+    expect(finalizations, 1);
+    expect(await _saleDeletedAt(database), isNull);
+
+    await database.customStatement('''
+      insert into local_product_stock_balances (
+        id, business_id, branch_id, product_id, quantity_on_hand,
+        quantity_available, remote_quantity_on_hand, remote_quantity_available
+      ) values (
+        'balance-a', 'business-a', 'branch-a', 'product-a', 25, 25, 26, 26
+      )
+    ''');
+    await service.discard(_input());
+    await service.discard(_input());
+
+    expect(finalizations, 3);
+    expect(await _balance(database), 26);
+    expect(await _saleDeletedAt(database), isNotNull);
+  });
+
+  test(
+      'authoritative historical resolver receives the scoped appDeviceId and preserves stock',
+      () async {
+    final dao = PosLocalSaleDao(database);
+    await dao.discardUnmaterializedLocalSale(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      saleId: 'sale-a',
+      reason: 'Confirmed historical discard.',
+      syncConflictId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      discardIdempotencyKey: 'historical-local-discard',
+      confirmedAppDeviceId: 'device-a',
+    );
+    final balanceBefore = await _balance(database);
+    var finalizations = 0;
+    String? resolverAppDeviceId;
+    String? finalizedConflictId;
+    final repair = ConfirmedUnmaterializedSaleRepairService(
+      evidenceLoader: ({
+        required profileId,
+        required businessId,
+        required branchId,
+      }) async =>
+          [
+        DurableUnmaterializedSaleDiscardEvidence(
+          saleId: 'sale-a',
+          reason: 'Confirmed historical discard.',
+          resolvedAt: DateTime.utc(2026, 9, 2),
+        ),
+      ],
+      conflictResolver: ({
+        required businessId,
+        required branchId,
+        required appDeviceId,
+        required saleId,
+      }) async {
+        resolverAppDeviceId = appDeviceId;
+        return 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      },
+      remoteFinalizer: ({
+        required businessId,
+        required branchId,
+        required appDeviceId,
+        required saleId,
+        required syncConflictId,
+        required idempotencyKey,
+        required reason,
+      }) async {
+        finalizations++;
+        finalizedConflictId = syncConflictId;
+        return _finalization(
+          businessId: businessId,
+          branchId: branchId,
+          saleId: saleId,
+          syncConflictId: syncConflictId,
+          idempotencyKey: idempotencyKey,
+        );
+      },
+    );
+
+    final result = await repair.repair(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      appDeviceId: 'device-a',
+    );
+
+    expect(result.candidatesChecked, 1);
+    expect(result.conflictsFinalized, 1);
+    expect(finalizations, 1);
+    expect(resolverAppDeviceId, 'device-a');
+    expect(
+      finalizedConflictId,
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    );
+    expect(await _balance(database), balanceBefore);
+  });
+
+  test(
+      'authoritative historical repair ignores open remote conflict without durable local evidence',
+      () async {
+    final dao = PosLocalSaleDao(database);
+    var resolverCalls = 0;
+    var finalizerCalls = 0;
+    final repair = ConfirmedUnmaterializedSaleRepairService(
+      evidenceLoader: dao.loadDurableUnmaterializedSaleDiscardEvidence,
+      conflictResolver: ({
+        required businessId,
+        required branchId,
+        required appDeviceId,
+        required saleId,
+      }) async {
+        resolverCalls++;
+        return 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      },
+      remoteFinalizer: ({
+        required businessId,
+        required branchId,
+        required appDeviceId,
+        required saleId,
+        required syncConflictId,
+        required idempotencyKey,
+        required reason,
+      }) async {
+        finalizerCalls++;
+        return _finalization(
+          businessId: businessId,
+          branchId: branchId,
+          saleId: saleId,
+          syncConflictId: syncConflictId,
+          idempotencyKey: idempotencyKey,
+        );
+      },
+    );
+
+    final result = await repair.repair(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      appDeviceId: 'device-a',
+    );
+
+    expect(result.candidatesChecked, 0);
+    expect(result.conflictsFinalized, 0);
+    expect(resolverCalls, 0);
+    expect(finalizerCalls, 0);
+    expect(await _balance(database), 25);
+  });
+
   test('discarded sale is not enqueued again', () async {
     await _service(database, const _Evidence()).discard(_input());
     final service = PosSyncOutboxService(
@@ -161,6 +343,89 @@ void main() {
         .getSingle();
     expect(mutations.data['count'], 3);
   });
+
+  test('post-refresh validation accepts target A while sale B blockers remain',
+      () async {
+    await _seedSecondRejectedSale(database);
+    final service = _service(database, const _Evidence());
+
+    final result = await service.discard(_input());
+    final validation =
+        await PosLocalSaleDao(database).validateDiscardedSalePostRefresh(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      saleId: 'sale-a',
+    );
+    final pending =
+        await PosLocalSaleDao(database).loadPendingStaleCashSessionSales(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+    );
+
+    expect(result.localResult.alreadyDiscarded, isFalse);
+    expect(validation.isConsistent, isTrue);
+    expect(await _balance(database), 25);
+    expect(pending.map((sale) => sale.saleId), ['sale-b']);
+    final openIssues = await database
+        .customSelect(
+          "select entity_id from local_reconciliation_issues where status = 'open' order by id",
+        )
+        .get();
+    expect(
+      openIssues.map((row) => row.data['entity_id']),
+      unorderedEquals(['sale-b', 'movement-b']),
+    );
+  });
+
+  test('post-refresh validation ignores inventory blocker owned by sale B',
+      () async {
+    await _seedSecondRejectedSale(database);
+    await _service(database, const _Evidence()).discard(_input());
+
+    final validation =
+        await PosLocalSaleDao(database).validateDiscardedSalePostRefresh(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      saleId: 'sale-a',
+    );
+
+    expect(validation.isConsistent, isTrue);
+    expect(validation.openBlockingIssueIds, isEmpty);
+    final issue = await database
+        .customSelect(
+          "select status from local_reconciliation_issues where id = 'issue-movement-b'",
+        )
+        .getSingle();
+    expect(issue.data['status'], 'open');
+  });
+
+  test('post-refresh validation fails closed for target movement blocker',
+      () async {
+    await _service(database, const _Evidence()).discard(_input());
+    await database.customStatement('''
+      update local_reconciliation_issues
+      set status = 'open', resolved_at = null
+      where id = 'issue-movement'
+    ''');
+
+    final validation =
+        await PosLocalSaleDao(database).validateDiscardedSalePostRefresh(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      saleId: 'sale-a',
+    );
+
+    expect(validation.isConsistent, isFalse);
+    expect(
+      validation.problemCodes,
+      contains('open_target_reconciliation_issues'),
+    );
+    expect(validation.openBlockingIssueIds, {'issue-movement'});
+  });
 }
 
 class _Evidence {
@@ -171,8 +436,9 @@ class _Evidence {
 
 UnmaterializedLocalSaleDiscardService _service(
   AppDatabase database,
-  _Evidence source,
-) {
+  _Evidence source, {
+  Future<void> Function()? onFinalize,
+}) {
   return UnmaterializedLocalSaleDiscardService(
     localDao: PosLocalSaleDao(database),
     remoteVerifier: ({
@@ -192,6 +458,62 @@ UnmaterializedLocalSaleDiscardService _service(
         conflictReasons: const {'closed'},
       );
     },
+    remoteFinalizer: ({
+      required businessId,
+      required branchId,
+      required appDeviceId,
+      required saleId,
+      required syncConflictId,
+      required idempotencyKey,
+      required reason,
+    }) async {
+      await onFinalize?.call();
+      return _finalization(
+        businessId: businessId,
+        branchId: branchId,
+        saleId: saleId,
+        syncConflictId: syncConflictId,
+        idempotencyKey: idempotencyKey,
+      );
+    },
+  );
+}
+
+Future<SaleDidNotOccurRemoteResult> _remoteFinalizer({
+  required String businessId,
+  required String branchId,
+  required String appDeviceId,
+  required String saleId,
+  required String syncConflictId,
+  required String idempotencyKey,
+  required String reason,
+}) async {
+  return _finalization(
+    businessId: businessId,
+    branchId: branchId,
+    saleId: saleId,
+    syncConflictId: syncConflictId,
+    idempotencyKey: idempotencyKey,
+  );
+}
+
+SaleDidNotOccurRemoteResult _finalization({
+  required String businessId,
+  required String branchId,
+  required String saleId,
+  required String syncConflictId,
+  required String idempotencyKey,
+}) {
+  return SaleDidNotOccurRemoteResult(
+    businessId: businessId,
+    branchId: branchId,
+    saleId: saleId,
+    syncConflictId: syncConflictId,
+    status: 'resolved',
+    resolutionStrategy: 'sale_did_not_occur',
+    idempotencyKey: idempotencyKey,
+    mutationsTerminalized: 3,
+    idempotent: false,
   );
 }
 
@@ -200,7 +522,10 @@ DiscardUnmaterializedLocalSaleInput _input() {
     profileId: 'profile-a',
     businessId: 'business-a',
     branchId: 'branch-a',
+    appDeviceId: 'device-a',
     saleId: 'sale-a',
+    syncConflictId: 'conflict-a',
+    idempotencyKey: 'sale-did-not-occur:sale-a:conflict-a',
     confirmedSaleDidNotOccur: true,
     reason: 'Confirmed test sale did not occur.',
   );
@@ -317,5 +642,74 @@ Future<void> _seedRejectedSale(AppDatabase database) async {
        'inventory_balance', 'inventory_movements', 'movement-a',
        'terminal_incompatible_inventory_movement', 'blocking', 'open',
        'Rejected movement');
+  ''');
+}
+
+Future<void> _seedSecondRejectedSale(AppDatabase database) async {
+  await database.customStatement('''
+    update local_product_stock_balances
+    set quantity_on_hand = 24, quantity_available = 24
+    where id = 'balance-a';
+    insert into sales (
+      id, business_id, user_id, branch_id, cash_register_id, cash_session_id,
+      total, payment_method, status, local_status, sync_status
+    ) values (
+      'sale-b', 'business-a', 'profile-a', 'branch-a', 'register-a',
+      'session-a', 10, 'cash', 'completed', 'dirty', 1
+    );
+    insert into sale_items (
+      id, sale_id, product_id, quantity, unit_price, subtotal, line_total,
+      sync_status
+    ) values ('item-b', 'sale-b', 'product-a', 1, 10, 10, 10, 1);
+    insert into sale_payments (
+      id, business_id, branch_id, sale_id, payment_method, amount,
+      status, local_status, sync_status
+    ) values (
+      'payment-b', 'business-a', 'branch-a', 'sale-b', 'cash', 10,
+      'completed', 'dirty', 1
+    );
+    insert into local_inventory_movements (
+      id, business_id, branch_id, product_id, movement_type, quantity_change,
+      source_type, source_id, idempotency_key, sync_status, local_status,
+      occurred_at, metadata_json
+    ) values (
+      'movement-b', 'business-a', 'branch-a', 'product-a', 'sale', -1,
+      'sale', 'sale-b', 'movement-b-key', 1, 'dirty', CURRENT_TIMESTAMP,
+      '{"sale_item_id":"item-b"}'
+    );
+    insert into local_sync_batches (
+      id, client_batch_id, business_id, branch_id, profile_id, domain,
+      status, mutation_count
+    ) values (
+      'batch-b', 'client-batch-b', 'business-a', 'branch-a', 'profile-a',
+      'pos', 'partial', 3
+    );
+    insert into local_sync_mutations (
+      id, local_sync_batch_id, client_batch_id, client_mutation_id,
+      client_sequence, business_id, branch_id, profile_id, entity_table,
+      entity_id, operation, payload_json, idempotency_key, status, error_code
+    ) values
+      ('mutation-sale-b', 'batch-b', 'client-batch-b', 'client-sale-b', 1,
+       'business-a', 'branch-a', 'profile-a', 'sales', 'sale-b', 'insert',
+       '{}', 'sale-b-key', 'conflict', 'remote_pos_batch_partial'),
+      ('mutation-item-b', 'batch-b', 'client-batch-b', 'client-item-b', 2,
+       'business-a', 'branch-a', 'profile-a', 'sale_items', 'item-b', 'insert',
+       '{}', 'item-b-key', 'conflict', 'remote_pos_batch_partial'),
+      ('mutation-payment-b', 'batch-b', 'client-batch-b', 'client-payment-b', 3,
+       'business-a', 'branch-a', 'profile-a', 'sale_payments', 'payment-b',
+       'insert', '{}', 'payment-b-key', 'conflict',
+       'remote_pos_batch_partial');
+    insert into local_reconciliation_issues (
+      id, profile_id, business_id, branch_id, domain, entity_type, entity_id,
+      issue_type, severity, status, message, metadata_json
+    ) values
+      ('issue-sale-b', 'profile-a', 'business-a', 'branch-a', 'cash_pos',
+       'sales', 'sale-b', 'sale_cash_session_rejected', 'blocking', 'open',
+       'Rejected stale session B',
+       '{"remote_reason":"closed","sync_conflict_id":"conflict-b"}'),
+      ('issue-movement-b', 'profile-a', 'business-a', 'branch-a',
+       'inventory_balance', 'inventory_movements', 'movement-b',
+       'terminal_incompatible_inventory_movement', 'blocking', 'open',
+       'Rejected movement B', '{}');
   ''');
 }

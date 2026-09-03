@@ -1,6 +1,6 @@
 begin;
 
-select plan(5);
+select plan(9);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -243,6 +243,49 @@ select is(
   ),
   1,
   '5. retry preserves the same rejection without duplicate Sale or conflict'
+);
+
+select is(
+  public.lookup_open_closed_cash_session_sale_conflict(
+    'd1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000011',
+    'd1000000-0000-0000-0000-000000000051',
+    'd1000000-0000-0000-0000-000000000202'
+  ) ->> 'status',
+  'found',
+  '6. historical lookup finds the unique scoped closed-session conflict'
+);
+
+select is(
+  public.lookup_open_closed_cash_session_sale_conflict(
+    'd1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000011',
+    'd1000000-0000-0000-0000-000000000051',
+    'd1000000-0000-0000-0000-000000000299'
+  ) ->> 'status',
+  'not_found',
+  '7. historical lookup reports no evidence without exposing another Sale'
+);
+
+select throws_ok(
+  $$select public.lookup_open_closed_cash_session_sale_conflict(
+    'd1000000-0000-0000-0000-000000000001',
+    'd1000000-0000-0000-0000-000000000012',
+    'd1000000-0000-0000-0000-000000000051',
+    'd1000000-0000-0000-0000-000000000202'
+  )$$,
+  '42501',
+  'app_device is not active for this profile and branch',
+  '8. historical lookup rejects a device outside the requested branch scope'
+);
+
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.lookup_open_closed_cash_session_sale_conflict(uuid,uuid,uuid,uuid)',
+    'execute'
+  ),
+  '9. anon cannot execute the historical conflict lookup'
 );
 
 select * from finish();

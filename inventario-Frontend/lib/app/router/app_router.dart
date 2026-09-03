@@ -14,13 +14,20 @@ import '../../features/debug/presentation/screens/debug_supabase_login_screen.da
 import '../../features/sync/presentation/screens/app_e2e_real_controlled_test_screen.dart';
 import 'routes_constants.dart';
 
+final appRootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>(
+  (ref) => GlobalKey<NavigatorState>(debugLabel: 'app-root-navigator'),
+);
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final routeAuthority = ref.watch(
     productiveAuthSessionProvider.select(
       (state) => (state.phase, state.user?.id),
     ),
   );
-  final router = AppRouter.create(phase: routeAuthority.$1);
+  final router = AppRouter.create(
+    phase: routeAuthority.$1,
+    navigatorKey: ref.watch(appRootNavigatorKeyProvider),
+  );
   ref.onDispose(router.dispose);
   return router;
 });
@@ -44,10 +51,13 @@ class AppRouter {
     };
   }
 
-  static GoRouter create({required ProductiveAuthPhase phase}) {
+  static GoRouter create({
+    required ProductiveAuthPhase phase,
+    GlobalKey<NavigatorState>? navigatorKey,
+  }) {
     return GoRouter(
       initialLocation: _initialLocation,
-      navigatorKey: GlobalKey<NavigatorState>(),
+      navigatorKey: navigatorKey ?? GlobalKey<NavigatorState>(),
       debugLogDiagnostics: true,
       redirect: (context, state) {
         final location = state.uri.path;

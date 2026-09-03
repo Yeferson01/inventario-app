@@ -150,6 +150,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           canReadCash: access.canReadCash,
           canOpenCash: access.canOpenCash,
           canCloseCash: access.canCloseCash,
+          effectivePermissions: appContext.permissions.values,
         ),
       ),
     );

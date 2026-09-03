@@ -14,8 +14,11 @@ import 'package:inventario_frontend/features/sales/application/pos_local_sale_pr
 import 'package:inventario_frontend/features/sales/application/pos_sync_outbox_service.dart';
 import 'package:inventario_frontend/features/sync/application/cash_sync_upload_provider.dart';
 import 'package:inventario_frontend/features/sync/application/cash_sync_upload_service.dart';
+import 'package:inventario_frontend/features/sync/application/intentional_stale_sale_reconciliation_service.dart';
 import 'package:inventario_frontend/features/sync/application/pos_sync_upload_provider.dart';
 import 'package:inventario_frontend/features/sync/application/pos_sync_upload_service.dart';
+import 'package:inventario_frontend/features/sync/application/productive_stale_sale_reconciliation_service.dart';
+import 'package:inventario_frontend/features/sync/application/unmaterialized_local_sale_discard_service.dart';
 import 'package:inventario_frontend/features/sync/data/models/catalog_upload_models.dart';
 
 void main() {
@@ -55,6 +58,9 @@ void main() {
           ),
           posSyncUploadServiceProvider.overrideWithValue(
             _FakePosSyncUploadService(),
+          ),
+          productiveStaleSaleReconciliationServiceProvider.overrideWithValue(
+            _NoPendingStaleSalesController(),
           ),
         ],
         child: const MaterialApp(
@@ -115,6 +121,50 @@ void main() {
     expect(row.data['sync_status'], SyncStatus.synced.index);
     expect(openSession, isNull);
   });
+}
+
+class _NoPendingStaleSalesController
+    implements ProductiveStaleSaleReconciliationController {
+  @override
+  Future<List<StaleSaleResolutionCandidate>> loadPending({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+  }) async =>
+      const [];
+
+  @override
+  Future<String?> resolveOpenDestination(
+    StaleSaleResolutionCandidate candidate,
+  ) =>
+      throw UnimplementedError();
+
+  @override
+  Future<IntentionalStaleSaleReconciliationPreview> previewOccurred({
+    required StaleSaleResolutionCandidate candidate,
+    required String destinationCashSessionId,
+    required IntentionalStaleSaleCashTreatment cashTreatment,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<DiscardUnmaterializedLocalSaleResult> discardDidNotOccur({
+    required String profileId,
+    required String appDeviceId,
+    required StaleSaleResolutionCandidate candidate,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<IntentionalStaleSaleReconciliationResult> reconcileDidOccur({
+    required String profileId,
+    required String appDeviceId,
+    required Set<String> effectivePermissions,
+    required StaleSaleResolutionCandidate candidate,
+    required String destinationCashSessionId,
+    required IntentionalStaleSaleCashTreatment cashTreatment,
+  }) =>
+      throw UnimplementedError();
 }
 
 class _FakeCashSyncOutboxService implements CashSyncOutboxService {

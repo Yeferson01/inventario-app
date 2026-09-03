@@ -8,12 +8,24 @@ typedef UnmaterializedSaleRemoteVerifier
   required String saleId,
 });
 
+typedef UnmaterializedSaleRemoteFinalizer = Future<SaleDidNotOccurRemoteResult>
+    Function({
+  required String businessId,
+  required String branchId,
+  required String appDeviceId,
+  required String saleId,
+  required String syncConflictId,
+  required String idempotencyKey,
+  required String reason,
+});
+
 enum UnmaterializedSaleDiscardFailureKind {
   confirmationRequired,
   invalidInput,
   remoteUnavailable,
   remoteMaterializationFound,
   expectedConflictMissing,
+  remoteFinalizationFailed,
   localValidationFailed,
 }
 
@@ -40,7 +52,10 @@ class DiscardUnmaterializedLocalSaleInput {
     required this.profileId,
     required this.businessId,
     required this.branchId,
+    required this.appDeviceId,
     required this.saleId,
+    required this.syncConflictId,
+    required this.idempotencyKey,
     required this.confirmedSaleDidNotOccur,
     required this.reason,
   });
@@ -48,7 +63,10 @@ class DiscardUnmaterializedLocalSaleInput {
   final String profileId;
   final String businessId;
   final String branchId;
+  final String appDeviceId;
   final String saleId;
+  final String syncConflictId;
+  final String idempotencyKey;
   final bool confirmedSaleDidNotOccur;
   final String reason;
 }
@@ -56,14 +74,17 @@ class DiscardUnmaterializedLocalSaleInput {
 class DiscardUnmaterializedLocalSaleResult {
   const DiscardUnmaterializedLocalSaleResult({
     required this.remoteEvidence,
+    required this.remoteFinalization,
     required this.localResult,
   });
 
   final UnmaterializedSaleRemoteEvidence remoteEvidence;
+  final SaleDidNotOccurRemoteResult remoteFinalization;
   final DiscardUnmaterializedLocalSaleLocalResult localResult;
 
   Map<String, dynamic> toJson() => {
         'remote_evidence': remoteEvidence.toJson(),
+        'remote_finalization': remoteFinalization.toJson(),
         'sale_id': localResult.saleId,
         'already_discarded': localResult.alreadyDiscarded,
         'movements_discarded': localResult.movementsDiscarded,
@@ -77,11 +98,14 @@ class UnmaterializedLocalSaleDiscardService {
   UnmaterializedLocalSaleDiscardService({
     required PosLocalSaleDao localDao,
     required UnmaterializedSaleRemoteVerifier remoteVerifier,
+    required UnmaterializedSaleRemoteFinalizer remoteFinalizer,
   })  : _localDao = localDao,
-        _remoteVerifier = remoteVerifier;
+        _remoteVerifier = remoteVerifier,
+        _remoteFinalizer = remoteFinalizer;
 
   final PosLocalSaleDao _localDao;
   final UnmaterializedSaleRemoteVerifier _remoteVerifier;
+  final UnmaterializedSaleRemoteFinalizer _remoteFinalizer;
 
   Future<DiscardUnmaterializedLocalSaleResult> discard(
     DiscardUnmaterializedLocalSaleInput input,
@@ -92,12 +116,20 @@ class UnmaterializedLocalSaleDiscardService {
         message: 'Debe confirmarse explícitamente que la venta nunca ocurrió.',
       );
     }
-    if ([input.profileId, input.businessId, input.branchId, input.saleId]
-            .any((value) => value.trim().isEmpty) ||
+    if ([
+          input.profileId,
+          input.businessId,
+          input.branchId,
+          input.appDeviceId,
+          input.saleId,
+          input.syncConflictId,
+          input.idempotencyKey,
+        ].any((value) => value.trim().isEmpty) ||
         input.reason.trim().isEmpty) {
       throw const UnmaterializedSaleDiscardException(
         kind: UnmaterializedSaleDiscardFailureKind.invalidInput,
-        message: 'El contexto, saleId y motivo de descarte son requeridos.',
+        message:
+            'El contexto, device, conflict, idempotency, saleId y motivo son requeridos.',
       );
     }
 
@@ -139,6 +171,38 @@ class UnmaterializedLocalSaleDiscardService {
       );
     }
 
+    late final SaleDidNotOccurRemoteResult finalization;
+    try {
+      finalization = await _remoteFinalizer(
+        businessId: input.businessId,
+        branchId: input.branchId,
+        appDeviceId: input.appDeviceId,
+        saleId: input.saleId,
+        syncConflictId: input.syncConflictId,
+        idempotencyKey: input.idempotencyKey,
+        reason: input.reason.trim(),
+      );
+    } catch (error) {
+      throw UnmaterializedSaleDiscardException(
+        kind: UnmaterializedSaleDiscardFailureKind.remoteFinalizationFailed,
+        message: 'El servidor no pudo finalizar autoritativamente el descarte.',
+        cause: error,
+      );
+    }
+    if (finalization.businessId != input.businessId ||
+        finalization.branchId != input.branchId ||
+        finalization.saleId != input.saleId ||
+        finalization.syncConflictId != input.syncConflictId ||
+        finalization.idempotencyKey != input.idempotencyKey ||
+        finalization.status != 'resolved' ||
+        finalization.resolutionStrategy != 'sale_did_not_occur') {
+      throw const UnmaterializedSaleDiscardException(
+        kind: UnmaterializedSaleDiscardFailureKind.remoteFinalizationFailed,
+        message:
+            'La finalización remota no coincide con el descarte solicitado.',
+      );
+    }
+
     try {
       final localResult = await _localDao.discardUnmaterializedLocalSale(
         profileId: input.profileId,
@@ -146,9 +210,13 @@ class UnmaterializedLocalSaleDiscardService {
         branchId: input.branchId,
         saleId: input.saleId,
         reason: input.reason.trim(),
+        syncConflictId: input.syncConflictId,
+        discardIdempotencyKey: input.idempotencyKey,
+        confirmedAppDeviceId: input.appDeviceId,
       );
       return DiscardUnmaterializedLocalSaleResult(
         remoteEvidence: evidence,
+        remoteFinalization: finalization,
         localResult: localResult,
       );
     } catch (error) {

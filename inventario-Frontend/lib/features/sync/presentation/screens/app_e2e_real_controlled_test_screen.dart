@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/supabase/supabase_client_provider.dart';
+import '../../../../core/utils/app_uuid.dart';
 import '../../application/app_e2e_local_flow_models.dart';
 import '../../application/app_e2e_local_flow_provider.dart';
 import '../../application/app_e2e_product_from_catalog_flow_models.dart';
@@ -21,6 +22,7 @@ import '../../../sales/application/pos_local_sale_models.dart';
 import '../../../sales/application/pos_local_sale_provider.dart';
 import '../../application/pos_sync_upload_provider.dart';
 import '../../application/unmaterialized_local_sale_discard_service.dart';
+import '../../application/intentional_stale_sale_reconciliation_service.dart';
 import '../../../inventory/application/purchase_local_models.dart';
 import '../../../inventory/application/purchase_local_provider.dart';
 import '../../application/purchases_sync_upload_provider.dart';
@@ -68,6 +70,15 @@ class _AppE2ERealControlledTestScreenState
   final _discardSaleIdController = TextEditingController(
     text: '01a05831-1c20-72b9-a146-1b43e285b143',
   );
+  final _staleSaleConflictIdController = TextEditingController();
+  final _staleSaleDestinationSessionIdController = TextEditingController();
+  final _staleSaleReasonController = TextEditingController(
+    text: 'Venta real rechazada porque su sesión original ya estaba cerrada.',
+  );
+  final _staleSaleReconciliationIdController = TextEditingController(
+    text: AppUuid.v7(),
+  );
+  IntentionalStaleSaleCashTreatment? _staleSaleCashTreatment;
 
   bool _isRunning = false;
   Map<String, dynamic>? _lastResult;
@@ -1924,8 +1935,8 @@ class _AppE2ERealControlledTestScreenState
             content: Text(
               'Sale $saleId\n\n'
               'Esta acción solo es válida si la venta NO ocurrió: '
-              'el cliente no pagó y no recibió producto. Se verificará Hosted '
-              'en modo read-only antes de modificar Drift.',
+              'el cliente no pagó y no recibió producto. Hosted verificará y '
+              'finalizará el conflicto antes de modificar Drift.',
             ),
             actions: [
               TextButton(
@@ -1947,14 +1958,47 @@ class _AppE2ERealControlledTestScreenState
       _lastError = null;
     });
     try {
+      final profileId = _requireCurrentUserId();
+      final businessId = _requiredText(_businessIdController, 'businessId');
+      final branchId = _requiredText(_branchIdController, 'branchId');
+      final conflictId =
+          _requiredText(_staleSaleConflictIdController, 'syncConflictId');
+      final packageInfo = await PackageInfo.fromPlatform();
+      final preflight = await ref.read(appE2ELocalFlowServiceProvider).run(
+            AppE2ELocalFlowInput(
+              profileId: profileId,
+              preferredBusinessId: businessId,
+              preferredBranchId: branchId,
+              isOnline: await _isOnline(),
+              runManualSync: false,
+              deviceName: _deviceName(),
+              platform: defaultTargetPlatform.name,
+              appVersion: packageInfo.version,
+              metadata: const {
+                'source': 'app_e2e_real_controlled_test_screen',
+                'flow': 'discard_unmaterialized_local_sale',
+              },
+            ),
+          );
+      final appDeviceId = preflight.currentContext?.appDeviceId ??
+          _findStringDeep(
+            preflight.toJson(),
+            const ['app_device_id', 'appDeviceId'],
+          );
+      if (appDeviceId == null || appDeviceId.trim().isEmpty) {
+        throw StateError('No se resolvió el appDevice canónico.');
+      }
       final result = await ref
           .read(unmaterializedLocalSaleDiscardServiceProvider)
           .discard(
             DiscardUnmaterializedLocalSaleInput(
-              profileId: _requireCurrentUserId(),
-              businessId: _requiredText(_businessIdController, 'businessId'),
-              branchId: _requiredText(_branchIdController, 'branchId'),
+              profileId: profileId,
+              businessId: businessId,
+              branchId: branchId,
+              appDeviceId: appDeviceId,
               saleId: saleId,
+              syncConflictId: conflictId,
+              idempotencyKey: 'sale-did-not-occur:$saleId:$conflictId',
               confirmedSaleDidNotOccur: true,
               reason: 'Venta E2E confirmada como no realizada por el usuario.',
             ),
@@ -1963,6 +2007,186 @@ class _AppE2ERealControlledTestScreenState
       setState(() {
         _lastResult = {
           'flow': 'discard_unmaterialized_local_sale',
+          ...result.toJson(),
+        };
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _lastError = error;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRunning = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _reconcileIntentionalStaleSale() async {
+    final saleId = _requiredText(_discardSaleIdController, 'saleId');
+    final conflictId =
+        _requiredText(_staleSaleConflictIdController, 'syncConflictId');
+    final destinationSessionId = _requiredText(
+      _staleSaleDestinationSessionIdController,
+      'destinationCashSessionId',
+    );
+    final reconciliationId = _requiredText(
+      _staleSaleReconciliationIdController,
+      'reconciliationId',
+    );
+    final reason = _requiredText(_staleSaleReasonController, 'reason');
+    final treatment = _staleSaleCashTreatment;
+    if (treatment == null) {
+      setState(() {
+        _lastError = StateError('Debe seleccionar el tratamiento de efectivo.');
+      });
+      return;
+    }
+
+    late final IntentionalStaleSaleReconciliationPreview preview;
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+    try {
+      preview = await ref
+          .read(intentionalStaleSaleReconciliationServiceProvider)
+          .preview(
+            businessId: _requiredText(_businessIdController, 'businessId'),
+            branchId: _requiredText(_branchIdController, 'branchId'),
+            saleId: saleId,
+            destinationCashSessionId: destinationSessionId,
+            cashTreatment: treatment,
+          );
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _lastError = error;
+          _isRunning = false;
+        });
+      }
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isRunning = false;
+    });
+    final stockSummary = preview.local.affectedStock
+        .map(
+          (item) => '${item.productName}: -${item.soldQuantity} '
+              '(saldo local actual ${item.currentQuantityOnHand ?? 'ausente'})',
+        )
+        .join('\n');
+
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Reconciliar venta real'),
+            content: Text(
+              'Sale: $saleId\n'
+              'Total Sale: ${preview.local.saleTotal}\n'
+              'Total cash: ${preview.local.cashTotal}\n'
+              'S1: ${preview.local.originalCashSessionId}\n'
+              'S2: $destinationSessionId\n'
+              'Opening S2: ${preview.local.destinationOpeningAmount}\n'
+              'Cash actual S2: '
+              '${preview.local.destinationCurrentCashPayments}\n'
+              'Ajuste esperado: ${preview.expectedAdjustment}\n'
+              'Expected cash proyectado: ${preview.projectedExpectedCash}\n'
+              'Tratamiento: ${treatment.wireValue}\n\n'
+              'Stock afectado:\n'
+              '${stockSummary.isEmpty ? 'Sin items locales' : stockSummary}\n\n'
+              'Hosted reconstruirá la venta, payments e inventario. '
+              'Si el efectivo ya estaba en opening, creará un ajuste '
+              'negativo auditado. Esta acción NO descarta la venta.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Confirmo: la venta SÍ ocurrió'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+
+    setState(() {
+      _isRunning = true;
+      _lastError = null;
+    });
+    try {
+      final profileId = _requireCurrentUserId();
+      final packageInfo = await PackageInfo.fromPlatform();
+      final preflight = await ref.read(appE2ELocalFlowServiceProvider).run(
+            AppE2ELocalFlowInput(
+              profileId: profileId,
+              preferredBusinessId: _requiredText(
+                _businessIdController,
+                'businessId',
+              ),
+              preferredBranchId: _requiredText(
+                _branchIdController,
+                'branchId',
+              ),
+              isOnline: await _isOnline(),
+              runManualSync: false,
+              deviceName: _deviceName(),
+              platform: defaultTargetPlatform.name,
+              appVersion: packageInfo.version,
+              metadata: const {
+                'source': 'app_e2e_real_controlled_test_screen',
+                'flow': 'intentional_stale_sale_reconciliation',
+              },
+            ),
+          );
+      final selected = preflight.selectedContext;
+      if (selected == null) {
+        throw StateError('No se pudo resolver el contexto operacional.');
+      }
+      final businessId = selected.savedBusinessId.trim().isNotEmpty
+          ? selected.savedBusinessId
+          : selected.selected.businessId;
+      final branchId = selected.savedBranchId?.trim().isNotEmpty == true
+          ? selected.savedBranchId!
+          : selected.selected.branchId;
+      final appDeviceId = preflight.currentContext?.appDeviceId ??
+          _findStringDeep(
+            preflight.toJson(),
+            const ['app_device_id', 'appDeviceId'],
+          );
+      if (branchId == null || branchId.isEmpty || appDeviceId == null) {
+        throw StateError('No se resolvieron branch/appDevice canónicos.');
+      }
+
+      final result = await ref
+          .read(intentionalStaleSaleReconciliationServiceProvider)
+          .reconcile(
+            IntentionalStaleSaleReconciliationInput(
+              profileId: profileId,
+              businessId: businessId,
+              branchId: branchId,
+              appDeviceId: appDeviceId,
+              saleId: saleId,
+              syncConflictId: conflictId,
+              destinationCashSessionId: destinationSessionId,
+              reconciliationId: reconciliationId,
+              idempotencyKey: 'stale-sale-reconciliation:$reconciliationId',
+              reason: reason,
+              cashTreatment: treatment,
+              confirmedSaleDidOccur: true,
+            ),
+          );
+      if (!mounted) return;
+      setState(() {
+        _lastResult = {
+          'flow': 'intentional_stale_sale_reconciliation',
           ...result.toJson(),
         };
       });
@@ -2076,6 +2300,10 @@ class _AppE2ERealControlledTestScreenState
     _cashOpeningAmountController.dispose();
     _cashClosingAmountController.dispose();
     _discardSaleIdController.dispose();
+    _staleSaleConflictIdController.dispose();
+    _staleSaleDestinationSessionIdController.dispose();
+    _staleSaleReasonController.dispose();
+    _staleSaleReconciliationIdController.dispose();
     super.dispose();
   }
 
@@ -2407,6 +2635,71 @@ class _AppE2ERealControlledTestScreenState
           FilledButton.tonal(
             onPressed: _isRunning ? null : _discardUnmaterializedTestSale,
             child: const Text('Descartar venta NO ocurrida (solo debug)'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _staleSaleConflictIdController,
+            decoration: const InputDecoration(
+              labelText: 'Sync conflict ID stale Sale',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _staleSaleDestinationSessionIdController,
+            decoration: const InputDecoration(
+              labelText: 'Cash session S2 abierta',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<IntentionalStaleSaleCashTreatment>(
+            initialValue: _staleSaleCashTreatment,
+            decoration: const InputDecoration(
+              labelText: 'Tratamiento obligatorio del efectivo',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: IntentionalStaleSaleCashTreatment
+                    .notIncludedInDestinationOpening,
+                child: Text('NO estaba incluido en opening de S2'),
+              ),
+              DropdownMenuItem(
+                value: IntentionalStaleSaleCashTreatment
+                    .alreadyIncludedInDestinationOpening,
+                child: Text('YA estaba incluido en opening de S2'),
+              ),
+            ],
+            onChanged: _isRunning
+                ? null
+                : (value) {
+                    setState(() {
+                      _staleSaleCashTreatment = value;
+                    });
+                  },
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _staleSaleReasonController,
+            decoration: const InputDecoration(
+              labelText: 'Motivo de reconciliación',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _staleSaleReconciliationIdController,
+            readOnly: true,
+            decoration: const InputDecoration(
+              labelText: 'Reconciliation ID / retry identity',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: _isRunning ? null : _reconcileIntentionalStaleSale,
+            child: const Text('Reconciliar venta que SÍ ocurrió (debug)'),
           ),
           const SizedBox(height: 12),
           if (_showLegacyE2EDebugButtons) ...[

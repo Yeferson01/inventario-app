@@ -11,6 +11,7 @@ import '../data/models/local_recovery_models.dart';
 import '../data/models/operational_bootstrap_models.dart';
 import 'cash_pos_recovery_service.dart';
 import 'cash_pos_snapshot_applier.dart';
+import 'confirmed_unmaterialized_sale_repair_service.dart';
 import 'inventory_balance_reconciliation_service.dart';
 import 'operational_bootstrap_download_models.dart';
 import 'operational_bootstrap_download_service.dart';
@@ -34,6 +35,13 @@ typedef CashPosRecoveryRunner = Future<CashPosRecoveryResult> Function(
   CashPosRecoveryRequest request, {
   bool restart,
 });
+typedef ConfirmedDiscardRepairRunner
+    = Future<ConfirmedUnmaterializedSaleRepairResult> Function({
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String appDeviceId,
+});
 
 /// Coordinates one explicit operational bootstrap/recovery request.
 ///
@@ -51,6 +59,7 @@ class OperationalBootstrapService {
     required OperationalBootstrapCheckpointLocalDao checkpointDao,
     required ReconciliationIssueLocalDao issueDao,
     required AuthenticatedProfileIdResolver authenticatedProfileId,
+    ConfirmedUnmaterializedSaleRepairService? confirmedDiscardRepairService,
     OperationalBootstrapProgressListener? onProgress,
   }) {
     return OperationalBootstrapService.withRunners(
@@ -61,6 +70,7 @@ class OperationalBootstrapService {
       checkpointDao: checkpointDao,
       issueDao: issueDao,
       authenticatedProfileId: authenticatedProfileId,
+      repairConfirmedDiscards: confirmedDiscardRepairService?.repair,
       onProgress: onProgress,
     );
   }
@@ -73,6 +83,7 @@ class OperationalBootstrapService {
     required OperationalBootstrapCheckpointLocalDao checkpointDao,
     required ReconciliationIssueLocalDao issueDao,
     required AuthenticatedProfileIdResolver authenticatedProfileId,
+    ConfirmedDiscardRepairRunner? repairConfirmedDiscards,
     OperationalBootstrapProgressListener? onProgress,
   })  : _download = download,
         _reconcileInventory = reconcileInventory,
@@ -81,6 +92,7 @@ class OperationalBootstrapService {
         _checkpointDao = checkpointDao,
         _issueDao = issueDao,
         _authenticatedProfileId = authenticatedProfileId,
+        _repairConfirmedDiscards = repairConfirmedDiscards,
         _onProgress = onProgress;
 
   static const productPermissions = {
@@ -110,6 +122,7 @@ class OperationalBootstrapService {
   final OperationalBootstrapCheckpointLocalDao _checkpointDao;
   final ReconciliationIssueLocalDao _issueDao;
   final AuthenticatedProfileIdResolver _authenticatedProfileId;
+  final ConfirmedDiscardRepairRunner? _repairConfirmedDiscards;
   final OperationalBootstrapProgressListener? _onProgress;
 
   Future<OperationalBootstrapResult> run(
@@ -205,6 +218,21 @@ class OperationalBootstrapService {
       }
 
       state.completedBundles.add('core');
+
+      final repairConfirmedDiscards = _repairConfirmedDiscards;
+      if (repairConfirmedDiscards != null) {
+        final repair = await repairConfirmedDiscards(
+          profileId: request.profileId,
+          businessId: request.businessId,
+          branchId: request.branchId,
+          appDeviceId: request.appDeviceId,
+        );
+        state
+          ..recoveredCounts['cash_pos.confirmed_discards_checked'] =
+              repair.candidatesChecked
+          ..recoveredCounts['cash_pos.remote_conflicts_finalized'] =
+              repair.conflictsFinalized;
+      }
 
       if (state.requiresProducts) {
         _progress(
