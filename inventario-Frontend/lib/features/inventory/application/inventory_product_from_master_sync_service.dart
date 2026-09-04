@@ -1,4 +1,7 @@
+import 'package:drift/drift.dart';
+
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/app_uuid.dart';
 import '../../sync/application/local_sync_outbox_service.dart';
 import '../../sync/data/models/local_sync_outbox_models.dart';
 import 'inventory_product_creation_models.dart';
@@ -55,6 +58,20 @@ class InventoryProductMasterLinkSyncResult {
   }
 }
 
+class InventoryProductMinimumStockSyncResult {
+  const InventoryProductMinimumStockSyncResult({
+    required this.previousMinimumStock,
+    required this.minimumStock,
+    this.outboxResult,
+  });
+
+  final int previousMinimumStock;
+  final int minimumStock;
+  final LocalSyncEnqueueResult? outboxResult;
+
+  bool get changed => previousMinimumStock != minimumStock;
+}
+
 class InventoryProductFromMasterSyncService {
   InventoryProductFromMasterSyncService({
     required AppDatabase database,
@@ -67,6 +84,111 @@ class InventoryProductFromMasterSyncService {
   final AppDatabase _database;
   final InventoryProductCreationService _productCreationService;
   final LocalSyncOutboxService _outboxService;
+
+  Future<InventoryProductMinimumStockSyncResult?>
+      updateMinimumStockAndQueueSync({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String productId,
+    required int minimumStock,
+    required String deviceInstallationId,
+    String? appDeviceId,
+  }) {
+    if (minimumStock < 0) {
+      throw ArgumentError.value(
+        minimumStock,
+        'minimumStock',
+        'El stock mínimo no puede ser negativo.',
+      );
+    }
+
+    return _database.transaction(() async {
+      final product = await (_database.select(_database.products)
+            ..where(
+              (row) =>
+                  row.id.equals(productId) &
+                  row.businessId.equals(businessId) &
+                  row.deletedAt.isNull(),
+            ))
+          .getSingleOrNull();
+
+      if (product == null) {
+        return null;
+      }
+
+      if (product.minimumStock == minimumStock) {
+        return InventoryProductMinimumStockSyncResult(
+          previousMinimumStock: product.minimumStock,
+          minimumStock: minimumStock,
+        );
+      }
+
+      final now = DateTime.now().toUtc();
+      await (_database.update(_database.products)
+            ..where(
+              (row) =>
+                  row.id.equals(productId) &
+                  row.businessId.equals(businessId) &
+                  row.deletedAt.isNull(),
+            ))
+          .write(
+        ProductsCompanion(
+          minimumStock: Value(minimumStock),
+          syncStatus: const Value(SyncStatus.pendingUpdate),
+          updatedAt: Value(now),
+        ),
+      );
+
+      final operationId = AppUuid.v7();
+      final sequence = now.microsecondsSinceEpoch.remainder(2000000000);
+      final mutation = LocalSyncMutationDraft(
+        clientMutationId:
+            '$deviceInstallationId:minimum-stock:$productId:$operationId',
+        clientSequence: sequence,
+        entityTable: 'products',
+        entityId: productId,
+        operation: 'update',
+        payload: {
+          'minimum_stock': minimumStock,
+          'updated_at': now.toIso8601String(),
+        },
+        beforePayload: {
+          'minimum_stock': product.minimumStock,
+          'updated_at': product.updatedAt.toUtc().toIso8601String(),
+        },
+        changedFields: const ['minimum_stock', 'updated_at'],
+        idempotencyKey:
+            '$deviceInstallationId:products:$productId:minimum-stock:$operationId',
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        appDeviceId: appDeviceId,
+        baseUpdatedAt: product.updatedAt,
+        metadata: const {
+          'source': 'inventory_minimum_stock_editor',
+        },
+      );
+      final outboxResult = await _outboxService.enqueueCatalogMutations(
+        businessId: businessId,
+        branchId: branchId,
+        appDeviceId: appDeviceId,
+        profileId: profileId,
+        deviceInstallationId: deviceInstallationId,
+        mutations: [mutation],
+        metadata: {
+          'source': 'inventory_minimum_stock_editor',
+          'product_id': productId,
+        },
+      );
+
+      return InventoryProductMinimumStockSyncResult(
+        previousMinimumStock: product.minimumStock,
+        minimumStock: minimumStock,
+        outboxResult: outboxResult,
+      );
+    });
+  }
 
   Future<int> enqueueManualProductsUsedByUnsyncedPurchasesForCatalogSync({
     required String businessId,

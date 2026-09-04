@@ -15,6 +15,67 @@ class BusinessProductCreationService {
   final CatalogBarcodeLookupService _barcodeLookupService;
   final InventoryProductFromMasterSyncService _productSyncService;
 
+  Future<BusinessProductMinimumStockUpdateResult> updateMinimumStock(
+    BusinessProductMinimumStockUpdateInput input,
+  ) async {
+    final contextFailure = _validateContext(input.context);
+    if (contextFailure != null || input.productId.trim().isEmpty) {
+      return const BusinessProductMinimumStockUpdateResult(
+        outcome: BusinessProductMinimumStockUpdateOutcome.validationFailure,
+        message: 'El contexto y el producto son requeridos.',
+      );
+    }
+    if (!input.context.hasPermission('products.update')) {
+      return const BusinessProductMinimumStockUpdateResult(
+        outcome: BusinessProductMinimumStockUpdateOutcome.permissionDenied,
+        message: 'Editar el stock mínimo requiere products.update.',
+      );
+    }
+    if (input.minimumStock < 0) {
+      return const BusinessProductMinimumStockUpdateResult(
+        outcome: BusinessProductMinimumStockUpdateOutcome.validationFailure,
+        message: 'El stock mínimo no puede ser negativo.',
+      );
+    }
+
+    try {
+      final result = await _productSyncService.updateMinimumStockAndQueueSync(
+        businessId: input.context.businessId,
+        branchId: input.context.branchId,
+        profileId: input.context.profileId,
+        appDeviceId: input.context.appDeviceId,
+        deviceInstallationId: input.context.deviceInstallationId,
+        productId: input.productId.trim(),
+        minimumStock: input.minimumStock,
+      );
+
+      if (result == null) {
+        return const BusinessProductMinimumStockUpdateResult(
+          outcome: BusinessProductMinimumStockUpdateOutcome.notFound,
+          message: 'El producto no existe en el negocio seleccionado.',
+        );
+      }
+
+      return BusinessProductMinimumStockUpdateResult(
+        outcome: result.changed
+            ? BusinessProductMinimumStockUpdateOutcome.updated
+            : BusinessProductMinimumStockUpdateOutcome.unchanged,
+        message: result.changed
+            ? 'Stock mínimo actualizado localmente.'
+            : 'El stock mínimo ya tenía ese valor.',
+        minimumStock: result.minimumStock,
+        outboxMutationCount: result.outboxResult?.mutationCount ?? 0,
+      );
+    } catch (error) {
+      return BusinessProductMinimumStockUpdateResult(
+        outcome:
+            BusinessProductMinimumStockUpdateOutcome.localPersistenceFailure,
+        message: 'No fue posible actualizar el stock mínimo localmente.',
+        cause: error,
+      );
+    }
+  }
+
   Future<BusinessProductCodeResolution> resolveCode({
     required BusinessProductCreationContext context,
     String? code,

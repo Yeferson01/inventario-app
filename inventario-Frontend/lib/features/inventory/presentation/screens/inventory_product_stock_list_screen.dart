@@ -6,8 +6,10 @@ import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
+import '../../application/business_product_creation_models.dart';
 import '../../application/inventory_transfer_models.dart';
 import '../../application/inventory_transfer_providers.dart';
+import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../widgets/inventory_transfer_dialog.dart';
 
@@ -18,6 +20,8 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
     required this.branchId,
     required this.branchName,
     this.profileId,
+    this.appDeviceId,
+    this.deviceInstallationId,
     this.effectivePermissions = const {},
   });
 
@@ -25,6 +29,8 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
   final String branchId;
   final String branchName;
   final String? profileId;
+  final String? appDeviceId;
+  final String? deviceInstallationId;
   final Set<String> effectivePermissions;
 
   @override
@@ -35,6 +41,7 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
 class _InventoryProductStockListScreenState
     extends ConsumerState<InventoryProductStockListScreen> {
   final _searchController = TextEditingController();
+  final _minimumStockUpdates = <String>{};
   String _searchTerm = '';
 
   @override
@@ -88,6 +95,96 @@ class _InventoryProductStockListScreenState
     );
   }
 
+  Future<void> _editMinimumStock(Map<String, dynamic> product) async {
+    final productId = _string(product['product_id']);
+    final profileId = widget.profileId?.trim();
+    final installationId = widget.deviceInstallationId?.trim();
+    if (productId == null ||
+        profileId == null ||
+        profileId.isEmpty ||
+        installationId == null ||
+        installationId.isEmpty ||
+        _minimumStockUpdates.contains(productId)) {
+      return;
+    }
+
+    final formKey = GlobalKey<FormState>();
+    var value = _minimumStock(product['minimum_stock']).toString();
+    final minimumStock = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Editar stock mínimo'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            key: const Key('inventory-minimum-stock-field'),
+            initialValue: value,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Stock mínimo',
+              helperText: 'Nivel deseado para este producto.',
+              border: OutlineInputBorder(),
+            ),
+            validator: (raw) {
+              final parsed = int.tryParse((raw ?? '').trim());
+              return parsed == null || parsed < 0
+                  ? 'Usa un entero igual o mayor a cero.'
+                  : null;
+            },
+            onChanged: (raw) => value = raw,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('inventory-minimum-stock-save'),
+            onPressed: () {
+              if (!(formKey.currentState?.validate() ?? false)) return;
+              Navigator.of(dialogContext).pop(int.parse(value.trim()));
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || minimumStock == null) return;
+
+    setState(() => _minimumStockUpdates.add(productId));
+    BusinessProductMinimumStockUpdateResult result;
+    try {
+      result = await ref.read(businessProductMinimumStockUpdaterProvider)(
+        BusinessProductMinimumStockUpdateInput(
+          context: BusinessProductCreationContext(
+            businessId: widget.businessId,
+            branchId: widget.branchId,
+            profileId: profileId,
+            appDeviceId: widget.appDeviceId,
+            deviceInstallationId: installationId,
+            effectivePermissions: widget.effectivePermissions,
+          ),
+          productId: productId,
+          minimumStock: minimumStock,
+        ),
+      );
+    } catch (_) {
+      result = const BusinessProductMinimumStockUpdateResult(
+        outcome:
+            BusinessProductMinimumStockUpdateOutcome.localPersistenceFailure,
+        message: 'No fue posible actualizar el stock mínimo localmente.',
+      );
+    }
+    if (!mounted) return;
+
+    setState(() => _minimumStockUpdates.remove(productId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(
@@ -103,6 +200,9 @@ class _InventoryProductStockListScreenState
     final hasSearch = _searchTerm.trim().isNotEmpty;
     final canTransfer = widget.profileId != null &&
         widget.effectivePermissions.contains('inventory.transfer');
+    final canEditMinimumStock = widget.profileId?.trim().isNotEmpty == true &&
+        widget.deviceInstallationId?.trim().isNotEmpty == true &&
+        widget.effectivePermissions.contains('products.update');
     final authorizedContexts = !canTransfer
         ? const <AuthorizedOperationalContext>[]
         : ref
@@ -223,6 +323,11 @@ class _InventoryProductStockListScreenState
                         return _InventoryProductCard(
                           key: Key('inventory-product-$productId'),
                           product: product,
+                          isUpdatingMinimumStock:
+                              _minimumStockUpdates.contains(productId),
+                          onEditMinimumStock: canEditMinimumStock
+                              ? () => _editMinimumStock(product)
+                              : null,
                           onTransfer: sourceContext != null &&
                                   destinationContexts.isNotEmpty &&
                                   _int(product['quantity_available']) > 0
@@ -250,10 +355,14 @@ class _InventoryProductCard extends StatelessWidget {
   const _InventoryProductCard({
     super.key,
     required this.product,
+    required this.isUpdatingMinimumStock,
+    this.onEditMinimumStock,
     this.onTransfer,
   });
 
   final Map<String, dynamic> product;
+  final bool isUpdatingMinimumStock;
+  final VoidCallback? onEditMinimumStock;
   final VoidCallback? onTransfer;
 
   @override
@@ -262,6 +371,7 @@ class _InventoryProductCard extends StatelessWidget {
     final barcode = _string(product['barcode']);
     final stock = _formatQuantity(product['quantity_on_hand']);
     final averageCost = _formatAverageCost(product['stock_average_cost']);
+    final minimumStock = _minimumStock(product['minimum_stock']);
     final productId = _string(product['product_id']) ?? '';
 
     return AppGlassCard(
@@ -316,6 +426,26 @@ class _InventoryProductCard extends StatelessWidget {
                 key: Key('inventory-average-cost-$productId'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              const SizedBox(height: CronosSpacing.xs),
+              Text(
+                'Mínimo: $minimumStock',
+                key: Key('inventory-minimum-stock-$productId'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (onEditMinimumStock != null)
+                TextButton.icon(
+                  key: Key('inventory-edit-minimum-stock-$productId'),
+                  onPressed: isUpdatingMinimumStock ? null : onEditMinimumStock,
+                  icon: isUpdatingMinimumStock
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.edit_outlined),
+                  label: Text(
+                    isUpdatingMinimumStock ? 'Guardando…' : 'Editar mínimo',
+                  ),
+                ),
               if (onTransfer != null)
                 TextButton.icon(
                   key: Key('inventory-transfer-$productId'),
@@ -426,6 +556,12 @@ String _formatAverageCost(Object? value) {
   }
 
   return '\$${cost.toStringAsFixed(2)}';
+}
+
+int _minimumStock(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
 }
 
 int _int(Object? value) {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -242,5 +244,134 @@ void main() {
     );
     expect(linked.productId, manual.productId);
     expect(linked.masterProductId, 'master-link');
+  });
+
+  test('minimum stock update is local, scoped and queued once', () async {
+    await database.into(database.products).insert(
+          ProductsCompanion.insert(
+            id: 'product-a',
+            businessId: const Value('business-a'),
+            name: 'Arroz',
+            salePrice: 10,
+            minimumStock: const Value(2),
+          ),
+        );
+
+    const input = BusinessProductMinimumStockUpdateInput(
+      context: context,
+      productId: 'product-a',
+      minimumStock: 5,
+    );
+    final result = await service.updateMinimumStock(input);
+    final product = await (database.select(database.products)
+          ..where((row) => row.id.equals('product-a')))
+        .getSingle();
+    final mutation = await database
+        .customSelect(
+          'select * from local_sync_mutations',
+        )
+        .getSingle();
+    final batch = await database
+        .customSelect(
+          'select * from local_sync_batches',
+        )
+        .getSingle();
+    final payload = jsonDecode(mutation.read<String>('payload_json'))
+        as Map<String, dynamic>;
+    final beforePayload =
+        jsonDecode(mutation.read<String>('before_payload_json'))
+            as Map<String, dynamic>;
+
+    expect(result.outcome, BusinessProductMinimumStockUpdateOutcome.updated);
+    expect(result.outboxMutationCount, 1);
+    expect(product.minimumStock, 5);
+    expect(product.syncStatus, SyncStatus.pendingUpdate);
+    expect(mutation.read<String>('entity_table'), 'products');
+    expect(mutation.read<String>('entity_id'), 'product-a');
+    expect(mutation.read<String>('operation'), 'update');
+    expect(mutation.read<String>('business_id'), 'business-a');
+    expect(mutation.read<String>('branch_id'), 'branch-a');
+    expect(mutation.read<String>('profile_id'), 'profile-a');
+    expect(mutation.read<String>('app_device_id'), 'device-a');
+    expect(payload['minimum_stock'], 5);
+    expect(beforePayload['minimum_stock'], 2);
+    expect(batch.read<String>('domain'), 'catalog');
+
+    final unchanged = await service.updateMinimumStock(input);
+    expect(
+      unchanged.outcome,
+      BusinessProductMinimumStockUpdateOutcome.unchanged,
+    );
+    expect(
+      (await database
+              .customSelect(
+                'select count(*) as mutation_count from local_sync_mutations',
+              )
+              .getSingle())
+          .read<int>('mutation_count'),
+      1,
+    );
+  });
+
+  test('minimum stock update rejects invalid, unauthorized and cross-business',
+      () async {
+    await database.into(database.businesses).insert(
+          BusinessesCompanion.insert(id: 'business-b', name: 'Business B'),
+        );
+    await database.into(database.products).insert(
+          ProductsCompanion.insert(
+            id: 'product-b',
+            businessId: const Value('business-b'),
+            name: 'Producto B',
+            salePrice: 10,
+            minimumStock: const Value(9),
+          ),
+        );
+
+    final invalid = await service.updateMinimumStock(
+      const BusinessProductMinimumStockUpdateInput(
+        context: context,
+        productId: 'product-b',
+        minimumStock: -1,
+      ),
+    );
+    final denied = await service.updateMinimumStock(
+      const BusinessProductMinimumStockUpdateInput(
+        context: BusinessProductCreationContext(
+          businessId: 'business-a',
+          branchId: 'branch-a',
+          profileId: 'profile-a',
+          deviceInstallationId: 'installation-a',
+          effectivePermissions: {},
+        ),
+        productId: 'product-b',
+        minimumStock: 4,
+      ),
+    );
+    final crossBusiness = await service.updateMinimumStock(
+      const BusinessProductMinimumStockUpdateInput(
+        context: context,
+        productId: 'product-b',
+        minimumStock: 4,
+      ),
+    );
+    final productB = await (database.select(database.products)
+          ..where((row) => row.id.equals('product-b')))
+        .getSingle();
+
+    expect(
+      invalid.outcome,
+      BusinessProductMinimumStockUpdateOutcome.validationFailure,
+    );
+    expect(
+      denied.outcome,
+      BusinessProductMinimumStockUpdateOutcome.permissionDenied,
+    );
+    expect(
+      crossBusiness.outcome,
+      BusinessProductMinimumStockUpdateOutcome.notFound,
+    );
+    expect(productB.minimumStock, 9);
+    expect(await database.select(database.localSyncBatches).get(), isEmpty);
   });
 }

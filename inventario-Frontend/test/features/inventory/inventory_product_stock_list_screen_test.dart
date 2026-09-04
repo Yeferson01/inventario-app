@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventario_frontend/features/inventory/application/business_product_creation_models.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_product_providers.dart';
 import 'package:inventario_frontend/features/inventory/application/product_stock_balance_providers.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 
@@ -55,6 +57,7 @@ void main() {
           'barcode': '7701234567890',
           'quantity_on_hand': 15,
           'stock_average_cost': 2.67,
+          'minimum_stock': 5,
           'legacy_stock_quantity': 999,
         },
         {
@@ -63,6 +66,7 @@ void main() {
           'barcode': null,
           'quantity_on_hand': 0,
           'stock_average_cost': 12.5,
+          'minimum_stock': 0,
           'legacy_stock_quantity': 40,
         },
       ]),
@@ -77,6 +81,8 @@ void main() {
     expect(find.text('Stock: 0'), findsOneWidget);
     expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
     expect(find.text(r'Costo prom.: $12.50'), findsOneWidget);
+    expect(find.text('Mínimo: 5'), findsOneWidget);
+    expect(find.text('Mínimo: 0'), findsOneWidget);
     expect(find.text('Stock: 999'), findsNothing);
     expect(find.text('Stock: 40'), findsNothing);
   });
@@ -198,6 +204,7 @@ void main() {
               'product_name': 'Arroz',
               'quantity_on_hand': stock,
               'stock_average_cost': averageCost,
+              'minimum_stock': 5,
             },
           ]);
         }),
@@ -225,13 +232,90 @@ void main() {
     expect(find.text('Sucursal: Principal'), findsOneWidget);
     expect(find.text('Stock: 15'), findsOneWidget);
     expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
+    expect(find.text('Mínimo: 5'), findsOneWidget);
 
     await pumpBranch('branch-vendemas', 'VendeMás');
     expect(find.text('Sucursal: VendeMás'), findsOneWidget);
     expect(find.text('Stock: 8'), findsOneWidget);
     expect(find.text(r'Costo prom.: $4.20'), findsOneWidget);
+    expect(find.text('Mínimo: 5'), findsOneWidget);
     expect(find.text('Stock: 15'), findsNothing);
     expect(find.text(r'Costo prom.: $2.67'), findsNothing);
+  });
+
+  testWidgets('offline minimum-stock edit updates the local stream immediately',
+      (
+    tester,
+  ) async {
+    final controller = StreamController<List<Map<String, dynamic>>>();
+    addTearDown(controller.close);
+    var product = <String, dynamic>{
+      'product_id': 'product-1',
+      'product_name': 'Arroz',
+      'quantity_on_hand': 10,
+      'stock_average_cost': 2.67,
+      'minimum_stock': 3,
+    };
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localProductsWithStockProvider.overrideWith((ref, key) {
+            expect(key.businessId, 'business-1');
+            expect(key.branchId, 'branch-1');
+            return controller.stream;
+          }),
+          businessProductMinimumStockUpdaterProvider.overrideWithValue((
+            input,
+          ) async {
+            expect(input.context.businessId, 'business-1');
+            expect(input.context.branchId, 'branch-1');
+            expect(input.context.profileId, 'profile-1');
+            expect(input.context.appDeviceId, 'device-1');
+            expect(input.context.deviceInstallationId, 'installation-1');
+            expect(input.productId, 'product-1');
+            expect(input.minimumStock, 5);
+            product = {...product, 'minimum_stock': input.minimumStock};
+            controller.add([product]);
+            return const BusinessProductMinimumStockUpdateResult(
+              outcome: BusinessProductMinimumStockUpdateOutcome.updated,
+              message: 'Stock mínimo actualizado localmente.',
+              minimumStock: 5,
+              outboxMutationCount: 1,
+            );
+          }),
+        ],
+        child: const MaterialApp(
+          home: InventoryProductStockListScreen(
+            businessId: 'business-1',
+            branchId: 'branch-1',
+            branchName: 'Principal',
+            profileId: 'profile-1',
+            appDeviceId: 'device-1',
+            deviceInstallationId: 'installation-1',
+            effectivePermissions: {'products.update'},
+          ),
+        ),
+      ),
+    );
+    controller.add([product]);
+    await tester.pump();
+
+    expect(find.text('Mínimo: 3'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('inventory-edit-minimum-stock-product-1')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('inventory-minimum-stock-field')),
+      '5',
+    );
+    await tester.tap(find.byKey(const Key('inventory-minimum-stock-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mínimo: 5'), findsOneWidget);
+    expect(find.text('Mínimo: 3'), findsNothing);
+    expect(find.text('Stock mínimo actualizado localmente.'), findsOneWidget);
   });
 
   testWidgets('updates when the local stream emits only a new average cost', (

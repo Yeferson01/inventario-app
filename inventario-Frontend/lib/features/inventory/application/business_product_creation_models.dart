@@ -74,6 +74,47 @@ class BusinessProductOwnedFields {
   final String? unit;
 }
 
+class BusinessProductMinimumStockUpdateInput {
+  const BusinessProductMinimumStockUpdateInput({
+    required this.context,
+    required this.productId,
+    required this.minimumStock,
+  });
+
+  final BusinessProductCreationContext context;
+  final String productId;
+  final int minimumStock;
+}
+
+enum BusinessProductMinimumStockUpdateOutcome {
+  updated,
+  unchanged,
+  validationFailure,
+  permissionDenied,
+  notFound,
+  localPersistenceFailure,
+}
+
+class BusinessProductMinimumStockUpdateResult {
+  const BusinessProductMinimumStockUpdateResult({
+    required this.outcome,
+    required this.message,
+    this.minimumStock,
+    this.outboxMutationCount = 0,
+    this.cause,
+  });
+
+  final BusinessProductMinimumStockUpdateOutcome outcome;
+  final String message;
+  final int? minimumStock;
+  final int outboxMutationCount;
+  final Object? cause;
+
+  bool get succeeded =>
+      outcome == BusinessProductMinimumStockUpdateOutcome.updated ||
+      outcome == BusinessProductMinimumStockUpdateOutcome.unchanged;
+}
+
 enum BusinessProductCreationOutcome {
   existing,
   createdFromMaster,

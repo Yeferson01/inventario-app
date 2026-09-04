@@ -37,6 +37,7 @@ void main() {
         name: 'A positivo',
         barcode: '770000000001',
         legacyStock: 999,
+        minimumStock: 5,
       );
       await _insertProduct(
         database,
@@ -125,6 +126,7 @@ void main() {
       );
       expect(products[0]['quantity_on_hand'], 15);
       expect(products[0]['legacy_stock_quantity'], 999);
+      expect(products[0]['minimum_stock'], 5);
       expect(products[1]['quantity_on_hand'], 0);
       expect(products[2]['quantity_on_hand'], 0);
       expect(products[2]['quantity_reserved'], 0);
@@ -174,12 +176,14 @@ void main() {
       id: 'product-a',
       businessId: businessId,
       name: 'Producto A',
+      minimumStock: 5,
     );
     await _insertProduct(
       database,
       id: 'product-b',
       businessId: 'business-2',
       name: 'Producto B',
+      minimumStock: 9,
     );
     await _insertBalance(
       database,
@@ -220,9 +224,11 @@ void main() {
     expect(principalProducts, hasLength(1));
     expect(principalProducts.single['product_id'], 'product-a');
     expect(principalProducts.single['quantity_on_hand'], 4);
+    expect(principalProducts.single['minimum_stock'], 5);
     expect(vendeMasProducts, hasLength(1));
     expect(vendeMasProducts.single['product_id'], 'product-a');
     expect(vendeMasProducts.single['quantity_on_hand'], 99);
+    expect(vendeMasProducts.single['minimum_stock'], 5);
     expect(principalProducts.single['quantity_on_hand'], isNot(103));
     expect(vendeMasProducts.single['quantity_on_hand'], isNot(103));
   });
@@ -625,6 +631,7 @@ Future<void> _insertProduct(
   required String name,
   String? barcode,
   int legacyStock = 0,
+  int minimumStock = 0,
   String status = 'active',
   DateTime? deletedAt,
 }) {
@@ -636,6 +643,7 @@ Future<void> _insertProduct(
           name: name,
           salePrice: 1000,
           stockQuantity: Value(legacyStock),
+          minimumStock: Value(minimumStock),
           status: Value(status),
           deletedAt: Value(deletedAt),
         ),

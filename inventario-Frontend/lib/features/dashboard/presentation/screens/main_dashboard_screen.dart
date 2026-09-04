@@ -242,6 +242,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           branchId: branchId,
           branchName: branchName ?? branchId,
           profileId: profileId,
+          appDeviceId: appContext.appDeviceId,
+          deviceInstallationId: appContext.installationId,
           effectivePermissions: appContext.permissions.values,
         ),
       ),

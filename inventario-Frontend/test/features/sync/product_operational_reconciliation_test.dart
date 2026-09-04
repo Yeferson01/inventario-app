@@ -41,6 +41,7 @@ void main() {
           id: 'product-1',
           name: 'Nuevo',
           masterProductId: 'master-1',
+          minimumStock: 7,
         ),
       ]),
     ]);
@@ -51,10 +52,45 @@ void main() {
     expect(result.completed, isTrue);
     expect(product.name, 'Nuevo');
     expect(product.masterProductId, 'master-1');
+    expect(product.minimumStock, 7);
     expect(product.syncStatus, SyncStatus.synced);
     expect(await database.select(database.localSyncBatches).get(), isEmpty);
     expect(await database.select(database.localSyncMutations).get(), isEmpty);
     expect(await _issues(database), isEmpty);
+  });
+
+  test('remote null and zero minimum stock normalize to local zero', () async {
+    await _insertProduct(
+      database,
+      id: 'product-null',
+      name: 'Local null',
+      minimumStock: 9,
+    );
+    await _insertProduct(
+      database,
+      id: 'product-zero',
+      name: 'Local zero',
+      minimumStock: 9,
+    );
+    final nullMinimumStock = productOperationalProductRow(
+      id: 'product-null',
+      name: 'Remote null',
+    )..['minimum_stock'] = null;
+    final harness = _Harness(database, [
+      _productResponse([
+        nullMinimumStock,
+        productOperationalProductRow(
+          id: 'product-zero',
+          name: 'Remote zero',
+          minimumStock: 0,
+        ),
+      ]),
+    ]);
+
+    await harness.service.download(_productsRequest);
+
+    expect((await _product(database, 'product-null')).minimumStock, 0);
+    expect((await _product(database, 'product-zero')).minimumStock, 0);
   });
 
   test('pending product preserves local payload, outbox and dedupes issue',
@@ -686,6 +722,7 @@ Future<void> _insertProduct(
   String businessId = 'business-a',
   String? categoryId,
   required String name,
+  int minimumStock = 0,
   SyncStatus syncStatus = SyncStatus.synced,
   DateTime? createdAt,
   DateTime? updatedAt,
@@ -697,6 +734,7 @@ Future<void> _insertProduct(
           categoryId: Value(categoryId),
           name: name,
           salePrice: 10,
+          minimumStock: Value(minimumStock),
           createdAt: Value(createdAt ?? DateTime.utc(2026, 8, 1)),
           updatedAt: Value(updatedAt ?? DateTime.utc(2026, 8, 1)),
           syncStatus: Value(syncStatus),
