@@ -6,6 +6,11 @@ import '../data/datasources/product_stock_balance_local_dao.dart';
 import '../data/datasources/product_stock_balance_remote_datasource.dart';
 import 'product_stock_balance_pull_service.dart';
 
+enum InventoryProductStockFilter {
+  all,
+  outOfStock,
+}
+
 class ProductStockBalanceKey {
   const ProductStockBalanceKey({
     required this.businessId,
@@ -38,12 +43,14 @@ class ProductsWithLocalStockKey {
     required this.businessId,
     required this.branchId,
     this.searchTerm = '',
+    this.stockFilter = InventoryProductStockFilter.all,
     this.limit = 100,
   });
 
   final String businessId;
   final String branchId;
   final String searchTerm;
+  final InventoryProductStockFilter stockFilter;
   final int? limit;
 
   @override
@@ -52,6 +59,7 @@ class ProductsWithLocalStockKey {
         other.businessId == businessId &&
         other.branchId == branchId &&
         other.searchTerm == searchTerm &&
+        other.stockFilter == stockFilter &&
         other.limit == limit;
   }
 
@@ -60,6 +68,7 @@ class ProductsWithLocalStockKey {
         businessId,
         branchId,
         searchTerm,
+        stockFilter,
         limit,
       );
 }
@@ -106,6 +115,7 @@ final localProductsWithStockProvider = StreamProvider.family<
     businessId: key.businessId,
     branchId: key.branchId,
     searchTerm: key.searchTerm,
+    outOfStockOnly: key.stockFilter == InventoryProductStockFilter.outOfStock,
     limit: key.limit,
   );
 });

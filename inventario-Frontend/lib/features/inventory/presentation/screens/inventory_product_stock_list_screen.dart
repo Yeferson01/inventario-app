@@ -43,6 +43,7 @@ class _InventoryProductStockListScreenState
   final _searchController = TextEditingController();
   final _minimumStockUpdates = <String>{};
   String _searchTerm = '';
+  InventoryProductStockFilter _stockFilter = InventoryProductStockFilter.all;
 
   @override
   void dispose() {
@@ -59,6 +60,11 @@ class _InventoryProductStockListScreenState
   void _clearSearch() {
     _searchController.clear();
     _onSearchChanged('');
+  }
+
+  void _setStockFilter(InventoryProductStockFilter filter) {
+    if (_stockFilter == filter) return;
+    setState(() => _stockFilter = filter);
   }
 
   Future<void> _openTransfer({
@@ -193,6 +199,7 @@ class _InventoryProductStockListScreenState
           businessId: widget.businessId,
           branchId: widget.branchId,
           searchTerm: _searchTerm,
+          stockFilter: _stockFilter,
           limit: null,
         ),
       ),
@@ -276,6 +283,40 @@ class _InventoryProductStockListScreenState
                   ),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  CronosSpacing.md,
+                  CronosSpacing.sm,
+                  CronosSpacing.md,
+                  0,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: CronosSpacing.sm,
+                    children: [
+                      ChoiceChip(
+                        key: const Key('inventory-filter-all'),
+                        label: const Text('Todos'),
+                        selected:
+                            _stockFilter == InventoryProductStockFilter.all,
+                        onSelected: (_) => _setStockFilter(
+                          InventoryProductStockFilter.all,
+                        ),
+                      ),
+                      ChoiceChip(
+                        key: const Key('inventory-filter-out-of-stock'),
+                        label: const Text('Agotados'),
+                        selected: _stockFilter ==
+                            InventoryProductStockFilter.outOfStock,
+                        onSelected: (_) => _setStockFilter(
+                          InventoryProductStockFilter.outOfStock,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               Expanded(
                 child: productsAsync.when(
                   loading: () => const Center(
@@ -297,6 +338,17 @@ class _InventoryProductStockListScreenState
                           title: 'No se encontraron productos',
                           message:
                               'Prueba con otro nombre o código del producto.',
+                        );
+                      }
+
+                      if (_stockFilter ==
+                          InventoryProductStockFilter.outOfStock) {
+                        return const _InventoryStateMessage(
+                          key: Key('inventory-out-of-stock-empty'),
+                          icon: Icons.inventory_2_outlined,
+                          title: 'Sin productos agotados',
+                          message:
+                              'La sucursal seleccionada no tiene existencias agotadas.',
                         );
                       }
 
@@ -373,6 +425,7 @@ class _InventoryProductCard extends StatelessWidget {
     final averageCost = _formatAverageCost(product['stock_average_cost']);
     final minimumStock = _minimumStock(product['minimum_stock']);
     final productId = _string(product['product_id']) ?? '';
+    final isOutOfStock = _int(product['quantity_on_hand']) <= 0;
 
     return AppGlassCard(
       child: Row(
@@ -403,6 +456,16 @@ class _InventoryProductCard extends StatelessWidget {
                   Text(
                     barcode,
                     style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                if (isOutOfStock) ...[
+                  const SizedBox(height: CronosSpacing.xs),
+                  Chip(
+                    key: Key('inventory-out-of-stock-$productId'),
+                    avatar: const Icon(Icons.remove_shopping_cart_outlined),
+                    label: const Text('Agotado'),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ],
               ],

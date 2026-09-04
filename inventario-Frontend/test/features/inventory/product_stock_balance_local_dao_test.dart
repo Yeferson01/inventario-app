@@ -233,6 +233,242 @@ void main() {
     expect(vendeMasProducts.single['quantity_on_hand'], isNot(103));
   });
 
+  test(
+      'out-of-stock filter uses physical stock and includes missing balances independently of minimum stock',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'exhausted',
+      businessId: businessId,
+      name: 'A agotado',
+      minimumStock: 0,
+    );
+    await _insertProduct(
+      database,
+      id: 'below-minimum',
+      businessId: businessId,
+      name: 'B bajo mínimo',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'reserved',
+      businessId: businessId,
+      name: 'C reservado',
+    );
+    await _insertProduct(
+      database,
+      id: 'missing',
+      businessId: businessId,
+      name: 'D sin balance',
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-exhausted',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'exhausted',
+      quantityOnHand: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-below-minimum',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'below-minimum',
+      quantityOnHand: 2,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-reserved',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reserved',
+      quantityOnHand: 4,
+      quantityReserved: 4,
+      quantityAvailable: 0,
+    );
+
+    final products = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      outOfStockOnly: true,
+      limit: null,
+    );
+
+    expect(
+      products.map((product) => product['product_id']),
+      ['exhausted', 'missing'],
+    );
+    expect(products.first['minimum_stock'], 0);
+    expect(products.last['quantity_on_hand'], 0);
+  });
+
+  test('out-of-stock filter is scoped to the selected branch', () async {
+    await _insertProduct(
+      database,
+      id: 'branch-product',
+      businessId: businessId,
+      name: 'Producto por sucursal',
+    );
+    await _insertBalance(
+      database,
+      id: 'branch-product-a',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'branch-product',
+      quantityOnHand: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'branch-product-b',
+      businessId: businessId,
+      branchId: 'branch-2',
+      productId: 'branch-product',
+      quantityOnHand: 8,
+    );
+
+    final branchA = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      outOfStockOnly: true,
+      limit: null,
+    );
+    final branchB = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: 'branch-2',
+      outOfStockOnly: true,
+      limit: null,
+    );
+
+    expect(branchA.single['product_id'], 'branch-product');
+    expect(branchB, isEmpty);
+  });
+
+  test('out-of-stock filter combines with name and barcode search', () async {
+    await _insertProduct(
+      database,
+      id: 'rice-exhausted',
+      businessId: businessId,
+      name: 'Arroz agotado',
+    );
+    await _insertProduct(
+      database,
+      id: 'rice-positive',
+      businessId: businessId,
+      name: 'Arroz disponible',
+    );
+    await _insertProduct(
+      database,
+      id: 'coffee-exhausted',
+      businessId: businessId,
+      name: 'Café agotado',
+    );
+    await _insertBalance(
+      database,
+      id: 'rice-exhausted-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'rice-exhausted',
+      quantityOnHand: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'rice-positive-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'rice-positive',
+      quantityOnHand: 3,
+    );
+    await _insertBalance(
+      database,
+      id: 'coffee-exhausted-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'coffee-exhausted',
+      quantityOnHand: 0,
+    );
+    await _insertBarcode(
+      database,
+      id: 'rice-exhausted-code',
+      businessId: businessId,
+      productId: 'rice-exhausted',
+      barcode: 'RICE-000',
+      normalized: 'RICE000',
+    );
+
+    final byName = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: 'Arroz',
+      outOfStockOnly: true,
+      limit: null,
+    );
+    final byBarcode = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: 'rice-000',
+      outOfStockOnly: true,
+      limit: null,
+    );
+
+    expect(byName.map((product) => product['product_id']), ['rice-exhausted']);
+    expect(byBarcode.single['product_id'], 'rice-exhausted');
+  });
+
+  test('out-of-stock stream reacts when operative stock exits and enters zero',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'reactive-filter',
+      businessId: businessId,
+      name: 'Producto reactivo filtrado',
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-reactive-filter',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-filter',
+      quantityOnHand: 5,
+    );
+    final stream = dao.watchProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      outOfStockOnly: true,
+      limit: null,
+    );
+
+    expect(await stream.first, isEmpty);
+    final exhausted = stream.firstWhere((products) => products.isNotEmpty);
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-filter',
+      quantityOnHand: 0,
+      quantityReserved: 0,
+      quantityAvailable: 0,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4),
+      deletedAt: null,
+    );
+    expect((await exhausted).single['product_id'], 'reactive-filter');
+
+    final replenished = stream.firstWhere((products) => products.isEmpty);
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-filter',
+      quantityOnHand: 6,
+      quantityReserved: 0,
+      quantityAvailable: 6,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4, 1),
+      deletedAt: null,
+    );
+    expect(await replenished, isEmpty);
+  });
+
   test('watch emits again when the scoped Drift balance changes', () async {
     await _insertProduct(
       database,
@@ -679,6 +915,8 @@ Future<void> _insertBalance(
   required String branchId,
   required String productId,
   required int quantityOnHand,
+  int quantityReserved = 0,
+  int? quantityAvailable,
   DateTime? deletedAt,
 }) {
   return database.into(database.localProductStockBalances).insert(
@@ -688,7 +926,9 @@ Future<void> _insertBalance(
           branchId: branchId,
           productId: productId,
           quantityOnHand: Value(quantityOnHand),
-          quantityAvailable: Value(quantityOnHand),
+          quantityReserved: Value(quantityReserved),
+          quantityAvailable:
+              Value(quantityAvailable ?? quantityOnHand - quantityReserved),
           deletedAt: Value(deletedAt),
         ),
       );

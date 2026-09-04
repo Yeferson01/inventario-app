@@ -23,4 +23,19 @@ void main() {
     expect(unlimited, isNot(limited));
     expect(limited.limit, 100);
   });
+
+  test('ProductsWithLocalStockKey includes stock filter in its identity', () {
+    const all = ProductsWithLocalStockKey(
+      businessId: 'business-1',
+      branchId: 'branch-1',
+    );
+    const outOfStock = ProductsWithLocalStockKey(
+      businessId: 'business-1',
+      branchId: 'branch-1',
+      stockFilter: InventoryProductStockFilter.outOfStock,
+    );
+
+    expect(all, isNot(outOfStock));
+    expect(outOfStock.stockFilter, InventoryProductStockFilter.outOfStock);
+  });
 }

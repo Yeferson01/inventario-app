@@ -190,6 +190,84 @@ void main() {
     expect(find.byKey(const Key('inventory-search-clear')), findsNothing);
   });
 
+  testWidgets('marks exhausted products and combines stock filter with search',
+      (
+    tester,
+  ) async {
+    final products = <Map<String, dynamic>>[
+      {
+        'product_id': 'rice-positive',
+        'product_name': 'Arroz disponible',
+        'quantity_on_hand': 2,
+        'quantity_available': 2,
+        'minimum_stock': 5,
+      },
+      {
+        'product_id': 'coffee-exhausted',
+        'product_name': 'Café agotado',
+        'quantity_on_hand': 0,
+        'quantity_available': 0,
+        'minimum_stock': 0,
+      },
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localProductsWithStockProvider.overrideWith((ref, key) {
+            final term = key.searchTerm.trim().toLowerCase();
+            final filtered = products.where((product) {
+              final matchesSearch = term.isEmpty ||
+                  product['product_name'].toString().toLowerCase().contains(
+                        term,
+                      );
+              final matchesStock =
+                  key.stockFilter == InventoryProductStockFilter.all ||
+                      (product['quantity_on_hand'] as int) <= 0;
+              return matchesSearch && matchesStock;
+            }).toList(growable: false);
+            return Stream.value(filtered);
+          }),
+        ],
+        child: const MaterialApp(
+          home: InventoryProductStockListScreen(
+            businessId: 'business-1',
+            branchId: 'branch-1',
+            branchName: 'Principal',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('inventory-out-of-stock-coffee-exhausted')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('inventory-out-of-stock-rice-positive')),
+      findsNothing,
+    );
+    expect(find.text('Arroz disponible'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('inventory-filter-out-of-stock')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Café agotado'), findsOneWidget);
+    expect(find.text('Arroz disponible'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('inventory-search-field')),
+      'arroz',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('inventory-search-empty')), findsOneWidget);
+    expect(find.text('Café agotado'), findsNothing);
+  });
+
   testWidgets('branch switch changes the visible scoped stock and context', (
     tester,
   ) async {

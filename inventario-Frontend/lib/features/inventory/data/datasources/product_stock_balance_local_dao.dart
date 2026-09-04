@@ -311,9 +311,12 @@ class ProductStockBalanceLocalDao {
     required String businessId,
     required String branchId,
     String searchTerm = '',
+    bool outOfStockOnly = false,
     int? limit = 100,
   }) async {
     final search = _ProductStockSearch.from(searchTerm);
+    final stockFilterClause =
+        outOfStockOnly ? 'and coalesce(b.quantity_on_hand, 0) <= 0' : '';
     final limitClause = limit == null ? '' : 'limit ?';
     final rows = await _db.customSelect(
       '''
@@ -343,6 +346,7 @@ class ProductStockBalanceLocalDao {
       where p.business_id = ?
         and p.status = 'active'
         and p.deleted_at is null
+        $stockFilterClause
         ${search.whereClause}
       order by
         ${search.orderByPrefix}
@@ -370,9 +374,12 @@ class ProductStockBalanceLocalDao {
     required String businessId,
     required String branchId,
     String searchTerm = '',
+    bool outOfStockOnly = false,
     int? limit = 100,
   }) {
     final search = _ProductStockSearch.from(searchTerm);
+    final stockFilterClause =
+        outOfStockOnly ? 'and coalesce(b.quantity_on_hand, 0) <= 0' : '';
     final limitClause = limit == null ? '' : 'limit ?';
 
     return _db
@@ -404,6 +411,7 @@ class ProductStockBalanceLocalDao {
           where p.business_id = ?
             and p.status = 'active'
             and p.deleted_at is null
+            $stockFilterClause
             ${search.whereClause}
           order by
             ${search.orderByPrefix}
