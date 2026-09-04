@@ -62,7 +62,7 @@ final intentionalStaleSaleReconciliationServiceProvider =
     localProjector: localDao.projectIntentionalStaleSaleReconciliation,
     localPreviewLoader: localDao.loadIntentionalStaleSaleReconciliationPreview,
     inventoryRefresher: (input, result) async {
-      final reconciliation = await inventory.reconcile(
+      await inventory.reconcile(
         InventoryBalanceReconciliationRequest(
           profileId: input.profileId,
           businessId: input.businessId,
@@ -71,12 +71,10 @@ final intentionalStaleSaleReconciliationServiceProvider =
         ),
         restart: true,
       );
-      if (!reconciliation.converged) {
-        throw StateError(
-          'Inventory reconciliation retained '
-          '${reconciliation.blockingIssues} blocker(s).',
-        );
-      }
+      // Other rejected Sales in this scope legitimately keep the global
+      // inventory result blocked while Sales are reviewed one by one. The
+      // target Sale was already projected transactionally above, and the
+      // presenter verifies that this exact Sale is no longer pending.
     },
     cashRefresher: (input, result) async {
       final recovery = await cash.recover(
@@ -89,11 +87,14 @@ final intentionalStaleSaleReconciliationServiceProvider =
         ),
         restart: true,
       );
-      if (!recovery.completed || !recovery.cashContextReady) {
+      if (!recovery.completed) {
         throw StateError(
-          'Cash refresh retained ${recovery.blockingIssues} blocker(s).',
+          'Cash refresh did not complete its remote snapshot.',
         );
       }
+      // cashContextReady remains false while a sibling rejected Sale is still
+      // open. That global blocker must not turn a completed target Sale into a
+      // false reconciliation failure.
     },
   );
 });

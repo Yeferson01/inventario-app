@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/supabase/supabase_client_provider.dart';
+import '../../cash/application/cash_session_local_provider.dart';
 import '../../auth/application/authenticated_access_models.dart';
 import '../../auth/application/authenticated_access_providers.dart';
 import 'app_installation_id_store.dart';
@@ -121,6 +122,8 @@ final operationalBootstrapEntryRunnerProvider =
 final cashRepairContextServiceProvider = Provider<CashRepairContextService>((
   ref,
 ) {
+  final cashSessionService = ref.watch(cashSessionLocalServiceProvider);
+  final issueDao = ref.watch(reconciliationIssueLocalDaoProvider);
   return CashRepairContextService(
     authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
     resolveRuntime: ref.watch(runtimeResolutionServiceProvider).resolve,
@@ -132,9 +135,34 @@ final cashRepairContextServiceProvider = Provider<CashRepairContextService>((
         .watch(cashPosReconciliationLocalDaoProvider)
         .openSessionsForRegister,
     writeRuntimeContext: ref.watch(appRuntimeContextStoreProvider).saveContext,
-    reconcileOriginalSession: ref
-        .watch(cashPosReconciliationLocalDaoProvider)
-        .reconcileRejectedSaleOriginalOpenSession,
+    convergeCashSessions: ({
+      required businessId,
+      required branchId,
+      required cashRegisterId,
+      required authoritativeOpenCashSessionId,
+    }) async {
+      await cashSessionService.convergeAuthoritativeOpenSession(
+        businessId: businessId,
+        branchId: branchId,
+        cashRegisterId: cashRegisterId,
+        authoritativeOpenCashSessionId: authoritativeOpenCashSessionId,
+      );
+    },
+    resolveOpenSessionConflict: ({
+      required profileId,
+      required businessId,
+      required branchId,
+      required cashSessionId,
+    }) =>
+        issueDao.resolveOpenIssue(
+      profileId: profileId,
+      businessId: businessId,
+      branchId: branchId,
+      domain: 'cash_pos',
+      issueType: 'cash_open_session_conflict',
+      entityType: 'cash_sessions',
+      entityId: cashSessionId,
+    ),
   );
 });
 

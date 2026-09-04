@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../data/models/cash_pos_recovery_models.dart';
 import '../data/models/runtime_resolution_models.dart';
 import '../data/models/runtime_setup_models.dart';
@@ -26,14 +28,17 @@ typedef CashRepairOpenSessionLoader = Future<List<Map<String, dynamic>>>
 typedef CashRepairRuntimeWriter = Future<void> Function(
   AppRuntimeContext context,
 );
-typedef CashRepairOriginalSessionReconciler = Future<bool> Function({
-  required String profileId,
+typedef CashRepairSessionConverger = Future<void> Function({
   required String businessId,
   required String branchId,
   required String cashRegisterId,
-  required String originalCashSessionId,
-  required String? remoteOpenCashSessionId,
-  required String saleId,
+  required String? authoritativeOpenCashSessionId,
+});
+typedef CashRepairSessionConflictResolver = Future<void> Function({
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String cashSessionId,
 });
 
 class CashRepairContextRequest {
@@ -87,14 +92,16 @@ class CashRepairContextService {
     required CashRepairBlockingIssueLoader loadOpenBlockingIssues,
     required CashRepairOpenSessionLoader loadOpenSessions,
     required CashRepairRuntimeWriter writeRuntimeContext,
-    required CashRepairOriginalSessionReconciler reconcileOriginalSession,
+    required CashRepairSessionConverger convergeCashSessions,
+    required CashRepairSessionConflictResolver resolveOpenSessionConflict,
   })  : _authenticatedProfileId = authenticatedProfileId,
         _resolveRuntime = resolveRuntime,
         _recoverCash = recoverCash,
         _loadOpenBlockingIssues = loadOpenBlockingIssues,
         _loadOpenSessions = loadOpenSessions,
         _writeRuntimeContext = writeRuntimeContext,
-        _reconcileOriginalSession = reconcileOriginalSession;
+        _convergeCashSessions = convergeCashSessions,
+        _resolveOpenSessionConflict = resolveOpenSessionConflict;
 
   final CashRepairAuthenticatedProfileId _authenticatedProfileId;
   final CashRepairRuntimeResolver _resolveRuntime;
@@ -102,7 +109,8 @@ class CashRepairContextService {
   final CashRepairBlockingIssueLoader _loadOpenBlockingIssues;
   final CashRepairOpenSessionLoader _loadOpenSessions;
   final CashRepairRuntimeWriter _writeRuntimeContext;
-  final CashRepairOriginalSessionReconciler _reconcileOriginalSession;
+  final CashRepairSessionConverger _convergeCashSessions;
+  final CashRepairSessionConflictResolver _resolveOpenSessionConflict;
 
   Future<CashRepairContextResult> refresh(
     CashRepairContextRequest request,
@@ -131,7 +139,26 @@ class CashRepairContextService {
       );
     }
 
-    var recovery = await _recoverCash(
+    final remoteOpenCashSessionId = _string(runtime.openCashSessionId);
+    if (remoteOpenCashSessionId == request.originalCashSessionId) {
+      throw const CashRepairContextException(
+        'La sesión original continúa abierta según el estado autoritativo.',
+      );
+    }
+    await _convergeCashSessions(
+      businessId: request.businessId,
+      branchId: request.branchId,
+      cashRegisterId: canonicalCashRegisterId,
+      authoritativeOpenCashSessionId: remoteOpenCashSessionId,
+    );
+    await _resolveOpenSessionConflict(
+      profileId: request.profileId,
+      businessId: request.businessId,
+      branchId: request.branchId,
+      cashSessionId: request.originalCashSessionId,
+    );
+
+    final recovery = await _recoverCash(
       CashPosRecoveryRequest(
         profileId: request.profileId,
         businessId: request.businessId,
@@ -147,86 +174,20 @@ class CashRepairContextService {
       );
     }
 
-    var blockers = await _loadOpenBlockingIssues(
+    final blockers = await _loadOpenBlockingIssues(
       profileId: request.profileId,
       businessId: request.businessId,
       branchId: request.branchId,
     );
-    var localOpenSessions = await _loadOpenSessions(
+    final localOpenSessions = await _loadOpenSessions(
       businessId: request.businessId,
       branchId: request.branchId,
       cashRegisterId: canonicalCashRegisterId,
     );
-    var remoteOpenCashSessionId = _string(runtime.openCashSessionId);
-    if (remoteOpenCashSessionId == request.originalCashSessionId) {
-      throw const CashRepairContextException(
-        'La sesión original continúa abierta según el estado autoritativo.',
-      );
-    }
-    final hasExpectedOpenConflict = remoteOpenCashSessionId != null &&
-        blockers.any(
-          (issue) =>
-              issue['domain']?.toString() == 'cash_pos' &&
-              issue['issue_type']?.toString() == 'cash_open_session_conflict' &&
-              issue['entity_type']?.toString() == 'cash_sessions' &&
-              issue['entity_id']?.toString() == request.originalCashSessionId,
-        );
-    final originalSessionStillOpen = localOpenSessions.any(
-      (session) => session['id']?.toString() == request.originalCashSessionId,
-    );
-    if (originalSessionStillOpen) {
-      if (remoteOpenCashSessionId != null && !hasExpectedOpenConflict) {
-        throw const CashRepairContextException(
-          'La sesión remota abierta no coincide con un conflicto local verificable.',
-        );
-      }
-      final reconciled = await _reconcileOriginalSession(
-        profileId: request.profileId,
-        businessId: request.businessId,
-        branchId: request.branchId,
-        cashRegisterId: canonicalCashRegisterId,
-        originalCashSessionId: request.originalCashSessionId,
-        remoteOpenCashSessionId: remoteOpenCashSessionId,
-        saleId: request.saleId,
-      );
-      if (!reconciled) {
-        throw const CashRepairContextException(
-          'La sesión original no pudo converger de forma segura.',
-        );
-      }
-      recovery = await _recoverCash(
-        CashPosRecoveryRequest(
-          profileId: request.profileId,
-          businessId: request.businessId,
-          branchId: request.branchId,
-          appDeviceId: request.appDeviceId,
-          canonicalCashRegisterId: canonicalCashRegisterId,
-        ),
-      );
-      if (!recovery.completed ||
-          recovery.canonicalCashRegisterId != canonicalCashRegisterId) {
-        throw const CashRepairContextException(
-          'La segunda lectura de caja no pudo confirmar la convergencia.',
-        );
-      }
-      blockers = await _loadOpenBlockingIssues(
-        profileId: request.profileId,
-        businessId: request.businessId,
-        branchId: request.branchId,
-      );
-      localOpenSessions = await _loadOpenSessions(
-        businessId: request.businessId,
-        branchId: request.branchId,
-        cashRegisterId: canonicalCashRegisterId,
-      );
-      remoteOpenCashSessionId =
-          _string(recovery.openCashSessionId) ?? remoteOpenCashSessionId;
-    }
-
     final unsafeCashBlocker = blockers.any(
       (issue) =>
           issue['domain']?.toString() == 'cash_pos' &&
-          !_isCurrentStaleSaleBlocker(issue, request.saleId),
+          !_isCompatibleStaleSaleBlocker(issue, request),
     );
     if (unsafeCashBlocker) {
       throw const CashRepairContextException(
@@ -248,6 +209,11 @@ class CashRepairContextService {
             !localOpenSessionIds.contains(remoteOpenCashSessionId))) {
       throw const CashRepairContextException(
         'La sesión remota abierta no quedó materializada de forma única.',
+      );
+    }
+    if (_string(recovery.openCashSessionId) != remoteOpenCashSessionId) {
+      throw const CashRepairContextException(
+        'Recovery no confirmó la sesión abierta del runtime autoritativo.',
       );
     }
     final openCashSessionId = remoteOpenCashSessionId;
@@ -288,13 +254,40 @@ class CashRepairContextService {
     }
   }
 
-  bool _isCurrentStaleSaleBlocker(
+  bool _isCompatibleStaleSaleBlocker(
     Map<String, dynamic> issue,
-    String saleId,
+    CashRepairContextRequest request,
   ) {
-    return issue['issue_type']?.toString() == 'sale_cash_session_rejected' &&
-        issue['entity_type']?.toString() == 'sales' &&
-        issue['entity_id']?.toString() == saleId;
+    if (issue['issue_type']?.toString() != 'sale_cash_session_rejected' ||
+        issue['entity_type']?.toString() != 'sales') {
+      return false;
+    }
+    if (issue['entity_id']?.toString() == request.saleId) return true;
+
+    final rawMetadata = issue['metadata_json'];
+    Map<String, dynamic>? metadata;
+    if (rawMetadata is Map) {
+      metadata = rawMetadata.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    } else if (rawMetadata is String) {
+      try {
+        final decoded = jsonDecode(rawMetadata);
+        if (decoded is Map) {
+          metadata = decoded.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+        }
+      } on FormatException {
+        return false;
+      }
+    }
+    return metadata?['cash_session_id']?.toString() ==
+            request.originalCashSessionId &&
+        metadata?['cash_register_id']?.toString() == request.cashRegisterId &&
+        metadata?['branch_id']?.toString() == request.branchId &&
+        metadata?['remote_rule']?.toString() == 'sale_cash_session_invalid' &&
+        metadata?['remote_reason']?.toString() == 'closed';
   }
 
   String? _string(Object? value) {

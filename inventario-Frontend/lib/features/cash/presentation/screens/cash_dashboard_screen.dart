@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../sync/application/cash_sync_upload_provider.dart';
+import '../../../sync/application/cash_repair_context_service.dart';
+import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../application/cash_session_local_models.dart';
 import '../../application/cash_session_local_provider.dart';
 import '../widgets/cash_metric_tile.dart';
@@ -248,6 +250,8 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
             branchId: widget.branchId,
             profileId: widget.profileId,
             actualClosingAmount: result.actualClosingAmount,
+            appDeviceId: widget.appDeviceId,
+            deviceInstallationId: widget.deviceInstallationId,
             notes: result.notes,
           ),
         );
@@ -315,6 +319,17 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
       branchId: widget.branchId,
       appDeviceId: appDeviceId,
       effectivePermissions: widget.effectivePermissions,
+      onRefreshCashContext: ({
+        required saleId,
+        required originalCashSessionId,
+        required cashRegisterId,
+      }) async {
+        await _refreshCashForStaleSale(
+          saleId: saleId,
+          originalCashSessionId: originalCashSessionId,
+          cashRegisterId: cashRegisterId,
+        );
+      },
       onOpenCash: ({
         required saleId,
         required originalCashSessionId,
@@ -323,6 +338,36 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
           _openCashSessionDialog(),
     );
     await _load();
+  }
+
+  Future<CashRepairContextResult> _refreshCashForStaleSale({
+    required String saleId,
+    required String originalCashSessionId,
+    required String cashRegisterId,
+  }) {
+    final installationId = widget.deviceInstallationId?.trim();
+    final appDeviceId = widget.appDeviceId?.trim();
+    if (installationId == null ||
+        installationId.isEmpty ||
+        appDeviceId == null ||
+        appDeviceId.isEmpty) {
+      throw const CashRepairContextException(
+        'El contexto de instalación no está disponible para reparar caja.',
+      );
+    }
+    return ref.read(cashRepairContextServiceProvider).refresh(
+          CashRepairContextRequest(
+            profileId: widget.profileId,
+            businessId: widget.businessId,
+            branchId: widget.branchId,
+            installationId: installationId,
+            appDeviceId: appDeviceId,
+            cashRegisterId: cashRegisterId,
+            originalCashSessionId: originalCashSessionId,
+            saleId: saleId,
+            effectivePermissions: widget.effectivePermissions,
+          ),
+        );
   }
 
   Future<_DomainCloseSyncUiSummary> _prepareAndUploadPosForCashClose() async {

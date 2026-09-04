@@ -295,77 +295,6 @@ void main() {
     );
   });
 
-  test('repair projects server-rejected clean S1 closed before applying S2',
-      () async {
-    await _insertRegister(database, id: 'register-x');
-    await _insertSession(database, id: 'session-s');
-    await _insertPendingSale(
-      database,
-      id: 'sale-stale',
-      total: 10,
-      paymentId: 'payment-stale',
-    );
-    final issues = ReconciliationIssueLocalDao(database);
-    await issues.openIssue(
-      ReconciliationIssueDraft(
-        profileId: 'profile-a',
-        businessId: 'business-a',
-        branchId: 'branch-x',
-        domain: 'cash_pos',
-        entityType: 'sales',
-        entityId: 'sale-stale',
-        issueType: 'sale_cash_session_rejected',
-        severity: 'blocking',
-        message: 'Remote rejected closed session.',
-        metadataJson: jsonEncode({
-          'remote_reason': 'closed',
-          'cash_session_id': 'session-s',
-        }),
-      ),
-    );
-    await issues.openIssue(
-      ReconciliationIssueDraft(
-        profileId: 'profile-a',
-        businessId: 'business-a',
-        branchId: 'branch-x',
-        domain: 'cash_pos',
-        entityType: 'cash_sessions',
-        entityId: 'session-s',
-        issueType: 'cash_open_session_conflict',
-        severity: 'blocking',
-        message: 'Remote S2 conflicts with local S1.',
-        metadataJson: jsonEncode({
-          'remote_cash_session_id': 'session-s2',
-          'cash_register_id': 'register-x',
-          'local_open_session_ids': ['session-s'],
-        }),
-      ),
-    );
-
-    final reconciled = await CashPosReconciliationLocalDao(database)
-        .reconcileRejectedSaleOriginalOpenSession(
-      profileId: 'profile-a',
-      businessId: 'business-a',
-      branchId: 'branch-x',
-      cashRegisterId: 'register-x',
-      originalCashSessionId: 'session-s',
-      remoteOpenCashSessionId: 'session-s2',
-      saleId: 'sale-stale',
-    );
-
-    final session = await _row(database, 'cash_sessions', 'session-s');
-    final sale = await _row(database, 'sales', 'sale-stale');
-    final conflict = (await _issues(database)).singleWhere(
-      (issue) => issue['issue_type'] == 'cash_open_session_conflict',
-    );
-    expect(reconciled, isTrue);
-    expect(session?['status'], 'closed');
-    expect(session?['deleted_at'], isNull);
-    expect(sale?['deleted_at'], isNull);
-    expect(sale?['local_status'], 'dirty');
-    expect(conflict['status'], 'resolved');
-  });
-
   test('closed remote session is no longer considered open after recovery',
       () async {
     await _insertRegister(database, id: 'register-x');
@@ -600,6 +529,30 @@ void main() {
     expect(summary['sales_total'], 150);
     expect(summary['total_payments'], 150);
     expect(summary['calculated_expected_cash_amount'], 170);
+  });
+
+  test('15a included stale sale cash is offset in local expected amount',
+      () async {
+    await _seedAuthoritativeReconciledSale(
+      database,
+      cashTreatment: 'already_included_in_destination_opening',
+    );
+    final dao = CashSessionLocalDao(database);
+
+    final summary = await dao.getLatestCashSessionSummaryForBranch(
+      businessId: 'business-a',
+      branchId: 'branch-x',
+    );
+
+    expect(summary['cash_payments'], 100);
+    expect(summary['cash_adjustments'], -100);
+    expect(summary['calculated_expected_cash_amount'], 20);
+    expect(
+      await dao.calculateExpectedCashAmountForSession(
+        cashSessionId: 'session-s',
+      ),
+      20,
+    );
   });
 
   test('16 acknowledged same sale refresh does not double count', () async {
@@ -1270,6 +1223,7 @@ Future<void> _insertSession(
 Future<void> _seedAuthoritativeReconciledSale(
   AppDatabase db, {
   bool includeExplicitMarker = true,
+  String? cashTreatment,
 }) async {
   const reconciliationId = '11111111-1111-4111-8111-111111111111';
   final resolvedAt = DateTime.utc(2026, 9, 2, 19, 18);
@@ -1279,6 +1233,7 @@ Future<void> _seedAuthoritativeReconciledSale(
     'sale_id': 'sale-r',
     'sale_reconciliation_id': reconciliationId,
     'local_resolution': 'intentional_stale_sale_reconciled',
+    if (cashTreatment != null) 'cash_treatment': cashTreatment,
     if (includeExplicitMarker) 'superseded_by_sale_reconciliation': true,
     'destination_cash_session_id': 'session-s',
     'resolved_at': resolvedAt.toIso8601String(),

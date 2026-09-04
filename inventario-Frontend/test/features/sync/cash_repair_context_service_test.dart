@@ -9,7 +9,7 @@ void main() {
       () async {
     String? remoteOpenSessionId;
     var localOpenSessionIds = <String>['session-s1'];
-    var reconciliations = 0;
+    var convergences = 0;
     final service = _service(
       resolveRuntime: ({
         required profileId,
@@ -21,11 +21,11 @@ void main() {
           _recovery(openCashSessionId: remoteOpenSessionId),
       loadOpenSessions: () async =>
           localOpenSessionIds.map((id) => <String, dynamic>{'id': id}).toList(),
-      reconcileOriginalSession: ({required remoteOpenCashSessionId}) async {
-        expect(remoteOpenCashSessionId, isNull);
-        reconciliations++;
-        localOpenSessionIds = [];
-        return true;
+      convergeCashSessions: ({required authoritativeOpenCashSessionId}) async {
+        convergences++;
+        localOpenSessionIds = authoritativeOpenCashSessionId == null
+            ? []
+            : [authoritativeOpenCashSessionId];
       },
       blockers: [_staleSaleBlocker()],
     );
@@ -42,41 +42,35 @@ void main() {
     expect(afterOpen.openCashSessionId, 'session-s4');
     expect(retry.openCashSessionId, 'session-s4');
     expect(localOpenSessionIds, ['session-s4']);
-    expect(reconciliations, 1);
+    expect(convergences, 3);
   });
 
   test('B materializes and reuses remote S4 after converging stale S3',
       () async {
     AppRuntimeContext? written;
     var recovered = 0;
-    var reconciled = false;
+    var converged = false;
     final service = _service(
       runtime: _runtime(openCashSessionId: 'session-s4'),
       recoverCash: (_) async {
         recovered++;
-        return _recovery(
-          openCashSessionId: reconciled ? 'session-s4' : null,
-        );
+        return _recovery(openCashSessionId: 'session-s4');
       },
-      loadBlockingIssues: () async => [
-        _staleSaleBlocker(),
-        if (!reconciled) _openSessionConflict(),
-      ],
+      loadBlockingIssues: () async => [_staleSaleBlocker()],
       loadOpenSessions: () async => [
-        {'id': reconciled ? 'session-s4' : 'session-s1'},
+        {'id': converged ? 'session-s4' : 'session-s1'},
       ],
-      reconcileOriginalSession: ({required remoteOpenCashSessionId}) async {
-        expect(remoteOpenCashSessionId, 'session-s4');
-        reconciled = true;
-        return true;
+      convergeCashSessions: ({required authoritativeOpenCashSessionId}) async {
+        expect(authoritativeOpenCashSessionId, 'session-s4');
+        converged = true;
       },
       writeRuntimeContext: (context) async => written = context,
     );
 
     final result = await service.refresh(_request());
 
-    expect(recovered, 2);
-    expect(reconciled, isTrue);
+    expect(recovered, 1);
+    expect(converged, isTrue);
     expect(result.openCashSessionId, 'session-s4');
     expect(written?.cashSessionId, 'session-s4');
     expect(written?.cashRegisterId, 'register-a');
@@ -84,16 +78,15 @@ void main() {
 
   test('C remote S3 still open fails closed without parallel session',
       () async {
-    var reconciled = false;
+    var converged = false;
     final service = _service(
       runtime: _runtime(openCashSessionId: 'session-s1'),
       recoverCash: (_) async => _recovery(openCashSessionId: 'session-s1'),
       loadOpenSessions: () async => [
         {'id': 'session-s1'},
       ],
-      reconcileOriginalSession: ({required remoteOpenCashSessionId}) async {
-        reconciled = true;
-        return true;
+      convergeCashSessions: ({required authoritativeOpenCashSessionId}) async {
+        converged = true;
       },
     );
 
@@ -107,7 +100,49 @@ void main() {
         ),
       ),
     );
-    expect(reconciled, isFalse);
+    expect(converged, isFalse);
+  });
+
+  test('D sibling stale Sales from the same closed session do not block repair',
+      () async {
+    final service = _service(
+      recoverCash: (_) async => _recovery(openCashSessionId: null),
+      blockers: [
+        _staleSaleBlocker(),
+        _staleSaleBlocker(
+          saleId: 'sale-b',
+          includeScopeMetadata: true,
+        ),
+      ],
+    );
+
+    final result = await service.refresh(_request());
+
+    expect(result.openCashSessionId, isNull);
+  });
+
+  test('E stale Sale from another cash session remains blocking', () async {
+    final service = _service(
+      blockers: [
+        _staleSaleBlocker(),
+        _staleSaleBlocker(
+          saleId: 'sale-b',
+          cashSessionId: 'session-other',
+          includeScopeMetadata: true,
+        ),
+      ],
+    );
+
+    await expectLater(
+      service.refresh(_request()),
+      throwsA(
+        isA<CashRepairContextException>().having(
+          (error) => error.message,
+          'message',
+          contains('otro conflicto'),
+        ),
+      ),
+    );
   });
 }
 
@@ -119,8 +154,9 @@ CashRepairContextService _service({
   Future<List<Map<String, dynamic>>> Function()? loadBlockingIssues,
   Future<List<Map<String, dynamic>>> Function()? loadOpenSessions,
   Future<void> Function(AppRuntimeContext)? writeRuntimeContext,
-  Future<bool> Function({required String? remoteOpenCashSessionId})?
-      reconcileOriginalSession,
+  Future<void> Function({required String? authoritativeOpenCashSessionId})?
+      convergeCashSessions,
+  Future<void> Function()? resolveOpenSessionConflict,
 }) {
   return CashRepairContextService(
     authenticatedProfileId: () => 'profile-a',
@@ -149,20 +185,23 @@ CashRepairContextService _service({
       return loadOpenSessions();
     },
     writeRuntimeContext: writeRuntimeContext ?? (_) async {},
-    reconcileOriginalSession: ({
-      required profileId,
+    convergeCashSessions: ({
       required businessId,
       required branchId,
       required cashRegisterId,
-      required originalCashSessionId,
-      required String? remoteOpenCashSessionId,
-      required saleId,
+      required String? authoritativeOpenCashSessionId,
     }) async {
-      if (reconcileOriginalSession == null) return false;
-      return reconcileOriginalSession(
-        remoteOpenCashSessionId: remoteOpenCashSessionId,
+      await convergeCashSessions?.call(
+        authoritativeOpenCashSessionId: authoritativeOpenCashSessionId,
       );
     },
+    resolveOpenSessionConflict: ({
+      required profileId,
+      required businessId,
+      required branchId,
+      required cashSessionId,
+    }) async =>
+        resolveOpenSessionConflict?.call(),
   );
 }
 
@@ -220,20 +259,22 @@ CashPosRecoveryResult _recovery({String? openCashSessionId = 'session-s2'}) {
   );
 }
 
-Map<String, dynamic> _staleSaleBlocker() => {
+Map<String, dynamic> _staleSaleBlocker({
+  String saleId = 'sale-a',
+  String cashSessionId = 'session-s1',
+  bool includeScopeMetadata = false,
+}) =>
+    {
       'domain': 'cash_pos',
       'entity_type': 'sales',
-      'entity_id': 'sale-a',
+      'entity_id': saleId,
       'issue_type': 'sale_cash_session_rejected',
       'severity': 'blocking',
       'status': 'open',
-    };
-
-Map<String, dynamic> _openSessionConflict() => {
-      'domain': 'cash_pos',
-      'entity_type': 'cash_sessions',
-      'entity_id': 'session-s1',
-      'issue_type': 'cash_open_session_conflict',
-      'severity': 'blocking',
-      'status': 'open',
+      if (includeScopeMetadata)
+        'metadata_json': '{"cash_session_id":"$cashSessionId",'
+            '"cash_register_id":"register-a",'
+            '"branch_id":"branch-a",'
+            '"remote_rule":"sale_cash_session_invalid",'
+            '"remote_reason":"closed"}',
     };

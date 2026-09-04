@@ -29,6 +29,7 @@ class AuthoritativeCashSessionSnapshot {
     required this.reusedOpenSession,
     required this.idempotent,
     this.notes,
+    this.deletedAt,
   });
 
   factory AuthoritativeCashSessionSnapshot.fromJson(Object? value) {
@@ -56,6 +57,36 @@ class AuthoritativeCashSessionSnapshot {
       reusedOpenSession: json['reused_open_session'] == true,
       idempotent: json['idempotent'] == true,
       notes: _nullableString(json['notes']),
+      deletedAt: _nullableDate(json['deleted_at']),
+    );
+  }
+
+  factory AuthoritativeCashSessionSnapshot.fromTableRow(Object? value) {
+    if (value is! Map) {
+      throw const FormatException('Cash session row must be an object.');
+    }
+    final json = value.map((key, item) => MapEntry(key.toString(), item));
+    return AuthoritativeCashSessionSnapshot(
+      id: _requiredString(json, 'id'),
+      businessId: _requiredString(json, 'business_id'),
+      branchId: _requiredString(json, 'branch_id'),
+      cashRegisterId: _requiredString(json, 'cash_register_id'),
+      openedByProfileId: _nullableString(json['opened_by']),
+      closedByProfileId: _nullableString(json['closed_by']),
+      openedAt: _requiredDate(json, 'opened_at'),
+      closedAt: _nullableDate(json['closed_at']),
+      openingCashAmount: _requiredDouble(json, 'opening_amount'),
+      expectedCashAmount: _nullableDouble(json['expected_closing_amount']),
+      closingCashAmount: _nullableDouble(json['actual_closing_amount']),
+      differenceAmount: _nullableDouble(json['difference_amount']),
+      status: _requiredString(json, 'status'),
+      version: _requiredInt(json, 'version'),
+      createdAt: _requiredDate(json, 'created_at'),
+      updatedAt: _requiredDate(json, 'updated_at'),
+      reusedOpenSession: false,
+      idempotent: false,
+      notes: _nullableString(json['notes']),
+      deletedAt: _nullableDate(json['deleted_at']),
     );
   }
 
@@ -78,6 +109,7 @@ class AuthoritativeCashSessionSnapshot {
   final bool reusedOpenSession;
   final bool idempotent;
   final String? notes;
+  final DateTime? deletedAt;
 }
 
 String _requiredString(Map<String, Object?> json, String key) {

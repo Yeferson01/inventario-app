@@ -158,6 +158,34 @@ class CashSessionLocalDao {
     return rows.first.data;
   }
 
+  Future<List<Map<String, dynamic>>> getOpenCashSessionsForRegister({
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select *
+      from cash_sessions
+      where business_id = ?
+        and branch_id = ?
+        and cash_register_id = ?
+        and status = 'open'
+        and deleted_at is null
+      order by opened_at, id
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        Variable<String>(cashRegisterId),
+      ],
+      readsFrom: {_db.cashSessions},
+    ).get();
+    return rows
+        .map((row) => Map<String, dynamic>.from(row.data))
+        .toList(growable: false);
+  }
+
   Future<Map<String, dynamic>?> getOpenCashSessionForBranch({
     required String businessId,
     required String branchId,
@@ -718,8 +746,12 @@ class CashSessionLocalDao {
     final openingCashAmount = _cashSummaryDouble(
       session['opening_cash_amount'],
     );
+    final cashAdjustments = await _calculateReconciledCashAdjustmentForSession(
+      cashSessionId: cashSessionId,
+    );
 
-    final calculatedExpectedCashAmount = openingCashAmount + cashPayments;
+    final calculatedExpectedCashAmount =
+        openingCashAmount + cashPayments + cashAdjustments;
 
     final storedExpectedCashAmount = _cashSummaryNullableDouble(
       session['expected_cash_amount'],
@@ -750,6 +782,7 @@ class CashSessionLocalDao {
       'sales_total': _cashSummaryDouble(salesData['sales_total']),
       'total_payments': totalPayments,
       'cash_payments': cashPayments,
+      'cash_adjustments': cashAdjustments,
       'payments_by_method': paymentsByMethod,
       'calculated_expected_cash_amount': calculatedExpectedCashAmount,
       'stored_expected_cash_amount': storedExpectedCashAmount,
@@ -873,12 +906,57 @@ class CashSessionLocalDao {
     }
 
     final value = rows.first.data['expected_cash_amount'];
+    final cashAdjustments = await _calculateReconciledCashAdjustmentForSession(
+      cashSessionId: cashSessionId,
+    );
 
     if (value is num) {
-      return value.toDouble();
+      return value.toDouble() + cashAdjustments;
     }
 
-    return double.tryParse(value?.toString() ?? '') ?? 0;
+    return (double.tryParse(value?.toString() ?? '') ?? 0) + cashAdjustments;
+  }
+
+  Future<double> _calculateReconciledCashAdjustmentForSession({
+    required String cashSessionId,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select coalesce(sum(-sp.amount), 0) as cash_adjustments
+      from sale_payments sp
+      join sales s on s.id = sp.sale_id
+      where s.cash_session_id = ?
+        and s.deleted_at is null
+        and sp.deleted_at is null
+        and lower(coalesce(sp.payment_method, '')) = 'cash'
+        and lower(coalesce(sp.status, 'completed')) in (
+          'completed',
+          'paid',
+          'approved',
+          'synced'
+        )
+        and json_extract(
+          case
+            when json_valid(coalesce(s.metadata_json, ''))
+              then s.metadata_json
+            else '{}'
+          end,
+          '\$.local_resolution'
+        ) = 'intentional_stale_sale_reconciled'
+        and json_extract(
+          case
+            when json_valid(coalesce(s.metadata_json, ''))
+              then s.metadata_json
+            else '{}'
+          end,
+          '\$.cash_treatment'
+        ) = 'already_included_in_destination_opening'
+      ''',
+      variables: [Variable<String>(cashSessionId)],
+      readsFrom: {_db.sales, _db.salePayments},
+    ).getSingle();
+
+    return _cashSummaryDouble(row.data['cash_adjustments']);
   }
 
   Future<Map<String, dynamic>?> getCashSessionById({
@@ -1010,6 +1088,100 @@ class CashSessionLocalDao {
       );
     }
 
+    await _upsertAuthoritativeCashSession(session);
+  }
+
+  Future<void> applyAuthoritativeCashSessionSet(
+    Iterable<AuthoritativeCashSessionSnapshot> sessions, {
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+    required String? authoritativeOpenCashSessionId,
+  }) {
+    final byId = <String, AuthoritativeCashSessionSnapshot>{
+      for (final session in sessions) session.id: session,
+    };
+    return _db.transaction(() async {
+      for (final session in byId.values) {
+        if (session.businessId != businessId ||
+            session.branchId != branchId ||
+            session.cashRegisterId != cashRegisterId) {
+          throw StateError(
+            'La proyección autoritativa contiene una sesión fuera del scope.',
+          );
+        }
+      }
+
+      final remoteOpen = byId.values
+          .where(
+            (session) => session.status == 'open' && session.deletedAt == null,
+          )
+          .toList(growable: false);
+      if (authoritativeOpenCashSessionId == null) {
+        if (remoteOpen.isNotEmpty) {
+          throw StateError(
+            'El estado autoritativo no esperaba una sesión abierta.',
+          );
+        }
+      } else if (remoteOpen.length != 1 ||
+          remoteOpen.single.id != authoritativeOpenCashSessionId) {
+        throw StateError(
+          'La sesión abierta autoritativa no es única o no coincide.',
+        );
+      }
+
+      final localOpen = await getOpenCashSessionsForRegister(
+        businessId: businessId,
+        branchId: branchId,
+        cashRegisterId: cashRegisterId,
+      );
+      for (final local in localOpen) {
+        final id = local['id']?.toString();
+        final remote = id == null ? null : byId[id];
+        if (remote == null ||
+            (remote.status == 'open' &&
+                remote.id != authoritativeOpenCashSessionId)) {
+          throw StateError(
+            'Una sesión local abierta carece de prueba autoritativa suficiente.',
+          );
+        }
+      }
+
+      final ordered = byId.values.toList(growable: false)
+        ..sort((left, right) {
+          final leftOpen = left.status == 'open' && left.deletedAt == null;
+          final rightOpen = right.status == 'open' && right.deletedAt == null;
+          if (leftOpen == rightOpen) return left.id.compareTo(right.id);
+          return leftOpen ? 1 : -1;
+        });
+      for (final session in ordered) {
+        await _upsertAuthoritativeCashSession(session);
+      }
+
+      final persistedOpen = await getOpenCashSessionsForRegister(
+        businessId: businessId,
+        branchId: branchId,
+        cashRegisterId: cashRegisterId,
+      );
+      final persistedIds = persistedOpen
+          .map((row) => row['id']?.toString())
+          .whereType<String>()
+          .toSet();
+      final expectedIds = authoritativeOpenCashSessionId == null
+          ? const <String>{}
+          : <String>{authoritativeOpenCashSessionId};
+      if (persistedIds.length != expectedIds.length ||
+          !persistedIds.containsAll(expectedIds)) {
+        throw StateError(
+          'La proyección local no convergió a la sesión autoritativa.',
+        );
+      }
+    });
+  }
+
+  Future<void> _upsertAuthoritativeCashSession(
+    AuthoritativeCashSessionSnapshot session,
+  ) async {
     final existing = await getCashSessionById(id: session.id);
     final openedBy = await _profileExists(session.openedByProfileId)
         ? session.openedByProfileId
@@ -1035,7 +1207,7 @@ class CashSessionLocalDao {
         closing_cash_amount, expected_cash_amount, difference_amount, status,
         idempotency_key, local_status, sync_status, version, metadata_json,
         created_at, updated_at, deleted_at, last_synced_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, null, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         business_id = excluded.business_id,
         branch_id = excluded.branch_id,
@@ -1055,7 +1227,7 @@ class CashSessionLocalDao {
         metadata_json = excluded.metadata_json,
         created_at = excluded.created_at,
         updated_at = excluded.updated_at,
-        deleted_at = null,
+        deleted_at = excluded.deleted_at,
         last_synced_at = excluded.last_synced_at
       ''',
       [
@@ -1078,6 +1250,7 @@ class CashSessionLocalDao {
         metadata,
         session.createdAt,
         session.updatedAt,
+        session.deletedAt,
         now,
       ],
     );

@@ -129,6 +129,8 @@ class CloseCashSessionInput {
     required this.branchId,
     required this.profileId,
     required this.actualClosingAmount,
+    this.appDeviceId,
+    this.deviceInstallationId,
     this.notes,
   });
 
@@ -136,6 +138,8 @@ class CloseCashSessionInput {
   final String branchId;
   final String profileId;
   final double actualClosingAmount;
+  final String? appDeviceId;
+  final String? deviceInstallationId;
   final String? notes;
 }
 

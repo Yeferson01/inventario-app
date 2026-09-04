@@ -121,6 +121,36 @@ void main() {
     expect(row.data['sync_status'], SyncStatus.synced.index);
     expect(openSession, isNull);
   });
+
+  test('successful canonical close projects the closed runtime state',
+      () async {
+    CloseCashSessionResult? projected;
+    final runtimeAwareService = CashSessionLocalService(
+      dao: CashSessionLocalDao(database),
+      remoteDataSource: CashSessionRemoteDataSource.withInvoker(
+        (functionName, parameters) async => _closedSnapshot,
+      ),
+      runtimeCloseProjector: (input, result) async {
+        expect(input.deviceInstallationId, 'installation-a');
+        expect(input.appDeviceId, 'device-a');
+        projected = result;
+      },
+    );
+
+    final result = await runtimeAwareService.closeCashSession(
+      const CloseCashSessionInput(
+        businessId: 'business-a',
+        branchId: 'branch-a',
+        profileId: 'profile-a',
+        actualClosingAmount: 65,
+        appDeviceId: 'device-a',
+        deviceInstallationId: 'installation-a',
+      ),
+    );
+
+    expect(projected?.cashSessionId, result.cashSessionId);
+    expect(projected?.status, 'closed');
+  });
 }
 
 class _NoPendingStaleSalesController

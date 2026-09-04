@@ -3,15 +3,32 @@ import '../data/datasources/cash_session_remote_datasource.dart';
 import '../data/models/cash_session_remote_models.dart';
 import 'cash_session_local_models.dart';
 
+typedef CashSessionRuntimeProjector = Future<void> Function(
+  OpenCashSessionInput input,
+  AuthoritativeCashSessionSnapshot session,
+);
+
+typedef CashSessionRuntimeCloseProjector = Future<void> Function(
+  CloseCashSessionInput input,
+  CloseCashSessionResult result,
+);
+
 class CashSessionLocalService {
   CashSessionLocalService({
     required CashSessionLocalDao dao,
     CashSessionRemoteDataSource? remoteDataSource,
+    CashSessionRuntimeProjector? runtimeProjector,
+    CashSessionRuntimeCloseProjector? runtimeCloseProjector,
   })  : _dao = dao,
-        _remoteDataSource = remoteDataSource;
+        _remoteDataSource = remoteDataSource,
+        _runtimeProjector = runtimeProjector,
+        _runtimeCloseProjector = runtimeCloseProjector;
 
   final CashSessionLocalDao _dao;
   final CashSessionRemoteDataSource? _remoteDataSource;
+  final CashSessionRuntimeProjector? _runtimeProjector;
+  final CashSessionRuntimeCloseProjector? _runtimeCloseProjector;
+  final Map<String, Future<OpenCashSessionResult>> _openInFlightByScope = {};
 
   Future<Map<String, dynamic>> getLatestCashSessionSummaryForBranch({
     required String businessId,
@@ -69,7 +86,9 @@ class CashSessionLocalService {
         cashSessionId: cashSessionId,
       );
       await _dao.applyAuthoritativeCashSession(snapshot);
-      return _closeResult(snapshot);
+      final result = _closeResult(snapshot);
+      await _runtimeCloseProjector?.call(input, result);
+      return result;
     }
 
     final expectedCashAmount = await _dao.calculateExpectedCashAmountForSession(
@@ -84,7 +103,7 @@ class CashSessionLocalService {
       notes: input.notes,
     );
 
-    return CloseCashSessionResult(
+    final result = CloseCashSessionResult(
       cashSessionId: cashSessionId,
       cashRegisterId: cashRegisterId,
       businessId: input.businessId,
@@ -94,6 +113,8 @@ class CashSessionLocalService {
       differenceAmount: input.actualClosingAmount - expectedCashAmount,
       status: 'closed',
     );
+    await _runtimeCloseProjector?.call(input, result);
+    return result;
   }
 
   Future<Map<String, dynamic>> getPosCashReadinessSummary({
@@ -138,7 +159,24 @@ class CashSessionLocalService {
     OpenCashSessionInput input,
   ) async {
     _validateInput(input);
+    final key = '${input.businessId}:${input.branchId}:${input.cashRegisterId}';
+    final existing = _openInFlightByScope[key];
+    if (existing != null) return await existing;
+    final operation = _openCashSession(input);
+    _openInFlightByScope[key] = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_openInFlightByScope[key], operation)) {
+        final removed = _openInFlightByScope.remove(key);
+        assert(identical(removed, operation));
+      }
+    }
+  }
 
+  Future<OpenCashSessionResult> _openCashSession(
+    OpenCashSessionInput input,
+  ) async {
     final cashRegister = await _getCanonicalCashRegister(input);
 
     final remoteDataSource = _remoteDataSource;
@@ -155,7 +193,8 @@ class CashSessionLocalService {
         branchId: input.branchId,
         cashRegisterId: cashRegister.id,
       );
-      await _dao.applyAuthoritativeCashSession(snapshot);
+      await _projectOpenSessionWithAuthoritativeConflicts(snapshot);
+      await _runtimeProjector?.call(input, snapshot);
       final persisted = await _dao.getCashSessionById(id: snapshot.id);
       if (persisted == null) {
         throw StateError(
@@ -207,6 +246,117 @@ class CashSessionLocalService {
       ),
       reusedOpenSession: false,
     );
+  }
+
+  Future<LocalCashSessionResult?> convergeAuthoritativeOpenSession({
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+    required String? authoritativeOpenCashSessionId,
+  }) async {
+    final remoteDataSource = _remoteDataSource;
+    if (remoteDataSource == null) {
+      throw const CashRemoteStateUnavailableException(
+        'La convergencia de caja requiere estado remoto autoritativo.',
+      );
+    }
+    final localOpen = await _dao.getOpenCashSessionsForRegister(
+      businessId: businessId,
+      branchId: branchId,
+      cashRegisterId: cashRegisterId,
+    );
+    final requestedIds = localOpen
+        .map((row) => row['id']?.toString().trim())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final authoritativeId = authoritativeOpenCashSessionId?.trim();
+    if (authoritativeId != null && authoritativeId.isNotEmpty) {
+      requestedIds.add(authoritativeId);
+    }
+    final remote = await remoteDataSource.loadSessionsById(
+      businessId: businessId,
+      branchId: branchId,
+      cashRegisterId: cashRegisterId,
+      cashSessionIds: requestedIds,
+    );
+    if (remote.map((session) => session.id).toSet().length !=
+        requestedIds.length) {
+      throw const CashRemoteStateUnavailableException(
+        'No se pudo demostrar el estado remoto de todas las sesiones locales abiertas.',
+      );
+    }
+    try {
+      await _dao.applyAuthoritativeCashSessionSet(
+        remote,
+        businessId: businessId,
+        branchId: branchId,
+        cashRegisterId: cashRegisterId,
+        authoritativeOpenCashSessionId:
+            authoritativeId == null || authoritativeId.isEmpty
+                ? null
+                : authoritativeId,
+      );
+    } on StateError catch (error) {
+      throw CashRemoteStateUnavailableException(
+        'El estado local de caja no pudo converger de forma segura.',
+        error,
+      );
+    }
+    if (authoritativeId == null || authoritativeId.isEmpty) return null;
+    final persisted = await _dao.getCashSessionById(id: authoritativeId);
+    if (persisted == null || persisted['status']?.toString() != 'open') {
+      throw const CashRemoteStateUnavailableException(
+        'La sesión remota abierta no quedó materializada localmente.',
+      );
+    }
+    return _sessionResult(persisted, created: false);
+  }
+
+  Future<void> _projectOpenSessionWithAuthoritativeConflicts(
+    AuthoritativeCashSessionSnapshot openSession,
+  ) async {
+    final remoteDataSource = _remoteDataSource;
+    if (remoteDataSource == null) {
+      await _dao.applyAuthoritativeCashSession(openSession);
+      return;
+    }
+    final localOpen = await _dao.getOpenCashSessionsForRegister(
+      businessId: openSession.businessId,
+      branchId: openSession.branchId,
+      cashRegisterId: openSession.cashRegisterId,
+    );
+    final conflictingIds = localOpen
+        .map((row) => row['id']?.toString().trim())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty && id != openSession.id)
+        .toSet();
+    final conflicts = await remoteDataSource.loadSessionsById(
+      businessId: openSession.businessId,
+      branchId: openSession.branchId,
+      cashRegisterId: openSession.cashRegisterId,
+      cashSessionIds: conflictingIds,
+    );
+    if (conflicts.map((session) => session.id).toSet().length !=
+        conflictingIds.length) {
+      throw const CashRemoteStateUnavailableException(
+        'No se pudo demostrar que la sesión local anterior dejó de estar abierta.',
+      );
+    }
+    try {
+      await _dao.applyAuthoritativeCashSessionSet(
+        [...conflicts, openSession],
+        businessId: openSession.businessId,
+        branchId: openSession.branchId,
+        cashRegisterId: openSession.cashRegisterId,
+        authoritativeOpenCashSessionId: openSession.id,
+      );
+    } on StateError catch (error) {
+      throw CashRemoteStateUnavailableException(
+        'La sesión canónica no pudo proyectarse sin violar la unicidad local.',
+        error,
+      );
+    }
   }
 
   Future<LocalCashSessionResult?> getOpenCashSession({
