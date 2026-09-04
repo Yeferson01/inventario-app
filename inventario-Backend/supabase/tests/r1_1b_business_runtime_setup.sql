@@ -188,29 +188,18 @@ $$;
 
 select pass('1. owner with settings.business creates missing runtime');
 
--- 2. Admin capability creates an explicitly identified missing branch/runtime.
+-- 2. Runtime setup cannot create an absent branch, even for an administrator.
 select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-000000000202', true);
-do $$
-declare
-  v_result jsonb := public.ensure_business_runtime_setup(
-    'f2000000-0000-0000-0000-000000000001',
-    'f2000000-0000-0000-0000-000000000018',
-    null,
-    '{}'::jsonb,
-    'Admin Explicit Branch'
-  );
-begin
-  if not coalesce((v_result->>'runtime_ready')::boolean, false)
-     or not coalesce((v_result->>'branch_created')::boolean, false)
-     or v_result->>'branch_id' <> 'f2000000-0000-0000-0000-000000000018'
-     or v_result->>'branch_name' <> 'Admin Explicit Branch'
-  then
-    raise exception 'Case 2 failed: admin explicit branch creation: %', v_result;
-  end if;
-end;
-$$;
-
-select pass('2. admin with settings.business creates explicit branch runtime');
+select throws_ok(
+  $$select public.ensure_business_runtime_setup(
+      'f2000000-0000-0000-0000-000000000001',
+      'f2000000-0000-0000-0000-000000000018',
+      null, '{}'::jsonb, 'Admin Explicit Branch'
+    )$$,
+  '42501',
+  'Runtime setup cannot create branches; use create_business_branch or private platform onboarding',
+  '2. runtime setup cannot create an absent branch'
+);
 
 -- 3. Repeating owner setup returns the existing ids without duplication.
 select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-000000000201', true);
@@ -247,29 +236,22 @@ $$;
 
 select pass('3. second owner call is idempotent');
 
--- 4. Repeating admin branch creation reuses all canonical ids.
-select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-000000000202', true);
-do $$
-declare
-  v_result jsonb := public.ensure_business_runtime_setup(
-    'f2000000-0000-0000-0000-000000000001',
-    'f2000000-0000-0000-0000-000000000018',
-    null,
-    '{}'::jsonb,
-    'Ignored Because Branch Exists'
-  );
-begin
-  if coalesce((v_result->>'created_anything')::boolean, true)
-     or (select count(*) from public.branches where id = 'f2000000-0000-0000-0000-000000000018') <> 1
-     or (select count(*) from public.cash_registers where branch_id = 'f2000000-0000-0000-0000-000000000018') <> 1
-     or (select count(*) from public.receipt_sequences where branch_id = 'f2000000-0000-0000-0000-000000000018' and status = 'active') <> 1
-  then
-    raise exception 'Case 4 failed: admin idempotence: %', v_result;
-  end if;
-end;
-$$;
-
-select pass('4. second admin call does not duplicate branch or runtime');
+-- 4. A rejected absent-branch request leaves no organizational or runtime rows.
+select ok(
+  not exists (
+    select 1 from public.branches
+    where id = 'f2000000-0000-0000-0000-000000000018'
+  )
+  and not exists (
+    select 1 from public.cash_registers
+    where branch_id = 'f2000000-0000-0000-0000-000000000018'
+  )
+  and not exists (
+    select 1 from public.receipt_sequences
+    where branch_id = 'f2000000-0000-0000-0000-000000000018'
+  ),
+  '4. rejected absent branch leaves no branch or runtime artifacts'
+);
 
 -- 5-7. Non-administrative seeded roles cannot create runtime. The cashier has
 -- settings.business on another branch, proving that capability does not leak
@@ -337,67 +319,48 @@ select pass('7. technician cannot create runtime without administrative capabili
 
 -- 8. A member of another business cannot bootstrap itself into business A.
 select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-000000000206', true);
-do $$
-begin
-  begin
-    perform public.ensure_business_runtime_setup(
+select throws_ok(
+  $$select public.ensure_business_runtime_setup(
       'f2000000-0000-0000-0000-000000000001',
       'f2000000-0000-0000-0000-000000000011'
-    );
-    raise exception 'Case 8 failed: outsider setup succeeded';
-  exception when raise_exception then
-    if position('Active business membership is required' in sqlerrm) = 0 then raise; end if;
-  end;
-end;
-$$;
-select pass('8. user from another business cannot execute setup');
+    )$$,
+  'P0001',
+  'Active membership does not grant access to this branch',
+  '8. user from another business cannot execute setup'
+);
 
--- 9-11. Explicit branch must belong to the business and be active/not deleted.
+-- 9-11. Only an existing, active, non-deleted branch of the business is a
+-- valid runtime target. The common denial also avoids leaking branch details.
 select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-000000000201', true);
-do $$
-begin
-  begin
-    perform public.ensure_business_runtime_setup(
+select throws_ok(
+  $$select public.ensure_business_runtime_setup(
       'f2000000-0000-0000-0000-000000000001',
       'f2000000-0000-0000-0000-000000000021'
-    );
-    raise exception 'Case 9 failed: cross-business branch accepted';
-  exception when raise_exception then
-    if position('Branch does not belong' in sqlerrm) = 0 then raise; end if;
-  end;
-end;
-$$;
-select pass('9. branch from another business is rejected');
+    )$$,
+  '42501',
+  'Runtime setup cannot create branches; use create_business_branch or private platform onboarding',
+  '9. branch from another business is rejected without disclosure'
+);
 
-do $$
-begin
-  begin
-    perform public.ensure_business_runtime_setup(
+select throws_ok(
+  $$select public.ensure_business_runtime_setup(
       'f2000000-0000-0000-0000-000000000001',
       'f2000000-0000-0000-0000-000000000016'
-    );
-    raise exception 'Case 10 failed: inactive branch accepted';
-  exception when raise_exception then
-    if position('Branch is inactive or deleted' in sqlerrm) = 0 then raise; end if;
-  end;
-end;
-$$;
-select pass('10. inactive branch is rejected');
+    )$$,
+  '42501',
+  'Runtime setup cannot create branches; use create_business_branch or private platform onboarding',
+  '10. inactive branch is rejected without disclosure'
+);
 
-do $$
-begin
-  begin
-    perform public.ensure_business_runtime_setup(
+select throws_ok(
+  $$select public.ensure_business_runtime_setup(
       'f2000000-0000-0000-0000-000000000001',
       'f2000000-0000-0000-0000-000000000017'
-    );
-    raise exception 'Case 11 failed: deleted branch accepted';
-  exception when raise_exception then
-    if position('Branch is inactive or deleted' in sqlerrm) = 0 then raise; end if;
-  end;
-end;
-$$;
-select pass('11. deleted branch is rejected');
+    )$$,
+  '42501',
+  'Runtime setup cannot create branches; use create_business_branch or private platform onboarding',
+  '11. deleted branch is rejected without disclosure'
+);
 
 -- 12. Existing canonical runtime ids are returned unchanged.
 do $$
