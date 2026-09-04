@@ -6,10 +6,8 @@ import '../data/datasources/product_stock_balance_local_dao.dart';
 import '../data/datasources/product_stock_balance_remote_datasource.dart';
 import 'product_stock_balance_pull_service.dart';
 
-enum InventoryProductStockFilter {
-  all,
-  outOfStock,
-}
+export '../data/datasources/product_stock_balance_local_dao.dart'
+    show InventoryProductStockFilter;
 
 class ProductStockBalanceKey {
   const ProductStockBalanceKey({
@@ -115,7 +113,7 @@ final localProductsWithStockProvider = StreamProvider.family<
     businessId: key.businessId,
     branchId: key.branchId,
     searchTerm: key.searchTerm,
-    outOfStockOnly: key.stockFilter == InventoryProductStockFilter.outOfStock,
+    stockFilter: key.stockFilter,
     limit: key.limit,
   );
 });

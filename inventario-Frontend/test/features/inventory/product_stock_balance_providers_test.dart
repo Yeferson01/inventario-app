@@ -34,8 +34,16 @@ void main() {
       branchId: 'branch-1',
       stockFilter: InventoryProductStockFilter.outOfStock,
     );
+    const lowStock = ProductsWithLocalStockKey(
+      businessId: 'business-1',
+      branchId: 'branch-1',
+      stockFilter: InventoryProductStockFilter.lowStock,
+    );
 
     expect(all, isNot(outOfStock));
+    expect(all, isNot(lowStock));
+    expect(outOfStock, isNot(lowStock));
     expect(outOfStock.stockFilter, InventoryProductStockFilter.outOfStock);
+    expect(lowStock.stockFilter, InventoryProductStockFilter.lowStock);
   });
 }

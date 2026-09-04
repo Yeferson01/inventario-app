@@ -313,6 +313,15 @@ class _InventoryProductStockListScreenState
                           InventoryProductStockFilter.outOfStock,
                         ),
                       ),
+                      ChoiceChip(
+                        key: const Key('inventory-filter-low-stock'),
+                        label: const Text('Bajo stock'),
+                        selected: _stockFilter ==
+                            InventoryProductStockFilter.lowStock,
+                        onSelected: (_) => _setStockFilter(
+                          InventoryProductStockFilter.lowStock,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -349,6 +358,17 @@ class _InventoryProductStockListScreenState
                           title: 'Sin productos agotados',
                           message:
                               'La sucursal seleccionada no tiene existencias agotadas.',
+                        );
+                      }
+
+                      if (_stockFilter ==
+                          InventoryProductStockFilter.lowStock) {
+                        return const _InventoryStateMessage(
+                          key: Key('inventory-low-stock-empty'),
+                          icon: Icons.inventory_2_outlined,
+                          title: 'Sin productos con bajo stock',
+                          message:
+                              'La sucursal seleccionada no tiene existencias bajo el mínimo.',
                         );
                       }
 
@@ -425,7 +445,9 @@ class _InventoryProductCard extends StatelessWidget {
     final averageCost = _formatAverageCost(product['stock_average_cost']);
     final minimumStock = _minimumStock(product['minimum_stock']);
     final productId = _string(product['product_id']) ?? '';
-    final isOutOfStock = _int(product['quantity_on_hand']) <= 0;
+    final quantityOnHand = _int(product['quantity_on_hand']);
+    final isOutOfStock = quantityOnHand <= 0;
+    final isLowStock = quantityOnHand > 0 && quantityOnHand <= minimumStock;
 
     return AppGlassCard(
       child: Row(
@@ -464,6 +486,15 @@ class _InventoryProductCard extends StatelessWidget {
                     key: Key('inventory-out-of-stock-$productId'),
                     avatar: const Icon(Icons.remove_shopping_cart_outlined),
                     label: const Text('Agotado'),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ] else if (isLowStock) ...[
+                  const SizedBox(height: CronosSpacing.xs),
+                  Chip(
+                    key: Key('inventory-low-stock-$productId'),
+                    avatar: const Icon(Icons.warning_amber_rounded),
+                    label: const Text('Bajo stock'),
                     visualDensity: VisualDensity.compact,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),

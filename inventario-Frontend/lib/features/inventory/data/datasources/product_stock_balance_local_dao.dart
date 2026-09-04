@@ -8,6 +8,12 @@ import '../../../../core/utils/app_uuid.dart';
 import '../../../../core/utils/barcode_normalizer.dart';
 import '../models/product_stock_balance_models.dart';
 
+enum InventoryProductStockFilter {
+  all,
+  outOfStock,
+  lowStock,
+}
+
 class ProductStockBalanceLocalDao {
   ProductStockBalanceLocalDao(this._db);
 
@@ -311,12 +317,11 @@ class ProductStockBalanceLocalDao {
     required String businessId,
     required String branchId,
     String searchTerm = '',
-    bool outOfStockOnly = false,
+    InventoryProductStockFilter stockFilter = InventoryProductStockFilter.all,
     int? limit = 100,
   }) async {
     final search = _ProductStockSearch.from(searchTerm);
-    final stockFilterClause =
-        outOfStockOnly ? 'and coalesce(b.quantity_on_hand, 0) <= 0' : '';
+    final stockFilterClause = _stockFilterClause(stockFilter);
     final limitClause = limit == null ? '' : 'limit ?';
     final rows = await _db.customSelect(
       '''
@@ -374,12 +379,11 @@ class ProductStockBalanceLocalDao {
     required String businessId,
     required String branchId,
     String searchTerm = '',
-    bool outOfStockOnly = false,
+    InventoryProductStockFilter stockFilter = InventoryProductStockFilter.all,
     int? limit = 100,
   }) {
     final search = _ProductStockSearch.from(searchTerm);
-    final stockFilterClause =
-        outOfStockOnly ? 'and coalesce(b.quantity_on_hand, 0) <= 0' : '';
+    final stockFilterClause = _stockFilterClause(stockFilter);
     final limitClause = limit == null ? '' : 'limit ?';
 
     return _db
@@ -433,6 +437,18 @@ class ProductStockBalanceLocalDao {
         )
         .watch()
         .map((rows) => rows.map((row) => row.data).toList());
+  }
+
+  String _stockFilterClause(InventoryProductStockFilter stockFilter) {
+    return switch (stockFilter) {
+      InventoryProductStockFilter.all => '',
+      InventoryProductStockFilter.outOfStock =>
+        'and coalesce(b.quantity_on_hand, 0) <= 0',
+      InventoryProductStockFilter.lowStock => '''
+        and coalesce(b.quantity_on_hand, 0) > 0
+        and coalesce(b.quantity_on_hand, 0) <= coalesce(p.minimum_stock, 0)
+      ''',
+    };
   }
 
   Stream<Map<String, dynamic>?> watchProductBalance({

@@ -292,7 +292,7 @@ void main() {
     final products = await dao.getProductsWithLocalStock(
       businessId: businessId,
       branchId: branchId,
-      outOfStockOnly: true,
+      stockFilter: InventoryProductStockFilter.outOfStock,
       limit: null,
     );
 
@@ -331,13 +331,13 @@ void main() {
     final branchA = await dao.getProductsWithLocalStock(
       businessId: businessId,
       branchId: branchId,
-      outOfStockOnly: true,
+      stockFilter: InventoryProductStockFilter.outOfStock,
       limit: null,
     );
     final branchB = await dao.getProductsWithLocalStock(
       businessId: businessId,
       branchId: 'branch-2',
-      outOfStockOnly: true,
+      stockFilter: InventoryProductStockFilter.outOfStock,
       limit: null,
     );
 
@@ -401,14 +401,14 @@ void main() {
       businessId: businessId,
       branchId: branchId,
       searchTerm: 'Arroz',
-      outOfStockOnly: true,
+      stockFilter: InventoryProductStockFilter.outOfStock,
       limit: null,
     );
     final byBarcode = await dao.getProductsWithLocalStock(
       businessId: businessId,
       branchId: branchId,
       searchTerm: 'rice-000',
-      outOfStockOnly: true,
+      stockFilter: InventoryProductStockFilter.outOfStock,
       limit: null,
     );
 
@@ -435,7 +435,7 @@ void main() {
     final stream = dao.watchProductsWithLocalStock(
       businessId: businessId,
       branchId: branchId,
-      outOfStockOnly: true,
+      stockFilter: InventoryProductStockFilter.outOfStock,
       limit: null,
     );
 
@@ -467,6 +467,355 @@ void main() {
       deletedAt: null,
     );
     expect(await replenished, isEmpty);
+  });
+
+  test(
+      'low-stock filter is inclusive, positive, and independent from exhausted stock',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'normal',
+      businessId: businessId,
+      name: 'A normal',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'threshold',
+      businessId: businessId,
+      name: 'B en mínimo',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'below',
+      businessId: businessId,
+      name: 'C bajo mínimo',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'exhausted',
+      businessId: businessId,
+      name: 'D agotado',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'missing',
+      businessId: businessId,
+      name: 'E sin balance',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'zero-threshold',
+      businessId: businessId,
+      name: 'F mínimo cero',
+      minimumStock: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-normal',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'normal',
+      quantityOnHand: 6,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-threshold',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'threshold',
+      quantityOnHand: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-below',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'below',
+      quantityOnHand: 1,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-exhausted-low-contract',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'exhausted',
+      quantityOnHand: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'balance-zero-threshold',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'zero-threshold',
+      quantityOnHand: 1,
+    );
+
+    final lowStock = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+    final outOfStock = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      stockFilter: InventoryProductStockFilter.outOfStock,
+      limit: null,
+    );
+
+    expect(
+      lowStock.map((product) => product['product_id']),
+      ['threshold', 'below'],
+    );
+    expect(
+      outOfStock.map((product) => product['product_id']),
+      ['exhausted', 'missing'],
+    );
+    expect(
+      lowStock.map((product) => product['product_id']),
+      isNot(contains('zero-threshold')),
+    );
+  });
+
+  test('low-stock filter is branch scoped and isolated by business', () async {
+    await database.into(database.businesses).insert(
+          BusinessesCompanion.insert(
+            id: 'business-2',
+            name: 'Otro negocio',
+          ),
+        );
+    await _insertProduct(
+      database,
+      id: 'scoped-product',
+      businessId: businessId,
+      name: 'Producto scoped',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'other-business-product',
+      businessId: 'business-2',
+      name: 'Producto ajeno',
+      minimumStock: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'scoped-product-a',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'scoped-product',
+      quantityOnHand: 10,
+    );
+    await _insertBalance(
+      database,
+      id: 'scoped-product-b',
+      businessId: businessId,
+      branchId: 'branch-2',
+      productId: 'scoped-product',
+      quantityOnHand: 3,
+    );
+    await _insertBalance(
+      database,
+      id: 'other-business-product-b',
+      businessId: 'business-2',
+      branchId: 'branch-2',
+      productId: 'other-business-product',
+      quantityOnHand: 1,
+    );
+
+    final principal = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+    final secondBranch = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: 'branch-2',
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+    final otherBusiness = await dao.getProductsWithLocalStock(
+      businessId: 'business-2',
+      branchId: 'branch-2',
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+
+    expect(principal, isEmpty);
+    expect(secondBranch.single['product_id'], 'scoped-product');
+    expect(otherBusiness.single['product_id'], 'other-business-product');
+  });
+
+  test('low-stock filter combines with name and barcode search', () async {
+    await _insertProduct(
+      database,
+      id: 'rice-low',
+      businessId: businessId,
+      name: 'Arroz bajo',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'rice-normal',
+      businessId: businessId,
+      name: 'Arroz normal',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'coffee-low',
+      businessId: businessId,
+      name: 'Café bajo',
+      minimumStock: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'rice-low-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'rice-low',
+      quantityOnHand: 3,
+    );
+    await _insertBalance(
+      database,
+      id: 'rice-normal-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'rice-normal',
+      quantityOnHand: 8,
+    );
+    await _insertBalance(
+      database,
+      id: 'coffee-low-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'coffee-low',
+      quantityOnHand: 2,
+    );
+    await _insertBarcode(
+      database,
+      id: 'rice-low-code',
+      businessId: businessId,
+      productId: 'rice-low',
+      barcode: 'LOW-003',
+      normalized: 'LOW003',
+    );
+
+    final byName = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: 'Arroz',
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+    final byBarcode = await dao.getProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      searchTerm: 'low-003',
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+
+    expect(byName.single['product_id'], 'rice-low');
+    expect(byBarcode.single['product_id'], 'rice-low');
+  });
+
+  test('low-stock stream reacts to stock crossing the inclusive threshold',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'stock-reactive-low',
+      businessId: businessId,
+      name: 'Stock reactivo',
+      minimumStock: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'stock-reactive-low-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'stock-reactive-low',
+      quantityOnHand: 6,
+    );
+    final stream = dao.watchProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+
+    expect(await stream.first, isEmpty);
+    final becameLow = stream.firstWhere((products) => products.isNotEmpty);
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'stock-reactive-low',
+      quantityOnHand: 5,
+      quantityReserved: 0,
+      quantityAvailable: 5,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4),
+      deletedAt: null,
+    );
+    expect((await becameLow).single['product_id'], 'stock-reactive-low');
+
+    final becameNormal = stream.firstWhere((products) => products.isEmpty);
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'stock-reactive-low',
+      quantityOnHand: 8,
+      quantityReserved: 0,
+      quantityAvailable: 8,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4, 1),
+      deletedAt: null,
+    );
+    expect(await becameNormal, isEmpty);
+  });
+
+  test('low-stock stream reacts to minimum-stock changes in Products',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'minimum-reactive-low',
+      businessId: businessId,
+      name: 'Mínimo reactivo',
+      minimumStock: 3,
+    );
+    await _insertBalance(
+      database,
+      id: 'minimum-reactive-low-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'minimum-reactive-low',
+      quantityOnHand: 4,
+    );
+    final stream = dao.watchProductsWithLocalStock(
+      businessId: businessId,
+      branchId: branchId,
+      stockFilter: InventoryProductStockFilter.lowStock,
+      limit: null,
+    );
+
+    expect(await stream.first, isEmpty);
+    final becameLow = stream.firstWhere((products) => products.isNotEmpty);
+    await (database.update(database.products)
+          ..where((product) => product.id.equals('minimum-reactive-low')))
+        .write(const ProductsCompanion(minimumStock: Value(5)));
+    expect((await becameLow).single['product_id'], 'minimum-reactive-low');
+
+    final becameNormal = stream.firstWhere((products) => products.isEmpty);
+    await (database.update(database.products)
+          ..where((product) => product.id.equals('minimum-reactive-low')))
+        .write(const ProductsCompanion(minimumStock: Value(2)));
+    expect(await becameNormal, isEmpty);
   });
 
   test('watch emits again when the scoped Drift balance changes', () async {

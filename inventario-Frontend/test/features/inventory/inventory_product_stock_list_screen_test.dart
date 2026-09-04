@@ -268,13 +268,107 @@ void main() {
     expect(find.text('Café agotado'), findsNothing);
   });
 
+  testWidgets('marks low stock exclusively and combines its filter with search',
+      (
+    tester,
+  ) async {
+    final products = <Map<String, dynamic>>[
+      {
+        'product_id': 'rice-normal',
+        'product_name': 'Arroz normal',
+        'quantity_on_hand': 6,
+        'minimum_stock': 5,
+      },
+      {
+        'product_id': 'coffee-low',
+        'product_name': 'Café bajo',
+        'quantity_on_hand': 5,
+        'minimum_stock': 5,
+      },
+      {
+        'product_id': 'sugar-exhausted',
+        'product_name': 'Azúcar agotada',
+        'quantity_on_hand': 0,
+        'minimum_stock': 5,
+      },
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localProductsWithStockProvider.overrideWith((ref, key) {
+            final term = key.searchTerm.trim().toLowerCase();
+            final filtered = products.where((product) {
+              final stock = product['quantity_on_hand'] as int;
+              final minimum = product['minimum_stock'] as int;
+              final matchesSearch = term.isEmpty ||
+                  product['product_name'].toString().toLowerCase().contains(
+                        term,
+                      );
+              final matchesStock = switch (key.stockFilter) {
+                InventoryProductStockFilter.all => true,
+                InventoryProductStockFilter.outOfStock => stock <= 0,
+                InventoryProductStockFilter.lowStock =>
+                  stock > 0 && stock <= minimum,
+              };
+              return matchesSearch && matchesStock;
+            }).toList(growable: false);
+            return Stream.value(filtered);
+          }),
+        ],
+        child: const MaterialApp(
+          home: InventoryProductStockListScreen(
+            businessId: 'business-1',
+            branchId: 'branch-1',
+            branchName: 'Principal',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('inventory-low-stock-coffee-low')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('inventory-low-stock-rice-normal')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('inventory-low-stock-sugar-exhausted')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('inventory-out-of-stock-sugar-exhausted')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('inventory-filter-low-stock')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Café bajo'), findsOneWidget);
+    expect(find.text('Arroz normal'), findsNothing);
+    expect(find.text('Azúcar agotada'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('inventory-search-field')),
+      'arroz',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('inventory-search-empty')), findsOneWidget);
+  });
+
   testWidgets('branch switch changes the visible scoped stock and context', (
     tester,
   ) async {
     final container = ProviderContainer(
       overrides: [
         localProductsWithStockProvider.overrideWith((ref, key) {
-          final stock = key.branchId == 'branch-principal' ? 15 : 8;
+          final stock = key.branchId == 'branch-principal' ? 15 : 3;
           final averageCost = key.branchId == 'branch-principal' ? 2.67 : 4.2;
           return Stream.value([
             {
@@ -309,12 +403,20 @@ void main() {
     await pumpBranch('branch-principal', 'Principal');
     expect(find.text('Sucursal: Principal'), findsOneWidget);
     expect(find.text('Stock: 15'), findsOneWidget);
+    expect(
+      find.byKey(const Key('inventory-low-stock-product-1')),
+      findsNothing,
+    );
     expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
     expect(find.text('Mínimo: 5'), findsOneWidget);
 
     await pumpBranch('branch-vendemas', 'VendeMás');
     expect(find.text('Sucursal: VendeMás'), findsOneWidget);
-    expect(find.text('Stock: 8'), findsOneWidget);
+    expect(find.text('Stock: 3'), findsOneWidget);
+    expect(
+      find.byKey(const Key('inventory-low-stock-product-1')),
+      findsOneWidget,
+    );
     expect(find.text(r'Costo prom.: $4.20'), findsOneWidget);
     expect(find.text('Mínimo: 5'), findsOneWidget);
     expect(find.text('Stock: 15'), findsNothing);
