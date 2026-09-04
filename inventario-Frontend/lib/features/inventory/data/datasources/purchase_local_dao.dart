@@ -271,33 +271,58 @@ class PurchaseLocalDao {
     final branchId = _requiredString(movement, 'branch_id');
     final productId = _requiredString(movement, 'product_id');
     final quantityChange = _requiredInt(movement, 'quantity_change');
+    final unitCost = _optionalDouble(movement, 'unit_cost');
     final now = _requiredDate(movement, 'updated_at');
-
-    final updatedRows = await _db.customUpdate(
-      '''
-      update local_product_stock_balances
-      set
-        quantity_on_hand = quantity_on_hand + ?,
-        quantity_available = quantity_available + ?,
-        updated_at = ?,
-        last_movement_at = ?
-      where business_id = ?
-        and branch_id = ?
-        and product_id = ?
-      ''',
-      variables: [
-        Variable<int>(quantityChange),
-        Variable<int>(quantityChange),
-        Variable<DateTime>(now),
-        Variable<DateTime>(_requiredDate(movement, 'occurred_at')),
-        Variable<String>(businessId),
-        Variable<String>(branchId),
-        Variable<String>(productId),
-      ],
-      updates: {_db.localProductStockBalances},
+    final currentBalance = await getLocalStockBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: productId,
     );
 
-    if (updatedRows == 1) {
+    if (currentBalance != null) {
+      final oldQuantity = _requiredInt(currentBalance, 'quantity_on_hand');
+      final oldAverageCost = _optionalDouble(currentBalance, 'average_cost');
+      final newAverageCost = _nextAverageCost(
+        oldQuantity: oldQuantity,
+        oldAverageCost: oldAverageCost,
+        quantityChange: quantityChange,
+        unitCost: unitCost,
+      );
+
+      final updatedRows = await _db.customUpdate(
+        '''
+        update local_product_stock_balances
+        set
+          quantity_on_hand = quantity_on_hand + ?,
+          quantity_available = quantity_available + ?,
+          average_cost = ?,
+          updated_at = ?,
+          last_movement_at = ?
+        where business_id = ?
+          and branch_id = ?
+          and product_id = ?
+        ''',
+        variables: normalizeSqliteParameters([
+          quantityChange,
+          quantityChange,
+          newAverageCost,
+          now,
+          _requiredDate(movement, 'occurred_at'),
+          businessId,
+          branchId,
+          productId,
+        ]).map<Variable<Object>>((value) => Variable<Object>(value)).toList(
+              growable: false,
+            ),
+        updates: {_db.localProductStockBalances},
+      );
+
+      if (updatedRows != 1) {
+        throw StateError(
+          'El balance local cambió mientras se aplicaba el movimiento.',
+        );
+      }
+
       return;
     }
 
@@ -329,7 +354,12 @@ class PurchaseLocalDao {
         quantityChange,
         0,
         quantityChange,
-        movement['unit_cost'],
+        _nextAverageCost(
+          oldQuantity: 0,
+          oldAverageCost: null,
+          quantityChange: quantityChange,
+          unitCost: unitCost,
+        ),
         movement['occurred_at'],
         null,
         null,
@@ -626,6 +656,49 @@ class PurchaseLocalDao {
 
     return parsed;
   }
+
+  double? _optionalDouble(Map<String, dynamic> map, String key) {
+    final value = map[key];
+
+    if (value == null) {
+      return null;
+    }
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    final parsed = double.tryParse(value.toString());
+
+    if (parsed == null) {
+      throw ArgumentError('Campo decimal inválido: $key');
+    }
+
+    return parsed;
+  }
+
+  double? _nextAverageCost({
+    required int oldQuantity,
+    required double? oldAverageCost,
+    required int quantityChange,
+    required double? unitCost,
+  }) {
+    if (quantityChange <= 0 || unitCost == null) {
+      return oldAverageCost;
+    }
+
+    if (oldQuantity <= 0 || oldAverageCost == null) {
+      return _roundMoney(unitCost);
+    }
+
+    final newQuantity = oldQuantity + quantityChange;
+    return _roundMoney(
+      ((oldQuantity * oldAverageCost) + (quantityChange * unitCost)) /
+          newQuantity,
+    );
+  }
+
+  double _roundMoney(double value) => (value * 100).round() / 100;
 
   DateTime _requiredDate(Map<String, dynamic> map, String key) {
     final value = map[key];

@@ -54,6 +54,7 @@ void main() {
           'product_name': 'Arroz',
           'barcode': '7701234567890',
           'quantity_on_hand': 15,
+          'stock_average_cost': 2.67,
           'legacy_stock_quantity': 999,
         },
         {
@@ -61,6 +62,7 @@ void main() {
           'product_name': 'Café',
           'barcode': null,
           'quantity_on_hand': 0,
+          'stock_average_cost': 12.5,
           'legacy_stock_quantity': 40,
         },
       ]),
@@ -73,8 +75,36 @@ void main() {
     expect(find.text('7701234567890'), findsOneWidget);
     expect(find.text('Stock: 15'), findsOneWidget);
     expect(find.text('Stock: 0'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $12.50'), findsOneWidget);
     expect(find.text('Stock: 999'), findsNothing);
     expect(find.text('Stock: 40'), findsNothing);
+  });
+
+  testWidgets('distinguishes zero average cost from an unknown cost', (
+    tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      Stream.value([
+        {
+          'product_id': 'zero-cost',
+          'product_name': 'Costo cero',
+          'quantity_on_hand': 1,
+          'stock_average_cost': 0,
+        },
+        {
+          'product_id': 'unknown-cost',
+          'product_name': 'Costo desconocido',
+          'quantity_on_hand': 0,
+          'stock_average_cost': null,
+        },
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.text(r'Costo prom.: $0.00'), findsOneWidget);
+    expect(find.text('Costo prom.: —'), findsOneWidget);
   });
 
   testWidgets('searches through the application provider and clears results', (
@@ -160,12 +190,14 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         localProductsWithStockProvider.overrideWith((ref, key) {
-          final stock = key.branchId == 'branch-principal' ? 8 : 3;
+          final stock = key.branchId == 'branch-principal' ? 15 : 8;
+          final averageCost = key.branchId == 'branch-principal' ? 2.67 : 4.2;
           return Stream.value([
             {
               'product_id': 'product-1',
               'product_name': 'Arroz',
               'quantity_on_hand': stock,
+              'stock_average_cost': averageCost,
             },
           ]);
         }),
@@ -191,12 +223,50 @@ void main() {
 
     await pumpBranch('branch-principal', 'Principal');
     expect(find.text('Sucursal: Principal'), findsOneWidget);
-    expect(find.text('Stock: 8'), findsOneWidget);
+    expect(find.text('Stock: 15'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
 
     await pumpBranch('branch-vendemas', 'VendeMás');
     expect(find.text('Sucursal: VendeMás'), findsOneWidget);
-    expect(find.text('Stock: 3'), findsOneWidget);
-    expect(find.text('Stock: 8'), findsNothing);
+    expect(find.text('Stock: 8'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $4.20'), findsOneWidget);
+    expect(find.text('Stock: 15'), findsNothing);
+    expect(find.text(r'Costo prom.: $2.67'), findsNothing);
+  });
+
+  testWidgets('updates when the local stream emits only a new average cost', (
+    tester,
+  ) async {
+    final controller = StreamController<List<Map<String, dynamic>>>();
+    addTearDown(controller.close);
+
+    await _pumpScreen(tester, controller.stream);
+    controller.add([
+      {
+        'product_id': 'product-1',
+        'product_name': 'Arroz',
+        'quantity_on_hand': 15,
+        'stock_average_cost': 2.67,
+      },
+    ]);
+    await tester.pump();
+
+    expect(find.text('Stock: 15'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
+
+    controller.add([
+      {
+        'product_id': 'product-1',
+        'product_name': 'Arroz',
+        'quantity_on_hand': 15,
+        'stock_average_cost': 4.5,
+      },
+    ]);
+    await tester.pump();
+
+    expect(find.text('Stock: 15'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $4.50'), findsOneWidget);
+    expect(find.text(r'Costo prom.: $2.67'), findsNothing);
   });
 }
 

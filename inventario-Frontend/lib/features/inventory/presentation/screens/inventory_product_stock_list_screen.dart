@@ -261,6 +261,8 @@ class _InventoryProductCard extends StatelessWidget {
     final name = _string(product['product_name']) ?? 'Producto sin nombre';
     final barcode = _string(product['barcode']);
     final stock = _formatQuantity(product['quantity_on_hand']);
+    final averageCost = _formatAverageCost(product['stock_average_cost']);
+    final productId = _string(product['product_id']) ?? '';
 
     return AppGlassCard(
       child: Row(
@@ -302,19 +304,21 @@ class _InventoryProductCard extends StatelessWidget {
             children: [
               Text(
                 'Stock: $stock',
-                key: Key(
-                  'inventory-stock-${_string(product['product_id']) ?? ''}',
-                ),
+                key: Key('inventory-stock-$productId'),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: CronosColors.primaryDark,
                       fontWeight: FontWeight.w800,
                     ),
               ),
+              const SizedBox(height: CronosSpacing.xs),
+              Text(
+                'Costo prom.: $averageCost',
+                key: Key('inventory-average-cost-$productId'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               if (onTransfer != null)
                 TextButton.icon(
-                  key: Key(
-                    'inventory-transfer-${_string(product['product_id']) ?? ''}',
-                  ),
+                  key: Key('inventory-transfer-$productId'),
                   onPressed: onTransfer,
                   icon: const Icon(Icons.swap_horiz_outlined),
                   label: const Text('Transferir'),
@@ -408,6 +412,20 @@ String _formatQuantity(Object? value) {
   }
 
   return quantity.toString();
+}
+
+String _formatAverageCost(Object? value) {
+  if (value == null) {
+    return '—';
+  }
+
+  final cost = value is num ? value.toDouble() : double.tryParse('$value');
+
+  if (cost == null || !cost.isFinite) {
+    return '—';
+  }
+
+  return '\$${cost.toStringAsFixed(2)}';
 }
 
 int _int(Object? value) {
