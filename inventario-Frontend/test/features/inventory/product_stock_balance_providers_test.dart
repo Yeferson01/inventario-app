@@ -46,4 +46,22 @@ void main() {
     expect(outOfStock.stockFilter, InventoryProductStockFilter.outOfStock);
     expect(lowStock.stockFilter, InventoryProductStockFilter.lowStock);
   });
+
+  test('inventory alert summary key is scoped by business and branch', () {
+    const branchA = InventoryAlertSummaryKey(
+      businessId: 'business-1',
+      branchId: 'branch-a',
+    );
+    const sameBranchA = InventoryAlertSummaryKey(
+      businessId: 'business-1',
+      branchId: 'branch-a',
+    );
+    const branchB = InventoryAlertSummaryKey(
+      businessId: 'business-1',
+      branchId: 'branch-b',
+    );
+    expect(branchA, sameBranchA);
+    expect(branchA.hashCode, sameBranchA.hashCode);
+    expect(branchA, isNot(branchB));
+  });
 }

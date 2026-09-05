@@ -23,6 +23,7 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
     this.appDeviceId,
     this.deviceInstallationId,
     this.effectivePermissions = const {},
+    this.initialStockFilter = InventoryProductStockFilter.all,
   });
 
   final String businessId;
@@ -32,6 +33,7 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
   final String? appDeviceId;
   final String? deviceInstallationId;
   final Set<String> effectivePermissions;
+  final InventoryProductStockFilter initialStockFilter;
 
   @override
   ConsumerState<InventoryProductStockListScreen> createState() =>
@@ -43,7 +45,13 @@ class _InventoryProductStockListScreenState
   final _searchController = TextEditingController();
   final _minimumStockUpdates = <String>{};
   String _searchTerm = '';
-  InventoryProductStockFilter _stockFilter = InventoryProductStockFilter.all;
+  late InventoryProductStockFilter _stockFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _stockFilter = widget.initialStockFilter;
+  }
 
   @override
   void dispose() {

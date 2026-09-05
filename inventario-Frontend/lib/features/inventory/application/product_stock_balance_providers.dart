@@ -71,6 +71,36 @@ class ProductsWithLocalStockKey {
       );
 }
 
+class InventoryAlertSummaryKey {
+  const InventoryAlertSummaryKey({
+    required this.businessId,
+    required this.branchId,
+  });
+
+  final String businessId;
+  final String branchId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is InventoryAlertSummaryKey &&
+        other.businessId == businessId &&
+        other.branchId == branchId;
+  }
+
+  @override
+  int get hashCode => Object.hash(businessId, branchId);
+}
+
+class InventoryAlertSummary {
+  const InventoryAlertSummary({
+    required this.outOfStockCount,
+    required this.lowStockCount,
+  });
+
+  final int outOfStockCount;
+  final int lowStockCount;
+}
+
 final productStockBalanceLocalDaoProvider =
     Provider<ProductStockBalanceLocalDao>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -116,4 +146,22 @@ final localProductsWithStockProvider = StreamProvider.family<
     stockFilter: key.stockFilter,
     limit: key.limit,
   );
+});
+
+final inventoryAlertSummaryProvider =
+    StreamProvider.family<InventoryAlertSummary, InventoryAlertSummaryKey>(
+        (ref, key) {
+  final dao = ref.watch(productStockBalanceLocalDaoProvider);
+
+  return dao
+      .watchInventoryAlertCounts(
+        businessId: key.businessId,
+        branchId: key.branchId,
+      )
+      .map(
+        (counts) => InventoryAlertSummary(
+          outOfStockCount: counts['out_of_stock_count'] ?? 0,
+          lowStockCount: counts['low_stock_count'] ?? 0,
+        ),
+      );
 });

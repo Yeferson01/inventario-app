@@ -11,6 +11,7 @@ import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../auth/application/productive_auth_providers.dart';
 import '../../application/dashboard_module_access.dart';
+import '../../../inventory/application/product_stock_balance_providers.dart';
 import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sync/application/app_context_models.dart';
@@ -204,7 +205,11 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     await _load();
   }
 
-  Future<void> _openInventory({String? branchName}) async {
+  Future<void> _openInventory({
+    String? branchName,
+    InventoryProductStockFilter initialStockFilter =
+        InventoryProductStockFilter.all,
+  }) async {
     final appContext = _appContext;
     final access = DashboardModuleAccess.fromContext(appContext);
 
@@ -245,6 +250,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           appDeviceId: appContext.appDeviceId,
           deviceInstallationId: appContext.installationId,
           effectivePermissions: appContext.permissions.values,
+          initialStockFilter: initialStockFilter,
         ),
       ),
     );
@@ -441,6 +447,19 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       branchContexts,
       branchId,
     );
+    AsyncValue<InventoryAlertSummary>? inventoryAlerts;
+    if (moduleAccess.canReadInventory &&
+        businessId?.trim().isNotEmpty == true &&
+        branchId?.trim().isNotEmpty == true) {
+      inventoryAlerts = ref.watch(
+        inventoryAlertSummaryProvider(
+          InventoryAlertSummaryKey(
+            businessId: businessId!.trim(),
+            branchId: branchId!.trim(),
+          ),
+        ),
+      );
+    }
 
     return Theme(
       data: CronosTheme.light(),
@@ -485,6 +504,25 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                         lastError: _lastError,
                       ),
                     ),
+                    if (inventoryAlerts != null) ...[
+                      const SizedBox(height: CronosSpacing.lg),
+                      AppAnimatedEntrance(
+                        delay: const Duration(milliseconds: 160),
+                        child: _InventoryAlertsCard(
+                          summary: inventoryAlerts,
+                          onOpenOutOfStock: () => _openInventory(
+                            branchName: operationalContext?.branchName,
+                            initialStockFilter:
+                                InventoryProductStockFilter.outOfStock,
+                          ),
+                          onOpenLowStock: () => _openInventory(
+                            branchName: operationalContext?.branchName,
+                            initialStockFilter:
+                                InventoryProductStockFilter.lowStock,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: CronosSpacing.lg),
                     AppAnimatedEntrance(
                       delay: const Duration(milliseconds: 80),
@@ -531,6 +569,66 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _InventoryAlertsCard extends StatelessWidget {
+  const _InventoryAlertsCard({
+    required this.summary,
+    required this.onOpenOutOfStock,
+    required this.onOpenLowStock,
+  });
+
+  final AsyncValue<InventoryAlertSummary> summary;
+  final VoidCallback onOpenOutOfStock;
+  final VoidCallback onOpenLowStock;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Atención de inventario',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: CronosSpacing.xs),
+          Text(
+            'Estado local de la sucursal activa.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: CronosSpacing.md),
+          summary.when(
+            loading: () => const LinearProgressIndicator(
+              key: Key('inventory-alerts-loading'),
+            ),
+            error: (_, __) => const Text(
+              'No fue posible leer el resumen local de inventario.',
+              key: Key('inventory-alerts-error'),
+            ),
+            data: (value) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OutlinedButton.icon(
+                  key: const Key('inventory-alerts-out-of-stock'),
+                  onPressed: onOpenOutOfStock,
+                  icon: const Icon(Icons.remove_shopping_cart_outlined),
+                  label: Text('Agotados: ${value.outOfStockCount}'),
+                ),
+                const SizedBox(height: CronosSpacing.sm),
+                OutlinedButton.icon(
+                  key: const Key('inventory-alerts-low-stock'),
+                  onPressed: onOpenLowStock,
+                  icon: const Icon(Icons.warning_amber_rounded),
+                  label: Text('Bajo stock: ${value.lowStockCount}'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

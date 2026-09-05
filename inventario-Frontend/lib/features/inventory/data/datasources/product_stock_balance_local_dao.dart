@@ -14,6 +14,13 @@ enum InventoryProductStockFilter {
   lowStock,
 }
 
+const _physicalStockExpression = 'coalesce(b.quantity_on_hand, 0)';
+const _outOfStockCondition = '$_physicalStockExpression <= 0';
+const _lowStockCondition = '''
+  $_physicalStockExpression > 0
+  and $_physicalStockExpression <= coalesce(p.minimum_stock, 0)
+''';
+
 class ProductStockBalanceLocalDao {
   ProductStockBalanceLocalDao(this._db);
 
@@ -439,15 +446,51 @@ class ProductStockBalanceLocalDao {
         .map((rows) => rows.map((row) => row.data).toList());
   }
 
+  Stream<Map<String, int>> watchInventoryAlertCounts({
+    required String businessId,
+    required String branchId,
+  }) {
+    return _db
+        .customSelect(
+          '''
+          select
+            coalesce(sum(case when $_outOfStockCondition then 1 else 0 end), 0)
+              as out_of_stock_count,
+            coalesce(sum(case when $_lowStockCondition then 1 else 0 end), 0)
+              as low_stock_count
+          from products p
+          left join local_product_stock_balances b
+            on b.business_id = p.business_id
+           and b.branch_id = ?
+           and b.product_id = p.id
+           and b.deleted_at is null
+          where p.business_id = ?
+            and p.status = 'active'
+            and p.deleted_at is null
+          ''',
+          variables: [
+            Variable<String>(branchId),
+            Variable<String>(businessId),
+          ],
+          readsFrom: {
+            _db.products,
+            _db.localProductStockBalances,
+          },
+        )
+        .watchSingle()
+        .map(
+          (row) => {
+            'out_of_stock_count': row.read<int>('out_of_stock_count'),
+            'low_stock_count': row.read<int>('low_stock_count'),
+          },
+        );
+  }
+
   String _stockFilterClause(InventoryProductStockFilter stockFilter) {
     return switch (stockFilter) {
       InventoryProductStockFilter.all => '',
-      InventoryProductStockFilter.outOfStock =>
-        'and coalesce(b.quantity_on_hand, 0) <= 0',
-      InventoryProductStockFilter.lowStock => '''
-        and coalesce(b.quantity_on_hand, 0) > 0
-        and coalesce(b.quantity_on_hand, 0) <= coalesce(p.minimum_stock, 0)
-      ''',
+      InventoryProductStockFilter.outOfStock => 'and $_outOfStockCondition',
+      InventoryProductStockFilter.lowStock => 'and $_lowStockCondition',
     };
   }
 

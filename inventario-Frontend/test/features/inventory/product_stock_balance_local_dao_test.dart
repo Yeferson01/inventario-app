@@ -818,6 +818,247 @@ void main() {
     expect(await becameNormal, isEmpty);
   });
 
+  test(
+      'inventory alert counts classify exhausted, missing, low and minimum-zero products',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'normal-summary',
+      businessId: businessId,
+      name: 'Normal summary',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'low-summary',
+      businessId: businessId,
+      name: 'Low summary',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'exhausted-summary',
+      businessId: businessId,
+      name: 'Exhausted summary',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'missing-summary',
+      businessId: businessId,
+      name: 'Missing summary',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'minimum-zero-summary',
+      businessId: businessId,
+      name: 'Minimum zero summary',
+      minimumStock: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'normal-summary-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'normal-summary',
+      quantityOnHand: 6,
+    );
+    await _insertBalance(
+      database,
+      id: 'low-summary-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'low-summary',
+      quantityOnHand: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'exhausted-summary-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'exhausted-summary',
+      quantityOnHand: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'minimum-zero-summary-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'minimum-zero-summary',
+      quantityOnHand: 1,
+    );
+
+    final counts = await dao
+        .watchInventoryAlertCounts(
+          businessId: businessId,
+          branchId: branchId,
+        )
+        .first;
+
+    expect(counts['out_of_stock_count'], 2);
+    expect(counts['low_stock_count'], 1);
+  });
+
+  test('inventory alert counts isolate business and branch', () async {
+    await database.into(database.businesses).insert(
+          BusinessesCompanion.insert(
+            id: 'business-summary-2',
+            name: 'Otro negocio summary',
+          ),
+        );
+    await _insertProduct(
+      database,
+      id: 'branch-summary',
+      businessId: businessId,
+      name: 'Branch summary',
+      minimumStock: 5,
+    );
+    await _insertProduct(
+      database,
+      id: 'other-business-summary',
+      businessId: 'business-summary-2',
+      name: 'Other business summary',
+      minimumStock: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'branch-summary-a',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'branch-summary',
+      quantityOnHand: 0,
+    );
+    await _insertBalance(
+      database,
+      id: 'branch-summary-b',
+      businessId: businessId,
+      branchId: 'branch-2',
+      productId: 'branch-summary',
+      quantityOnHand: 3,
+    );
+    await _insertBalance(
+      database,
+      id: 'other-business-summary-b',
+      businessId: 'business-summary-2',
+      branchId: 'branch-2',
+      productId: 'other-business-summary',
+      quantityOnHand: 0,
+    );
+
+    final branchA = await dao
+        .watchInventoryAlertCounts(
+          businessId: businessId,
+          branchId: branchId,
+        )
+        .first;
+    final branchB = await dao
+        .watchInventoryAlertCounts(
+          businessId: businessId,
+          branchId: 'branch-2',
+        )
+        .first;
+    final otherBusiness = await dao
+        .watchInventoryAlertCounts(
+          businessId: 'business-summary-2',
+          branchId: 'branch-2',
+        )
+        .first;
+
+    expect(branchA, {'out_of_stock_count': 1, 'low_stock_count': 0});
+    expect(branchB, {'out_of_stock_count': 0, 'low_stock_count': 1});
+    expect(otherBusiness, {'out_of_stock_count': 1, 'low_stock_count': 0});
+  });
+
+  test('inventory alert counts react to stock and minimum-stock transitions',
+      () async {
+    await _insertProduct(
+      database,
+      id: 'reactive-summary',
+      businessId: businessId,
+      name: 'Reactive summary',
+      minimumStock: 5,
+    );
+    await _insertBalance(
+      database,
+      id: 'reactive-summary-balance',
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-summary',
+      quantityOnHand: 6,
+    );
+    final summaries = dao
+        .watchInventoryAlertCounts(
+          businessId: businessId,
+          branchId: branchId,
+        )
+        .map(
+          (counts) => '${counts['out_of_stock_count']}/'
+              '${counts['low_stock_count']}',
+        );
+    expect(await summaries.first, '0/0');
+
+    final becameLow = summaries.firstWhere((summary) => summary == '0/1');
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-summary',
+      quantityOnHand: 5,
+      quantityReserved: 0,
+      quantityAvailable: 5,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4),
+      deletedAt: null,
+    );
+    expect(await becameLow, '0/1');
+
+    final becameExhausted = summaries.firstWhere(
+      (summary) => summary == '1/0',
+    );
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-summary',
+      quantityOnHand: 0,
+      quantityReserved: 0,
+      quantityAvailable: 0,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4, 1),
+      deletedAt: null,
+    );
+    expect(await becameExhausted, '1/0');
+
+    final becameNormal = summaries.firstWhere((summary) => summary == '0/0');
+    await dao.finalizeOperativeBalance(
+      businessId: businessId,
+      branchId: branchId,
+      productId: 'reactive-summary',
+      quantityOnHand: 8,
+      quantityReserved: 0,
+      quantityAvailable: 8,
+      averageCost: null,
+      lastMovementAt: DateTime.utc(2026, 9, 4, 2),
+      deletedAt: null,
+    );
+    expect(await becameNormal, '0/0');
+
+    final thresholdRaised = summaries.firstWhere(
+      (summary) => summary == '0/1',
+    );
+    await (database.update(database.products)
+          ..where((product) => product.id.equals('reactive-summary')))
+        .write(const ProductsCompanion(minimumStock: Value(10)));
+    expect(await thresholdRaised, '0/1');
+
+    final thresholdLowered = summaries.firstWhere(
+      (summary) => summary == '0/0',
+    );
+    await (database.update(database.products)
+          ..where((product) => product.id.equals('reactive-summary')))
+        .write(const ProductsCompanion(minimumStock: Value(2)));
+    expect(await thresholdLowered, '0/0');
+  });
+
   test('watch emits again when the scoped Drift balance changes', () async {
     await _insertProduct(
       database,
