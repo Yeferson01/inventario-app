@@ -423,6 +423,34 @@ class PurchaseLocalDao {
     return rows.map((row) => row.data).toList();
   }
 
+  Future<Map<String, dynamic>?> getPendingDirtyPurchase({
+    required String businessId,
+    required String branchId,
+    required String purchaseId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select
+        id, business_id, branch_id, supplier_id, user_id, total, status,
+        created_at, updated_at, deleted_at, last_synced_at, invoice_photo_url,
+        processing_status, supplier_name, idempotency_key, local_status,
+        metadata_json, version, sync_status
+      from purchases
+      where id = ? and business_id = ? and branch_id = ?
+        and deleted_at is null
+        and (local_status = 'dirty' or sync_status != 0)
+      limit 1
+      ''',
+      variables: [
+        Variable<String>(purchaseId),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+      ],
+      readsFrom: {_db.purchases},
+    ).get();
+    return rows.isEmpty ? null : rows.first.data;
+  }
+
   Future<List<Map<String, dynamic>>> getPurchaseItemsForSync({
     required String purchaseId,
   }) async {

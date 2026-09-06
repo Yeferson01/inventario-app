@@ -60,12 +60,53 @@ class PurchaseSyncOutboxService {
       limit: limit,
     );
 
+    return _enqueuePurchases(
+      businessId: businessId,
+      branchId: branchId,
+      profileId: profileId,
+      appDeviceId: appDeviceId,
+      deviceInstallationId: deviceInstallationId,
+      purchases: pendingPurchases,
+    );
+  }
+
+  Future<PurchaseSyncOutboxResult> enqueuePurchaseForRetry({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String appDeviceId,
+    required String deviceInstallationId,
+    required String purchaseId,
+  }) async {
+    final purchase = await _dao.getPendingDirtyPurchase(
+      businessId: businessId,
+      branchId: branchId,
+      purchaseId: purchaseId,
+    );
+    return _enqueuePurchases(
+      businessId: businessId,
+      branchId: branchId,
+      profileId: profileId,
+      appDeviceId: appDeviceId,
+      deviceInstallationId: deviceInstallationId,
+      purchases: purchase == null ? const [] : [purchase],
+    );
+  }
+
+  Future<PurchaseSyncOutboxResult> _enqueuePurchases({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String? appDeviceId,
+    required String? deviceInstallationId,
+    required List<Map<String, dynamic>> purchases,
+  }) async {
     var purchasesEnqueued = 0;
     var batchesCreated = 0;
     var mutationsEnqueued = 0;
     final results = <Map<String, dynamic>>[];
 
-    for (final purchase in pendingPurchases) {
+    for (final purchase in purchases) {
       final purchaseId = _requiredString(purchase, 'id');
 
       final items = await _dao.getPurchaseItemsForSync(
@@ -199,7 +240,7 @@ class PurchaseSyncOutboxService {
     return PurchaseSyncOutboxResult(
       businessId: businessId,
       branchId: branchId,
-      purchasesChecked: pendingPurchases.length,
+      purchasesChecked: purchases.length,
       purchasesEnqueued: purchasesEnqueued,
       batchesCreated: batchesCreated,
       mutationsEnqueued: mutationsEnqueued,

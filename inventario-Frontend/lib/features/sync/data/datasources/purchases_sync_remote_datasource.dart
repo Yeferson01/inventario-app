@@ -5,10 +5,86 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/app_uuid.dart';
 import '../models/catalog_upload_models.dart';
 
+class PurchasePermissionRetryEvidence {
+  const PurchasePermissionRetryEvidence({
+    required this.safeToRetry,
+    required this.remoteAbsent,
+    required this.remoteMaterialized,
+    required this.finalizable,
+    required this.targetConflictCount,
+    required this.appliedMutationCount,
+  });
+
+  factory PurchasePermissionRetryEvidence.fromJson(Object? value) {
+    if (value is! Map) {
+      throw const FormatException('Invalid Purchase retry evidence.');
+    }
+    final json = Map<String, dynamic>.from(value);
+    return PurchasePermissionRetryEvidence(
+      safeToRetry: json['safe_to_retry'] == true,
+      remoteAbsent: json['remote_absent'] == true,
+      remoteMaterialized: json['remote_materialized'] == true,
+      finalizable: json['finalizable'] == true,
+      targetConflictCount: _requiredInt(json, 'target_conflict_count'),
+      appliedMutationCount: _requiredInt(json, 'applied_mutation_count'),
+    );
+  }
+
+  final bool safeToRetry;
+  final bool remoteAbsent;
+  final bool remoteMaterialized;
+  final bool finalizable;
+  final int targetConflictCount;
+  final int appliedMutationCount;
+
+  static int _requiredInt(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    throw FormatException('Invalid $key in Purchase retry evidence.');
+  }
+}
+
 class PurchasesSyncRemoteDataSource {
   PurchasesSyncRemoteDataSource(this._client);
 
   final SupabaseClient _client;
+
+  Future<PurchasePermissionRetryEvidence> inspectPermissionRetry({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String purchaseId,
+  }) async {
+    final value = await _client.rpc(
+      'inspect_retriable_purchase_permission_conflicts',
+      params: {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_purchase_id': purchaseId,
+      },
+    );
+    return PurchasePermissionRetryEvidence.fromJson(value);
+  }
+
+  Future<PurchasePermissionRetryEvidence> finalizePermissionRetry({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String purchaseId,
+  }) async {
+    final value = await _client.rpc(
+      'finalize_retried_purchase_permission_conflicts',
+      params: {
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_purchase_id': purchaseId,
+      },
+    );
+    return PurchasePermissionRetryEvidence.fromJson(value);
+  }
 
   Future<CatalogUploadBatchResult> uploadAndProcessPurchasesBatch({
     required Map<String, dynamic> localBatch,

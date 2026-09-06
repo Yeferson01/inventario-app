@@ -22,6 +22,8 @@ import '../../application/operational_bootstrap_orchestration_models.dart';
 import '../../application/pos_sync_upload_provider.dart';
 import '../../application/productive_stale_sale_reconciliation_service.dart';
 import '../../application/recovery_blocked_stale_sale_service.dart';
+import '../../application/recovery_blocked_purchase_retry_provider.dart';
+import '../../application/recovery_blocked_purchase_retry_service.dart';
 import '../screens/business_context_selection_screen.dart';
 import 'productive_stale_sale_reconciliation_presenter.dart';
 
@@ -415,6 +417,8 @@ class _BusinessContextRequiredGateState
           assessmentService: ref.read(
             recoveryBlockedStaleSaleAssessmentServiceProvider,
           ),
+          purchaseRetryService:
+              ref.read(recoveryBlockedPurchaseRetryServiceProvider),
           reconciliationController: ref.read(
             productiveStaleSaleReconciliationServiceProvider,
           ),
@@ -607,6 +611,7 @@ class _RecoveryBlockedOperationalEntry extends StatefulWidget {
     required this.result,
     required this.issues,
     required this.assessmentService,
+    required this.purchaseRetryService,
     required this.reconciliationController,
     required this.onRetry,
     required this.onRefreshCashContext,
@@ -619,6 +624,7 @@ class _RecoveryBlockedOperationalEntry extends StatefulWidget {
   final OperationalBootstrapEntryResult result;
   final List<OperationalBootstrapBlockingIssue> issues;
   final RecoveryBlockedStaleSaleAssessmentService assessmentService;
+  final RecoveryBlockedPurchaseRetryService purchaseRetryService;
   final ProductiveStaleSaleReconciliationController reconciliationController;
   final VoidCallback onRetry;
   final ProductiveCashRepairAction onRefreshCashContext;
@@ -634,12 +640,67 @@ class _RecoveryBlockedOperationalEntry extends StatefulWidget {
 class _RecoveryBlockedOperationalEntryState
     extends State<_RecoveryBlockedOperationalEntry> {
   late Future<RecoveryBlockedStaleSaleAssessment> _assessment;
+  late Future<RecoveryBlockedPurchaseRetryAssessment> _purchaseAssessment;
   bool _reviewing = false;
+  bool _retryingPurchase = false;
+  String? _purchaseRetryError;
 
   @override
   void initState() {
     super.initState();
     _assessment = _assess();
+    _purchaseAssessment = _assessPurchase();
+  }
+
+  RecoveryBlockedPurchaseRetryScope _purchaseScope() {
+    final result = widget.result;
+    final selected = result.selectedContext;
+    final profileId = result.profileId;
+    final appDeviceId = result.device?.appDeviceId.trim() ??
+        result.bootstrapResult?.appDeviceId.trim() ??
+        '';
+    final installationId = result.installationId?.trim() ?? '';
+    if (profileId == null || selected == null) {
+      throw StateError('Operational Purchase retry scope is incomplete.');
+    }
+    return RecoveryBlockedPurchaseRetryScope(
+      profileId: profileId,
+      businessId: selected.businessId,
+      branchId: selected.branchId,
+      appDeviceId: appDeviceId,
+      installationId: installationId,
+      effectivePermissions: selected.effectivePermissions.toSet(),
+    );
+  }
+
+  Future<RecoveryBlockedPurchaseRetryAssessment> _assessPurchase() {
+    return widget.purchaseRetryService.assess(
+      scope: _purchaseScope(),
+      blockingIssues: widget.issues,
+    );
+  }
+
+  Future<void> _retryPurchase() async {
+    if (_retryingPurchase) return;
+    setState(() {
+      _retryingPurchase = true;
+      _purchaseRetryError = null;
+    });
+    try {
+      await widget.purchaseRetryService.retry(
+        scope: _purchaseScope(),
+        blockingIssues: widget.issues,
+      );
+      if (!mounted) return;
+      widget.onRetry();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _retryingPurchase = false;
+        _purchaseRetryError = error.toString();
+        _purchaseAssessment = _assessPurchase();
+      });
+    }
   }
 
   Future<RecoveryBlockedStaleSaleAssessment> _assess() {
@@ -710,29 +771,60 @@ class _RecoveryBlockedOperationalEntryState
           return const _OperationalEntryLoading();
         }
         final assessment = snapshot.data;
-        if (assessment == null || !assessment.canReviewSales) {
-          return _OperationalEntryStatus(
-            title: 'Recuperación bloqueada',
-            message: _issueDetails(widget.result, widget.issues),
-            actionLabel: 'Reintentar',
-            onAction: widget.onRetry,
-          );
-        }
-        final count = assessment.sales.length;
-        final hardMessage = assessment.hardIssues.isEmpty
-            ? ''
-            : '\n\nAdemás existen otros bloqueos que deberán resolverse:\n'
-                '${assessment.hardIssues.map((issue) => issue.message).join('\n')}';
-        return _OperationalEntryStatus(
-          title: 'Recuperación requiere revisión',
-          message: 'Hay operaciones pendientes que necesitan revisión antes '
-              'de continuar.\n\n$count ${count == 1 ? 'venta no pudo' : 'ventas no pudieron'} '
-              'sincronizarse porque la caja original ya estaba cerrada.'
-              '$hardMessage',
-          actionLabel: 'Revisar ventas',
-          onAction: _reviewing ? null : _review,
-          secondaryActionLabel: 'Reintentar recuperación',
-          onSecondaryAction: _reviewing ? null : widget.onRetry,
+        return FutureBuilder<RecoveryBlockedPurchaseRetryAssessment>(
+          future: _purchaseAssessment,
+          builder: (context, purchaseSnapshot) {
+            if (purchaseSnapshot.connectionState != ConnectionState.done) {
+              return const _OperationalEntryLoading();
+            }
+            final purchaseAssessment = purchaseSnapshot.data;
+            if (assessment == null || !assessment.canReviewSales) {
+              if (purchaseAssessment?.canRetry == true) {
+                final hardMessage = purchaseAssessment!.hardIssues.isEmpty
+                    ? ''
+                    : '\n\nOtros bloqueos permanecerán pendientes.';
+                final errorMessage = _purchaseRetryError == null
+                    ? ''
+                    : '\n\n${_purchaseRetryError!}';
+                return _OperationalEntryStatus(
+                  title: 'Recuperación requiere reintento',
+                  message: _retryingPurchase
+                      ? 'Reintentando operación…'
+                      : 'Una compra pendiente puede reenviarse de forma segura.'
+                          '$hardMessage$errorMessage',
+                  actionLabel: _retryingPurchase
+                      ? 'Reintentando operación…'
+                      : 'Reintentar operación pendiente',
+                  onAction: _retryingPurchase ? null : _retryPurchase,
+                  secondaryActionLabel: 'Reintentar recuperación',
+                  onSecondaryAction: _retryingPurchase ? null : widget.onRetry,
+                );
+              }
+              return _OperationalEntryStatus(
+                title: 'Recuperación bloqueada',
+                message: _issueDetails(widget.result, widget.issues),
+                actionLabel: 'Reintentar',
+                onAction: widget.onRetry,
+              );
+            }
+            final count = assessment.sales.length;
+            final hardMessage = assessment.hardIssues.isEmpty
+                ? ''
+                : '\n\nAdemás existen otros bloqueos que deberán resolverse:\n'
+                    '${assessment.hardIssues.map((issue) => issue.message).join('\n')}';
+            return _OperationalEntryStatus(
+              title: 'Recuperación requiere revisión',
+              message:
+                  'Hay operaciones pendientes que necesitan revisión antes '
+                  'de continuar.\n\n$count ${count == 1 ? 'venta no pudo' : 'ventas no pudieron'} '
+                  'sincronizarse porque la caja original ya estaba cerrada.'
+                  '$hardMessage',
+              actionLabel: 'Revisar ventas',
+              onAction: _reviewing ? null : _review,
+              secondaryActionLabel: 'Reintentar recuperación',
+              onSecondaryAction: _reviewing ? null : widget.onRetry,
+            );
+          },
         );
       },
     );
@@ -916,15 +1008,14 @@ class _OperationalEntryStatus extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(message),
-                      if (actionLabel != null && onAction != null) ...[
+                      if (actionLabel != null) ...[
                         const SizedBox(height: 20),
                         FilledButton(
                           onPressed: onAction,
                           child: Text(actionLabel!),
                         ),
                       ],
-                      if (secondaryActionLabel != null &&
-                          onSecondaryAction != null) ...[
+                      if (secondaryActionLabel != null) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
                           onPressed: onSecondaryAction,

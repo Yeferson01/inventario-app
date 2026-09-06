@@ -28,16 +28,22 @@ class PurchasesSyncUploadService {
     required String businessId,
     String? branchId,
     int batchLimit = 10,
+    Set<String>? onlyLocalBatchIds,
   }) async {
     await _purchaseLocalDao.reconcileCompletedPurchasesFromOutbox(
       businessId: businessId,
     );
 
-    final pendingBatches = await _outboxService.getPendingPurchasesBatches(
+    final allPendingBatches = await _outboxService.getPendingPurchasesBatches(
       businessId: businessId,
       branchId: branchId,
       limit: batchLimit,
     );
+    final pendingBatches = onlyLocalBatchIds == null
+        ? allPendingBatches
+        : allPendingBatches
+            .where((batch) => onlyLocalBatchIds.contains(batch['id']))
+            .toList(growable: false);
 
     var uploaded = 0;
     var completed = 0;

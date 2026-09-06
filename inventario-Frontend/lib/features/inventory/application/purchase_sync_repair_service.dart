@@ -29,6 +29,104 @@ class PurchaseSyncRepairService {
 
   final AppDatabase _db;
 
+  Future<PurchaseSyncRepairResult> repairPurchaseForRetry({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String purchaseId,
+  }) async {
+    final batchIds = await _findBrokenBatchIdsForPurchase(
+      profileId: profileId,
+      businessId: businessId,
+      branchId: branchId,
+      appDeviceId: appDeviceId,
+      purchaseId: purchaseId,
+    );
+    if (batchIds.isEmpty) {
+      return const PurchaseSyncRepairResult(
+        purchaseIds: [],
+        supersededBatches: 0,
+        resetPurchases: 0,
+      );
+    }
+
+    await _markBatchIdsSuperseded(batchIds);
+    await _resetPurchaseForCleanRetry(purchaseId: purchaseId);
+    return PurchaseSyncRepairResult(
+      purchaseIds: [purchaseId],
+      supersededBatches: batchIds.length,
+      resetPurchases: 1,
+    );
+  }
+
+  Future<List<String>> _findBrokenBatchIdsForPurchase({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String purchaseId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select distinct b.id
+      from local_sync_batches b
+      join local_sync_mutations m on m.local_sync_batch_id = b.id
+      left join purchase_items pi on pi.id = m.entity_id
+      where b.business_id = ? and b.branch_id = ?
+        and b.profile_id = ? and b.app_device_id = ?
+        and b.domain = 'purchases'
+        and b.status in ('partial', 'error', 'superseded')
+        and (
+          (m.entity_table = 'purchases' and m.entity_id = ?)
+          or (m.entity_table = 'purchase_items' and pi.purchase_id = ?)
+        )
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+        Variable<String>(profileId),
+        Variable<String>(appDeviceId),
+        Variable<String>(purchaseId),
+        Variable<String>(purchaseId),
+      ],
+    ).get();
+    return rows
+        .map((row) => row.data['id']?.toString())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<void> _markBatchIdsSuperseded(List<String> batchIds) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _db.transaction(() async {
+      for (final batchId in batchIds) {
+        await _db.customStatement(
+          '''
+          update local_sync_batches
+          set status = 'superseded',
+              last_error = 'Reemplazado por retry causal de Purchase.',
+              updated_at = ?
+          where id = ? and status in ('partial', 'error', 'superseded')
+          ''',
+          [nowIso, batchId],
+        );
+        await _db.customStatement(
+          '''
+          update local_sync_mutations
+          set status = 'superseded',
+              last_error = 'Mutación reemplazada por retry causal de Purchase.',
+              updated_at = ?
+          where local_sync_batch_id = ?
+            and status in ('pending', 'error', 'conflict')
+          ''',
+          [nowIso, batchId],
+        );
+      }
+    });
+  }
+
   Future<PurchaseSyncRepairResult> repairPartialOrFailedPurchases({
     required String businessId,
     required String branchId,
