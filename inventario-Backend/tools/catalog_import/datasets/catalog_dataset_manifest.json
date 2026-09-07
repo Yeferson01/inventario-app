@@ -1,0 +1,13 @@
+{
+  "curation": {
+    "owner": "CronosManagement platform catalog",
+    "status": "template"
+  },
+  "dataset_version": "0.1.0",
+  "description": "Plantilla inicial del catálogo maestro; todavía no contiene productos comerciales.",
+  "schema_version": 1,
+  "tool": {
+    "name": "catalog_tool",
+    "version": "1.0.0"
+  }
+}

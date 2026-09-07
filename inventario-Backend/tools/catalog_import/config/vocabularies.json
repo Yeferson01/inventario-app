@@ -1,0 +1,76 @@
+{
+  "barcode_types": [
+    "ean8",
+    "upc",
+    "ean13",
+    "gtin"
+  ],
+  "categories": [
+    "Alimentos",
+    "Bebidas",
+    "Snacks y confitería",
+    "Aseo del hogar",
+    "Cuidado personal"
+  ],
+  "image_attribution_required_for": [
+    "authorized_manufacturer",
+    "authorized_supplier",
+    "cc_by",
+    "other_documented"
+  ],
+  "image_licenses": [
+    "owned",
+    "authorized_manufacturer",
+    "authorized_supplier",
+    "cc0",
+    "cc_by",
+    "other_documented",
+    "test_only"
+  ],
+  "near_duplicate_threshold": "0.88",
+  "package_units": [
+    "g",
+    "kg",
+    "ml",
+    "l",
+    "unidad"
+  ],
+  "quantified_unit_types": [
+    "bolsa",
+    "botella",
+    "caja",
+    "paquete",
+    "lata",
+    "frasco",
+    "sobre",
+    "tubo",
+    "rollo"
+  ],
+  "sources": [
+    "manual_curated",
+    "supplier",
+    "manufacturer",
+    "open_dataset",
+    "business_contribution"
+  ],
+  "unit_types": [
+    "unidad",
+    "bolsa",
+    "botella",
+    "caja",
+    "paquete",
+    "lata",
+    "frasco",
+    "sobre",
+    "tubo",
+    "rollo"
+  ],
+  "verification_statuses": [
+    "unverified",
+    "community",
+    "verified",
+    "gs1_verified",
+    "rejected",
+    "deprecated"
+  ]
+}

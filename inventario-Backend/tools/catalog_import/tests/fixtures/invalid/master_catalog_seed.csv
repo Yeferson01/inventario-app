@@ -1,0 +1,2 @@
+master_product_id,primary_barcode,barcode_type,name,brand,manufacturer,category_name,subcategory_name,package_size,package_unit,unit_type,description,source,verification_status,confidence_score,source_reference,image_source_key,image_license,image_attribution
+11111111-1111-4111-8111-111111111111,4006381333932,ean13,Producto inválido,,,Alimentos,,500,g,bolsa,,manual_curated,unverified,1.20,fixture:p1.2:invalid,image/producto,,

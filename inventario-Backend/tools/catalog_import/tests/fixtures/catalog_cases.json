@@ -1,0 +1,73 @@
+{
+  "duplicate_barcode_across_masters": {
+    "barcode": "4006381333931"
+  },
+  "image_without_license_master": {
+    "image_license": "",
+    "image_source_key": "images/fixture.png"
+  },
+  "invalid_checksum_barcode": {
+    "barcode": "4006381333932",
+    "barcode_type": "ean13"
+  },
+  "invalid_confidence_master": {
+    "confidence_score": "1.01"
+  },
+  "invalid_package_pair_master": {
+    "package_size": "500",
+    "package_unit": ""
+  },
+  "invalid_uuid_master": {
+    "master_product_id": "not-a-uuid"
+  },
+  "leading_zero_barcode": {
+    "barcode": "036000291452",
+    "barcode_type": "upc"
+  },
+  "missing_required_field_master": {
+    "name": ""
+  },
+  "semantic_duplicate_master": {
+    "brand": "Marca Ejemplo",
+    "name": "Café de prueba",
+    "package_size": "500",
+    "package_unit": "g",
+    "unit_type": "bolsa"
+  },
+  "valid_alternate_barcode": {
+    "barcode": "5901234123457",
+    "barcode_type": "ean13",
+    "is_primary": "false"
+  },
+  "valid_master": {
+    "barcode_type": "ean13",
+    "brand": "Marca Ejemplo",
+    "category_name": "Alimentos",
+    "confidence_score": "0.75",
+    "description": "Fixture separado del catálogo comercial",
+    "image_attribution": "",
+    "image_license": "",
+    "image_source_key": "",
+    "manufacturer": "Fabricante Ejemplo",
+    "master_product_id": "11111111-1111-4111-8111-111111111111",
+    "name": "Café de prueba",
+    "package_size": "500",
+    "package_unit": "g",
+    "primary_barcode": "4006381333931",
+    "source": "manual_curated",
+    "source_reference": "fixture:p1.2:valid",
+    "subcategory_name": "Café",
+    "unit_type": "bolsa",
+    "verification_status": "unverified"
+  },
+  "valid_primary_barcode": {
+    "barcode": "4006381333931",
+    "barcode_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    "barcode_type": "ean13",
+    "confidence_score": "0.75",
+    "is_primary": "true",
+    "master_product_id": "11111111-1111-4111-8111-111111111111",
+    "source": "manual_curated",
+    "source_reference": "fixture:p1.2:primary"
+  }
+}

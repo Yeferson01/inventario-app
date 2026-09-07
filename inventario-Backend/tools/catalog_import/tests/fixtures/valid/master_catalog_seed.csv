@@ -1,0 +1,2 @@
+master_product_id,primary_barcode,barcode_type,name,brand,manufacturer,category_name,subcategory_name,package_size,package_unit,unit_type,description,source,verification_status,confidence_score,source_reference,image_source_key,image_license,image_attribution
+11111111-1111-4111-8111-111111111111,4006381333931,ean13,Café de prueba,Marca Ejemplo,Fabricante Ejemplo,Alimentos,Café,500,g,bolsa,Fixture separado del catálogo comercial,manual_curated,unverified,0.75,fixture:p1.2:valid,,,
