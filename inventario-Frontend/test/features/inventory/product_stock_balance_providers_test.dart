@@ -64,4 +64,28 @@ void main() {
     expect(branchA.hashCode, sameBranchA.hashCode);
     expect(branchA, isNot(branchB));
   });
+
+  test('inventory valuation summary key is scoped by business and branch', () {
+    const branchA = InventoryValuationSummaryKey(
+      businessId: 'business-1',
+      branchId: 'branch-a',
+    );
+    const sameBranchA = InventoryValuationSummaryKey(
+      businessId: 'business-1',
+      branchId: 'branch-a',
+    );
+    const branchB = InventoryValuationSummaryKey(
+      businessId: 'business-1',
+      branchId: 'branch-b',
+    );
+    const otherBusiness = InventoryValuationSummaryKey(
+      businessId: 'business-2',
+      branchId: 'branch-a',
+    );
+
+    expect(branchA, sameBranchA);
+    expect(branchA.hashCode, sameBranchA.hashCode);
+    expect(branchA, isNot(branchB));
+    expect(branchA, isNot(otherBusiness));
+  });
 }

@@ -4,6 +4,7 @@ import '../../../core/database/database_provider.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
 import '../data/datasources/product_stock_balance_local_dao.dart';
 import '../data/datasources/product_stock_balance_remote_datasource.dart';
+import 'inventory_valuation_models.dart';
 import 'product_stock_balance_pull_service.dart';
 
 export '../data/datasources/product_stock_balance_local_dao.dart'
@@ -101,6 +102,26 @@ class InventoryAlertSummary {
   final int lowStockCount;
 }
 
+class InventoryValuationSummaryKey {
+  const InventoryValuationSummaryKey({
+    required this.businessId,
+    required this.branchId,
+  });
+
+  final String businessId;
+  final String branchId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is InventoryValuationSummaryKey &&
+        other.businessId == businessId &&
+        other.branchId == branchId;
+  }
+
+  @override
+  int get hashCode => Object.hash(businessId, branchId);
+}
+
 final productStockBalanceLocalDaoProvider =
     Provider<ProductStockBalanceLocalDao>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -139,13 +160,27 @@ final localProductsWithStockProvider = StreamProvider.family<
     List<Map<String, dynamic>>, ProductsWithLocalStockKey>((ref, key) {
   final dao = ref.watch(productStockBalanceLocalDaoProvider);
 
-  return dao.watchProductsWithLocalStock(
-    businessId: key.businessId,
-    branchId: key.branchId,
-    searchTerm: key.searchTerm,
-    stockFilter: key.stockFilter,
-    limit: key.limit,
-  );
+  return dao
+      .watchProductsWithLocalStock(
+        businessId: key.businessId,
+        branchId: key.branchId,
+        searchTerm: key.searchTerm,
+        stockFilter: key.stockFilter,
+        limit: key.limit,
+      )
+      .map(
+        (rows) => rows
+            .map(
+              (row) => <String, dynamic>{
+                ...row,
+                'inventory_valuation': InventoryProductValuation.fromStock(
+                  quantityOnHand: _intValue(row['quantity_on_hand']),
+                  averageCost: row['stock_average_cost'],
+                ),
+              },
+            )
+            .toList(growable: false),
+      );
 });
 
 final inventoryAlertSummaryProvider =
@@ -165,3 +200,20 @@ final inventoryAlertSummaryProvider =
         ),
       );
 });
+
+final inventoryValuationSummaryProvider = StreamProvider.family<
+    InventoryValuationSummary, InventoryValuationSummaryKey>((ref, key) {
+  final dao = ref.watch(productStockBalanceLocalDaoProvider);
+  return dao
+      .watchBranchInventoryValuationInputs(
+        businessId: key.businessId,
+        branchId: key.branchId,
+      )
+      .map(InventoryValuationSummary.fromRows);
+});
+
+int _intValue(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}

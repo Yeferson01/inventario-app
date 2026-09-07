@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/features/inventory/application/business_product_creation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_product_providers.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_valuation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/product_stock_balance_providers.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 
@@ -113,6 +114,70 @@ void main() {
     expect(find.text('Costo prom.: —'), findsOneWidget);
   });
 
+  testWidgets('shows exact row values and an honest partial branch summary', (
+    tester,
+  ) async {
+    final summary = InventoryValuationSummary(
+      knownValueCents: BigInt.from(5000),
+      unknownCostProductCount: 1,
+      unknownCostUnitCount: BigInt.from(3),
+      invalidStockProductCount: 1,
+      precisionAnomalyProductCount: 0,
+    );
+    await _pumpScreen(
+      tester,
+      Stream.value([
+        {
+          'product_id': 'known',
+          'product_name': 'Con valor',
+          'quantity_on_hand': 10,
+          'stock_average_cost': 5,
+          'inventory_valuation': InventoryProductValuation.fromStock(
+            quantityOnHand: 10,
+            averageCost: 5,
+          ),
+        },
+        {
+          'product_id': 'unknown',
+          'product_name': 'Sin costo',
+          'quantity_on_hand': 3,
+          'stock_average_cost': null,
+          'inventory_valuation': InventoryProductValuation.fromStock(
+            quantityOnHand: 3,
+            averageCost: null,
+          ),
+        },
+        {
+          'product_id': 'invalid',
+          'product_name': 'Stock inválido',
+          'quantity_on_hand': -1,
+          'stock_average_cost': 5,
+          'inventory_valuation': InventoryProductValuation.fromStock(
+            quantityOnHand: -1,
+            averageCost: 5,
+          ),
+        },
+      ]),
+      summary: summary,
+    );
+    await tester.pump();
+
+    expect(find.text('Valor conocido'), findsOneWidget);
+    expect(find.text(r'$50.00'), findsOneWidget);
+    expect(find.text('Sin costo conocido: 1 producto(s) / 3 unidad(es)'),
+        findsOneWidget);
+    expect(find.text('Stock inválido: 1 producto(s)'), findsOneWidget);
+    expect(find.text(r'Valor: $50.00'), findsOneWidget);
+    expect(find.text('Valor: sin costo conocido'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const Key('inventory-product-list')),
+      const Offset(0, -400),
+    );
+    await tester.pump();
+    expect(find.text('Valor: no disponible'), findsOneWidget);
+    expect(find.text('Valor inventario'), findsNothing);
+  });
+
   testWidgets('searches through the application provider and clears results', (
     tester,
   ) async {
@@ -134,6 +199,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          inventoryValuationSummaryProvider.overrideWith(
+            (ref, key) => Stream.value(InventoryValuationSummary.empty),
+          ),
           localProductsWithStockProvider.overrideWith((ref, key) {
             final term = key.searchTerm.trim().toLowerCase();
             if (term.isEmpty) {
@@ -214,6 +282,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          inventoryValuationSummaryProvider.overrideWith(
+            (ref, key) => Stream.value(InventoryValuationSummary.empty),
+          ),
           localProductsWithStockProvider.overrideWith((ref, key) {
             final term = key.searchTerm.trim().toLowerCase();
             final filtered = products.where((product) {
@@ -296,6 +367,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          inventoryValuationSummaryProvider.overrideWith(
+            (ref, key) => Stream.value(InventoryValuationSummary.empty),
+          ),
           localProductsWithStockProvider.overrideWith((ref, key) {
             final term = key.searchTerm.trim().toLowerCase();
             final filtered = products.where((product) {
@@ -367,6 +441,16 @@ void main() {
   ) async {
     final container = ProviderContainer(
       overrides: [
+        inventoryValuationSummaryProvider.overrideWith((ref, key) {
+          final cents = key.branchId == 'branch-principal' ? 4005 : 1260;
+          return Stream.value(InventoryValuationSummary(
+            knownValueCents: BigInt.from(cents),
+            unknownCostProductCount: 0,
+            unknownCostUnitCount: BigInt.zero,
+            invalidStockProductCount: 0,
+            precisionAnomalyProductCount: 0,
+          ));
+        }),
         localProductsWithStockProvider.overrideWith((ref, key) {
           final stock = key.branchId == 'branch-principal' ? 15 : 3;
           final averageCost = key.branchId == 'branch-principal' ? 2.67 : 4.2;
@@ -409,6 +493,7 @@ void main() {
     );
     expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
     expect(find.text('Mínimo: 5'), findsOneWidget);
+    expect(find.text(r'$40.05'), findsOneWidget);
 
     await pumpBranch('branch-vendemas', 'VendeMás');
     expect(find.text('Sucursal: VendeMás'), findsOneWidget);
@@ -419,6 +504,8 @@ void main() {
     );
     expect(find.text(r'Costo prom.: $4.20'), findsOneWidget);
     expect(find.text('Mínimo: 5'), findsOneWidget);
+    expect(find.text(r'$12.60'), findsOneWidget);
+    expect(find.text(r'$40.05'), findsNothing);
     expect(find.text('Stock: 15'), findsNothing);
     expect(find.text(r'Costo prom.: $2.67'), findsNothing);
   });
@@ -440,6 +527,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          inventoryValuationSummaryProvider.overrideWith(
+            (ref, key) => Stream.value(InventoryValuationSummary.empty),
+          ),
           localProductsWithStockProvider.overrideWith((ref, key) {
             expect(key.businessId, 'business-1');
             expect(key.branchId, 'branch-1');
@@ -511,12 +601,17 @@ void main() {
         'product_name': 'Arroz',
         'quantity_on_hand': 15,
         'stock_average_cost': 2.67,
+        'inventory_valuation': InventoryProductValuation.fromStock(
+          quantityOnHand: 15,
+          averageCost: 2.67,
+        ),
       },
     ]);
     await tester.pump();
 
     expect(find.text('Stock: 15'), findsOneWidget);
     expect(find.text(r'Costo prom.: $2.67'), findsOneWidget);
+    expect(find.text(r'Valor: $40.05'), findsOneWidget);
 
     controller.add([
       {
@@ -524,23 +619,34 @@ void main() {
         'product_name': 'Arroz',
         'quantity_on_hand': 15,
         'stock_average_cost': 4.5,
+        'inventory_valuation': InventoryProductValuation.fromStock(
+          quantityOnHand: 15,
+          averageCost: 4.5,
+        ),
       },
     ]);
     await tester.pump();
 
     expect(find.text('Stock: 15'), findsOneWidget);
     expect(find.text(r'Costo prom.: $4.50'), findsOneWidget);
+    expect(find.text(r'Valor: $67.50'), findsOneWidget);
     expect(find.text(r'Costo prom.: $2.67'), findsNothing);
+    expect(find.text(r'Valor: $40.05'), findsNothing);
   });
 }
 
 Future<void> _pumpScreen(
   WidgetTester tester,
-  Stream<List<Map<String, dynamic>>> stream,
-) {
+  Stream<List<Map<String, dynamic>>> stream, {
+  InventoryValuationSummary? summary,
+}) {
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
+        inventoryValuationSummaryProvider.overrideWith(
+          (ref, key) =>
+              Stream.value(summary ?? InventoryValuationSummary.empty),
+        ),
         localProductsWithStockProvider.overrideWith((ref, key) {
           expect(key.businessId, 'business-1');
           expect(key.branchId, 'branch-1');

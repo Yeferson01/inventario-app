@@ -9,6 +9,7 @@ import '../../../sync/data/models/authorized_operational_context_models.dart';
 import '../../application/business_product_creation_models.dart';
 import '../../application/inventory_transfer_models.dart';
 import '../../application/inventory_transfer_providers.dart';
+import '../../application/inventory_valuation_models.dart';
 import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../widgets/inventory_transfer_dialog.dart';
@@ -212,6 +213,14 @@ class _InventoryProductStockListScreenState
         ),
       ),
     );
+    final valuationSummaryAsync = ref.watch(
+      inventoryValuationSummaryProvider(
+        InventoryValuationSummaryKey(
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+        ),
+      ),
+    );
     final hasSearch = _searchTerm.trim().isNotEmpty;
     final canTransfer = widget.profileId != null &&
         widget.effectivePermissions.contains('inventory.transfer');
@@ -331,6 +340,21 @@ class _InventoryProductStockListScreenState
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  CronosSpacing.md,
+                  CronosSpacing.sm,
+                  CronosSpacing.md,
+                  0,
+                ),
+                child: valuationSummaryAsync.when(
+                  loading: () => const _InventoryValuationLoading(),
+                  error: (_, __) => const _InventoryValuationUnavailable(),
+                  data: (summary) => _InventoryValuationSummaryCard(
+                    summary: summary,
                   ),
                 ),
               ),
@@ -456,6 +480,10 @@ class _InventoryProductCard extends StatelessWidget {
     final quantityOnHand = _int(product['quantity_on_hand']);
     final isOutOfStock = quantityOnHand <= 0;
     final isLowStock = quantityOnHand > 0 && quantityOnHand <= minimumStock;
+    final valuation = product['inventory_valuation'];
+    final valuationLabel = valuation is InventoryProductValuation
+        ? _formatProductValuation(valuation)
+        : 'no disponible';
 
     return AppGlassCard(
       child: Row(
@@ -530,6 +558,12 @@ class _InventoryProductCard extends StatelessWidget {
               ),
               const SizedBox(height: CronosSpacing.xs),
               Text(
+                'Valor: $valuationLabel',
+                key: Key('inventory-value-$productId'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: CronosSpacing.xs),
+              Text(
                 'Mínimo: $minimumStock',
                 key: Key('inventory-minimum-stock-$productId'),
                 style: Theme.of(context).textTheme.bodySmall,
@@ -559,6 +593,93 @@ class _InventoryProductCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _InventoryValuationSummaryCard extends StatelessWidget {
+  const _InventoryValuationSummaryCard({required this.summary});
+
+  final InventoryValuationSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = summary.isComplete ? 'Valor inventario' : 'Valor conocido';
+    return AppGlassCard(
+      key: const Key('inventory-valuation-summary'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined),
+          const SizedBox(width: CronosSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.labelLarge),
+                Text(
+                  formatInventoryMoneyCents(summary.knownValueCents),
+                  key: const Key('inventory-valuation-known-value'),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: CronosColors.primaryDark,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                if (summary.unknownCostProductCount > 0)
+                  Text(
+                    'Sin costo conocido: '
+                    '${summary.unknownCostProductCount} producto(s) / '
+                    '${summary.unknownCostUnitCount} unidad(es)',
+                    key: const Key('inventory-valuation-unknown-cost'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                if (summary.invalidStockProductCount > 0)
+                  Text(
+                    'Stock inválido: '
+                    '${summary.invalidStockProductCount} producto(s)',
+                    key: const Key('inventory-valuation-invalid-stock'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                  ),
+                if (summary.precisionAnomalyProductCount > 0)
+                  Text(
+                    'Valor no representable: '
+                    '${summary.precisionAnomalyProductCount} producto(s)',
+                    key: const Key('inventory-valuation-precision-anomaly'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryValuationLoading extends StatelessWidget {
+  const _InventoryValuationLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const AppGlassCard(
+      key: Key('inventory-valuation-loading'),
+      child: LinearProgressIndicator(),
+    );
+  }
+}
+
+class _InventoryValuationUnavailable extends StatelessWidget {
+  const _InventoryValuationUnavailable();
+
+  @override
+  Widget build(BuildContext context) {
+    return const AppGlassCard(
+      key: Key('inventory-valuation-error'),
+      child: Text('Valorización no disponible'),
     );
   }
 }
@@ -658,6 +779,17 @@ String _formatAverageCost(Object? value) {
   }
 
   return '\$${cost.toStringAsFixed(2)}';
+}
+
+String _formatProductValuation(InventoryProductValuation valuation) {
+  return switch (valuation.status) {
+    InventoryProductValuationStatus.known =>
+      formatInventoryMoneyCents(valuation.valueCents!),
+    InventoryProductValuationStatus.unknownCost => 'sin costo conocido',
+    InventoryProductValuationStatus.invalidStock ||
+    InventoryProductValuationStatus.precisionAnomaly =>
+      'no disponible',
+  };
 }
 
 int _minimumStock(Object? value) {

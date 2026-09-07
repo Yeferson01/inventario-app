@@ -486,6 +486,39 @@ class ProductStockBalanceLocalDao {
         );
   }
 
+  Stream<List<Map<String, dynamic>>> watchBranchInventoryValuationInputs({
+    required String businessId,
+    required String branchId,
+  }) {
+    return _db
+        .customSelect(
+          '''
+          select
+            coalesce(b.quantity_on_hand, 0) as quantity_on_hand,
+            b.average_cost as stock_average_cost
+          from products p
+          left join local_product_stock_balances b
+            on b.business_id = p.business_id
+           and b.branch_id = ?
+           and b.product_id = p.id
+           and b.deleted_at is null
+          where p.business_id = ?
+            and p.status = 'active'
+            and p.deleted_at is null
+          ''',
+          variables: [
+            Variable<String>(branchId),
+            Variable<String>(businessId),
+          ],
+          readsFrom: {
+            _db.products,
+            _db.localProductStockBalances,
+          },
+        )
+        .watch()
+        .map((rows) => rows.map((row) => row.data).toList(growable: false));
+  }
+
   String _stockFilterClause(InventoryProductStockFilter stockFilter) {
     return switch (stockFilter) {
       InventoryProductStockFilter.all => '',

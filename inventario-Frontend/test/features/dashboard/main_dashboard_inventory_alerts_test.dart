@@ -12,6 +12,7 @@ import 'package:inventario_frontend/features/cash/application/cash_session_local
 import 'package:inventario_frontend/features/cash/application/cash_session_local_service.dart';
 import 'package:inventario_frontend/features/cash/data/datasources/cash_session_local_dao.dart';
 import 'package:inventario_frontend/features/dashboard/presentation/screens/main_dashboard_screen.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_valuation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/product_stock_balance_providers.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import 'package:inventario_frontend/features/sync/application/app_context_models.dart';
@@ -249,6 +250,9 @@ Future<void> _pumpDashboard(
                 ),
           );
         }),
+        inventoryValuationSummaryProvider.overrideWith(
+          (ref, key) => Stream.value(InventoryValuationSummary.empty),
+        ),
         localProductsWithStockProvider.overrideWith((ref, key) {
           onInventoryRead?.call(key);
           return Stream.value(const <Map<String, dynamic>>[]);
