@@ -16,7 +16,9 @@ import '../../../inventory/presentation/screens/inventory_product_stock_list_scr
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
+import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
+import '../../../sync/application/productive_manual_sync_service.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
 import '../../../sync/presentation/widgets/operational_branch_switcher.dart';
 import '../../../sales/presentation/sales_presentation.dart';
@@ -32,6 +34,7 @@ class MainDashboardScreen extends ConsumerStatefulWidget {
 class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
   bool _isLoading = true;
   bool _isSwitchingBranch = false;
+  bool _isManualSyncing = false;
   Object? _lastError;
 
   AppCurrentContext? _appContext;
@@ -268,6 +271,51 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _runManualSync() async {
+    if (_isManualSyncing) {
+      return;
+    }
+
+    setState(() => _isManualSyncing = true);
+
+    final result = await ref.read(productiveManualSyncRunnerProvider)();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result.completed) {
+      await _load();
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isManualSyncing = false);
+
+    final (title, message) = switch (result.outcome) {
+      ProductiveManualSyncOutcome.completed => (
+          'Sincronización completada',
+          result.message,
+        ),
+      ProductiveManualSyncOutcome.completedWithIssues => (
+          'Sincronización con pendientes',
+          result.message,
+        ),
+      ProductiveManualSyncOutcome.unavailable => (
+          'Sincronización no disponible',
+          result.message,
+        ),
+      ProductiveManualSyncOutcome.failed => (
+          'No fue posible sincronizar',
+          result.message,
+        ),
+    };
+
+    _showInfoSheet(title: title, message: message);
   }
 
   void _switchOperationalBranch(AuthorizedOperationalContext target) {
@@ -551,6 +599,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                           branchName: operationalContext?.branchName,
                         ),
                         onOpenPurchases: _openPurchases,
+                        isManualSyncing: _isManualSyncing,
+                        onManualSync: _runManualSync,
                         onComingSoon: _showInfoSheet,
                       ),
                     ),
@@ -831,6 +881,8 @@ class _ModulesGrid extends StatelessWidget {
     required this.onOpenPos,
     required this.onOpenInventory,
     required this.onOpenPurchases,
+    required this.isManualSyncing,
+    required this.onManualSync,
     required this.onComingSoon,
   });
 
@@ -841,6 +893,8 @@ class _ModulesGrid extends StatelessWidget {
   final VoidCallback onOpenPos;
   final VoidCallback onOpenInventory;
   final VoidCallback onOpenPurchases;
+  final bool isManualSyncing;
+  final VoidCallback onManualSync;
   final void Function({
     required String title,
     required String message,
@@ -945,8 +999,8 @@ class _ModulesGrid extends StatelessWidget {
         ),
       if (moduleAccess.hasEffectiveAuthorization)
         _DashboardModule(
-          title: 'Sync',
-          subtitle: 'Estado de cola, pendientes y errores.',
+          title: 'Sincronización',
+          subtitle: 'Publicar pendientes y actualizar catálogo ahora.',
           icon: Icons.sync_outlined,
           gradient: const LinearGradient(
             colors: [
@@ -954,14 +1008,10 @@ class _ModulesGrid extends StatelessWidget {
               Color(0xFF64748B),
             ],
           ),
-          statusLabel: 'Interno',
-          statusTone: AppStatusTone.neutral,
-          onTap: () {
-            onComingSoon(
-              title: 'Sync',
-              message: 'El monitor visual de sync viene después.',
-            );
-          },
+          statusLabel: isManualSyncing ? 'Sincronizando...' : 'Manual',
+          statusTone:
+              isManualSyncing ? AppStatusTone.warning : AppStatusTone.neutral,
+          onTap: isManualSyncing ? null : onManualSync,
         ),
     ];
 
@@ -1121,7 +1171,7 @@ class _DashboardModule {
   final Gradient gradient;
   final String statusLabel;
   final AppStatusTone statusTone;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 }
 
 String? _string(Object? value) {

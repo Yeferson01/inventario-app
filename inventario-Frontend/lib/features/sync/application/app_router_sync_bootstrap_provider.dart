@@ -7,6 +7,7 @@ import '../../../core/supabase/supabase_client_provider.dart';
 import 'app_installation_id_store.dart';
 import 'app_sync_coordinator_models.dart';
 import 'local_sync_outbox_providers.dart';
+import 'productive_manual_sync_service.dart';
 
 class AppRouterSyncBootstrapData {
   const AppRouterSyncBootstrapData({
@@ -72,6 +73,26 @@ final appRouterSyncBootstrapProvider =
     hasAuthenticatedUser: true,
     input: input,
   );
+});
+
+final productiveManualSyncServiceProvider =
+    Provider<ProductiveManualSyncService>((ref) {
+  return ProductiveManualSyncService(
+    inputLoader: () async {
+      ref.invalidate(appRouterSyncBootstrapProvider);
+      final bootstrap = await ref.read(appRouterSyncBootstrapProvider.future);
+      if (!bootstrap.hasAuthenticatedUser) {
+        return null;
+      }
+      return bootstrap.input;
+    },
+    coordinator: ref.watch(appSyncCoordinatorServiceProvider).runManualSync,
+  );
+});
+
+final productiveManualSyncRunnerProvider =
+    Provider<ProductiveManualSyncRunner>((ref) {
+  return ref.watch(productiveManualSyncServiceProvider).run;
 });
 
 Future<bool> _isCurrentlyOnline() async {

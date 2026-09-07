@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,8 @@ import 'package:inventario_frontend/features/inventory/application/product_stock
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import 'package:inventario_frontend/features/sync/application/app_context_models.dart';
 import 'package:inventario_frontend/features/sync/application/app_current_context_provider.dart';
+import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
+import 'package:inventario_frontend/features/sync/application/productive_manual_sync_service.dart';
 
 void main() {
   testWidgets(
@@ -81,6 +85,65 @@ void main() {
     expect(find.text('Agotados: 1'), findsNothing);
   });
 
+  testWidgets('manual sync is explicit and prevents a concurrent second run',
+      (tester) async {
+    final completer = Completer<ProductiveManualSyncResult>();
+    var calls = 0;
+
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+      manualSyncRunner: () {
+        calls++;
+        return completer.future;
+      },
+    );
+
+    final action = find.text('Sincronización');
+    await tester.ensureVisible(action);
+    await tester.pumpAndSettle();
+    await tester.tap(action);
+    await tester.pump();
+    await tester.ensureVisible(action);
+    await tester.pumpAndSettle();
+    await tester.tap(action);
+    await tester.pump();
+
+    expect(calls, 1);
+    expect(find.text('Sincronizando...'), findsOneWidget);
+
+    completer.complete(
+      const ProductiveManualSyncResult(
+        outcome: ProductiveManualSyncOutcome.completed,
+        message: 'Pendientes publicados y catálogo actualizado.',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sincronización completada'), findsOneWidget);
+  });
+
+  testWidgets('Actualizar keeps its reload-only contract', (tester) async {
+    var manualSyncCalls = 0;
+
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+      manualSyncRunner: () async {
+        manualSyncCalls++;
+        return const ProductiveManualSyncResult(
+          outcome: ProductiveManualSyncOutcome.completed,
+          message: 'Completada.',
+        );
+      },
+    );
+
+    await tester.tap(find.byTooltip('Actualizar'));
+    await tester.pumpAndSettle();
+
+    expect(manualSyncCalls, 0);
+  });
+
   testWidgets('alert actions open Inventory with the corresponding filter',
       (tester) async {
     final inventoryKeys = <ProductsWithLocalStockKey>[];
@@ -141,6 +204,7 @@ Future<void> _pumpDashboard(
   void Function(ProductsWithLocalStockKey key)? onInventoryRead,
   String Function()? currentBranchId,
   InventoryAlertSummary Function(InventoryAlertSummaryKey key)? summaryForKey,
+  ProductiveManualSyncRunner? manualSyncRunner,
 }) async {
   final database = AppDatabase.executor(NativeDatabase.memory());
   addTearDown(database.close);
@@ -189,6 +253,13 @@ Future<void> _pumpDashboard(
           onInventoryRead?.call(key);
           return Stream.value(const <Map<String, dynamic>>[]);
         }),
+        productiveManualSyncRunnerProvider.overrideWithValue(
+          manualSyncRunner ??
+              () async => const ProductiveManualSyncResult(
+                    outcome: ProductiveManualSyncOutcome.completed,
+                    message: 'Completada.',
+                  ),
+        ),
       ],
       child: const MaterialApp(home: MainDashboardScreen()),
     ),
