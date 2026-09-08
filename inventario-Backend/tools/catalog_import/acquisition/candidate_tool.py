@@ -64,6 +64,7 @@ SOURCE_CHANNELS = {
     "supplier_feed",
     "manufacturer_feed",
     "open_icecat",
+    "open_prices",
     "gdsn",
     "manual_research",
     "other_authorized",

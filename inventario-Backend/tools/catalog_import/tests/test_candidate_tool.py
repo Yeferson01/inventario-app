@@ -229,6 +229,19 @@ class CandidateToolTest(unittest.TestCase):
         row["retrieved_at"] = "2026-09-08T07:34:56-05:00"
         self.assertTrue(self._report([row])["valid"])
 
+    def test_27_open_prices_candidate_contract_is_valid(self) -> None:
+        row = self._valid_row()
+        row.update(
+            source="open_dataset",
+            source_channel="open_prices",
+            rights_class="open_dataset_odbl_share_alike",
+            can_persist_candidate="true",
+            candidate_confidence="medium",
+            colombia_evidence_type="other_documented",
+            colombia_evidence_count="1",
+        )
+        self.assertTrue(self._report([row])["valid"])
+
 
 if __name__ == "__main__":
     unittest.main()
