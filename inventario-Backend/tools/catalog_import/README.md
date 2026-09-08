@@ -147,9 +147,70 @@ code.
 ## De P1.2 a P1.3
 
 P1.2 prepara y valida archivos locales; no genera filas SQL ni consulta Hosted.
-La interfaz prevista para P1.3 es un argumento local como
-`--against existing_catalog_snapshot.json`: comparará identidades, códigos y
-hashes contra un snapshot exportado, nunca contra una conexión live implícita.
-Su implementación y el dry-run remoto se reservan para el preflight P1.3. Hasta
-entonces, no use estas herramientas para importar, actualizar o borrar datos de
-Supabase.
+P1.3 agrega `catalog_importer.py`, que mantiene separados snapshot, plan,
+aplicación y verificación.
+
+### Snapshot administrativo read-only
+
+Configure las credenciales únicamente como variables de entorno locales:
+
+```powershell
+$env:SUPABASE_URL = "https://PROJECT.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY = "<secret local no versionado>"
+python catalog_importer.py snapshot --output reports/existing_catalog_snapshot.json
+```
+
+El comando invoca solo `export_master_catalog_snapshot`. No incluya la service
+key en argumentos, archivos, reportes o historial del shell. El snapshot
+contiene masters y códigos globales, incluyendo tombstones y versiones; debe
+tratarse como información administrativa.
+
+### Plan determinista
+
+Asigne fuera del script un UUID estable para esa ejecución y consérvelo:
+
+```powershell
+python catalog_importer.py plan `
+  --against reports/existing_catalog_snapshot.json `
+  --import-batch-id 33333333-3333-4333-8333-333333333333 `
+  --output reports/import-plan.json
+```
+
+El plan clasifica cada fila como `INSERT`, `UPDATE`, `NO_OP`, `CONFLICT` o
+`REVIEW`. Un tombstone, cambio de primary no explícito, candidato semántico o
+conflicto bloquea `ready_to_apply`. Los updates incluyen la `expected_version`
+del snapshot; el servidor vuelve a validarla bajo lock. El plan y su SHA-256 son
+deterministas cuando dataset, snapshot e `import_batch_id` no cambian.
+
+### Aplicación y verificación
+
+La escritura real queda reservada para P1.4 y exige confirmación explícita del
+batch ID:
+
+```powershell
+python catalog_importer.py apply `
+  --plan reports/import-plan.json `
+  --confirm-import-batch-id 33333333-3333-4333-8333-333333333333 `
+  --output reports/import-result.json
+
+python catalog_importer.py snapshot --output reports/post-import-snapshot.json
+python catalog_importer.py verify `
+  --plan reports/import-plan.json `
+  --against reports/post-import-snapshot.json `
+  --output reports/post-import-verification.json
+```
+
+`apply` llama exclusivamente a `import_master_catalog_batch`, RPC
+`service_role` transaccional con límite de 100 masters y 500 barcodes. El mismo
+batch/request devuelve `already_applied`; reutilizar el batch ID con otro
+request falla. Un nuevo batch con el mismo payload produce no-op sin incrementar
+versiones.
+
+La compensación administrativa se realiza únicamente mediante
+`compensate_master_catalog_import_batch(batch_id, reason)`. Solo admite batches
+insert-only cuyas entidades no tengan dependencias ni cambios posteriores, y
+usa soft delete. Los updates requieren restauración manual basada en el audit
+pre-update; nunca se hace rollback destructivo o hard delete.
+
+P1.3 no importa automáticamente el CSV ni genera SQL ad-hoc. No ejecute
+`apply` con el dataset comercial hasta la autorización y el preflight P1.4.
