@@ -1,0 +1,257 @@
+{
+  "ruleset_version": "1.2.0",
+  "rules": [
+    {
+      "rule_id": "map-alimentos-curated-tags",
+      "action": "map",
+      "match_main_category_any": [
+        "en:breakfast-cereals",
+        "en:greek-style-yogurts",
+        "en:yogurts",
+        "en:cheeses",
+        "en:breads",
+        "en:rolled-oats",
+        "en:rices",
+        "en:arepas",
+        "en:canned-tunas"
+      ],
+      "match_tags_any": [
+        "en:breakfast-cereals",
+        "en:greek-style-yogurts",
+        "en:yogurts",
+        "en:cheeses",
+        "en:breads",
+        "en:rolled-oats",
+        "en:rices",
+        "en:arepas",
+        "en:canned-tunas"
+      ],
+      "target_category": "Alimentos",
+      "reason": "exact_curated_tag_rule"
+    },
+    {
+      "rule_id": "map-bebidas-curated-tags",
+      "action": "map",
+      "match_main_category_any": [
+        "en:sweetened-beverages",
+        "en:energy-drinks",
+        "en:instant-coffees",
+        "en:milks",
+        "en:almond-based-drinks",
+        "en:sodas",
+        "en:iced-teas"
+      ],
+      "match_tags_any": [
+        "en:sweetened-beverages",
+        "en:energy-drinks",
+        "en:instant-coffees",
+        "en:milks",
+        "en:almond-based-drinks",
+        "en:sodas",
+        "en:iced-teas"
+      ],
+      "target_category": "Bebidas",
+      "reason": "exact_curated_tag_rule"
+    },
+    {
+      "rule_id": "map-snacks-confiteria-curated-tags",
+      "action": "map",
+      "match_main_category_any": [
+        "en:biscuits",
+        "en:salty-snacks",
+        "en:dry-biscuits",
+        "en:crisps",
+        "en:cereal-bars",
+        "en:confectioneries",
+        "en:gummi-candies",
+        "en:ice-creams"
+      ],
+      "match_tags_any": [
+        "en:biscuits",
+        "en:salty-snacks",
+        "en:dry-biscuits",
+        "en:crisps",
+        "en:cereal-bars",
+        "en:confectioneries",
+        "en:gummi-candies",
+        "en:ice-creams"
+      ],
+      "target_category": "Snacks y confitería",
+      "reason": "exact_curated_tag_rule"
+    },
+    {
+      "rule_id": "review-contextual-or-broad-tags",
+      "action": "review",
+      "match_main_category_any": [
+        "en:groceries",
+        "en:peanuts",
+        "en:dairies",
+        "en:jelly-desserts"
+      ],
+      "match_tags_any": [
+        "en:groceries",
+        "en:peanuts",
+        "en:dairies",
+        "en:jelly-desserts"
+      ],
+      "target_category": null,
+      "reason": "review_required"
+    },
+    {
+      "rule_id": "exclude-initial-out-of-scope",
+      "action": "exclude",
+      "match_main_category_any": [
+        "en:dietary-supplements",
+        "en:alcoholic-beverages"
+      ],
+      "match_tags_any": [
+        "en:dietary-supplements",
+        "en:alcoholic-beverages"
+      ],
+      "target_category": null,
+      "reason": "out_of_scope_for_initial_catalog"
+    },
+    {
+      "rule_id": "map-main-alimentos-v1.1",
+      "action": "map",
+      "match_main_category_any": [
+        "en:spaghetti",
+        "en:pastas",
+        "en:mayonnaises",
+        "en:peanut-butters",
+        "en:margarines",
+        "en:sausages",
+        "en:cornmeal",
+        "en:wheat-flours",
+        "en:tomato-sauces",
+        "en:olive-oils",
+        "en:honeys",
+        "en:extra-virgin-olive-oils",
+        "en:pancake-mixes",
+        "en:tunas",
+        "en:compotes",
+        "en:dried-fruits",
+        "en:oat-flours",
+        "en:coconut-oils",
+        "en:tabletop-sweeteners",
+        "en:marmalades",
+        "en:virgin-olive-oils",
+        "en:potatoes",
+        "en:canned-sweet-corn",
+        "en:sauces",
+        "en:durum-wheat-pasta",
+        "en:mixed-vegetable-oils",
+        "en:corn",
+        "en:prepared-meats",
+        "en:hams",
+        "en:meat-analogues",
+        "en:blackberry-jams",
+        "en:powdered-panela",
+        "en:panela-blocks",
+        "en:italian-pasta",
+        "en:fresh-meats",
+        "en:instant-noodle-soups",
+        "en:vinegars",
+        "en:sardines-in-tomato-sauce",
+        "en:mustard-sauces",
+        "en:hummus",
+        "en:pulses",
+        "en:sugar-substitutes",
+        "en:strawberry-jams",
+        "en:jams",
+        "en:barbecue-sauces",
+        "en:balsamic-vinegars-of-modena",
+        "en:canola-oils",
+        "en:liquid-honeys",
+        "en:flours",
+        "en:chicken-sausages",
+        "en:chorizo",
+        "en:canned-peas-and-carrots",
+        "en:mustards",
+        "en:berry-jams",
+        "en:oat",
+        "en:eggs",
+        "en:refined-deodorized-sunflower-oils",
+        "en:butters",
+        "en:condensed-milks",
+        "en:salted-margarines",
+        "en:creams",
+        "en:salted-butters",
+        "en:sour-creams",
+        "en:cottage-cheeses",
+        "en:whipped-creams",
+        "en:ghee",
+        "en:petits-suisses",
+        "en:evaporated-milks",
+        "en:salsas-de-chiles"
+      ],
+      "match_tags_any": [],
+      "target_category": "Alimentos",
+      "reason": "exact_main_category_rule"
+    },
+    {
+      "rule_id": "map-main-bebidas-v1.1",
+      "action": "map",
+      "match_main_category_any": [
+        "en:beverages",
+        "en:coffees",
+        "en:waters",
+        "en:oat-based-drinks",
+        "en:plant-based-milk-alternatives",
+        "en:herbal-teas-in-tea-bags",
+        "en:teas",
+        "en:carbonated-waters",
+        "en:colombian-coffees",
+        "en:powdered-soy-milks",
+        "en:mineral-waters",
+        "en:artificially-sweetened-beverages",
+        "en:soy-based-drinks",
+        "en:fruit-based-beverages",
+        "en:orange-juices",
+        "en:tea-bags",
+        "en:fermented-milk-drinks",
+        "en:dairy-drinks",
+        "en:kefir",
+        "en:chocolate-milks",
+        "en:flavoured-milks",
+        "en:fruit-and-milk-beverages",
+        "en:instant-beverages"
+      ],
+      "match_tags_any": [],
+      "target_category": "Bebidas",
+      "reason": "exact_main_category_rule"
+    },
+    {
+      "rule_id": "map-main-snacks-confiteria-v1.1",
+      "action": "map",
+      "match_main_category_any": [
+        "en:snacks",
+        "en:cakes",
+        "en:sweet-snacks",
+        "en:chocolates",
+        "en:brownies",
+        "en:dark-chocolates",
+        "en:popcorn",
+        "en:milk-chocolates",
+        "en:nut-bars",
+        "en:chocolate-cakes",
+        "en:biscuits-and-cakes",
+        "en:ice-creams-and-sorbets",
+        "en:milk-chocolate-bar"
+      ],
+      "match_tags_any": [],
+      "target_category": "Snacks y confitería",
+      "reason": "exact_main_category_rule"
+    },
+    {
+      "rule_id": "map-main-cuidado-personal-v1.2",
+      "action": "map",
+      "match_main_category_any": [
+        "es:maquillaje"
+      ],
+      "match_tags_any": [],
+      "target_category": "Cuidado personal",
+      "reason": "exact_main_category_rule"
+    }
+  ]
+}
