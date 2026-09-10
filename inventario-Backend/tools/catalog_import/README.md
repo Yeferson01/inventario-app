@@ -10,10 +10,12 @@ lee ni escribe Supabase.
 - `catalog_tool.py`: asignación explícita de UUID, validación y `dry-run`.
 - `config/vocabularies.json`: vocabularios controlados y su configuración.
 - `datasets/catalog_dataset_manifest.json`: versión y metadata del lote.
-- `datasets/master_catalog_seed.csv`: masters comerciales; empieza solo con el header.
-- `datasets/master_catalog_barcodes.csv`: códigos primarios y alternos; empieza solo con el header.
+- `datasets/master_catalog_seed.csv`: dataset activo de masters comerciales.
+- `datasets/master_catalog_barcodes.csv`: dataset activo de códigos primarios y alternos.
 - `tests/fixtures/`: datos ficticios aislados para las pruebas.
-- `reports/`: destino opcional para reportes locales; el programa no escribe allí por defecto.
+- `reports/`: reportes locales. Los comandos de poda conservan allí sus filas
+  rechazadas por defecto; los reportes JSON siguen siendo opcionales mediante
+  `--report`.
 
 Los CSV de `datasets/` son las plantillas comerciales reales. No copie en ellos
 las filas de `tests/fixtures/`.
@@ -26,6 +28,10 @@ Python 3.12 o compatible. No hay paquetes que instalar. Desde este directorio:
 python catalog_tool.py validate
 python catalog_tool.py dry-run --report reports/catalog-dry-run.json
 python catalog_tool.py allocate-ids
+python catalog_tool.py sync-primary-barcodes --dry-run
+python catalog_tool.py prune-invalid-barcode-masters --dry-run
+python catalog_tool.py prune-exact-semantic-duplicates --help
+python catalog_tool.py prune-preflight-blockers --help
 ```
 
 Si `python` no está en `PATH`, invoque el ejecutable Python disponible en la
@@ -36,7 +42,9 @@ máquina seguido de los mismos argumentos.
 1. Duplique el dataset en un respaldo privado externo si ya contiene trabajo real.
 2. Agregue filas a ambos CSV conservando exactamente sus headers.
 3. Para filas nuevas puede dejar vacíos únicamente los UUID que va a asignar.
-4. Ejecute `allocate-ids` una vez. Esta es la única operación que modifica CSV.
+4. Ejecute `allocate-ids` una vez cuando existan UUID vacíos. Esta operación
+   modifica los dos CSV; los comandos explícitos de materialización y poda
+   descritos abajo también pueden modificarlos bajo sus propias guardas.
 5. Verifique que cada barcode quedó enlazado al `master_product_id` correcto.
 6. Ejecute `validate` durante la edición y `dry-run` antes de entregar el lote.
 7. Corrija manualmente los errores; el validador nunca reescribe datos.
@@ -45,6 +53,110 @@ máquina seguido de los mismos argumentos.
 los UUID existentes. También puede enlazar un barcode sin master cuando su
 código coincide con un único `primary_barcode` del seed; una coincidencia
 ambigua queda sin enlazar y fallará la validación posterior.
+
+## Materialización masiva de barcodes primarios
+
+Cuando el seed ya tiene `master_product_id` y `primary_barcode`, pero faltan
+las filas relacionales, ejecute primero:
+
+```powershell
+python catalog_tool.py sync-primary-barcodes --dry-run `
+  --report reports/primary-barcode-sync-dry-run.json
+```
+
+El dry-run no modifica archivos. Reporta relaciones correctas, inserts,
+promociones inequívocas y conflictos por colisión cross-master, múltiples
+primarios, primario contradictorio o alias ambiguo.
+
+Si `can_apply=true`, materialice las relaciones con:
+
+```powershell
+python catalog_tool.py sync-primary-barcodes `
+  --report reports/primary-barcode-sync-apply.json
+```
+
+El comando escribe únicamente `master_catalog_barcodes.csv`. Las filas nuevas
+reciben un `barcode_id` UUID y copian `master_product_id`, barcode, tipo,
+fuente, confianza y referencia desde el seed validado. Un alias solo se
+promueve cuando es la única relación posible y conserva su ID y procedencia.
+
+Antes del reemplazo se valida el resultado completo y se crea un backup fuera
+del repositorio, bajo el directorio temporal del sistema
+`CronosManagement/catalog_import_backups`. La escritura usa un archivo temporal
+y reemplazo atómico. Si hay cualquier conflicto bloqueante, el CSV original no
+cambia. Una segunda ejecución sin cambios es un no-op byte-for-byte.
+
+## Retiro de masters con barcode inválido
+
+P1.2.2 retira únicamente las filas que el validator identifica con
+`invalid_barcode`. Antes de aplicar, ejecutar:
+
+```powershell
+python catalog_tool.py prune-invalid-barcode-masters --dry-run `
+  --report reports/invalid-barcode-prune-dry-run.json
+```
+
+El comando exige por defecto el conjunto esperado de 56 filas, bloquea si
+cualquiera tiene una relación en `master_catalog_barcodes.csv` y nunca modifica
+ese CSV relacional. La aplicación conserva las filas completas en
+`reports/rejected_invalid_barcode_rows.csv`, crea un backup externo del seed y
+reemplaza el seed mediante un temporal validado:
+
+```powershell
+python catalog_tool.py prune-invalid-barcode-masters `
+  --report reports/invalid-barcode-prune-apply.json
+```
+
+Una segunda ejecución valida la auditoría existente y devuelve `NO_OP` sin
+reescribir el seed ni el reporte de rechazados.
+
+## Retiro de duplicados semánticos exactos
+
+P1.2.3 toma el conjunto exclusivamente de los candidatos `exact` emitidos por
+el validator. Como el reporte enumera pares, el comando los agrupa por la
+`semantic_key` ya calculada y genera para cada grupo un SHA-256 determinista.
+No recalcula similitud, elige survivor ni toca candidatos `near`.
+
+Después de inspeccionar los conteos reales, deben pasarse explícitamente como
+guardas del dry-run y de la aplicación:
+
+```powershell
+python catalog_tool.py prune-exact-semantic-duplicates `
+  --expected-group-count 56 `
+  --expected-master-count 132 `
+  --expected-barcode-count 132 `
+  --dry-run `
+  --report reports/exact-semantic-prune-dry-run.json
+```
+
+El comando exige los conteos esperados de grupos, masters y relaciones, además
+de una relación primaria correcta por master. Elimina todas las relaciones de
+cada master rechazado y conserva las filas completas en
+`reports/rejected_exact_semantic_duplicate_masters.csv` y
+`reports/rejected_exact_semantic_duplicate_barcodes.csv`. Ambos datasets se
+validan juntos antes del reemplazo, reciben backups externos y se restauran si
+el segundo reemplazo falla. Un rerun correcto es `NO_OP` byte-for-byte.
+
+## Retiro de blockers del preflight Hosted
+
+Después de generar un plan P1.3 revisado, `prune-preflight-blockers` puede
+retirar localmente y sin red únicamente sus acciones `REVIEW` y `CONFLICT`.
+El plan sigue siendo la autoridad: el comando no recalcula similitud ni escoge
+survivors. Los conteos esperados se pasan como guardas explícitas:
+
+```powershell
+python catalog_tool.py prune-preflight-blockers `
+  --expected-review-count 206 `
+  --expected-conflict-count 1 `
+  --dry-run `
+  --report reports/preflight-blocker-prune-dry-run.json
+```
+
+La aplicación valida el hash del plan, su vínculo con el snapshot y el payload
+completo de todos los `INSERT` que permanecerán activos. También exige una única
+relación primaria por target y conserva por separado los rechazos semánticos y
+los conflictos Hosted. Ambos datasets reciben backups externos antes de su
+reemplazo lógico. Un rerun con el mismo plan y snapshot es `NO_OP` byte-for-byte.
 
 ## Contrato de los CSV
 
