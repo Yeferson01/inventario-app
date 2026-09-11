@@ -294,6 +294,35 @@ conflicto bloquea `ready_to_apply`. Los updates incluyen la `expected_version`
 del snapshot; el servidor vuelve a validarla bajo lock. El plan y su SHA-256 son
 deterministas cuando dataset, snapshot e `import_batch_id` no cambian.
 
+### Preparación chunked y reanudable
+
+El RPC limita cada request a 100 masters y 500 barcodes. Por eso un plan
+comercial se divide antes de cualquier escritura, conservando cada master y
+todos sus códigos en el mismo chunk. Prepare el manifiesto durable y revíselo:
+
+```powershell
+python catalog_importer.py prepare-apply `
+  --plan reports/import-plan.json `
+  --against reports/existing_catalog_snapshot.json `
+  --output reports/commercial-import-execution.json
+```
+
+El `import_batch_id` del plan identifica el lote lógico raíz y no se envía
+repetidamente al RPC. Cada chunk recibe un `child_import_batch_id` UUIDv5
+determinista, derivado del root batch, el hash del plan, el índice y el hash de
+su payload. El manifiesto liga root batch, versión y hashes del dataset,
+snapshot, plan, contrato de chunking, IDs y payloads. Un rerun idéntico verifica
+el archivo existente sin sobrescribirlo; cualquier binding stale falla cerrado.
+
+El manifiesto se reemplaza atómicamente al cambiar de `pending` a `in_flight`,
+`failed` o `completed`. Si el RPC tuvo éxito y el proceso murió antes de guardar
+el resultado, el retry reenvía exactamente el mismo child ID y payload; la
+idempotencia server-side devuelve el resultado autoritativo y permite continuar.
+El primer error no resuelto detiene los chunks posteriores.
+Antes del primer `apply` se debe refrescar snapshot y plan, y volver a verificar
+el manifiesto. Para reanudar el mismo root import parcialmente aplicado se
+conservan los artefactos exactos ya ligados; no se inicia otro lote lógico.
+
 ### Aplicación y verificación
 
 La escritura real queda reservada para P1.4 y exige confirmación explícita del
@@ -302,6 +331,8 @@ batch ID:
 ```powershell
 python catalog_importer.py apply `
   --plan reports/import-plan.json `
+  --against reports/existing_catalog_snapshot.json `
+  --execution-manifest reports/commercial-import-execution.json `
   --confirm-import-batch-id 33333333-3333-4333-8333-333333333333 `
   --output reports/import-result.json
 
@@ -312,17 +343,25 @@ python catalog_importer.py verify `
   --output reports/post-import-verification.json
 ```
 
-`apply` llama exclusivamente a `import_master_catalog_batch`, RPC
-`service_role` transaccional con límite de 100 masters y 500 barcodes. El mismo
-batch/request devuelve `already_applied`; reutilizar el batch ID con otro
-request falla. Un nuevo batch con el mismo payload produce no-op sin incrementar
-versiones.
+`apply` revalida dataset, snapshot, plan y manifiesto, y llama exclusivamente a
+`import_master_catalog_batch` para cada chunk pendiente. Cada llamada es una
+transacción independiente: la ejecución global es chunk-atomic, reanudable e
+idempotente, no una única transacción PostgreSQL para todo el catálogo. El mismo
+child batch/request devuelve `already_applied`; reutilizar el child ID con otro
+request falla. Antes de marcar un chunk como completo, el executor valida el
+child ID, dataset, status, `request_hash` autoritativo y los tres conteos remotos
+obligatorios (`inserted`, `updated`, `no_op`) contra las operaciones del plan.
+Esto también aplica a `already_applied`. Un nuevo batch con el mismo payload
+produce no-op sin incrementar versiones.
 
 La compensación administrativa se realiza únicamente mediante
 `compensate_master_catalog_import_batch(batch_id, reason)`. Solo admite batches
 insert-only cuyas entidades no tengan dependencias ni cambios posteriores, y
 usa soft delete. Los updates requieren restauración manual basada en el audit
 pre-update; nunca se hace rollback destructivo o hard delete.
+No hay compensación global automática para una ejecución parcialmente
+completada: primero se reanuda; cualquier compensación requiere autorización
+administrativa separada.
 
 P1.3 no importa automáticamente el CSV ni genera SQL ad-hoc. No ejecute
 `apply` con el dataset comercial hasta la autorización y el preflight P1.4.
