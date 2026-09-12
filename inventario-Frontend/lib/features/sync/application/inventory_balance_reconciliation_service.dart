@@ -258,7 +258,23 @@ class InventoryBalanceReconciliationService {
       final metadata = _metadata(balance['metadata_json']);
       final isTombstone =
           isSeen && metadata['remote_record_state']?.toString() == 'tombstone';
-      if ((!isSeen || isTombstone) && pending.isNotEmpty) {
+      final absentRemoteReplay = !isSeen && pending.isNotEmpty
+          ? _replayPendingMovements(
+              baseOnHand: 0,
+              baseReserved: 0,
+              baseAvailable: 0,
+              baseAverageCost: null,
+              pending: pending,
+            )
+          : null;
+      final canUseAbsentRemoteBase = absentRemoteReplay != null &&
+          _isCompatibleNewLocalBalance(
+            balance,
+            metadata,
+            absentRemoteReplay,
+          );
+      if ((isTombstone || (!isSeen && !canUseAbsentRemoteBase)) &&
+          pending.isNotEmpty) {
         productBlocked = true;
         blockers += 1;
         await _openIssue(
@@ -277,6 +293,21 @@ class InventoryBalanceReconciliationService {
       if (productBlocked) continue;
 
       await _resolveBalanceAbsenceIssues(request, productId);
+
+      if (canUseAbsentRemoteBase) {
+        await _balanceDao.finalizePendingOperativeBalance(
+          businessId: request.businessId,
+          branchId: request.branchId,
+          productId: productId,
+          quantityOnHand: absentRemoteReplay.quantityOnHand,
+          quantityReserved: absentRemoteReplay.quantityReserved,
+          quantityAvailable: absentRemoteReplay.quantityAvailable,
+          averageCost: absentRemoteReplay.averageCost,
+          lastMovementAt: _latestMovement(productMovements),
+        );
+        reconciled += 1;
+        continue;
+      }
 
       if (!isSeen || isTombstone) {
         await _balanceDao.finalizeOperativeBalance(
@@ -298,34 +329,21 @@ class InventoryBalanceReconciliationService {
       final remoteReserved = _requiredInt(balance, 'remote_quantity_reserved');
       final remoteAvailable =
           _requiredInt(balance, 'remote_quantity_available');
-      var operativeOnHand = remoteOnHand;
-      var operativeAvailable = remoteAvailable;
-      var operativeAverageCost =
-          (balance['remote_average_cost'] as num?)?.toDouble();
-      for (final movement in pending) {
-        final oldQuantity = operativeOnHand;
-        final newQuantity = oldQuantity + movement.quantityChange;
-        if (movement.quantityChange > 0 && movement.unitCost != null) {
-          operativeAverageCost =
-              oldQuantity <= 0 || operativeAverageCost == null
-                  ? movement.unitCost
-                  : _roundMoney(
-                      ((oldQuantity * operativeAverageCost) +
-                              (movement.quantityChange * movement.unitCost!)) /
-                          newQuantity,
-                    );
-        }
-        operativeOnHand = newQuantity;
-        operativeAvailable += movement.quantityChange;
-      }
+      final operative = _replayPendingMovements(
+        baseOnHand: remoteOnHand,
+        baseReserved: remoteReserved,
+        baseAvailable: remoteAvailable,
+        baseAverageCost: (balance['remote_average_cost'] as num?)?.toDouble(),
+        pending: pending,
+      );
       await _balanceDao.finalizeOperativeBalance(
         businessId: request.businessId,
         branchId: request.branchId,
         productId: productId,
-        quantityOnHand: operativeOnHand,
-        quantityReserved: remoteReserved,
-        quantityAvailable: operativeAvailable,
-        averageCost: operativeAverageCost,
+        quantityOnHand: operative.quantityOnHand,
+        quantityReserved: operative.quantityReserved,
+        quantityAvailable: operative.quantityAvailable,
+        averageCost: operative.averageCost,
         lastMovementAt: _latestMovement(productMovements),
         deletedAt: null,
       );
@@ -577,6 +595,83 @@ class InventoryBalanceReconciliationService {
     return value is String ? DateTime.tryParse(value)?.toUtc() : null;
   }
 
+  bool _isCompatibleNewLocalBalance(
+    Map<String, dynamic> balance,
+    Map<String, dynamic> metadata,
+    _OperativeBalance replay,
+  ) {
+    if (balance['sync_status']?.toString() != 'dirty' ||
+        balance['deleted_at'] != null ||
+        _hasRemoteProvenance(balance, metadata)) {
+      return false;
+    }
+    return _requiredInt(balance, 'quantity_on_hand') == replay.quantityOnHand &&
+        _requiredInt(balance, 'quantity_reserved') == replay.quantityReserved &&
+        _requiredInt(balance, 'quantity_available') ==
+            replay.quantityAvailable &&
+        _sameNullableMoney(
+          (balance['average_cost'] as num?)?.toDouble(),
+          replay.averageCost,
+        );
+  }
+
+  bool _hasRemoteProvenance(
+    Map<String, dynamic> balance,
+    Map<String, dynamic> metadata,
+  ) {
+    const remoteFields = [
+      'remote_balance_id',
+      'remote_quantity_on_hand',
+      'remote_quantity_reserved',
+      'remote_quantity_available',
+      'remote_average_cost',
+      'remote_updated_at',
+      'remote_snapshot_id',
+      'last_synced_at',
+    ];
+    return remoteFields.any((field) => balance[field] != null) ||
+        metadata['remote_record_state'] != null ||
+        metadata['remote_deleted_at'] != null;
+  }
+
+  _OperativeBalance _replayPendingMovements({
+    required int baseOnHand,
+    required int baseReserved,
+    required int baseAvailable,
+    required double? baseAverageCost,
+    required List<LocalInventoryMovementForReconciliation> pending,
+  }) {
+    var onHand = baseOnHand;
+    var available = baseAvailable;
+    var averageCost = baseAverageCost;
+    for (final movement in pending) {
+      final oldQuantity = onHand;
+      final newQuantity = oldQuantity + movement.quantityChange;
+      if (movement.quantityChange > 0 && movement.unitCost != null) {
+        averageCost = oldQuantity <= 0 || averageCost == null
+            ? movement.unitCost
+            : _roundMoney(
+                ((oldQuantity * averageCost) +
+                        (movement.quantityChange * movement.unitCost!)) /
+                    newQuantity,
+              );
+      }
+      onHand = newQuantity;
+      available += movement.quantityChange;
+    }
+    return _OperativeBalance(
+      quantityOnHand: onHand,
+      quantityReserved: baseReserved,
+      quantityAvailable: available,
+      averageCost: averageCost,
+    );
+  }
+
+  bool _sameNullableMoney(double? left, double? right) {
+    if (left == null || right == null) return left == right;
+    return _roundMoney(left) == _roundMoney(right);
+  }
+
   int _requiredInt(Map<String, dynamic> row, String key) {
     final value = row[key];
     if (value is num) return value.toInt();
@@ -615,4 +710,18 @@ class _FinalizationResult {
 
   final int balancesReconciled;
   final int blockingIssues;
+}
+
+class _OperativeBalance {
+  const _OperativeBalance({
+    required this.quantityOnHand,
+    required this.quantityReserved,
+    required this.quantityAvailable,
+    required this.averageCost,
+  });
+
+  final int quantityOnHand;
+  final int quantityReserved;
+  final int quantityAvailable;
+  final double? averageCost;
 }

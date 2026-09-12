@@ -269,6 +269,39 @@ class ProductStockBalanceLocalDao {
     );
   }
 
+  Future<void> finalizePendingOperativeBalance({
+    required String businessId,
+    required String branchId,
+    required String productId,
+    required int quantityOnHand,
+    required int quantityReserved,
+    required int quantityAvailable,
+    required double? averageCost,
+    required DateTime? lastMovementAt,
+  }) async {
+    final now = DateTime.now().toUtc();
+    await _customStatement(
+      '''
+      update local_product_stock_balances
+      set quantity_on_hand = ?, quantity_reserved = ?, quantity_available = ?,
+          average_cost = ?, last_movement_at = ?, deleted_at = null,
+          updated_at = ?
+      where business_id = ? and branch_id = ? and product_id = ?
+      ''',
+      [
+        quantityOnHand,
+        quantityReserved,
+        quantityAvailable,
+        averageCost,
+        lastMovementAt?.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+        businessId,
+        branchId,
+        productId,
+      ],
+    );
+  }
+
   Future<Map<String, dynamic>?> getProductBalance({
     required String businessId,
     required String branchId,

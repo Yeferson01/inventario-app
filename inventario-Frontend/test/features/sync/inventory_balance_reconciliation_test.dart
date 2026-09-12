@@ -435,6 +435,123 @@ void main() {
     expect((await _balance(database, 'stale'))['deleted_at'], isNotNull);
   });
 
+  test(
+      'new dirty balance absent remotely replays pending purchase from zero once',
+      () async {
+    await _insertBalance(
+      database,
+      'new-product',
+      operative: 5,
+      averageCost: 6000,
+      syncStatus: 'dirty',
+    );
+    await _insertMovement(
+      database,
+      id: 'new-purchase-movement',
+      productId: 'new-product',
+      sourceType: 'purchase',
+      sourceId: 'new-purchase',
+      sourceItemId: 'new-purchase-item',
+      quantity: 5,
+      unitCost: 6000,
+    );
+    final harness = _Harness(database, rows: const []);
+
+    final result = await harness.service.reconcile(_request);
+
+    expect(result.converged, isTrue);
+    expect(result.blockingIssues, 0);
+    final balance = await _balance(database, 'new-product');
+    expect(balance['quantity_on_hand'], 5);
+    expect(balance['quantity_available'], 5);
+    expect(balance['average_cost'], 6000);
+    expect(balance['quantity_on_hand'], isNot(10));
+    expect(balance['sync_status'], 'dirty');
+    expect(balance['last_synced_at'], isNull);
+    expect(balance['remote_balance_id'], isNull);
+    expect(balance['remote_snapshot_id'], isNull);
+    expect(
+      await (database.select(database.localInventoryMovements)
+            ..where((movement) => movement.id.equals('new-purchase-movement')))
+          .get(),
+      hasLength(1),
+    );
+    expect(await _issueRows(database), isEmpty);
+  });
+
+  test('absent remote balance remains blocked for rejected or ambiguous ACK',
+      () async {
+    for (final productId in const ['rejected-absent', 'ambiguous-absent']) {
+      await _insertBalance(
+        database,
+        productId,
+        operative: 1,
+        syncStatus: 'dirty',
+      );
+      await _insertMovement(
+        database,
+        id: '$productId-movement',
+        productId: productId,
+        sourceType: 'manual_adjustment',
+        quantity: 1,
+      );
+    }
+    final harness = _Harness(
+      database,
+      rows: const [],
+      statusFor: (_, id) =>
+          id.startsWith('rejected') ? 'rejected' : 'ambiguous',
+    );
+
+    final result = await harness.service.reconcile(_request);
+
+    expect(result.converged, isFalse);
+    expect(await _onHand(database, 'rejected-absent'), 1);
+    expect(await _onHand(database, 'ambiguous-absent'), 1);
+    expect(
+      (await _issueRows(database)).map((row) => row['issue_type']),
+      containsAll([
+        'inventory_movement_rejected',
+        'inventory_movement_ambiguous',
+      ]),
+    );
+  });
+
+  test(
+      'prior remote provenance keeps absent balance with pending movement blocked',
+      () async {
+    await _insertBalance(
+      database,
+      'previously-remote',
+      operative: 7,
+      averageCost: 4,
+      syncStatus: 'dirty',
+      remoteBalanceId: 'remote-previously-remote',
+      remoteQuantityOnHand: 5,
+      lastSyncedAt: DateTime.utc(2026, 8, 14),
+    );
+    await _insertMovement(
+      database,
+      id: 'previously-remote-movement',
+      productId: 'previously-remote',
+      sourceType: 'manual_adjustment',
+      quantity: 2,
+    );
+    final harness = _Harness(database, rows: const []);
+
+    final result = await harness.service.reconcile(_request);
+
+    expect(result.converged, isFalse);
+    final balance = await _balance(database, 'previously-remote');
+    expect(balance['quantity_on_hand'], 7);
+    expect(balance['remote_balance_id'], 'remote-previously-remote');
+    expect(balance['last_synced_at'], isNotNull);
+    expect(
+      (await _issueRows(database)).single['issue_type'],
+      'balance_absent_with_pending_movement',
+    );
+  });
+
   test('a proven applied acknowledgement resolves its prior rejection issue',
       () async {
     await _insertMovement(
@@ -602,6 +719,23 @@ void main() {
       'interrupted balance download keeps operative value and pending convergence',
       () async {
     await _insertBalance(database, 'product-0', operative: 77);
+    await _insertBalance(
+      database,
+      'pending-absent',
+      operative: 5,
+      averageCost: 6000,
+      syncStatus: 'dirty',
+    );
+    await _insertMovement(
+      database,
+      id: 'pending-absent-movement',
+      productId: 'pending-absent',
+      sourceType: 'purchase',
+      sourceId: 'pending-purchase',
+      sourceItemId: 'pending-purchase-item',
+      quantity: 5,
+      unitCost: 6000,
+    );
     final balanceDao = ProductStockBalanceLocalDao(database);
     final seenDao = OperationalBootstrapSeenRecordLocalDao(database);
     final checkpointDao = OperationalBootstrapCheckpointLocalDao(database);
@@ -663,6 +797,7 @@ void main() {
     expect(checkpoint!.convergenceStatus, 'pending');
     expect(checkpoint.status, OperationalBootstrapCheckpointStatus.failed);
     expect(await _onHand(database, 'product-0'), 77);
+    expect(await _onHand(database, 'pending-absent'), 5);
     expect(
       (await _balance(database, 'product-0'))['remote_quantity_on_hand'],
       10,
@@ -867,6 +1002,11 @@ Future<void> _insertBalance(
   String productId, {
   String? id,
   int operative = 0,
+  double? averageCost,
+  String syncStatus = 'synced',
+  String? remoteBalanceId,
+  int? remoteQuantityOnHand,
+  DateTime? lastSyncedAt,
 }) {
   return database.into(database.localProductStockBalances).insert(
         LocalProductStockBalancesCompanion.insert(
@@ -876,6 +1016,11 @@ Future<void> _insertBalance(
           productId: productId,
           quantityOnHand: Value(operative),
           quantityAvailable: Value(operative),
+          averageCost: Value(averageCost),
+          remoteBalanceId: Value(remoteBalanceId),
+          remoteQuantityOnHand: Value(remoteQuantityOnHand),
+          lastSyncedAt: Value(lastSyncedAt),
+          syncStatus: Value(syncStatus),
         ),
       );
 }
