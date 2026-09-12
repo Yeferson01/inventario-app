@@ -326,52 +326,37 @@ class PurchaseLocalDao {
       return;
     }
 
-    await _customStatement(
-      '''
-      insert into local_product_stock_balances (
-        id,
-        business_id,
-        branch_id,
-        product_id,
-        quantity_on_hand,
-        quantity_reserved,
-        quantity_available,
-        average_cost,
-        last_movement_at,
-        remote_updated_at,
-        last_synced_at,
-        sync_status,
-        metadata_json,
-        created_at,
-        updated_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ''',
-      [
-        AppUuid.v7(),
-        businessId,
-        branchId,
-        productId,
-        quantityChange,
-        0,
-        quantityChange,
-        _nextAverageCost(
-          oldQuantity: 0,
-          oldAverageCost: null,
-          quantityChange: quantityChange,
-          unitCost: unitCost,
-        ),
-        movement['occurred_at'],
-        null,
-        null,
-        'dirty',
-        jsonEncode({
-          'source': 'purchase_local_dao',
-          'created_from_local_purchase_movement': movement['id'],
-        }),
-        now,
-        now,
-      ],
-    );
+    await _db.into(_db.localProductStockBalances).insert(
+          LocalProductStockBalancesCompanion.insert(
+            id: AppUuid.v7(),
+            businessId: businessId,
+            branchId: branchId,
+            productId: productId,
+            quantityOnHand: Value(quantityChange),
+            quantityReserved: const Value(0),
+            quantityAvailable: Value(quantityChange),
+            averageCost: Value(
+              _nextAverageCost(
+                oldQuantity: 0,
+                oldAverageCost: null,
+                quantityChange: quantityChange,
+                unitCost: unitCost,
+              ),
+            ),
+            lastMovementAt: Value(
+              _requiredDate(movement, 'occurred_at'),
+            ),
+            syncStatus: const Value('dirty'),
+            metadataJson: Value(
+              jsonEncode({
+                'source': 'purchase_local_dao',
+                'created_from_local_purchase_movement': movement['id'],
+              }),
+            ),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
   }
 
   Future<List<Map<String, dynamic>>> getPendingDirtyPurchases({

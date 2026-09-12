@@ -68,6 +68,38 @@ void main() {
     expect(balance['average_cost'], 20.0);
   });
 
+  test('stock stream emits when a purchase creates the first balance',
+      () async {
+    final stockDao = ProductStockBalanceLocalDao(database);
+    final iterator = StreamIterator(
+      stockDao.watchProductsWithLocalStock(
+        businessId: businessId,
+        branchId: branchA,
+        limit: null,
+      ),
+    );
+
+    expect(await iterator.moveNext(), isTrue);
+    expect(iterator.current.single['quantity_on_hand'], 0);
+    expect(iterator.current.single['quantity_available'], 0);
+
+    await _insertPurchase(
+      purchaseDao,
+      operationId: 'first-balance-stream',
+      businessId: businessId,
+      branchId: branchA,
+      productId: productId,
+      quantity: 5,
+      unitCost: 20,
+    );
+
+    expect(await iterator.moveNext(), isTrue);
+    expect(iterator.current.single['quantity_on_hand'], 5);
+    expect(iterator.current.single['quantity_available'], 5);
+    expect(iterator.current.single['stock_average_cost'], 20.0);
+    await iterator.cancel();
+  });
+
   test('existing balance uses the backend weighted-average formula', () async {
     await _insertBalance(
       database,
@@ -198,7 +230,8 @@ void main() {
     expect(movements.read<int>('total'), 1);
   });
 
-  test('stock stream emits when only average_cost changes', () async {
+  test('stock stream emits when a purchase updates an existing balance',
+      () async {
     await _insertBalance(
       database,
       id: 'balance-a',
@@ -220,16 +253,20 @@ void main() {
     expect(await iterator.moveNext(), isTrue);
     expect(iterator.current.single['stock_average_cost'], 2.0);
 
-    await (database.update(database.localProductStockBalances)
-          ..where((row) => row.id.equals('balance-a')))
-        .write(
-      const LocalProductStockBalancesCompanion(
-        averageCost: Value(4.5),
-      ),
+    await _insertPurchase(
+      purchaseDao,
+      operationId: 'existing-balance-stream',
+      businessId: businessId,
+      branchId: branchA,
+      productId: productId,
+      quantity: 5,
+      unitCost: 4,
     );
 
     expect(await iterator.moveNext(), isTrue);
-    expect(iterator.current.single['stock_average_cost'], 4.5);
+    expect(iterator.current.single['quantity_on_hand'], 15);
+    expect(iterator.current.single['quantity_available'], 15);
+    expect(iterator.current.single['stock_average_cost'], 2.67);
     await iterator.cancel();
   });
 }

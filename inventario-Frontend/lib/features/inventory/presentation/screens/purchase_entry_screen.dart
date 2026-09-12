@@ -1464,16 +1464,24 @@ class _PurchaseCartTile extends StatelessWidget {
                 label: 'Stock ${item.currentStock}',
               ),
               _PurchaseMetricPill(
-                icon: Icons.sell_outlined,
-                label:
-                    'Costo ${_PurchaseEntryScreenState._money(item.unitCost)}',
-              ),
-              _PurchaseMetricPill(
                 icon: Icons.receipt_long_outlined,
                 label:
                     'Subt. ${_PurchaseEntryScreenState._money(item.subtotal)}',
               ),
             ],
+          ),
+          const SizedBox(height: CronosSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: ValueKey('purchase-unit-cost-${item.productId}'),
+              onPressed: onEditUnitCost,
+              icon: const Icon(Icons.edit_outlined),
+              label: Text(
+                'Costo unitario: '
+                '${_PurchaseEntryScreenState._money(item.unitCost)} · Editar',
+              ),
+            ),
           ),
           const SizedBox(height: CronosSpacing.sm),
           Wrap(
@@ -1492,11 +1500,6 @@ class _PurchaseCartTile extends StatelessWidget {
               IconButton.outlined(
                 onPressed: onIncrement,
                 icon: const Icon(Icons.add),
-              ),
-              TextButton.icon(
-                onPressed: onEditUnitCost,
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Costo'),
               ),
             ],
           ),
