@@ -38,6 +38,29 @@ final businessProductCreationServiceProvider =
   );
 });
 
+typedef BusinessProductCreateOrUse = Future<BusinessProductCreationResult>
+    Function({
+  required BusinessProductCreationContext context,
+  required BusinessProductOwnedFields fields,
+  String? code,
+});
+
+final businessProductCreateOrUseProvider =
+    Provider<BusinessProductCreateOrUse>((ref) {
+  final service = ref.watch(businessProductCreationServiceProvider);
+  return ({
+    required context,
+    required fields,
+    code,
+  }) {
+    return service.createOrUse(
+      context: context,
+      fields: fields,
+      code: code,
+    );
+  };
+});
+
 final businessProductMinimumStockUpdaterProvider = Provider<
     Future<BusinessProductMinimumStockUpdateResult> Function(
       BusinessProductMinimumStockUpdateInput input,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../core/utils/barcode_normalizer.dart';
 import '../../catalog/application/catalog_barcode_lookup_service.dart';
 import '../../catalog/domain/entities/barcode_scan_result.dart';
@@ -14,6 +16,8 @@ class BusinessProductCreationService {
 
   final CatalogBarcodeLookupService _barcodeLookupService;
   final InventoryProductFromMasterSyncService _productSyncService;
+  final Map<({String businessId, String masterProductId}), Future<void>>
+      _masterCreationTails = {};
 
   Future<BusinessProductMinimumStockUpdateResult> updateMinimumStock(
     BusinessProductMinimumStockUpdateInput input,
@@ -97,6 +101,57 @@ class BusinessProductCreationService {
     final resolution = await _resolveCode(context: context, code: code);
     if (resolution.isExisting) {
       return _existingResult(resolution);
+    }
+    if (resolution.hasMasterSuggestion) {
+      final masterProductId =
+          resolution.masterProduct?['id']?.toString().trim();
+      if (masterProductId != null && masterProductId.isNotEmpty) {
+        return _serializeMasterCreation(
+          businessId: context.businessId.trim(),
+          masterProductId: masterProductId,
+          operation: () => _createOrUseResolved(
+            context: context,
+            fields: fields,
+            resolution: resolution,
+            clientSequenceStart: clientSequenceStart,
+          ),
+        );
+      }
+    }
+
+    return _createOrUseResolved(
+      context: context,
+      fields: fields,
+      resolution: resolution,
+      clientSequenceStart: clientSequenceStart,
+    );
+  }
+
+  Future<BusinessProductCreationResult> _createOrUseResolved({
+    required BusinessProductCreationContext context,
+    required BusinessProductOwnedFields fields,
+    required BusinessProductCodeResolution resolution,
+    required int? clientSequenceStart,
+  }) async {
+    if (resolution.hasMasterSuggestion) {
+      final masterProductId = resolution.masterProduct?['id']?.toString();
+      if (masterProductId != null && masterProductId.trim().isNotEmpty) {
+        final existing =
+            await _productSyncService.findActiveBusinessProductByMaster(
+          businessId: context.businessId,
+          masterProductId: masterProductId,
+        );
+        if (existing != null) {
+          return BusinessProductCreationResult(
+            outcome: BusinessProductCreationOutcome.existing,
+            message: 'Se usará el producto existente del negocio.',
+            productId: existing['id']?.toString(),
+            product: existing,
+            masterProductId: masterProductId,
+            barcode: resolution.barcodeRecord?['barcode']?.toString(),
+          );
+        }
+      }
     }
     if (resolution.type == BusinessProductCodeResolutionType.invalid) {
       return BusinessProductCreationResult(
@@ -224,6 +279,35 @@ class BusinessProductCreationService {
         cause: error,
       );
     }
+  }
+
+  Future<T> _serializeMasterCreation<T>({
+    required String businessId,
+    required String masterProductId,
+    required Future<T> Function() operation,
+  }) {
+    final key = (
+      businessId: businessId,
+      masterProductId: masterProductId,
+    );
+    final previous = _masterCreationTails[key] ?? Future<void>.value();
+    final release = Completer<void>();
+    final currentTail = previous.then((_) => release.future);
+    _masterCreationTails[key] = currentTail;
+
+    return () async {
+      await previous;
+      try {
+        return await operation();
+      } finally {
+        if (!release.isCompleted) {
+          release.complete();
+        }
+        if (identical(_masterCreationTails[key], currentTail)) {
+          unawaited(_masterCreationTails.remove(key));
+        }
+      }
+    }();
   }
 
   Future<BusinessProductCreationResult> linkExistingProductToMaster({

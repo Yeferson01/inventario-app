@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
+import '../../../catalog/application/catalog_local_providers.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
 import '../../application/business_product_creation_models.dart';
@@ -45,6 +46,7 @@ class _InventoryProductStockListScreenState
     extends ConsumerState<InventoryProductStockListScreen> {
   final _searchController = TextEditingController();
   final _minimumStockUpdates = <String>{};
+  bool _isCreatingProduct = false;
   String _searchTerm = '';
   late InventoryProductStockFilter _stockFilter;
 
@@ -200,6 +202,100 @@ class _InventoryProductStockListScreenState
     );
   }
 
+  Future<void> _openAddProduct() async {
+    final profileId = widget.profileId?.trim();
+    final installationId = widget.deviceInstallationId?.trim();
+    if (profileId == null ||
+        profileId.isEmpty ||
+        installationId == null ||
+        installationId.isEmpty ||
+        _isCreatingProduct) {
+      return;
+    }
+
+    final selection = await showDialog<_InventoryProductSelection>(
+      context: context,
+      builder: (_) => _InventoryProductSelectionDialog(
+        businessId: widget.businessId,
+        branchId: widget.branchId,
+      ),
+    );
+    if (!mounted || selection == null) return;
+
+    final existingProduct = selection.existingProduct;
+    if (existingProduct != null) {
+      final name = _string(existingProduct['name']) ?? 'Producto existente';
+      setState(() {
+        _searchController.text = name;
+        _searchTerm = name;
+        _stockFilter = InventoryProductStockFilter.all;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El producto ya forma parte del catálogo del negocio.'),
+        ),
+      );
+      return;
+    }
+
+    final draft = await showDialog<_InventoryProductDraft>(
+      context: context,
+      builder: (_) => _InventoryProductDraftDialog(
+        masterProduct: selection.masterProduct,
+        initialQuery: selection.manualQuery,
+        initialBarcode: _string(selection.masterProduct?['barcode']),
+      ),
+    );
+    if (!mounted || draft == null) return;
+
+    setState(() => _isCreatingProduct = true);
+    BusinessProductCreationResult result;
+    try {
+      result = await ref.read(businessProductCreateOrUseProvider)(
+        context: BusinessProductCreationContext(
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+          profileId: profileId,
+          appDeviceId: widget.appDeviceId,
+          deviceInstallationId: installationId,
+          effectivePermissions: widget.effectivePermissions,
+        ),
+        code: draft.barcode,
+        fields: BusinessProductOwnedFields(
+          name: draft.name,
+          purchasePrice: draft.purchasePrice,
+          salePrice: draft.salePrice,
+          minimumStock: draft.minimumStock,
+          unit: draft.unit,
+        ),
+      );
+    } catch (_) {
+      result = const BusinessProductCreationResult(
+        outcome: BusinessProductCreationOutcome.localPersistenceFailure,
+        message: 'No fue posible crear el producto localmente.',
+      );
+    }
+    if (!mounted) return;
+
+    setState(() => _isCreatingProduct = false);
+    if (result.succeeded) {
+      final name = _string(result.product?['name']) ?? draft.name;
+      _searchController.text = name;
+      _searchTerm = name;
+      _stockFilter = InventoryProductStockFilter.all;
+      ref.invalidate(localProductsWithStockProvider);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.created
+              ? '${result.message} El stock inicial es 0.'
+              : result.message,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(
@@ -227,6 +323,9 @@ class _InventoryProductStockListScreenState
     final canEditMinimumStock = widget.profileId?.trim().isNotEmpty == true &&
         widget.deviceInstallationId?.trim().isNotEmpty == true &&
         widget.effectivePermissions.contains('products.update');
+    final canCreateProduct = widget.profileId?.trim().isNotEmpty == true &&
+        widget.deviceInstallationId?.trim().isNotEmpty == true &&
+        widget.effectivePermissions.contains('products.create');
     final authorizedContexts = !canTransfer
         ? const <AuthorizedOperationalContext>[]
         : ref
@@ -450,7 +549,533 @@ class _InventoryProductStockListScreenState
             ],
           ),
         ),
+        floatingActionButton: canCreateProduct
+            ? FloatingActionButton.extended(
+                key: const Key('inventory-add-product'),
+                onPressed: _isCreatingProduct ? null : _openAddProduct,
+                icon: _isCreatingProduct
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add),
+                label: Text(
+                  _isCreatingProduct ? 'Agregando…' : 'Agregar producto',
+                ),
+              )
+            : null,
       ),
+    );
+  }
+}
+
+class _InventoryProductSelection {
+  const _InventoryProductSelection.existing(this.existingProduct)
+      : masterProduct = null,
+        manualQuery = null;
+
+  const _InventoryProductSelection.master(this.masterProduct)
+      : existingProduct = null,
+        manualQuery = null;
+
+  const _InventoryProductSelection.manual(this.manualQuery)
+      : existingProduct = null,
+        masterProduct = null;
+
+  final Map<String, dynamic>? existingProduct;
+  final Map<String, dynamic>? masterProduct;
+  final String? manualQuery;
+}
+
+class _InventoryProductSelectionDialog extends ConsumerStatefulWidget {
+  const _InventoryProductSelectionDialog({
+    required this.businessId,
+    required this.branchId,
+  });
+
+  final String businessId;
+  final String branchId;
+
+  @override
+  ConsumerState<_InventoryProductSelectionDialog> createState() =>
+      _InventoryProductSelectionDialogState();
+}
+
+class _InventoryProductSelectionDialogState
+    extends ConsumerState<_InventoryProductSelectionDialog> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final businessProductsAsync = ref.watch(
+      localProductsWithStockProvider(
+        ProductsWithLocalStockKey(
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+          searchTerm: _query,
+          limit: 20,
+        ),
+      ),
+    );
+    final masterProductsAsync = ref.watch(
+      localMasterProductSearchProvider(
+        CatalogMasterSearchKey(
+          businessId: widget.businessId,
+          query: _query,
+          limit: 20,
+        ),
+      ),
+    );
+    final businessProducts =
+        businessProductsAsync.asData?.value ?? const <Map<String, dynamic>>[];
+    final businessProductIds = businessProducts
+        .map((product) => _string(product['product_id']))
+        .whereType<String>()
+        .toSet();
+    final masterProducts = masterProductsAsync.asData?.value
+            .where(
+              (master) => !businessProductIds.contains(
+                _string(master['existing_product_id']),
+              ),
+            )
+            .toList(growable: false) ??
+        const <Map<String, dynamic>>[];
+    final loading =
+        businessProductsAsync.isLoading || masterProductsAsync.isLoading;
+    final hasError =
+        businessProductsAsync.hasError || masterProductsAsync.hasError;
+
+    return AlertDialog(
+      title: const Text('Agregar producto'),
+      content: SizedBox(
+        width: 640,
+        height: 500,
+        child: Column(
+          children: [
+            TextField(
+              key: const Key('inventory-add-product-search'),
+              controller: _controller,
+              autofocus: true,
+              onChanged: (value) => setState(() => _query = value.trim()),
+              decoration: const InputDecoration(
+                labelText: 'Nombre, marca o código',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: CronosSpacing.md),
+            if (loading) const LinearProgressIndicator(),
+            Expanded(
+              child: hasError
+                  ? const _InventoryStateMessage(
+                      icon: Icons.error_outline,
+                      title: 'No se pudo consultar el catálogo local',
+                      message:
+                          'Cierra e intenta nuevamente. No se consultó la red.',
+                    )
+                  : ListView(
+                      key: const Key('inventory-add-product-results'),
+                      children: [
+                        if (businessProducts.isNotEmpty) ...[
+                          const _ProductSearchSectionTitle(
+                            title: 'Productos de mi negocio',
+                          ),
+                          for (final product in businessProducts)
+                            ListTile(
+                              key: Key(
+                                'inventory-existing-product-${_string(product['product_id'])}',
+                              ),
+                              leading: const Icon(Icons.inventory_2_outlined),
+                              title: Text(
+                                _string(product['product_name']) ??
+                                    'Producto sin nombre',
+                              ),
+                              subtitle: const Text(
+                                'Producto ya manejado por la tienda · Ya en mi catálogo',
+                              ),
+                              trailing: const Icon(Icons.check_circle_outline),
+                              onTap: () => Navigator.of(context).pop(
+                                _InventoryProductSelection.existing({
+                                  'id': product['product_id'],
+                                  'name': product['product_name'],
+                                  'barcode': product['barcode'],
+                                }),
+                              ),
+                            ),
+                        ],
+                        if (masterProducts.isNotEmpty) ...[
+                          const _ProductSearchSectionTitle(
+                            title: 'Catálogo maestro',
+                          ),
+                          for (final master in masterProducts)
+                            _MasterProductSearchTile(master: master),
+                        ],
+                        if (_query.isEmpty && businessProducts.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(CronosSpacing.md),
+                            child: Text(
+                              'Escribe un nombre, marca o código para buscar en el catálogo maestro local.',
+                            ),
+                          )
+                        else if (!loading &&
+                            businessProducts.isEmpty &&
+                            masterProducts.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(CronosSpacing.md),
+                            child: Text(
+                              'No hay coincidencias en el negocio ni en el catálogo maestro local.',
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: CronosSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('inventory-create-product-manually'),
+                onPressed: () => Navigator.of(context).pop(
+                  _InventoryProductSelection.manual(_query),
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Crear manualmente'),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductSearchSectionTitle extends StatelessWidget {
+  const _ProductSearchSectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        CronosSpacing.sm,
+        CronosSpacing.md,
+        CronosSpacing.sm,
+        CronosSpacing.xs,
+      ),
+      child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+    );
+  }
+}
+
+class _MasterProductSearchTile extends StatelessWidget {
+  const _MasterProductSearchTile({required this.master});
+
+  final Map<String, dynamic> master;
+
+  @override
+  Widget build(BuildContext context) {
+    final masterId = _string(master['master_product_id']) ?? '';
+    final name =
+        _string(master['master_product_name']) ?? 'Producto sin nombre';
+    final brand = _string(master['master_brand']);
+    final barcode = _string(master['barcode']);
+    final existingProductId = _string(master['existing_product_id']);
+    final isExisting = existingProductId != null;
+
+    return Card(
+      key: Key('inventory-master-product-$masterId'),
+      child: Padding(
+        padding: const EdgeInsets.all(CronosSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                isExisting ? Icons.inventory_2_outlined : Icons.public_outlined,
+              ),
+              title: Text(name),
+              subtitle: Text(
+                [
+                  if (brand != null) brand,
+                  if (barcode != null) barcode,
+                  isExisting
+                      ? 'Producto ya manejado por la tienda · Ya en mi catálogo'
+                      : 'Referencia del catálogo maestro; aún no está en tu inventario',
+                ].join(' · '),
+              ),
+              trailing:
+                  isExisting ? const Icon(Icons.check_circle_outline) : null,
+              onTap: !isExisting
+                  ? null
+                  : () => Navigator.of(context).pop(
+                        _InventoryProductSelection.existing({
+                          'id': existingProductId,
+                          'name': master['existing_product_name'],
+                          'barcode': master['existing_product_barcode'],
+                        }),
+                      ),
+            ),
+            if (!isExisting)
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  key: Key('inventory-add-master-$masterId'),
+                  onPressed: barcode == null
+                      ? null
+                      : () => Navigator.of(context).pop(
+                            _InventoryProductSelection.master(master),
+                          ),
+                  child: const Text('Agregar a mi catálogo'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InventoryProductDraft {
+  const _InventoryProductDraft({
+    required this.name,
+    required this.purchasePrice,
+    required this.salePrice,
+    required this.minimumStock,
+    required this.unit,
+    this.barcode,
+  });
+
+  final String name;
+  final String? barcode;
+  final double purchasePrice;
+  final double salePrice;
+  final int minimumStock;
+  final String? unit;
+}
+
+class _InventoryProductDraftDialog extends StatefulWidget {
+  const _InventoryProductDraftDialog({
+    this.masterProduct,
+    this.initialQuery,
+    this.initialBarcode,
+  });
+
+  final Map<String, dynamic>? masterProduct;
+  final String? initialQuery;
+  final String? initialBarcode;
+
+  @override
+  State<_InventoryProductDraftDialog> createState() =>
+      _InventoryProductDraftDialogState();
+}
+
+class _InventoryProductDraftDialogState
+    extends State<_InventoryProductDraftDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late String _name;
+  String? _barcode;
+  String _purchasePrice = '0';
+  String _salePrice = '0';
+  String _minimumStock = '0';
+  String _unit = 'unidad';
+
+  @override
+  void initState() {
+    super.initState();
+    final master = widget.masterProduct;
+    final query = widget.initialQuery?.trim() ?? '';
+    final queryLooksLikeCode = RegExp(r'\d').hasMatch(query);
+    _name = _string(
+          master?['master_product_name'] ??
+              master?['master_product_product_name'] ??
+              master?['master_name'],
+        ) ??
+        (queryLooksLikeCode ? '' : query);
+    _barcode = widget.initialBarcode ?? (queryLooksLikeCode ? query : null);
+    _unit = _string(master?['master_package_unit']) ??
+        _string(master?['master_unit_type']) ??
+        'unidad';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fromMaster = widget.masterProduct != null;
+    return AlertDialog(
+      title: Text(
+        fromMaster ? 'Agregar a mi catálogo' : 'Crear producto manualmente',
+      ),
+      content: SizedBox(
+        width: 520,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (fromMaster)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: CronosSpacing.md),
+                    child: Text(
+                      'Los datos maestros son una referencia. Define los datos comerciales de este negocio.',
+                    ),
+                  ),
+                TextFormField(
+                  key: const Key('inventory-product-name-field'),
+                  initialValue: _name,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre en mi negocio',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => (value ?? '').trim().length < 2
+                      ? 'El nombre es requerido.'
+                      : null,
+                  onChanged: (value) => _name = value,
+                ),
+                const SizedBox(height: CronosSpacing.sm),
+                TextFormField(
+                  key: const Key('inventory-product-barcode-field'),
+                  initialValue: _barcode,
+                  readOnly: fromMaster,
+                  decoration: InputDecoration(
+                    labelText: 'Código / barcode opcional',
+                    border: const OutlineInputBorder(),
+                    helperText: fromMaster
+                        ? 'Código del catálogo maestro seleccionado.'
+                        : null,
+                  ),
+                  onChanged: (value) => _barcode = value.trim(),
+                ),
+                const SizedBox(height: CronosSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DecimalField(
+                        fieldKey: const Key('inventory-purchase-price-field'),
+                        label: 'Costo',
+                        initialValue: _purchasePrice,
+                        onChanged: (value) => _purchasePrice = value,
+                      ),
+                    ),
+                    const SizedBox(width: CronosSpacing.sm),
+                    Expanded(
+                      child: _DecimalField(
+                        fieldKey: const Key('inventory-sale-price-field'),
+                        label: 'Precio de venta',
+                        initialValue: _salePrice,
+                        onChanged: (value) => _salePrice = value,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CronosSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        key: const Key('inventory-minimum-stock-create-field'),
+                        initialValue: _minimumStock,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Stock mínimo',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          final parsed = int.tryParse((value ?? '').trim());
+                          return parsed == null || parsed < 0
+                              ? 'Usa un entero >= 0.'
+                              : null;
+                        },
+                        onChanged: (value) => _minimumStock = value,
+                      ),
+                    ),
+                    const SizedBox(width: CronosSpacing.sm),
+                    Expanded(
+                      child: TextFormField(
+                        key: const Key('inventory-product-unit-field'),
+                        initialValue: _unit,
+                        decoration: const InputDecoration(
+                          labelText: 'Unidad',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) => _unit = value,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          key: const Key('inventory-product-create-confirm'),
+          onPressed: () {
+            if (!(_formKey.currentState?.validate() ?? false)) return;
+            Navigator.of(context).pop(
+              _InventoryProductDraft(
+                name: _name.trim(),
+                barcode: _string(_barcode),
+                purchasePrice: _parseDecimal(_purchasePrice)!,
+                salePrice: _parseDecimal(_salePrice)!,
+                minimumStock: int.parse(_minimumStock.trim()),
+                unit: _string(_unit),
+              ),
+            );
+          },
+          child: const Text('Guardar producto'),
+        ),
+      ],
+    );
+  }
+}
+
+class _DecimalField extends StatelessWidget {
+  const _DecimalField({
+    required this.fieldKey,
+    required this.label,
+    required this.initialValue,
+    required this.onChanged,
+  });
+
+  final Key fieldKey;
+  final String label;
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      key: fieldKey,
+      initialValue: initialValue,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      validator: (value) {
+        final parsed = _parseDecimal(value);
+        return parsed == null || parsed < 0 ? 'Usa un valor >= 0.' : null;
+      },
+      onChanged: onChanged,
     );
   }
 }
@@ -751,6 +1376,13 @@ String? _string(Object? value) {
   final text = value.toString().trim();
 
   return text.isEmpty ? null : text;
+}
+
+double? _parseDecimal(Object? value) {
+  final normalized = value?.toString().trim().replaceAll(',', '.');
+  if (normalized == null || normalized.isEmpty) return null;
+  final parsed = double.tryParse(normalized);
+  return parsed != null && parsed.isFinite ? parsed : null;
 }
 
 String _formatQuantity(Object? value) {

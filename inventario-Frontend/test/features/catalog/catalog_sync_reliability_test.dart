@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
@@ -212,7 +212,133 @@ void main() {
       expect(state?['last_catalog_version'], isNull);
       expect(state?['last_page_token'], isNull);
     });
+
+    test('searches active masters locally by name, brand and barcode',
+        () async {
+      await database.into(database.businesses).insert(
+            BusinessesCompanion.insert(id: 'business-1', name: 'Business 1'),
+          );
+      await _insertSearchMaster(
+        database,
+        id: 'master-cafe',
+        name: 'Cafe Molido',
+        brand: 'Montaña',
+        barcode: '7701111111111',
+      );
+      await _insertSearchMaster(
+        database,
+        id: 'master-arroz',
+        name: 'Arroz Blanco',
+        brand: 'Campo',
+        barcode: '7702222222222',
+      );
+      await _insertSearchMaster(
+        database,
+        id: 'master-deleted',
+        name: 'Cafe eliminado',
+        brand: 'Montaña',
+        barcode: '7703333333333',
+        deletedAt: DateTime.utc(2026, 9, 11),
+      );
+
+      final byName = await dao.searchActiveMasterProducts(
+        businessId: 'business-1',
+        query: '  CAFE  ',
+      );
+      final byBrand = await dao.searchActiveMasterProducts(
+        businessId: 'business-1',
+        query: 'montaña',
+      );
+      final byBarcode = await dao.searchActiveMasterProducts(
+        businessId: 'business-1',
+        query: '770 222 222 2222',
+      );
+      final limited = await dao.searchActiveMasterProducts(
+        businessId: 'business-1',
+        query: 'a',
+        limit: 1,
+      );
+
+      expect(byName.map((row) => row['master_product_id']), ['master-cafe']);
+      expect(byBrand.map((row) => row['master_product_id']), ['master-cafe']);
+      expect(
+        byBarcode.map((row) => row['master_product_id']),
+        ['master-arroz'],
+      );
+      expect(limited, hasLength(1));
+      expect(limited.single['master_product_id'], 'master-arroz');
+    });
+
+    test('master search annotates only the current business Product', () async {
+      await database.into(database.businesses).insert(
+            BusinessesCompanion.insert(id: 'business-1', name: 'Business 1'),
+          );
+      await database.into(database.businesses).insert(
+            BusinessesCompanion.insert(id: 'business-2', name: 'Business 2'),
+          );
+      await _insertSearchMaster(
+        database,
+        id: 'master-shared',
+        name: 'Producto compartido',
+        brand: 'Global',
+        barcode: '7704444444444',
+      );
+      await database.into(database.products).insert(
+            ProductsCompanion.insert(
+              id: 'business-1-product',
+              businessId: const Value('business-1'),
+              masterProductId: const Value('master-shared'),
+              name: 'Nombre privado',
+              salePrice: 10,
+            ),
+          );
+
+      final businessOne = await dao.searchActiveMasterProducts(
+        businessId: 'business-1',
+        query: 'producto',
+      );
+      final businessTwo = await dao.searchActiveMasterProducts(
+        businessId: 'business-2',
+        query: 'producto',
+      );
+
+      expect(businessOne.single['existing_product_id'], 'business-1-product');
+      expect(businessOne.single['existing_product_name'], 'Nombre privado');
+      expect(businessTwo.single['existing_product_id'], isNull);
+    });
   });
+}
+
+Future<void> _insertSearchMaster(
+  AppDatabase database, {
+  required String id,
+  required String name,
+  required String brand,
+  required String barcode,
+  DateTime? deletedAt,
+}) async {
+  await database.into(database.localMasterProductsCatalog).insert(
+        LocalMasterProductsCatalogCompanion.insert(
+          id: id,
+          name: Value(name),
+          productName: Value(name),
+          normalizedName: Value(name.toLowerCase()),
+          brand: Value(brand),
+          deletedAt: Value(deletedAt),
+        ),
+      );
+  await database.into(database.localProductBarcodes).insert(
+        LocalProductBarcodesCompanion.insert(
+          id: 'barcode-$id',
+          scope: 'global',
+          masterProductId: Value(id),
+          barcode: barcode,
+          barcodeNormalized: barcode,
+          barcodeType: const Value('ean13'),
+          isPrimary: const Value(true),
+          deletedAt: Value(deletedAt),
+        ),
+      );
 }
 
 Map<String, dynamic> _masterRecord({

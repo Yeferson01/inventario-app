@@ -45,6 +45,18 @@ class CatalogLocalRepository implements CatalogSyncLocalStore {
     );
   }
 
+  Future<List<Map<String, dynamic>>> searchActiveMasterProducts({
+    required String businessId,
+    required String query,
+    int limit = 25,
+  }) {
+    return _dao.searchActiveMasterProducts(
+      businessId: businessId,
+      query: query,
+      limit: limit,
+    );
+  }
+
   Future<CatalogDeltaApplyResult> applyCatalogDeltaResponse(
     Map<String, dynamic> response,
   ) {

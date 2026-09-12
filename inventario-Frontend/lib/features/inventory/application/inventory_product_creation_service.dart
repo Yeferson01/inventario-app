@@ -10,6 +10,31 @@ class InventoryProductCreationService {
 
   final AppDatabase _db;
 
+  Future<Map<String, dynamic>?> findActiveBusinessProductByMaster({
+    required String businessId,
+    required String masterProductId,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select *
+      from products
+      where business_id = ?
+        and master_product_id = ?
+        and status = 'active'
+        and deleted_at is null
+      order by updated_at desc, id
+      limit 1
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(masterProductId),
+      ],
+      readsFrom: {_db.products},
+    ).getSingleOrNull();
+
+    return row == null ? null : Map<String, dynamic>.from(row.data);
+  }
+
   ProductFromMasterDraft buildDraftFromMaster({
     required String businessId,
     required Map<String, dynamic> masterProduct,

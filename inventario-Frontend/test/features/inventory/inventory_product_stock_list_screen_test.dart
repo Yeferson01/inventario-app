@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventario_frontend/features/catalog/application/catalog_local_providers.dart';
 import 'package:inventario_frontend/features/inventory/application/business_product_creation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_product_providers.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_valuation_models.dart';
@@ -256,6 +257,131 @@ void main() {
     expect(find.text('Arroz'), findsOneWidget);
     expect(find.text('Cafe'), findsOneWidget);
     expect(find.byKey(const Key('inventory-search-clear')), findsNothing);
+  });
+
+  testWidgets(
+      'adds a local master through the productive service and shows stock zero',
+      (tester) async {
+    var products = <Map<String, dynamic>>[];
+    BusinessProductCreationContext? receivedContext;
+    String? receivedCode;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inventoryValuationSummaryProvider.overrideWith(
+            (ref, key) => Stream.value(InventoryValuationSummary.empty),
+          ),
+          localProductsWithStockProvider.overrideWith((ref, key) {
+            final term = key.searchTerm.trim().toLowerCase();
+            return Stream.value(
+              products
+                  .where(
+                    (product) =>
+                        term.isEmpty ||
+                        product['product_name']
+                            .toString()
+                            .toLowerCase()
+                            .contains(term),
+                  )
+                  .toList(growable: false),
+            );
+          }),
+          localMasterProductSearchProvider.overrideWith((ref, key) async {
+            if (!key.query.toLowerCase().contains('cafe')) return const [];
+            return const [
+              {
+                'master_product_id': 'master-cafe',
+                'master_product_name': 'Cafe master',
+                'master_brand': 'Marca global',
+                'master_package_unit': 'bolsa',
+                'barcode': '7701234567890',
+                'barcode_normalized': '7701234567890',
+                'barcode_type': 'ean13',
+                'existing_product_id': null,
+              },
+            ];
+          }),
+          businessProductCreateOrUseProvider.overrideWithValue(({
+            required context,
+            required fields,
+            code,
+          }) async {
+            receivedContext = context;
+            receivedCode = code;
+            products = [
+              {
+                'product_id': 'product-cafe',
+                'product_name': fields.name,
+                'barcode': code,
+                'quantity_on_hand': 0,
+                'quantity_available': 0,
+                'minimum_stock': fields.minimumStock,
+              },
+            ];
+            return BusinessProductCreationResult(
+              outcome: BusinessProductCreationOutcome.createdFromMaster,
+              message: 'Producto creado localmente desde el catálogo maestro.',
+              productId: 'product-cafe',
+              product: {
+                'id': 'product-cafe',
+                'name': fields.name,
+                'master_product_id': 'master-cafe',
+              },
+              masterProductId: 'master-cafe',
+              barcode: code,
+              outboxMutationCount: 2,
+            );
+          }),
+        ],
+        child: const MaterialApp(
+          home: InventoryProductStockListScreen(
+            businessId: 'business-1',
+            branchId: 'branch-1',
+            branchName: 'Principal',
+            profileId: 'profile-1',
+            appDeviceId: 'device-1',
+            deviceInstallationId: 'installation-1',
+            effectivePermissions: {'products.create'},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('inventory-add-product')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('inventory-add-product-search')),
+      'cafe',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Catálogo maestro'), findsOneWidget);
+    expect(
+      find.textContaining('aún no está en tu inventario'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('inventory-add-master-master-cafe')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('inventory-product-create-confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(receivedContext?.businessId, 'business-1');
+    expect(receivedContext?.branchId, 'branch-1');
+    expect(receivedContext?.profileId, 'profile-1');
+    expect(receivedContext?.appDeviceId, 'device-1');
+    expect(receivedCode, '7701234567890');
+    expect(
+      find.byKey(const Key('inventory-product-product-cafe')),
+      findsOneWidget,
+    );
+    expect(find.text('Stock: 0'), findsOneWidget);
   });
 
   testWidgets('marks exhausted products and combines stock filter with search',

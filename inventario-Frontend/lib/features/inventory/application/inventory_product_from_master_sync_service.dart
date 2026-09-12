@@ -85,6 +85,16 @@ class InventoryProductFromMasterSyncService {
   final InventoryProductCreationService _productCreationService;
   final LocalSyncOutboxService _outboxService;
 
+  Future<Map<String, dynamic>?> findActiveBusinessProductByMaster({
+    required String businessId,
+    required String masterProductId,
+  }) {
+    return _productCreationService.findActiveBusinessProductByMaster(
+      businessId: businessId,
+      masterProductId: masterProductId,
+    );
+  }
+
   Future<InventoryProductMinimumStockSyncResult?>
       updateMinimumStockAndQueueSync({
     required String businessId,

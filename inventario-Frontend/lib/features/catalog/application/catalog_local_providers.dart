@@ -10,6 +10,29 @@ import 'catalog_sync_service.dart';
 import 'catalog_barcode_lookup_service.dart';
 import 'initial_catalog_bootstrap_coordinator.dart';
 
+class CatalogMasterSearchKey {
+  const CatalogMasterSearchKey({
+    required this.businessId,
+    required this.query,
+    this.limit = 25,
+  });
+
+  final String businessId;
+  final String query;
+  final int limit;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CatalogMasterSearchKey &&
+        other.businessId == businessId &&
+        other.query == query &&
+        other.limit == limit;
+  }
+
+  @override
+  int get hashCode => Object.hash(businessId, query, limit);
+}
+
 final catalogLocalDaoProvider = Provider<CatalogLocalDao>((ref) {
   final database = ref.watch(appDatabaseProvider);
   return CatalogLocalDao(database);
@@ -62,4 +85,13 @@ final catalogBarcodeLookupServiceProvider =
   return CatalogBarcodeLookupService(
     lookupByBarcode: repository.lookupByBarcode,
   );
+});
+
+final localMasterProductSearchProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, CatalogMasterSearchKey>((ref, key) {
+  return ref.watch(catalogLocalRepositoryProvider).searchActiveMasterProducts(
+        businessId: key.businessId,
+        query: key.query,
+        limit: key.limit,
+      );
 });

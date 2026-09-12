@@ -163,6 +163,121 @@ class CatalogLocalDao {
     return LocalBarcodeLookupResult.none(normalized);
   }
 
+  Future<List<Map<String, dynamic>>> searchActiveMasterProducts({
+    required String businessId,
+    required String query,
+    int limit = 25,
+  }) async {
+    final normalizedBusinessId = businessId.trim();
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedBusinessId.isEmpty || normalizedQuery.isEmpty) {
+      return const [];
+    }
+    if (limit <= 0) {
+      throw ArgumentError.value(limit, 'limit', 'must be greater than zero');
+    }
+
+    final textPattern = '%${_escapeLike(normalizedQuery)}%';
+    final normalizedBarcode = RegExp(r'\d').hasMatch(normalizedQuery)
+        ? BarcodeNormalizer.normalize(normalizedQuery)
+        : '';
+    final barcodePattern =
+        normalizedBarcode.isEmpty ? '' : '%${_escapeLike(normalizedBarcode)}%';
+
+    final rows = await db.customSelect(
+      r'''
+      with matching_masters as (
+        select
+          mp.id as master_product_id,
+          coalesce(mp.product_name, mp.name, 'Producto sin nombre')
+            as master_product_name,
+          mp.name as master_name,
+          mp.product_name as master_product_product_name,
+          mp.brand as master_brand,
+          mp.manufacturer as master_manufacturer,
+          mp.category_name as master_category_name,
+          mp.subcategory_name as master_subcategory_name,
+          mp.package_size as master_package_size,
+          mp.package_unit as master_package_unit,
+          mp.unit_type as master_unit_type,
+          mp.image_thumb_url as master_image_thumb_url,
+          mp.confidence_score as master_confidence_score,
+          pb.id as barcode_id,
+          pb.barcode as barcode,
+          pb.barcode_normalized as barcode_normalized,
+          pb.barcode_type as barcode_type,
+          pb.is_primary as barcode_is_primary,
+          p.id as existing_product_id,
+          p.name as existing_product_name,
+          p.barcode as existing_product_barcode,
+          row_number() over (
+            partition by mp.id
+            order by
+              case when ? <> '' and pb.barcode_normalized = ? then 0 else 1 end,
+              case when pb.is_primary = 1 then 0 else 1 end,
+              pb.barcode_normalized,
+              pb.id,
+              p.updated_at desc,
+              p.id
+          ) as barcode_rank
+        from local_master_products_catalog mp
+        join local_product_barcodes pb
+          on pb.master_product_id = mp.id
+         and pb.scope = 'global'
+         and pb.status = 'active'
+         and pb.deleted_at is null
+        left join products p
+          on p.business_id = ?
+         and p.master_product_id = mp.id
+         and p.status = 'active'
+         and p.deleted_at is null
+        where mp.deleted_at is null
+          and (
+            lower(coalesce(mp.product_name, '')) like ? escape '\'
+            or lower(coalesce(mp.name, '')) like ? escape '\'
+            or lower(coalesce(mp.normalized_name, '')) like ? escape '\'
+            or lower(coalesce(mp.brand, '')) like ? escape '\'
+            or lower(coalesce(mp.manufacturer, '')) like ? escape '\'
+            or (? <> '' and pb.barcode_normalized like ? escape '\')
+          )
+      )
+      select *
+      from matching_masters
+      where barcode_rank = 1
+      order by
+        case when ? <> '' and barcode_normalized = ? then 0 else 1 end,
+        lower(master_product_name),
+        lower(coalesce(master_brand, '')),
+        master_product_id
+      limit ?
+      ''',
+      variables: [
+        Variable<String>(normalizedBarcode),
+        Variable<String>(normalizedBarcode),
+        Variable<String>(normalizedBusinessId),
+        Variable<String>(textPattern),
+        Variable<String>(textPattern),
+        Variable<String>(textPattern),
+        Variable<String>(textPattern),
+        Variable<String>(textPattern),
+        Variable<String>(normalizedBarcode),
+        Variable<String>(barcodePattern),
+        Variable<String>(normalizedBarcode),
+        Variable<String>(normalizedBarcode),
+        Variable<int>(limit),
+      ],
+      readsFrom: {
+        db.localMasterProductsCatalog,
+        db.localProductBarcodes,
+        db.products,
+      },
+    ).get();
+
+    return rows
+        .map((row) => Map<String, dynamic>.from(row.data))
+        .toList(growable: false);
+  }
+
   Future<CatalogDeltaApplyResult> applyCatalogDeltaRecords(
     List<Map<String, dynamic>> records,
   ) async {
@@ -1018,6 +1133,13 @@ class CatalogLocalDao {
     }
 
     return DateTime.tryParse(value.toString())?.toUtc();
+  }
+
+  String _escapeLike(String value) {
+    return value
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
   }
 
   int _boolToInt(Object? value) {
