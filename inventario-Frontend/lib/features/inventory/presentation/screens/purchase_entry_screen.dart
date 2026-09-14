@@ -1242,7 +1242,14 @@ class _ProductPurchaseTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.inventory_2_outlined),
+                  ProductImage(
+                    key: ValueKey(
+                      'purchase-product-image-${product['product_id']}',
+                    ),
+                    barcode: barcode,
+                    size: 48,
+                    semanticLabel: 'Imagen de $name',
+                  ),
                   const SizedBox(width: CronosSpacing.sm),
                   Expanded(
                     child: Text(

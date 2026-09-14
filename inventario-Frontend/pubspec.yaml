@@ -39,7 +39,9 @@ dependencies:
   go_router: ^17.3.0
 
   # Networking y Backend
+  cached_network_image: ^3.4.1
   dio: ^5.5.0
+  flutter_cache_manager: ^3.4.1
   supabase_flutter: ^2.6.0
 
   # Base de datos local (Offline-First)

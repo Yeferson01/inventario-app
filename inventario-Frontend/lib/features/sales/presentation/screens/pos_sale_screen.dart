@@ -1419,20 +1419,13 @@ class _ProductResultTile extends StatelessWidget {
             padding: const EdgeInsets.all(CronosSpacing.sm),
             child: Row(
               children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: canSell
-                        ? CronosColors.primarySoft
-                        : CronosColors.surface,
-                    borderRadius: BorderRadius.circular(CronosRadius.md),
+                ProductImage(
+                  key: ValueKey(
+                    'pos-product-image-${product['product_id']}',
                   ),
-                  child: Icon(
-                    Icons.inventory_2_outlined,
-                    color:
-                        canSell ? CronosColors.primary : CronosColors.textMuted,
-                  ),
+                  barcode: barcode,
+                  size: 46,
+                  semanticLabel: 'Imagen de $name',
                 ),
                 const SizedBox(width: CronosSpacing.sm),
                 Expanded(

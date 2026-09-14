@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_theme.dart';
@@ -514,6 +515,7 @@ class _InventoryProductStockListScreenState
 
                     return ListView.separated(
                       key: const Key('inventory-product-list'),
+                      scrollCacheExtent: const ScrollCacheExtent.pixels(0),
                       padding: const EdgeInsets.all(CronosSpacing.md),
                       itemCount: products.length,
                       separatorBuilder: (_, __) =>
@@ -1113,17 +1115,10 @@ class _InventoryProductCard extends StatelessWidget {
     return AppGlassCard(
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: CronosColors.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(CronosRadius.md),
-            ),
-            child: const Icon(
-              Icons.inventory_2_outlined,
-              color: CronosColors.primary,
-            ),
+          ProductImage(
+            key: Key('inventory-product-image-$productId'),
+            barcode: barcode,
+            semanticLabel: 'Imagen de $name',
           ),
           const SizedBox(width: CronosSpacing.md),
           Expanded(

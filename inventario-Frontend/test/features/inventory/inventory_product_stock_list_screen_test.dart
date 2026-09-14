@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/features/catalog/application/catalog_local_providers.dart';
@@ -76,6 +77,18 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('inventory-product-list')), findsOneWidget);
+    expect(
+      tester
+          .widget<ListView>(
+            find.byKey(const Key('inventory-product-list')),
+          )
+          .scrollCacheExtent,
+      const ScrollCacheExtent.pixels(0),
+    );
+    expect(
+      find.byKey(const Key('inventory-product-image-product-1')),
+      findsOneWidget,
+    );
     expect(find.text('Arroz'), findsOneWidget);
     expect(find.text('Café'), findsOneWidget);
     expect(find.text('7701234567890'), findsOneWidget);

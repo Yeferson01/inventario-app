@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/core/database/database_provider.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/purchase_entry_screen.dart';
+import 'package:inventario_frontend/shared/presentation/widgets/product_image.dart';
 
 void main() {
   testWidgets(
@@ -40,8 +41,18 @@ void main() {
               id: 'product-1',
               businessId: const Value('business-1'),
               name: 'Coca-Cola 1.75',
+              barcode: const Value('7622201764999'),
               purchasePrice: const Value(6000),
               salePrice: 6800,
+            ),
+          );
+      await database.into(database.products).insert(
+            ProductsCompanion.insert(
+              id: 'product-2',
+              businessId: const Value('business-1'),
+              name: 'Producto sin código',
+              purchasePrice: const Value(3000),
+              salePrice: 3500,
             ),
           );
 
@@ -61,6 +72,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+
+      final productImages = tester
+          .widgetList<ProductImage>(find.byType(ProductImage))
+          .map((widget) => widget.barcode)
+          .toList();
+      expect(productImages, contains('7622201764999'));
+      expect(productImages, contains(null));
 
       await tester.scrollUntilVisible(
         find.text('Coca-Cola 1.75'),
