@@ -197,6 +197,9 @@ class SaleItems extends Table {
 
   RealColumn get unitPrice => real()();
 
+  RealColumn get unitCostSnapshot =>
+      real().nullable().named('unit_cost_snapshot')();
+
   RealColumn get discountTotal =>
       real().withDefault(const Constant(0)).named('discount_total')();
 
@@ -1152,7 +1155,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   Future<void> _createProductIdentityIndexesAndTriggers() async {
     await customStatement('''
@@ -1630,6 +1633,10 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 11) {
+            await m.addColumn(saleItems, saleItems.unitCostSnapshot);
+          }
+
           if (from < 10) {
             await m.addColumn(products, products.masterProductId);
             await _createProductIdentityIndexesAndTriggers();

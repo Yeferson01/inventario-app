@@ -17986,6 +17986,12 @@ class $SaleItemsTable extends SaleItems
   late final GeneratedColumn<double> unitPrice = GeneratedColumn<double>(
       'unit_price', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _unitCostSnapshotMeta =
+      const VerificationMeta('unitCostSnapshot');
+  @override
+  late final GeneratedColumn<double> unitCostSnapshot = GeneratedColumn<double>(
+      'unit_cost_snapshot', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _discountTotalMeta =
       const VerificationMeta('discountTotal');
   @override
@@ -18060,6 +18066,7 @@ class $SaleItemsTable extends SaleItems
         barcodeSnapshot,
         quantity,
         unitPrice,
+        unitCostSnapshot,
         discountTotal,
         taxTotal,
         subtotal,
@@ -18116,6 +18123,12 @@ class $SaleItemsTable extends SaleItems
           unitPrice.isAcceptableOrUnknown(data['unit_price']!, _unitPriceMeta));
     } else if (isInserting) {
       context.missing(_unitPriceMeta);
+    }
+    if (data.containsKey('unit_cost_snapshot')) {
+      context.handle(
+          _unitCostSnapshotMeta,
+          unitCostSnapshot.isAcceptableOrUnknown(
+              data['unit_cost_snapshot']!, _unitCostSnapshotMeta));
     }
     if (data.containsKey('discount_total')) {
       context.handle(
@@ -18178,6 +18191,8 @@ class $SaleItemsTable extends SaleItems
           .read(DriftSqlType.int, data['${effectivePrefix}quantity'])!,
       unitPrice: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit_price'])!,
+      unitCostSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}unit_cost_snapshot']),
       discountTotal: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}discount_total'])!,
       taxTotal: attachedDatabase.typeMapping
@@ -18217,6 +18232,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
   final String? barcodeSnapshot;
   final int quantity;
   final double unitPrice;
+  final double? unitCostSnapshot;
   final double discountTotal;
   final double taxTotal;
   final double subtotal;
@@ -18234,6 +18250,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       this.barcodeSnapshot,
       required this.quantity,
       required this.unitPrice,
+      this.unitCostSnapshot,
       required this.discountTotal,
       required this.taxTotal,
       required this.subtotal,
@@ -18261,6 +18278,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
     }
     map['quantity'] = Variable<int>(quantity);
     map['unit_price'] = Variable<double>(unitPrice);
+    if (!nullToAbsent || unitCostSnapshot != null) {
+      map['unit_cost_snapshot'] = Variable<double>(unitCostSnapshot);
+    }
     map['discount_total'] = Variable<double>(discountTotal);
     map['tax_total'] = Variable<double>(taxTotal);
     map['subtotal'] = Variable<double>(subtotal);
@@ -18296,6 +18316,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           : Value(barcodeSnapshot),
       quantity: Value(quantity),
       unitPrice: Value(unitPrice),
+      unitCostSnapshot: unitCostSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitCostSnapshot),
       discountTotal: Value(discountTotal),
       taxTotal: Value(taxTotal),
       subtotal: Value(subtotal),
@@ -18324,6 +18347,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       barcodeSnapshot: serializer.fromJson<String?>(json['barcodeSnapshot']),
       quantity: serializer.fromJson<int>(json['quantity']),
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
+      unitCostSnapshot: serializer.fromJson<double?>(json['unitCostSnapshot']),
       discountTotal: serializer.fromJson<double>(json['discountTotal']),
       taxTotal: serializer.fromJson<double>(json['taxTotal']),
       subtotal: serializer.fromJson<double>(json['subtotal']),
@@ -18347,6 +18371,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       'barcodeSnapshot': serializer.toJson<String?>(barcodeSnapshot),
       'quantity': serializer.toJson<int>(quantity),
       'unitPrice': serializer.toJson<double>(unitPrice),
+      'unitCostSnapshot': serializer.toJson<double?>(unitCostSnapshot),
       'discountTotal': serializer.toJson<double>(discountTotal),
       'taxTotal': serializer.toJson<double>(taxTotal),
       'subtotal': serializer.toJson<double>(subtotal),
@@ -18368,6 +18393,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           Value<String?> barcodeSnapshot = const Value.absent(),
           int? quantity,
           double? unitPrice,
+          Value<double?> unitCostSnapshot = const Value.absent(),
           double? discountTotal,
           double? taxTotal,
           double? subtotal,
@@ -18389,6 +18415,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
             : this.barcodeSnapshot,
         quantity: quantity ?? this.quantity,
         unitPrice: unitPrice ?? this.unitPrice,
+        unitCostSnapshot: unitCostSnapshot.present
+            ? unitCostSnapshot.value
+            : this.unitCostSnapshot,
         discountTotal: discountTotal ?? this.discountTotal,
         taxTotal: taxTotal ?? this.taxTotal,
         subtotal: subtotal ?? this.subtotal,
@@ -18413,6 +18442,9 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           : this.barcodeSnapshot,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
+      unitCostSnapshot: data.unitCostSnapshot.present
+          ? data.unitCostSnapshot.value
+          : this.unitCostSnapshot,
       discountTotal: data.discountTotal.present
           ? data.discountTotal.value
           : this.discountTotal,
@@ -18440,6 +18472,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ..write('barcodeSnapshot: $barcodeSnapshot, ')
           ..write('quantity: $quantity, ')
           ..write('unitPrice: $unitPrice, ')
+          ..write('unitCostSnapshot: $unitCostSnapshot, ')
           ..write('discountTotal: $discountTotal, ')
           ..write('taxTotal: $taxTotal, ')
           ..write('subtotal: $subtotal, ')
@@ -18462,6 +18495,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       barcodeSnapshot,
       quantity,
       unitPrice,
+      unitCostSnapshot,
       discountTotal,
       taxTotal,
       subtotal,
@@ -18482,6 +18516,7 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           other.barcodeSnapshot == this.barcodeSnapshot &&
           other.quantity == this.quantity &&
           other.unitPrice == this.unitPrice &&
+          other.unitCostSnapshot == this.unitCostSnapshot &&
           other.discountTotal == this.discountTotal &&
           other.taxTotal == this.taxTotal &&
           other.subtotal == this.subtotal &&
@@ -18501,6 +18536,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
   final Value<String?> barcodeSnapshot;
   final Value<int> quantity;
   final Value<double> unitPrice;
+  final Value<double?> unitCostSnapshot;
   final Value<double> discountTotal;
   final Value<double> taxTotal;
   final Value<double> subtotal;
@@ -18519,6 +18555,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.barcodeSnapshot = const Value.absent(),
     this.quantity = const Value.absent(),
     this.unitPrice = const Value.absent(),
+    this.unitCostSnapshot = const Value.absent(),
     this.discountTotal = const Value.absent(),
     this.taxTotal = const Value.absent(),
     this.subtotal = const Value.absent(),
@@ -18538,6 +18575,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.barcodeSnapshot = const Value.absent(),
     required int quantity,
     required double unitPrice,
+    this.unitCostSnapshot = const Value.absent(),
     this.discountTotal = const Value.absent(),
     this.taxTotal = const Value.absent(),
     required double subtotal,
@@ -18560,6 +18598,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Expression<String>? barcodeSnapshot,
     Expression<int>? quantity,
     Expression<double>? unitPrice,
+    Expression<double>? unitCostSnapshot,
     Expression<double>? discountTotal,
     Expression<double>? taxTotal,
     Expression<double>? subtotal,
@@ -18580,6 +18619,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       if (barcodeSnapshot != null) 'barcode_snapshot': barcodeSnapshot,
       if (quantity != null) 'quantity': quantity,
       if (unitPrice != null) 'unit_price': unitPrice,
+      if (unitCostSnapshot != null) 'unit_cost_snapshot': unitCostSnapshot,
       if (discountTotal != null) 'discount_total': discountTotal,
       if (taxTotal != null) 'tax_total': taxTotal,
       if (subtotal != null) 'subtotal': subtotal,
@@ -18601,6 +18641,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       Value<String?>? barcodeSnapshot,
       Value<int>? quantity,
       Value<double>? unitPrice,
+      Value<double?>? unitCostSnapshot,
       Value<double>? discountTotal,
       Value<double>? taxTotal,
       Value<double>? subtotal,
@@ -18619,6 +18660,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       barcodeSnapshot: barcodeSnapshot ?? this.barcodeSnapshot,
       quantity: quantity ?? this.quantity,
       unitPrice: unitPrice ?? this.unitPrice,
+      unitCostSnapshot: unitCostSnapshot ?? this.unitCostSnapshot,
       discountTotal: discountTotal ?? this.discountTotal,
       taxTotal: taxTotal ?? this.taxTotal,
       subtotal: subtotal ?? this.subtotal,
@@ -18656,6 +18698,9 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     }
     if (unitPrice.present) {
       map['unit_price'] = Variable<double>(unitPrice.value);
+    }
+    if (unitCostSnapshot.present) {
+      map['unit_cost_snapshot'] = Variable<double>(unitCostSnapshot.value);
     }
     if (discountTotal.present) {
       map['discount_total'] = Variable<double>(discountTotal.value);
@@ -18701,6 +18746,7 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
           ..write('barcodeSnapshot: $barcodeSnapshot, ')
           ..write('quantity: $quantity, ')
           ..write('unitPrice: $unitPrice, ')
+          ..write('unitCostSnapshot: $unitCostSnapshot, ')
           ..write('discountTotal: $discountTotal, ')
           ..write('taxTotal: $taxTotal, ')
           ..write('subtotal: $subtotal, ')
@@ -34681,6 +34727,7 @@ typedef $$SaleItemsTableCreateCompanionBuilder = SaleItemsCompanion Function({
   Value<String?> barcodeSnapshot,
   required int quantity,
   required double unitPrice,
+  Value<double?> unitCostSnapshot,
   Value<double> discountTotal,
   Value<double> taxTotal,
   required double subtotal,
@@ -34700,6 +34747,7 @@ typedef $$SaleItemsTableUpdateCompanionBuilder = SaleItemsCompanion Function({
   Value<String?> barcodeSnapshot,
   Value<int> quantity,
   Value<double> unitPrice,
+  Value<double?> unitCostSnapshot,
   Value<double> discountTotal,
   Value<double> taxTotal,
   Value<double> subtotal,
@@ -34771,6 +34819,10 @@ class $$SaleItemsTableFilterComposer
 
   ColumnFilters<double> get unitPrice => $composableBuilder(
       column: $table.unitPrice, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get unitCostSnapshot => $composableBuilder(
+      column: $table.unitCostSnapshot,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get discountTotal => $composableBuilder(
       column: $table.discountTotal, builder: (column) => ColumnFilters(column));
@@ -34868,6 +34920,10 @@ class $$SaleItemsTableOrderingComposer
   ColumnOrderings<double> get unitPrice => $composableBuilder(
       column: $table.unitPrice, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get unitCostSnapshot => $composableBuilder(
+      column: $table.unitCostSnapshot,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get discountTotal => $composableBuilder(
       column: $table.discountTotal,
       builder: (column) => ColumnOrderings(column));
@@ -34961,6 +35017,9 @@ class $$SaleItemsTableAnnotationComposer
 
   GeneratedColumn<double> get unitPrice =>
       $composableBuilder(column: $table.unitPrice, builder: (column) => column);
+
+  GeneratedColumn<double> get unitCostSnapshot => $composableBuilder(
+      column: $table.unitCostSnapshot, builder: (column) => column);
 
   GeneratedColumn<double> get discountTotal => $composableBuilder(
       column: $table.discountTotal, builder: (column) => column);
@@ -35061,6 +35120,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             Value<String?> barcodeSnapshot = const Value.absent(),
             Value<int> quantity = const Value.absent(),
             Value<double> unitPrice = const Value.absent(),
+            Value<double?> unitCostSnapshot = const Value.absent(),
             Value<double> discountTotal = const Value.absent(),
             Value<double> taxTotal = const Value.absent(),
             Value<double> subtotal = const Value.absent(),
@@ -35080,6 +35140,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             barcodeSnapshot: barcodeSnapshot,
             quantity: quantity,
             unitPrice: unitPrice,
+            unitCostSnapshot: unitCostSnapshot,
             discountTotal: discountTotal,
             taxTotal: taxTotal,
             subtotal: subtotal,
@@ -35099,6 +35160,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             Value<String?> barcodeSnapshot = const Value.absent(),
             required int quantity,
             required double unitPrice,
+            Value<double?> unitCostSnapshot = const Value.absent(),
             Value<double> discountTotal = const Value.absent(),
             Value<double> taxTotal = const Value.absent(),
             required double subtotal,
@@ -35118,6 +35180,7 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             barcodeSnapshot: barcodeSnapshot,
             quantity: quantity,
             unitPrice: unitPrice,
+            unitCostSnapshot: unitCostSnapshot,
             discountTotal: discountTotal,
             taxTotal: taxTotal,
             subtotal: subtotal,

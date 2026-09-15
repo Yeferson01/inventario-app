@@ -9,7 +9,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates schema 8 to 10 without replacing existing balance IDs',
+  test('migrates schema 8 to 11 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -27,7 +27,7 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 10);
+    expect(database.schemaVersion, 11);
     expect(balance.read<String>('id'), 'random-local-uuid');
     expect(balance.read<int>('quantity_on_hand'), 8);
 
@@ -50,6 +50,12 @@ void main() {
 
     final saleItemColumns = await _columnNames(database, 'sale_items');
     expect(saleItemColumns, contains('deleted_at'));
+    expect(saleItemColumns, contains('unit_cost_snapshot'));
+    final legacySaleItem = await database.customSelect(
+      'select unit_cost_snapshot from sale_items where id = ?',
+      variables: [const Variable<String>('legacy-sale-item')],
+    ).getSingle();
+    expect(legacySaleItem.readNullable<double>('unit_cost_snapshot'), isNull);
     final productColumns = await _columnNames(database, 'products');
     expect(productColumns, contains('master_product_id'));
 
@@ -81,7 +87,7 @@ void main() {
     );
   });
 
-  test('migrates schema 9 to 10 preserving Product identity', () async {
+  test('migrates schema 9 to 11 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema9IdentitySetupStatements) {
@@ -92,7 +98,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 10);
+    expect(database.schemaVersion, 11);
     final product = await database.customSelect(
       'select id, name, master_product_id from products where id = ?',
       variables: [const Variable<String>('legacy-product')],
@@ -113,6 +119,26 @@ void main() {
       ''',
     ).get();
     expect(indexes, hasLength(3));
+  });
+
+  test('migrates schema 10 to 11 leaving historical sale cost unknown',
+      () async {
+    final executor = NativeDatabase.memory(
+      setup: (rawDatabase) {
+        for (final statement in _schema10CostSetupStatements) {
+          rawDatabase.execute(statement);
+        }
+      },
+    );
+    final database = AppDatabase.executor(executor);
+    addTearDown(database.close);
+
+    expect(database.schemaVersion, 11);
+    final legacySaleItem = await database.customSelect(
+      'select unit_cost_snapshot from sale_items where id = ?',
+      variables: [const Variable<String>('legacy-sale-item')],
+    ).getSingle();
+    expect(legacySaleItem.readNullable<double>('unit_cost_snapshot'), isNull);
   });
 
   test('enables SQLite foreign keys on every AppDatabase connection', () async {
@@ -249,6 +275,10 @@ const _schema8SetupStatements = <String>[
   )
   ''',
   '''
+  insert into sale_items (id, created_at, updated_at)
+  values ('legacy-sale-item', 1, 1)
+  ''',
+  '''
   create table cash_registers (
     id text primary key not null, business_id text not null, branch_id text,
     idempotency_key text
@@ -382,4 +412,12 @@ final _schema9IdentitySetupStatements = <String>[
   )
   ''',
   'pragma user_version = 9',
+];
+
+final _schema10CostSetupStatements = <String>[
+  ..._schema9IdentitySetupStatements.where(
+    (statement) => statement != 'pragma user_version = 9',
+  ),
+  'alter table products add column master_product_id text',
+  'pragma user_version = 10',
 ];

@@ -107,9 +107,50 @@ class PosLocalSaleDao {
     }
 
     await _db.transaction(() async {
+      final saleId = _requiredString(sale, 'id');
+      final saleBusinessId = _requiredString(sale, 'business_id');
+      final saleBranchId = _requiredString(sale, 'branch_id');
+      final preparedItems = <Map<String, dynamic>>[];
+      final preparedMovements = <Map<String, dynamic>>[];
+
+      for (var index = 0; index < items.length; index++) {
+        final item = Map<String, dynamic>.from(items[index]);
+        final movement = Map<String, dynamic>.from(inventoryMovements[index]);
+        final itemProductId = _requiredString(item, 'product_id');
+        final movementProductId = _requiredString(movement, 'product_id');
+
+        if (itemProductId != movementProductId ||
+            _requiredString(item, 'sale_id') != saleId) {
+          throw ArgumentError(
+            'El sale_item debe corresponder a la venta y movimiento indicados.',
+          );
+        }
+        if (_requiredString(movement, 'business_id') != saleBusinessId ||
+            _requiredString(movement, 'branch_id') != saleBranchId) {
+          throw ArgumentError(
+            'El inventory_movement debe usar el business y branch de la venta.',
+          );
+        }
+
+        final balance = await getRequiredStockBalance(
+          businessId: saleBusinessId,
+          branchId: saleBranchId,
+          productId: itemProductId,
+        );
+        final unitCostSnapshot = _nullableDouble(
+          balance,
+          'average_cost',
+        );
+
+        item['unit_cost_snapshot'] = unitCostSnapshot;
+        movement['unit_cost'] = unitCostSnapshot;
+        preparedItems.add(item);
+        preparedMovements.add(movement);
+      }
+
       await _insertSale(sale);
 
-      for (final item in items) {
+      for (final item in preparedItems) {
         await _insertSaleItem(item);
       }
 
@@ -117,7 +158,7 @@ class PosLocalSaleDao {
         await _insertSalePayment(payment);
       }
 
-      for (final movement in inventoryMovements) {
+      for (final movement in preparedMovements) {
         await _insertInventoryMovement(movement);
         await _applyLocalStockMovement(movement);
       }
@@ -188,6 +229,7 @@ class PosLocalSaleDao {
         barcode_snapshot,
         quantity,
         unit_price,
+        unit_cost_snapshot,
         discount_total,
         tax_total,
         subtotal,
@@ -196,7 +238,7 @@ class PosLocalSaleDao {
         created_at,
         updated_at,
         sync_status
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         item['id'],
@@ -206,6 +248,7 @@ class PosLocalSaleDao {
         item['barcode_snapshot'],
         item['quantity'],
         item['unit_price'],
+        item['unit_cost_snapshot'],
         item['discount_total'],
         item['tax_total'],
         item['subtotal'],
@@ -1918,6 +1961,25 @@ class PosLocalSaleDao {
 
     if (parsed == null) {
       throw ArgumentError('Campo entero inválido: $key');
+    }
+
+    return parsed;
+  }
+
+  double? _nullableDouble(Map<String, dynamic> map, String key) {
+    final value = map[key];
+
+    if (value == null) {
+      return null;
+    }
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    final parsed = double.tryParse(value.toString());
+    if (parsed == null) {
+      throw ArgumentError('Campo decimal inválido: $key');
     }
 
     return parsed;
