@@ -19,6 +19,7 @@ import '../../application/cash_repair_context_service.dart';
 import '../../application/operational_bootstrap_entry_models.dart';
 import '../../application/operational_bootstrap_entry_providers.dart';
 import '../../application/operational_bootstrap_orchestration_models.dart';
+import '../../application/offline_operational_readiness_service.dart';
 import '../../application/pos_sync_upload_provider.dart';
 import '../../application/productive_stale_sale_reconciliation_service.dart';
 import '../../application/recovery_blocked_stale_sale_service.dart';
@@ -457,17 +458,35 @@ class _BusinessContextRequiredGateState
         );
       case OperationalBootstrapEntryOutcome.transientFailure:
         final cached = ref.watch(
-          productiveCachedContextAvailabilityProvider(widget.profileId),
+          productiveCachedOperationalReadinessProvider(widget.profileId),
         );
         return cached.when(
-          data: (available) {
-            if (available) {
+          data: (readiness) {
+            if (readiness.offlineReady) {
               return widget.child;
+            }
+            if (readiness.outcome ==
+                OfflineOperationalReadinessOutcome.authorizationRevoked) {
+              return const _OperationalEntryStatus(
+                title: 'Autorización no disponible',
+                message:
+                    'La autorización guardada de esta sucursal ya no permite continuar.',
+              );
+            }
+            if (readiness.outcome ==
+                OfflineOperationalReadinessOutcome.recoveryRequired) {
+              return _OperationalEntryStatus(
+                title: 'Preparación necesaria',
+                message:
+                    'Conéctate a Internet y reintenta para completar la preparación de esta sucursal antes de continuar.',
+                actionLabel: 'Reintentar',
+                onAction: () => ref.invalidate(entryProvider),
+              );
             }
             return _OperationalEntryStatus(
               title: 'Red no disponible',
               message:
-                  'No fue posible validar el contexto en línea y no existe una proyección local activa para continuar.',
+                  'No fue posible validar el contexto en línea y no hay un contexto operativo preparado para continuar.',
               actionLabel: 'Reintentar',
               onAction: () => ref.invalidate(entryProvider),
             );

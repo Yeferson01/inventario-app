@@ -106,7 +106,7 @@ final productiveSignOutProvider = Provider<ProductiveSignOut>((ref) {
     await ref.read(productiveAuthServiceProvider).signOut();
     ref.invalidate(authenticatedAccessResolverProvider);
     ref.invalidate(productiveOperationalEntryProvider);
-    ref.invalidate(productiveCachedContextAvailabilityProvider);
+    ref.invalidate(productiveCachedOperationalReadinessProvider);
     ref.invalidate(appRouterSyncBootstrapProvider);
     ref.invalidate(appCurrentContextProvider);
     ref.invalidate(administrationCurrentContextProvider);

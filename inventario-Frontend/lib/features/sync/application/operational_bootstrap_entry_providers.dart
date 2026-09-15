@@ -7,9 +7,11 @@ import '../../cash/application/cash_session_local_provider.dart';
 import '../../auth/application/authenticated_access_models.dart';
 import '../../auth/application/authenticated_access_providers.dart';
 import 'app_installation_id_store.dart';
+import 'app_router_sync_bootstrap_provider.dart';
 import 'authorized_operational_context_providers.dart';
 import 'cash_repair_context_service.dart';
 import 'local_sync_outbox_providers.dart';
+import 'offline_operational_readiness_service.dart';
 import 'operational_bootstrap_entry_models.dart';
 import 'operational_bootstrap_entry_service.dart';
 import 'operational_bootstrap_orchestration_models.dart';
@@ -239,30 +241,43 @@ final productiveOperationalEntryProvider = FutureProvider.family<
   },
 );
 
-final productiveCachedContextAvailabilityProvider =
-    FutureProvider.family<bool, String>((ref, profileId) async {
-  final authenticatedProfileId = ref.watch(currentSupabaseUserProvider)?.id;
-  if (authenticatedProfileId != profileId) {
-    return false;
-  }
+final offlineOperationalReadinessServiceProvider =
+    Provider<OfflineOperationalReadinessService>((ref) {
+  return OfflineOperationalReadinessService(
+    authenticatedProfileId: () => ref.read(currentSupabaseUserProvider)?.id,
+    authorizationDao: ref.watch(authorizedOperationalContextLocalDaoProvider),
+    runtimeStore: ref.watch(appRuntimeContextStoreProvider),
+    checkpointDao: ref.watch(operationalBootstrapCheckpointLocalDaoProvider),
+    issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
+    cashSessionDao: ref.watch(cashSessionLocalDaoProvider),
+  );
+});
 
+final productiveCachedOperationalReadinessProvider =
+    FutureProvider.family<OfflineOperationalReadinessResult, String>(
+        (ref, profileId) async {
   final selected = await ref
       .watch(appSelectedSyncContextStoreProvider)
       .getSelectedContext(profileId: profileId);
   final branchId = selected?.branchId;
   if (selected == null || branchId == null || branchId.trim().isEmpty) {
-    return false;
+    return const OfflineOperationalReadinessResult(
+      outcome: OfflineOperationalReadinessOutcome.invalidContext,
+      reason: 'selected_context_missing',
+    );
   }
 
-  final projection = await ref
-      .watch(authorizedOperationalContextLocalDaoProvider)
-      .getContextRecord(
-        profileId: profileId,
-        businessId: selected.businessId,
-        branchId: branchId,
+  final installationId = await ref
+      .watch(appInstallationIdStoreProvider)
+      .getOrCreateInstallationId();
+  return ref.watch(offlineOperationalReadinessServiceProvider).evaluate(
+        OfflineOperationalReadinessRequest(
+          profileId: profileId,
+          businessId: selected.businessId,
+          branchId: branchId,
+          installationId: installationId,
+        ),
       );
-
-  return projection?.isActive == true;
 });
 
 String _productiveDeviceName() {

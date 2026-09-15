@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/features/auth/application/authenticated_access_models.dart';
 import 'package:inventario_frontend/features/auth/application/authenticated_access_providers.dart';
+import 'package:inventario_frontend/features/sync/application/offline_operational_readiness_service.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_entry_models.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_entry_providers.dart';
 import 'package:inventario_frontend/features/sync/data/models/authorized_operational_context_models.dart';
@@ -145,7 +146,7 @@ void main() {
     );
   });
 
-  testWidgets('transient discovery failure preserves an active cached context',
+  testWidgets('OR-07 transient failure preserves a ready cached context',
       (tester) async {
     await tester.pumpWidget(
       _app(
@@ -156,7 +157,10 @@ void main() {
           offlineReady: false,
           canRequestAdministrativeSetup: false,
         ),
-        cachedContextAvailable: true,
+        cachedReadiness: const OfflineOperationalReadinessResult(
+          outcome: OfflineOperationalReadinessOutcome.ready,
+          reason: 'offline_ready',
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -164,19 +168,47 @@ void main() {
     expect(find.text('PRODUCTIVE CHILD'), findsOneWidget);
     expect(find.text('Red no disponible'), findsNothing);
   });
+
+  testWidgets('OR-02 incomplete cached recovery does not open the application',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const OperationalBootstrapEntryResult(
+          outcome: OperationalBootstrapEntryOutcome.transientFailure,
+          contexts: [],
+          message: 'network unavailable',
+          offlineReady: false,
+          canRequestAdministrativeSetup: false,
+        ),
+        cachedReadiness: const OfflineOperationalReadinessResult(
+          outcome: OfflineOperationalReadinessOutcome.recoveryRequired,
+          reason: 'required_datasets_incomplete',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('PRODUCTIVE CHILD'), findsNothing);
+    expect(find.text('Preparación necesaria'), findsOneWidget);
+    expect(find.textContaining('Conéctate a Internet'), findsOneWidget);
+  });
 }
 
 Widget _app(
   OperationalBootstrapEntryResult result, {
-  bool cachedContextAvailable = false,
+  OfflineOperationalReadinessResult cachedReadiness =
+      const OfflineOperationalReadinessResult(
+    outcome: OfflineOperationalReadinessOutcome.invalidContext,
+    reason: 'selected_context_missing',
+  ),
 }) {
   return ProviderScope(
     overrides: [
       productiveOperationalEntryProvider.overrideWith(
         (ref, request) async => result,
       ),
-      productiveCachedContextAvailabilityProvider.overrideWith(
-        (ref, profileId) async => cachedContextAvailable,
+      productiveCachedOperationalReadinessProvider.overrideWith(
+        (ref, profileId) async => cachedReadiness,
       ),
       authenticatedAccessResolverProvider.overrideWith(
         (ref, profileId) async => result.contexts.isEmpty
