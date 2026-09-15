@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -22,12 +23,16 @@ void main() {
       WidgetsFlutterBinding.ensureInitialized();
 
       FlutterError.onError = (FlutterErrorDetails details) {
-        FlutterError.presentError(details);
-        debugPrint('FlutterError: ${details.exceptionAsString()}');
-        debugPrintStack(stackTrace: details.stack);
+        if (kDebugMode) {
+          FlutterError.presentError(details);
+          debugPrint('FlutterError: ${details.exceptionAsString()}');
+          debugPrintStack(stackTrace: details.stack);
+        } else {
+          debugPrint('Application UI error.');
+        }
       };
 
-      if (const bool.fromEnvironment('BYPASS_MAIN_DEBUG')) {
+      if (kDebugMode && const bool.fromEnvironment('BYPASS_MAIN_DEBUG')) {
         debugPrint(
           'BYPASS_MAIN_DEBUG activo: render directo antes de AppConfig/Supabase.',
         );
@@ -41,11 +46,12 @@ void main() {
       }
 
       try {
-        debugPrint('BOOT: validando AppConfig...');
+        if (kDebugMode) debugPrint('BOOT: validando AppConfig...');
         AppConfig.validate();
-        debugPrint('BOOT: AppConfig OK');
+        if (kDebugMode) debugPrint('BOOT: AppConfig OK');
 
-        if (const bool.fromEnvironment('CONFIG_ONLY_PING_DEBUG')) {
+        if (kDebugMode &&
+            const bool.fromEnvironment('CONFIG_ONLY_PING_DEBUG')) {
           runApp(
             const MaterialApp(
               debugShowCheckedModeBanner: false,
@@ -55,7 +61,7 @@ void main() {
           return;
         }
 
-        debugPrint('BOOT: inicializando Supabase...');
+        if (kDebugMode) debugPrint('BOOT: inicializando Supabase...');
 
         await Supabase.initialize(
           url: AppConfig.supabaseUrl,
@@ -69,9 +75,9 @@ void main() {
           },
         );
 
-        debugPrint('BOOT: Supabase OK');
+        if (kDebugMode) debugPrint('BOOT: Supabase OK');
 
-        if (const bool.fromEnvironment('AFTER_INIT_PING_DEBUG')) {
+        if (kDebugMode && const bool.fromEnvironment('AFTER_INIT_PING_DEBUG')) {
           runApp(
             const MaterialApp(
               debugShowCheckedModeBanner: false,
@@ -90,8 +96,10 @@ void main() {
           ),
         );
       } catch (error, stackTrace) {
-        debugPrint('BOOT ERROR: $error');
-        debugPrintStack(stackTrace: stackTrace);
+        if (kDebugMode) {
+          debugPrint('BOOT ERROR: $error');
+          debugPrintStack(stackTrace: stackTrace);
+        }
 
         runApp(
           BootstrapErrorApp(
@@ -102,8 +110,10 @@ void main() {
       }
     },
     (error, stackTrace) {
-      debugPrint('UNCAUGHT ZONE ERROR: $error');
-      debugPrintStack(stackTrace: stackTrace);
+      if (kDebugMode) {
+        debugPrint('UNCAUGHT ZONE ERROR: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
 
       bootstrapZone.run(
         () => runApp(
@@ -121,11 +131,13 @@ class BootstrapErrorApp extends StatelessWidget {
   const BootstrapErrorApp({
     required this.error,
     required this.stackTrace,
+    this.showDiagnostics = kDebugMode,
     super.key,
   });
 
   final Object error;
   final StackTrace stackTrace;
+  final bool showDiagnostics;
 
   @override
   Widget build(BuildContext context) {
@@ -140,9 +152,12 @@ class BootstrapErrorApp extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: SelectableText(
-              'La app falló antes de pintar la interfaz principal.\n\n'
-              'Error:\n$error\n\n'
-              'StackTrace:\n$stackTrace',
+              kDebugMode && showDiagnostics
+                  ? 'La app falló antes de pintar la interfaz principal.\n\n'
+                      'Error:\n$error\n\n'
+                      'StackTrace:\n$stackTrace'
+                  : 'No pudimos iniciar la aplicación. Intenta nuevamente. '
+                      'Si el problema continúa, contacta soporte.',
               style: const TextStyle(
                 color: Colors.red,
                 fontSize: 14,
@@ -175,7 +190,7 @@ class MyApp extends ConsumerWidget {
         ref.invalidate(appRouterSyncBootstrapProvider);
       }
     });
-    if (const bool.fromEnvironment('ROUTER_MINIMAL_DEBUG')) {
+    if (kDebugMode && const bool.fromEnvironment('ROUTER_MINIMAL_DEBUG')) {
       debugPrint('ROUTER_MINIMAL_DEBUG activo: MaterialApp.router mínimo.');
       return MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -183,7 +198,7 @@ class MyApp extends ConsumerWidget {
       );
     }
 
-    if (const bool.fromEnvironment('BYPASS_ROUTER_DEBUG')) {
+    if (kDebugMode && const bool.fromEnvironment('BYPASS_ROUTER_DEBUG')) {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: DebugPingScreen(),
@@ -198,7 +213,7 @@ class MyApp extends ConsumerWidget {
       builder: (context, child) {
         return MaterialApp.router(
           builder: (context, child) {
-            if (const bool.fromEnvironment('DISABLE_SYNC_GATE')) {
+            if (kDebugMode && const bool.fromEnvironment('DISABLE_SYNC_GATE')) {
               return child ?? const SizedBox.shrink();
             }
 

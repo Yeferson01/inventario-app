@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,16 +36,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 class AppRouter {
   AppRouter._();
 
-  static String get _initialLocation {
-    const routeName = String.fromEnvironment(
-      'APP_INITIAL_ROUTE_NAME',
-      defaultValue: 'dashboard',
-    );
+  static String initialLocationFor(
+    String routeName, {
+    bool enableDebugRoutes = true,
+  }) {
+    final debugAllowed = kDebugMode && enableDebugRoutes;
 
     return switch (routeName) {
-      'debug_login' => '/debug/login',
-      'debug_ping' => '/debug/ping',
-      'debug_e2e' => '/debug/e2e-real-sync',
+      'debug_login' when debugAllowed => '/debug/login',
+      'debug_ping' when debugAllowed => '/debug/ping',
+      'debug_e2e' when debugAllowed => '/debug/e2e-real-sync',
       'login' || 'register' => AppRoutes.loginPath,
       'inventory' => AppRoutes.inventarioPath,
       _ => AppRoutes.dashboardPath,
@@ -54,14 +55,33 @@ class AppRouter {
   static GoRouter create({
     required ProductiveAuthPhase phase,
     GlobalKey<NavigatorState>? navigatorKey,
+    bool enableDebugRoutes = true,
+    String initialRouteName = const String.fromEnvironment(
+      'APP_INITIAL_ROUTE_NAME',
+      defaultValue: 'dashboard',
+    ),
   }) {
+    // The parameter can disable diagnostics for tests, never enable them in
+    // profile/release. Build mode is the authority, not a dart-define.
+    final debugAllowed = kDebugMode && enableDebugRoutes;
     return GoRouter(
-      initialLocation: _initialLocation,
+      initialLocation: initialLocationFor(
+        initialRouteName,
+        enableDebugRoutes: debugAllowed,
+      ),
       navigatorKey: navigatorKey ?? GlobalKey<NavigatorState>(),
-      debugLogDiagnostics: true,
+      debugLogDiagnostics: debugAllowed,
       redirect: (context, state) {
         final location = state.uri.path;
-        if (location.startsWith('/debug')) return null;
+        if (location.startsWith('/debug')) {
+          if (debugAllowed) return null;
+          return switch (phase) {
+            ProductiveAuthPhase.authenticated => AppRoutes.dashboardPath,
+            ProductiveAuthPhase.passwordSetupRequired =>
+              AppRoutes.passwordSetupPath,
+            _ => AppRoutes.loginPath,
+          };
+        }
 
         final isLogin = location == AppRoutes.loginPath;
         final isPasswordSetup = location == AppRoutes.passwordSetupPath;
@@ -79,18 +99,20 @@ class AppRouter {
         };
       },
       routes: [
-        GoRoute(
-          path: '/debug/login',
-          builder: (context, state) => const DebugSupabaseLoginScreen(),
-        ),
-        GoRoute(
-          path: '/debug/ping',
-          builder: (context, state) => const DebugPingScreen(),
-        ),
-        GoRoute(
-          path: '/debug/e2e-real-sync',
-          builder: (context, state) => const AppE2ERealControlledTestScreen(),
-        ),
+        if (debugAllowed) ...[
+          GoRoute(
+            path: '/debug/login',
+            builder: (context, state) => const DebugSupabaseLoginScreen(),
+          ),
+          GoRoute(
+            path: '/debug/ping',
+            builder: (context, state) => const DebugPingScreen(),
+          ),
+          GoRoute(
+            path: '/debug/e2e-real-sync',
+            builder: (context, state) => const AppE2ERealControlledTestScreen(),
+          ),
+        ],
         GoRoute(
           path: AppRoutes.loginPath,
           name: AppRoutes.loginName,

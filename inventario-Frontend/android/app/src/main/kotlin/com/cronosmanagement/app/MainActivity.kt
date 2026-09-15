@@ -1,4 +1,4 @@
-package com.tuempresa.inventario.inventario_frontend
+package com.cronosmanagement.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,5 +1,5 @@
 {
-  "APP_NAME": "Inventario",
+  "APP_NAME": "CronosManagement",
   "ENVIRONMENT": "prod",
   "API_URL": "https://api.tu-dominio.com",
   "SUPABASE_URL": "https://mtisfzthiyusmqfuhydp.supabase.co",
