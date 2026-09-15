@@ -387,6 +387,24 @@ class CashPosSnapshotApplier
     }
     final local = await _localDao.getById('sale_items', remote.id);
     if (local != null) {
+      if (remote.state == OperationalBootstrapRecordState.present &&
+          !_canConvergeSaleItemCost(local, remote)) {
+        await _openIssue(
+          profileId,
+          snapshot,
+          entityType: 'sale_items',
+          entityId: remote.id,
+          issueType: 'sale_item_cost_snapshot_conflict',
+          severity: 'blocking',
+          message:
+              'Local and remote historical Sale item costs are inconsistent.',
+          metadata: {
+            'local_unit_cost_snapshot': local['unit_cost_snapshot'],
+            'remote_unit_cost_snapshot': remote.unitCostSnapshot,
+          },
+        );
+        return false;
+      }
       final classification = await _classify(
         snapshot,
         'pos',
@@ -752,6 +770,15 @@ class CashPosSnapshotApplier
     return localDate.isAtSameMomentAs(remote);
   }
 
+  bool _canConvergeSaleItemCost(
+    Map<String, dynamic> local,
+    CashPosSaleItemSnapshotRow remote,
+  ) {
+    final rawLocal = local['unit_cost_snapshot'];
+    final localCost = rawLocal is num ? rawLocal.toDouble() : null;
+    return localCost == null || localCost == remote.unitCostSnapshot;
+  }
+
   Future<bool> _dependencyIssue(
     String profileId,
     OperationalBootstrapSnapshotPage snapshot, {
@@ -816,6 +843,7 @@ class CashPosSnapshotApplier
       'dirty_vs_tombstone',
       'dirty_without_outbox',
       'dirty_vs_remote',
+      'sale_item_cost_snapshot_conflict',
     ]) {
       await _issueDao.resolveOpenIssue(
         profileId: profileId,

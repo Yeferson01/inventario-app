@@ -170,6 +170,7 @@ class CashPosSaleItemSnapshotRow {
         productNameSnapshot =
             _optionalString(row.data['product_name_snapshot']),
         barcodeSnapshot = _optionalString(row.data['barcode_snapshot']),
+        unitCostSnapshot = _optionalDouble(row.data['unit_cost_snapshot']),
         quantity = _requiredInt(row.data, 'quantity'),
         unitPrice = _requiredDouble(row.data, 'unit_price'),
         discountTotal = _optionalDoubleAny(
@@ -199,6 +200,7 @@ class CashPosSaleItemSnapshotRow {
   final String? productId;
   final String? productNameSnapshot;
   final String? barcodeSnapshot;
+  final double? unitCostSnapshot;
   final int quantity;
   final double unitPrice;
   final double discountTotal;

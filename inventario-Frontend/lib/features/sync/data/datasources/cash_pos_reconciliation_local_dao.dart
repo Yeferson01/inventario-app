@@ -611,14 +611,16 @@ class CashPosReconciliationLocalDao {
       '''
       insert into sale_items (
         id, sale_id, product_id, product_name_snapshot, barcode_snapshot,
-        quantity, unit_price, discount_total, tax_total, subtotal, line_total,
-        metadata_json, created_at, updated_at, deleted_at, sync_status
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        unit_cost_snapshot, quantity, unit_price, discount_total, tax_total,
+        subtotal, line_total, metadata_json, created_at, updated_at, deleted_at,
+        sync_status
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         sale_id = excluded.sale_id,
         product_id = excluded.product_id,
         product_name_snapshot = excluded.product_name_snapshot,
         barcode_snapshot = excluded.barcode_snapshot,
+        unit_cost_snapshot = excluded.unit_cost_snapshot,
         quantity = excluded.quantity,
         unit_price = excluded.unit_price,
         discount_total = excluded.discount_total,
@@ -637,6 +639,7 @@ class CashPosReconciliationLocalDao {
         row.productId,
         row.productNameSnapshot,
         row.barcodeSnapshot,
+        row.unitCostSnapshot,
         row.quantity,
         row.unitPrice,
         row.discountTotal,

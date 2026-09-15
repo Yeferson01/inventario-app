@@ -1,6 +1,6 @@
 begin;
 
-select plan(8);
+select plan(12);
 
 create temporary table intentional_stale_sale_state (
   sale_id uuid primary key,
@@ -119,15 +119,15 @@ insert into public.sync_mutations (
 )
 values
   ('b1000000-0000-0000-0000-000000000011', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'sale-a', 1, 'sales', 'c0000000-0000-0000-0000-000000000001', 'insert', '{"id":"c0000000-0000-0000-0000-000000000001","branch_id":"ac000000-0000-0000-0000-000000000001","cash_register_id":"ae100000-0000-0000-0000-000000000001","cash_session_id":"af000000-0000-0000-0000-000000000011","subtotal":10,"total":10,"payment_method":"cash","status":"completed","created_at":"2026-08-31T10:00:00Z"}', 'pending', 'sale-a'),
-  ('b1000000-0000-0000-0000-000000000012', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'item-a', 2, 'sale_items', 'c1000000-0000-0000-0000-000000000001', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000001","product_id":"ae000000-0000-0000-0000-000000000001","quantity":1,"unit_price":10,"subtotal":10,"total":10,"created_at":"2026-08-31T10:00:00Z"}', 'pending', 'item-a'),
+  ('b1000000-0000-0000-0000-000000000012', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'item-a', 2, 'sale_items', 'c1000000-0000-0000-0000-000000000001', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000001","product_id":"ae000000-0000-0000-0000-000000000001","quantity":1,"unit_price":10,"unit_cost_snapshot":6000,"subtotal":10,"total":10,"created_at":"2026-08-31T10:00:00Z"}', 'pending', 'item-a'),
   ('b1000000-0000-0000-0000-000000000013', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'payment-a', 3, 'sale_payments', 'c2000000-0000-0000-0000-000000000001', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000001","payment_method":"cash","amount":10,"currency":"COP","status":"completed","created_at":"2026-08-31T10:00:00Z"}', 'pending', 'payment-a'),
 
   ('b1000000-0000-0000-0000-000000000021', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'sale-b', 1, 'sales', 'c0000000-0000-0000-0000-000000000002', 'insert', '{"id":"c0000000-0000-0000-0000-000000000002","branch_id":"ac000000-0000-0000-0000-000000000001","cash_register_id":"ae100000-0000-0000-0000-000000000002","cash_session_id":"af000000-0000-0000-0000-000000000021","subtotal":10,"total":10,"payment_method":"cash","status":"completed","created_at":"2026-08-31T10:01:00Z"}', 'pending', 'sale-b'),
-  ('b1000000-0000-0000-0000-000000000022', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'item-b', 2, 'sale_items', 'c1000000-0000-0000-0000-000000000002', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000002","product_id":"ae000000-0000-0000-0000-000000000001","quantity":1,"unit_price":10,"subtotal":10,"total":10,"created_at":"2026-08-31T10:01:00Z"}', 'pending', 'item-b'),
+  ('b1000000-0000-0000-0000-000000000022', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'item-b', 2, 'sale_items', 'c1000000-0000-0000-0000-000000000002', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000002","product_id":"ae000000-0000-0000-0000-000000000001","quantity":1,"unit_price":10,"unit_cost_snapshot":0,"subtotal":10,"total":10,"created_at":"2026-08-31T10:01:00Z"}', 'pending', 'item-b'),
   ('b1000000-0000-0000-0000-000000000023', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'payment-b', 3, 'sale_payments', 'c2000000-0000-0000-0000-000000000002', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000002","payment_method":"cash","amount":10,"currency":"COP","status":"completed","created_at":"2026-08-31T10:01:00Z"}', 'pending', 'payment-b'),
 
   ('b1000000-0000-0000-0000-000000000031', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'sale-c', 1, 'sales', 'c0000000-0000-0000-0000-000000000003', 'insert', '{"id":"c0000000-0000-0000-0000-000000000003","branch_id":"ac000000-0000-0000-0000-000000000001","cash_register_id":"ae100000-0000-0000-0000-000000000003","cash_session_id":"af000000-0000-0000-0000-000000000031","subtotal":10,"total":10,"payment_method":"card","status":"completed","created_at":"2026-08-31T10:02:00Z"}', 'pending', 'sale-c'),
-  ('b1000000-0000-0000-0000-000000000032', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'item-c', 2, 'sale_items', 'c1000000-0000-0000-0000-000000000003', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000003","product_id":"ae000000-0000-0000-0000-000000000001","quantity":1,"unit_price":10,"subtotal":10,"total":10,"created_at":"2026-08-31T10:02:00Z"}', 'pending', 'item-c'),
+  ('b1000000-0000-0000-0000-000000000032', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'item-c', 2, 'sale_items', 'c1000000-0000-0000-0000-000000000003', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000003","product_id":"ae000000-0000-0000-0000-000000000001","quantity":1,"unit_price":10,"unit_cost_snapshot":null,"subtotal":10,"total":10,"created_at":"2026-08-31T10:02:00Z"}', 'pending', 'item-c'),
   ('b1000000-0000-0000-0000-000000000033', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'payment-c', 3, 'sale_payments', 'c2000000-0000-0000-0000-000000000003', 'insert', '{"sale_id":"c0000000-0000-0000-0000-000000000003","payment_method":"card","amount":10,"currency":"COP","status":"completed","created_at":"2026-08-31T10:02:00Z"}', 'pending', 'payment-c'),
 
   ('b1000000-0000-0000-0000-000000000041', 'ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000004', 'ad100000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001', 'sale-d', 1, 'sales', 'c0000000-0000-0000-0000-000000000004', 'insert', '{"id":"c0000000-0000-0000-0000-000000000004","branch_id":"ac000000-0000-0000-0000-000000000001","cash_register_id":"ae100000-0000-0000-0000-000000000004","cash_session_id":"af000000-0000-0000-0000-000000000041","subtotal":10,"total":10,"payment_method":"cash","status":"completed","created_at":"2026-08-31T10:03:00Z"}', 'pending', 'sale-d'),
@@ -171,6 +171,11 @@ select ok(
   and (select expected_closing_amount = 110 and difference_amount = 0 from public.cash_sessions where id = 'af000000-0000-0000-0000-000000000012'),
   'A. not_included materializes the Sale and closes at opening plus cash payment'
 );
+select ok(
+  (select unit_cost_snapshot = 6000 from public.sale_items where id = 'c1000000-0000-0000-0000-000000000001')
+  and (select unit_cost = 6000 from public.inventory_movements where source_type = 'sale' and source_id = 'c0000000-0000-0000-0000-000000000001'),
+  'FC-05A stale reconciliation preserves known item and movement cost'
+);
 
 select public.reconcile_rejected_sale_to_open_cash_session(
   'ab000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001',
@@ -191,6 +196,11 @@ select ok(
   and exists (select 1 from public.inventory_movements where source_type = 'sale' and source_id = 'c0000000-0000-0000-0000-000000000002'),
   'B. already_included creates one negative adjustment and avoids double cash'
 );
+select ok(
+  (select unit_cost_snapshot = 0 from public.sale_items where id = 'c1000000-0000-0000-0000-000000000002')
+  and (select unit_cost = 0 from public.inventory_movements where source_type = 'sale' and source_id = 'c0000000-0000-0000-0000-000000000002'),
+  'FC-05B stale reconciliation preserves explicit zero item and movement cost'
+);
 
 select public.reconcile_rejected_sale_to_open_cash_session(
   'ab000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001',
@@ -204,6 +214,11 @@ select ok(
   and not exists (select 1 from public.cash_session_adjustments where reconciliation_id = 'd0000000-0000-0000-0000-000000000003')
   and (select cash_adjustment_total = 0 from public.sale_reconciliations where id = 'd0000000-0000-0000-0000-000000000003'),
   'C. a no-cash Sale creates no cash adjustment'
+);
+select ok(
+  (select unit_cost_snapshot is null from public.sale_items where id = 'c1000000-0000-0000-0000-000000000003')
+  and (select unit_cost is null from public.inventory_movements where source_type = 'sale' and source_id = 'c0000000-0000-0000-0000-000000000003'),
+  'FC-05C stale reconciliation preserves explicit unknown item and movement cost'
 );
 
 select is(
@@ -300,6 +315,19 @@ select throws_ok(
   'P0001',
   'destination_cash_session_required',
   'G. a closed destination fails without materializing the Sale'
+);
+
+select public.reconcile_rejected_sale_to_open_cash_session(
+  'ab000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001',
+  'ad100000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000004',
+  (select conflict_id from intentional_stale_sale_state where sale_id = 'c0000000-0000-0000-0000-000000000004'),
+  'af000000-0000-0000-0000-000000000043', 'd0000000-0000-0000-0000-000000000004',
+  'reconciliation-d', 'Legacy omitted cost', 'not_included_in_destination_opening'
+);
+select ok(
+  (select unit_cost_snapshot is null from public.sale_items where id = 'c1000000-0000-0000-0000-000000000004')
+  and (select unit_cost is null from public.inventory_movements where source_type = 'sale' and source_id = 'c0000000-0000-0000-0000-000000000004'),
+  'FC-05D legacy stale omission remains unknown on item and movement'
 );
 
 select ok(

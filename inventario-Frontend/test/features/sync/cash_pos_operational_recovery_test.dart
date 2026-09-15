@@ -167,8 +167,65 @@ void main() {
 
     expect(result.recoveredSalesCount, 1);
     expect(await _row(database, 'sales', 'sale-r'), isNotNull);
-    expect(await _row(database, 'sale_items', 'item-r'), isNotNull);
+    expect(
+      (await _row(database, 'sale_items', 'item-r'))!['unit_cost_snapshot'],
+      6000,
+    );
     expect(await _row(database, 'sale_payments', 'payment-r'), isNotNull);
+  });
+
+  test('6a recovery preserves zero and unknown sale item costs', () async {
+    final harness = _Harness(database, [
+      _cashResponse(
+        itemRows: [
+          _itemRow(id: 'item-zero', unitCostSnapshot: 0),
+          _itemRow(id: 'item-null', unitCostSnapshot: null),
+        ],
+      ),
+    ]);
+
+    await harness.recovery.recover(_request);
+
+    expect(
+      (await _row(database, 'sale_items', 'item-zero'))!['unit_cost_snapshot'],
+      0,
+    );
+    expect(
+      (await _row(database, 'sale_items', 'item-null'))!['unit_cost_snapshot'],
+      isNull,
+    );
+  });
+
+  test('6b recovery upgrades legacy null but blocks conflicting known cost',
+      () async {
+    final harness = _Harness(database, [
+      _cashResponse(itemRows: [_itemRow(unitCostSnapshot: null)]),
+      _cashResponse(itemRows: [_itemRow(unitCostSnapshot: 6000)]),
+      _cashResponse(itemRows: [_itemRow(unitCostSnapshot: 7000)]),
+    ]);
+
+    await harness.recovery.recover(_request);
+    expect(
+      (await _row(database, 'sale_items', 'item-r'))!['unit_cost_snapshot'],
+      isNull,
+    );
+
+    await harness.recovery.recover(_request, restart: true);
+    expect(
+      (await _row(database, 'sale_items', 'item-r'))!['unit_cost_snapshot'],
+      6000,
+    );
+
+    final blocked = await harness.recovery.recover(_request, restart: true);
+    expect(blocked.cashContextReady, isFalse);
+    expect(
+      (await _row(database, 'sale_items', 'item-r'))!['unit_cost_snapshot'],
+      6000,
+    );
+    expect(
+      (await _issues(database)).map((row) => row['issue_type']),
+      contains('sale_item_cost_snapshot_conflict'),
+    );
   });
 
   test('7 applying cash_pos creates no outbox batches or mutations', () async {
@@ -638,6 +695,10 @@ void main() {
     expect(await _count(database, 'cash_sessions'), 1);
     expect(await _count(database, 'sales'), 1);
     expect(await _count(database, 'sale_items'), 1);
+    expect(
+      (await _row(database, 'sale_items', 'item-r'))!['unit_cost_snapshot'],
+      6000,
+    );
     expect(await _count(database, 'sale_payments'), 1);
     expect(await _count(database, 'local_sync_batches'), 0);
   });
@@ -1093,16 +1154,19 @@ Map<String, Object?> _saleRow({String id = 'sale-r'}) => {
     };
 
 Map<String, Object?> _itemRow({
+  String id = 'item-r',
   String productId = 'product-1',
   String saleId = 'sale-r',
+  double? unitCostSnapshot = 6000,
 }) =>
     {
-      'id': 'item-r',
+      'id': id,
       'business_id': 'business-a',
       'sale_id': saleId,
       'product_id': productId,
       'product_name_snapshot': 'Product 1',
       'barcode_snapshot': '7701',
+      'unit_cost_snapshot': unitCostSnapshot,
       'quantity': 1,
       'unit_price': 100,
       'discount_amount': 0,
