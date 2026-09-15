@@ -463,6 +463,7 @@ class PosLocalSaleDao {
         product_id,
         product_name_snapshot,
         barcode_snapshot,
+        unit_cost_snapshot,
         quantity,
         unit_price,
         discount_total,

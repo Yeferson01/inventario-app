@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +9,10 @@ import 'package:inventario_frontend/features/inventory/application/purchase_loca
 import 'package:inventario_frontend/features/inventory/data/datasources/purchase_local_dao.dart';
 import 'package:inventario_frontend/features/sales/application/pos_local_sale_models.dart';
 import 'package:inventario_frontend/features/sales/application/pos_local_sale_service.dart';
+import 'package:inventario_frontend/features/sales/application/pos_sync_outbox_service.dart';
 import 'package:inventario_frontend/features/sales/data/datasources/pos_local_sale_dao.dart';
+import 'package:inventario_frontend/features/sync/application/local_sync_outbox_service.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/local_sync_outbox_dao.dart';
 
 void main() {
   test('FC-01/02 captures known cost and preserves it after cost changes',
@@ -69,6 +74,44 @@ void main() {
 
     expect(persisted.itemCost, 0);
     expect(persisted.movementCost, 0);
+  });
+
+  test('FC-03 outbox preserves known, zero, and unknown cost snapshots',
+      () async {
+    for (final expectedCost in <double?>[6000, 0, null]) {
+      final fixture = await _SaleFixture.create(averageCost: expectedCost);
+
+      try {
+        await fixture.sell(quantity: 1);
+        final result = await PosSyncOutboxService(
+          dao: PosLocalSaleDao(fixture.database),
+          outboxService: LocalSyncOutboxService(
+            LocalSyncOutboxDao(fixture.database),
+          ),
+        ).enqueuePendingPosSales(
+          businessId: _businessId,
+          branchId: _branchId,
+          profileId: _profileId,
+          deviceInstallationId: 'installation-1',
+        );
+
+        expect(result.salesEnqueued, 1);
+        final mutation = await fixture.database.customSelect(
+          '''
+          select payload_json
+          from local_sync_mutations
+          where entity_table = 'sale_items'
+          ''',
+        ).getSingle();
+        final payload = jsonDecode(mutation.read<String>('payload_json'))
+            as Map<String, dynamic>;
+
+        expect(payload, contains('unit_cost_snapshot'));
+        expect(payload['unit_cost_snapshot'], expectedCost);
+      } finally {
+        await fixture.close();
+      }
+    }
   });
 
   test('missing required branch balance remains rejected', () async {

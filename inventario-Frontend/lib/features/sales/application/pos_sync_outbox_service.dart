@@ -286,6 +286,7 @@ class PosSyncOutboxService {
       'product_id': _nullableString(item['product_id']),
       'product_name_snapshot': _nullableString(item['product_name_snapshot']),
       'barcode_snapshot': _nullableString(item['barcode_snapshot']),
+      'unit_cost_snapshot': _nullableDouble(item['unit_cost_snapshot']),
       'quantity': _int(item['quantity']),
       'unit_price': _double(item['unit_price']),
       'discount_amount': _double(item['discount_total']),
@@ -418,6 +419,18 @@ class PosSyncOutboxService {
     }
 
     return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double? _nullableDouble(Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value.toString());
   }
 
   String _iso(Object? value) {
