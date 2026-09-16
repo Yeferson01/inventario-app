@@ -6,9 +6,12 @@ import 'pos_local_sale_models.dart';
 class PosLocalSaleService {
   PosLocalSaleService({
     required PosLocalSaleDao dao,
-  }) : _dao = dao;
+    void Function()? onCommitted,
+  })  : _dao = dao,
+        _onCommitted = onCommitted;
 
   final PosLocalSaleDao _dao;
+  final void Function()? _onCommitted;
 
   Future<PosLocalSaleResult> createLocalSale(
     CreatePosLocalSaleInput input,
@@ -227,6 +230,7 @@ class PosLocalSaleService {
       payments: paymentDrafts,
       inventoryMovements: movementDrafts,
     );
+    _onCommitted?.call();
 
     return PosLocalSaleResult(
       saleId: saleId,

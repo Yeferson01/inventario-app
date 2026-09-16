@@ -7,6 +7,7 @@ import '../../sales/application/pos_local_sale_provider.dart';
 import 'local_sync_outbox_providers.dart';
 import 'operational_bootstrap_providers.dart';
 import 'productive_sync_status.dart';
+import 'productive_sync_status_revision_provider.dart';
 import 'purchase_product_dependency_resolver.dart';
 import 'purchases_sync_upload_provider.dart';
 
@@ -102,6 +103,7 @@ final productiveSyncStatusServiceProvider =
 final productiveSyncStatusProvider =
     FutureProvider.family<ProductiveSyncStatus, ProductiveSyncStatusRequest>(
         (ref, request) async {
+  ref.watch(productiveSyncStatusRevisionProvider);
   final connectivity = ref.watch(isOnlineStreamProvider);
   final isOnline = connectivity.asData?.value ??
       await ref.watch(connectivityServiceProvider).isOnline;

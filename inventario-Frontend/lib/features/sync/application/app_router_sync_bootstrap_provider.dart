@@ -4,10 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/supabase/supabase_client_provider.dart';
+import '../../catalog/application/catalog_local_providers.dart';
+import '../../cash/application/cash_session_local_provider.dart';
+import '../../inventory/application/purchase_local_provider.dart';
+import '../../sales/application/pos_local_sale_provider.dart';
 import 'app_installation_id_store.dart';
 import 'app_sync_coordinator_models.dart';
+import 'cash_sync_upload_provider.dart';
+import 'inventory_sync_upload_provider.dart';
 import 'local_sync_outbox_providers.dart';
+import 'pos_sync_upload_provider.dart';
 import 'productive_manual_sync_service.dart';
+import 'productive_sync_status_provider.dart';
+import 'productive_sync_status_revision_provider.dart';
+import 'purchases_sync_upload_provider.dart';
 
 class AppRouterSyncBootstrapData {
   const AppRouterSyncBootstrapData({
@@ -77,6 +87,19 @@ final appRouterSyncBootstrapProvider =
 
 final productiveManualSyncServiceProvider =
     Provider<ProductiveManualSyncService>((ref) {
+  final runtimeSetup = ref.watch(appRuntimeSetupServiceProvider);
+  final operationalContextPull =
+      ref.watch(operationalContextPullServiceProvider);
+  final catalogUpload = ref.watch(catalogSyncUploadServiceProvider);
+  final catalogPull = ref.watch(catalogSyncServiceProvider);
+  final cashOutbox = ref.watch(cashSyncOutboxServiceProvider);
+  final cashUpload = ref.watch(cashSyncUploadServiceProvider);
+  final posOutbox = ref.watch(posSyncOutboxServiceProvider);
+  final posUpload = ref.watch(posSyncUploadServiceProvider);
+  final purchaseOutbox = ref.watch(purchaseSyncOutboxServiceProvider);
+  final purchaseUpload = ref.watch(purchasesSyncUploadServiceProvider);
+  final inventoryUpload = ref.watch(inventorySyncUploadServiceProvider);
+
   return ProductiveManualSyncService(
     inputLoader: () async {
       ref.invalidate(appRouterSyncBootstrapProvider);
@@ -86,7 +109,127 @@ final productiveManualSyncServiceProvider =
       }
       return bootstrap.input;
     },
-    coordinator: ref.watch(appSyncCoordinatorServiceProvider).runManualSync,
+    contextValidator: (input) async {
+      final runtime = await runtimeSetup.prepareRuntimeContext(
+        businessId: input.businessId,
+        branchId: input.branchId!,
+        profileId: input.profileId!,
+        installationId: input.installationId,
+        deviceName: input.deviceName,
+        platform: input.platform,
+        appVersion: input.appVersion,
+        osVersion: input.osVersion,
+        metadata: input.metadata,
+      );
+      await operationalContextPull.pullAndApply(
+        businessId: input.businessId,
+        profileId: input.profileId!,
+      );
+      return runtime;
+    },
+    catalogUploadRunner: (context) async {
+      final result = await catalogUpload.uploadPendingCatalogBatches(
+        businessId: context.businessId,
+      );
+      return _uploadResult(
+        ProductiveSyncDomain.catalog,
+        partial: result.batchesPartial,
+        failed: result.batchesFailed,
+      );
+    },
+    cashRunner: (context) async {
+      await cashOutbox.enqueuePendingCash(
+        businessId: context.businessId,
+        branchId: context.branchId,
+        profileId: context.profileId,
+        appDeviceId: context.appDeviceId,
+        deviceInstallationId: context.installationId,
+      );
+      final result = await cashUpload.uploadPendingCashBatches(
+        businessId: context.businessId,
+        branchId: context.branchId,
+      );
+      return _uploadResult(
+        ProductiveSyncDomain.cash,
+        partial: result.batchesPartial,
+        failed: result.batchesFailed,
+      );
+    },
+    posRunner: (context) async {
+      await posOutbox.enqueuePendingPosSales(
+        businessId: context.businessId,
+        branchId: context.branchId,
+        profileId: context.profileId,
+        appDeviceId: context.appDeviceId,
+        deviceInstallationId: context.installationId,
+      );
+      final result = await posUpload.uploadPendingPosBatches(
+        businessId: context.businessId,
+        branchId: context.branchId,
+      );
+      return _uploadResult(
+        ProductiveSyncDomain.pos,
+        partial: result.batchesPartial,
+        failed: result.batchesFailed,
+      );
+    },
+    purchasesRunner: (context) async {
+      await purchaseOutbox.enqueuePendingPurchases(
+        businessId: context.businessId,
+        branchId: context.branchId,
+        profileId: context.profileId,
+        appDeviceId: context.appDeviceId,
+        deviceInstallationId: context.installationId,
+      );
+      final result = await purchaseUpload.uploadPendingPurchasesBatches(
+        businessId: context.businessId,
+        branchId: context.branchId,
+      );
+      if (result.batchesBlockedByDependencies > 0) {
+        return const ProductiveSyncDomainResult.pending(
+          ProductiveSyncDomain.purchases,
+          requiresAttention: true,
+        );
+      }
+      if (result.batchesWaitingForDependencies > 0) {
+        return const ProductiveSyncDomainResult.pending(
+          ProductiveSyncDomain.purchases,
+        );
+      }
+      return _uploadResult(
+        ProductiveSyncDomain.purchases,
+        partial: result.batchesPartial,
+        failed: result.batchesFailed,
+      );
+    },
+    inventoryRunner: (context) async {
+      final result = await inventoryUpload.uploadPendingInventoryBatches(
+        businessId: context.businessId,
+        branchId: context.branchId,
+      );
+      return _uploadResult(
+        ProductiveSyncDomain.inventory,
+        partial: result.batchesPartial,
+        failed: result.batchesFailed,
+      );
+    },
+    catalogRefreshRunner: (context) async {
+      final result = await catalogPull.pullCatalogDelta(
+        businessId: context.businessId,
+      );
+      return result.completed
+          ? const ProductiveSyncDomainResult.succeeded(
+              ProductiveSyncDomain.catalog,
+            )
+          : const ProductiveSyncDomainResult.pending(
+              ProductiveSyncDomain.catalog,
+              failedRetryable: true,
+            );
+    },
+    statusLoader: ref.watch(productiveSyncStatusServiceProvider).load,
+    onLocalStateChanged: ref
+        .read(productiveSyncStatusRevisionProvider.notifier)
+        .markLocalStateChanged,
   );
 });
 
@@ -120,4 +263,25 @@ String _deviceName() {
     case TargetPlatform.fuchsia:
       return 'Fuchsia device';
   }
+}
+
+ProductiveSyncDomainResult _uploadResult(
+  ProductiveSyncDomain domain, {
+  required int partial,
+  required int failed,
+}) {
+  if (partial > 0) {
+    return ProductiveSyncDomainResult.pending(
+      domain,
+      requiresAttention: true,
+      failedRetryable: failed > 0,
+    );
+  }
+  if (failed > 0) {
+    return ProductiveSyncDomainResult.pending(
+      domain,
+      failedRetryable: true,
+    );
+  }
+  return ProductiveSyncDomainResult.succeeded(domain);
 }

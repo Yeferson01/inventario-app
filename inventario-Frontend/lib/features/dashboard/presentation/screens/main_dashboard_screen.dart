@@ -18,7 +18,6 @@ import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
 import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
-import '../../../sync/application/productive_manual_sync_service.dart';
 import '../../../sync/application/productive_sync_status.dart';
 import '../../../sync/application/productive_sync_status_provider.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
@@ -288,37 +287,12 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       return;
     }
 
-    if (result.completed) {
-      await _load();
-    }
-
-    if (!mounted) {
-      return;
-    }
-
     setState(() => _isManualSyncing = false);
     ref.invalidate(productiveSyncStatusProvider);
 
-    final (title, message) = switch (result.outcome) {
-      ProductiveManualSyncOutcome.completed => (
-          'Catálogo actualizado',
-          result.message,
-        ),
-      ProductiveManualSyncOutcome.completedWithIssues => (
-          'Catálogo con pendientes',
-          result.message,
-        ),
-      ProductiveManualSyncOutcome.unavailable => (
-          'Actualización no disponible',
-          result.message,
-        ),
-      ProductiveManualSyncOutcome.failed => (
-          'No fue posible actualizar el catálogo',
-          result.message,
-        ),
-    };
-
-    _showInfoSheet(title: title, message: message);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
   }
 
   void _switchOperationalBranch(AuthorizedOperationalContext target) {
@@ -1021,7 +995,7 @@ class _ModulesGrid extends StatelessWidget {
         ),
       if (moduleAccess.hasEffectiveAuthorization)
         _DashboardModule(
-          title: 'Actualizar catálogo',
+          title: 'Sincronizar ahora',
           subtitle: syncCopy.subtitle,
           icon: Icons.sync_outlined,
           gradient: const LinearGradient(
@@ -1116,7 +1090,7 @@ _ProductiveSyncCopy _productiveSyncCopy(
 
   if (value.isSyncing) {
     return const _ProductiveSyncCopy(
-      subtitle: 'Actualizando el catálogo del negocio actual.',
+      subtitle: 'Publicando operaciones del contexto actual.',
       statusLabel: 'Sincronizando...',
       statusTone: AppStatusTone.warning,
     );

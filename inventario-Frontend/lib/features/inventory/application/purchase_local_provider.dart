@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/database_provider.dart';
 import '../../sync/application/local_sync_outbox_providers.dart';
+import '../../sync/application/productive_sync_status_revision_provider.dart';
 import '../data/datasources/purchase_local_dao.dart';
 import 'purchase_local_service.dart';
 import 'purchase_sync_outbox_service.dart';
@@ -15,6 +16,9 @@ final purchaseLocalDaoProvider = Provider<PurchaseLocalDao>((ref) {
 final purchaseLocalServiceProvider = Provider<PurchaseLocalService>((ref) {
   return PurchaseLocalService(
     dao: ref.watch(purchaseLocalDaoProvider),
+    onCommitted: ref
+        .read(productiveSyncStatusRevisionProvider.notifier)
+        .markLocalStateChanged,
   );
 });
 

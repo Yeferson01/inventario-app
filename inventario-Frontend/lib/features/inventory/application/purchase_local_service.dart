@@ -6,9 +6,12 @@ import 'purchase_local_models.dart';
 class PurchaseLocalService {
   PurchaseLocalService({
     required PurchaseLocalDao dao,
-  }) : _dao = dao;
+    void Function()? onCommitted,
+  })  : _dao = dao,
+        _onCommitted = onCommitted;
 
   final PurchaseLocalDao _dao;
+  final void Function()? _onCommitted;
 
   Future<PurchaseLocalResult> createLocalPurchase(
     CreatePurchaseLocalInput input,
@@ -162,6 +165,7 @@ class PurchaseLocalService {
       items: itemDrafts,
       inventoryMovements: movementDrafts,
     );
+    _onCommitted?.call();
 
     return PurchaseLocalResult(
       purchaseId: purchaseId,

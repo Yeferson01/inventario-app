@@ -102,7 +102,7 @@ void main() {
       },
     );
 
-    final action = find.text('Actualizar catálogo');
+    final action = find.text('Sincronizar ahora');
     await tester.ensureVisible(action);
     await tester.pumpAndSettle();
     await tester.tap(action);
@@ -118,12 +118,12 @@ void main() {
     completer.complete(
       const ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.completed,
-        message: 'Catálogo publicado y actualizado.',
+        message: 'Todo al día.',
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Catálogo actualizado'), findsOneWidget);
+    expect(find.text('Todo al día.'), findsOneWidget);
   });
 
   testWidgets('Actualizar keeps its reload-only contract', (tester) async {
@@ -147,13 +147,13 @@ void main() {
     expect(manualSyncCalls, 0);
   });
 
-  testWidgets('shows an honest all-up-to-date catalog action', (tester) async {
+  testWidgets('shows an honest all-up-to-date sync action', (tester) async {
     await _pumpDashboard(
       tester,
       permissions: const {'inventory.read'},
     );
 
-    expect(find.text('Actualizar catálogo'), findsOneWidget);
+    expect(find.text('Sincronizar ahora'), findsOneWidget);
     expect(find.text('Todo al día'), findsOneWidget);
     expect(find.text('No hay operaciones locales pendientes.'), findsOneWidget);
   });

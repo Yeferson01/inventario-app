@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/database_provider.dart';
 import '../../sync/application/local_sync_outbox_providers.dart';
+import '../../sync/application/productive_sync_status_revision_provider.dart';
 import '../data/datasources/pos_local_sale_dao.dart';
 import 'pos_local_sale_service.dart';
 import 'pos_sync_outbox_service.dart';
@@ -15,6 +16,9 @@ final posLocalSaleDaoProvider = Provider<PosLocalSaleDao>((ref) {
 final posLocalSaleServiceProvider = Provider<PosLocalSaleService>((ref) {
   return PosLocalSaleService(
     dao: ref.watch(posLocalSaleDaoProvider),
+    onCommitted: ref
+        .read(productiveSyncStatusRevisionProvider.notifier)
+        .markLocalStateChanged,
   );
 });
 
