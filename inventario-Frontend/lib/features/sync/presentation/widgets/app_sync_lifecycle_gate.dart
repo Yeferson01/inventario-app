@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/logging/app_logger.dart';
-import '../../../catalog/application/catalog_local_providers.dart';
-import '../../application/app_sync_coordinator_models.dart';
-import '../../application/local_sync_outbox_providers.dart';
+import '../../application/app_router_sync_bootstrap_provider.dart';
+import '../../application/productive_scheduled_sync_service.dart';
+import '../../application/scheduled_sync_policy.dart';
 
 enum AppSyncLifecycleTrigger {
   appStart,
@@ -22,22 +24,38 @@ extension AppSyncLifecycleTriggerCode on AppSyncLifecycleTrigger {
   }
 }
 
-typedef AppSyncInputBuilder = Future<AppSyncCoordinatorInput?> Function(
-  WidgetRef ref,
-  AppSyncLifecycleTrigger trigger,
+typedef ProductiveScheduledSyncRunner = Future<ProductiveScheduledSyncResult>
+    Function({DateTime? now});
+typedef ScheduledSyncClock = DateTime Function();
+typedef ScheduledSyncTimerFactory = Timer Function(
+  Duration duration,
+  void Function() callback,
 );
 
 class AppSyncLifecycleGate extends ConsumerStatefulWidget {
   const AppSyncLifecycleGate({
     required this.child,
-    required this.inputBuilder,
+    required this.scopeKey,
     this.minInterval = const Duration(minutes: 1),
+    this.runner,
+    this.clock = DateTime.now,
+    this.timerFactory = _defaultTimerFactory,
     super.key,
   });
 
   final Widget child;
-  final AppSyncInputBuilder inputBuilder;
+  final String scopeKey;
   final Duration minInterval;
+  final ProductiveScheduledSyncRunner? runner;
+  final ScheduledSyncClock clock;
+  final ScheduledSyncTimerFactory timerFactory;
+
+  static Timer _defaultTimerFactory(
+    Duration duration,
+    void Function() callback,
+  ) {
+    return Timer(duration, callback);
+  }
 
   @override
   ConsumerState<AppSyncLifecycleGate> createState() =>
@@ -46,24 +64,36 @@ class AppSyncLifecycleGate extends ConsumerStatefulWidget {
 
 class _AppSyncLifecycleGateState extends ConsumerState<AppSyncLifecycleGate>
     with WidgetsBindingObserver {
+  static const _policy = ScheduledSyncPolicy();
+
   bool _isRunning = false;
   DateTime? _lastAttemptAt;
+  Timer? _nextSlotTimer;
 
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _attemptScheduledSync(AppSyncLifecycleTrigger.appStart);
+      _scheduleNextSlot();
     });
   }
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+  void didUpdateWidget(covariant AppSyncLifecycleGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scopeKey != widget.scopeKey) {
+      _lastAttemptAt = null;
+      _attemptScheduledSync(AppSyncLifecycleTrigger.appStart);
+      _scheduleNextSlot();
+    }
+  }
 
+  @override
+  void dispose() {
+    _nextSlotTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -71,17 +101,44 @@ class _AppSyncLifecycleGateState extends ConsumerState<AppSyncLifecycleGate>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _attemptScheduledSync(AppSyncLifecycleTrigger.appResume);
+      _scheduleNextSlot();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      _nextSlotTimer?.cancel();
+      _nextSlotTimer = null;
     }
   }
 
-  Future<void> _attemptScheduledSync(AppSyncLifecycleTrigger trigger) async {
-    if (_isRunning) {
-      return;
-    }
+  void _scheduleNextSlot() {
+    _nextSlotTimer?.cancel();
+    if (!mounted) return;
 
-    final now = DateTime.now().toUtc();
+    final now = widget.clock();
+    final nextSlot = _policy.nextSlotAfter(now);
+    final delay = nextSlot.difference(now);
+    _nextSlotTimer = widget.timerFactory(
+      delay.isNegative ? Duration.zero : delay,
+      () async {
+        await _attemptScheduledSync(
+          AppSyncLifecycleTrigger.appResume,
+          bypassThrottle: true,
+        );
+        if (mounted) _scheduleNextSlot();
+      },
+    );
+  }
 
-    if (_lastAttemptAt != null &&
+  Future<void> _attemptScheduledSync(
+    AppSyncLifecycleTrigger trigger, {
+    bool bypassThrottle = false,
+  }) async {
+    if (_isRunning) return;
+
+    final now = widget.clock();
+    if (!bypassThrottle &&
+        _lastAttemptAt != null &&
         now.difference(_lastAttemptAt!) < widget.minInterval) {
       return;
     }
@@ -90,28 +147,12 @@ class _AppSyncLifecycleGateState extends ConsumerState<AppSyncLifecycleGate>
     _lastAttemptAt = now;
 
     try {
-      final input = await widget.inputBuilder(ref, trigger);
-
-      if (!mounted || input == null) {
-        return;
-      }
-
-      await ref
-          .read(initialCatalogBootstrapCoordinatorProvider)
-          .ensureCatalogReady(
-            businessId: input.businessId,
-            operationalReady: true,
-            shouldContinue: () => mounted,
-          );
-
-      if (!mounted) return;
-
-      final coordinator = ref.read(appSyncCoordinatorServiceProvider);
-
-      await coordinator.runScheduledSyncIfDue(input);
+      final runner = widget.runner ??
+          ref.read(productiveScheduledSyncServiceProvider).runIfDue;
+      await runner(now: now);
     } catch (error, stackTrace) {
       AppLogger.error(
-        'App sync lifecycle attempt failed: ${trigger.code}',
+        'App scheduled sync attempt failed: ${trigger.code}',
         error: error,
         stackTrace: stackTrace,
       );
@@ -121,7 +162,5 @@ class _AppSyncLifecycleGateState extends ConsumerState<AppSyncLifecycleGate>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }

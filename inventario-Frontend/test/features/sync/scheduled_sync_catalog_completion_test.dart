@@ -77,12 +77,18 @@ class _MemoryScheduledSyncStateStore implements ScheduledSyncStateStore {
   Future<Set<String>> getCompletedSlotKeys() async => completedSlots;
 
   @override
+  Future<Set<String>> getAttemptedScopedSlotKeys() async => {};
+
+  @override
   Future<Map<String, dynamic>?> getLastResult() async => lastResult;
 
   @override
   Future<void> markSlotCompleted(String slotKey) async {
     completedSlots.add(slotKey);
   }
+
+  @override
+  Future<void> markScopedSlotAttempted(String slotKey) async {}
 
   @override
   Future<void> saveLastResult(Map<String, dynamic> result) async {

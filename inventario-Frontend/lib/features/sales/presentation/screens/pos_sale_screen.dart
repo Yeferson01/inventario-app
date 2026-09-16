@@ -922,8 +922,8 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
               'Cambio: ${_money(change)}\n\n'
               'Preparación sync POS: $enqueuedSales venta(s), '
               '$enqueuedMutations mutación(es).\n\n'
-              'La subida a Supabase no se hace inmediatamente. '
-              'Se ejecutará a las 11:00, a las 23:00 o al cierre de caja.'
+              'Las operaciones pendientes se intentan sincronizar '
+              'automáticamente cuando la aplicación puede hacerlo.'
               '${quickSaleRestoreMessage != null ? '\n\n$quickSaleRestoreMessage' : ''}',
             ),
             actions: [
@@ -1665,8 +1665,8 @@ class _CartSection extends StatelessWidget {
           ),
           const SizedBox(height: CronosSpacing.xs),
           Text(
-            'Las ventas se suben automáticamente a las 11:00, 23:00 '
-            'o al cierre de caja.',
+            'Las operaciones pendientes se intentan sincronizar '
+            'automáticamente cuando la aplicación puede hacerlo.',
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),

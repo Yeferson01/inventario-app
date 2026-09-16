@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/supabase/supabase_client_provider.dart';
 import '../../application/app_router_sync_bootstrap_provider.dart';
-import '../../application/app_sync_coordinator_models.dart';
 import 'app_sync_lifecycle_gate.dart';
 import 'business_context_required_gate.dart';
 
@@ -49,9 +48,8 @@ class AppRouterSyncShellGate extends ConsumerWidget {
           navigatorContextResolver: navigatorContextResolver,
           navigatorHost: child,
           child: AppSyncLifecycleGate(
-            inputBuilder: (_, trigger) async {
-              return input.copyWithLifecycleTrigger(trigger.code);
-            },
+            scopeKey:
+                '${input.profileId}|${input.businessId}|${input.branchId}',
             child: child,
           ),
         );
@@ -108,13 +106,5 @@ class _AuthenticatedShellLoading extends StatelessWidget {
         child: CircularProgressIndicator(),
       ),
     );
-  }
-}
-
-extension AppRouterSyncShellInputCopy on AppSyncCoordinatorInput {
-  AppSyncCoordinatorInput copyWithLifecycleTrigger(String triggerCode) {
-    return copyWithMetadata({
-      'lifecycle_trigger': triggerCode,
-    });
   }
 }

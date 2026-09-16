@@ -210,7 +210,8 @@ class _Fixture {
       inputLoader: () async => input,
       contextValidator: (received) async {
         calls.add('validate');
-        expect(received.metadata?['source'], 'productive_manual_sync');
+        expect(received.metadata?['source'], 'productive_sync');
+        expect(received.metadata?['sync_trigger'], 'manual');
         return const AppRuntimeContext(
           businessId: 'business-1',
           branchId: 'branch-1',

@@ -20,6 +20,15 @@ typedef ProductiveSyncStatusLoader = Future<ProductiveSyncStatus> Function({
 typedef ProductiveManualSyncRunner = Future<ProductiveManualSyncResult>
     Function();
 
+enum ProductiveSyncTrigger { manual, scheduled }
+
+extension ProductiveSyncTriggerCode on ProductiveSyncTrigger {
+  String get code => switch (this) {
+        ProductiveSyncTrigger.manual => 'manual',
+        ProductiveSyncTrigger.scheduled => 'scheduled',
+      };
+}
+
 enum ProductiveSyncDomain { catalog, cash, pos, purchases, inventory }
 
 class ProductiveSyncDomainResult {
@@ -146,12 +155,14 @@ class ProductiveManualSyncResult {
     required this.message,
     this.domainResults = const [],
     this.finalStatus,
+    this.scope,
   });
 
   final ProductiveManualSyncOutcome outcome;
   final String message;
   final List<ProductiveSyncDomainResult> domainResults;
   final ProductiveSyncStatus? finalStatus;
+  final ProductiveSyncScope? scope;
 
   bool get completed => outcome == ProductiveManualSyncOutcome.completed;
 }
@@ -192,11 +203,17 @@ class ProductiveManualSyncService {
 
   Future<ProductiveManualSyncResult>? _activeRun;
 
-  Future<ProductiveManualSyncResult> run() {
+  Future<ProductiveManualSyncResult> run({
+    ProductiveSyncTrigger trigger = ProductiveSyncTrigger.manual,
+    AppSyncCoordinatorInput? inputOverride,
+  }) {
     final activeRun = _activeRun;
     if (activeRun != null) return activeRun;
 
-    final run = _run();
+    final run = _run(
+      trigger: trigger,
+      inputOverride: inputOverride,
+    );
     _activeRun = run;
     run.whenComplete(() {
       if (identical(_activeRun, run)) _activeRun = null;
@@ -204,8 +221,13 @@ class ProductiveManualSyncService {
     return run;
   }
 
-  Future<ProductiveManualSyncResult> _run() async {
-    final input = await _loadValidInput();
+  Future<ProductiveManualSyncResult> _run({
+    required ProductiveSyncTrigger trigger,
+    required AppSyncCoordinatorInput? inputOverride,
+  }) async {
+    final input = inputOverride != null && _hasRequiredContext(inputOverride)
+        ? inputOverride
+        : await _loadValidInput();
     if (input == null) {
       return const ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.unavailable,
@@ -225,7 +247,10 @@ class ProductiveManualSyncService {
     final ProductiveSyncExecutionContext context;
     try {
       final runtime = await _contextValidator(
-        input.copyWithMetadata(const {'source': 'productive_manual_sync'}),
+        input.copyWithMetadata({
+          'source': 'productive_sync',
+          'sync_trigger': trigger.code,
+        }),
       );
       context = _validatedExecutionContext(input, runtime);
     } catch (_) {
@@ -276,6 +301,7 @@ class ProductiveManualSyncService {
         message:
             'La sincronización terminó, pero no fue posible verificar el estado final.',
         domainResults: [catalog, cash, pos, purchases, inventory],
+        scope: context.scope,
       );
     }
 
@@ -291,6 +317,7 @@ class ProductiveManualSyncService {
         message: 'Todo al día.',
         domainResults: results,
         finalStatus: finalStatus,
+        scope: context.scope,
       );
     }
     if (finalStatus.requiresAttention ||
@@ -300,6 +327,7 @@ class ProductiveManualSyncService {
         message: 'Hay operaciones que necesitan revisión.',
         domainResults: results,
         finalStatus: finalStatus,
+        scope: context.scope,
       );
     }
     if (finalStatus.totalPending > 0 ||
@@ -309,6 +337,7 @@ class ProductiveManualSyncService {
         message: 'Quedan operaciones pendientes de sincronización.',
         domainResults: results,
         finalStatus: finalStatus,
+        scope: context.scope,
       );
     }
     return ProductiveManualSyncResult(
@@ -316,6 +345,7 @@ class ProductiveManualSyncService {
       message: 'No fue posible completar la sincronización.',
       domainResults: results,
       finalStatus: finalStatus,
+      scope: context.scope,
     );
   }
 

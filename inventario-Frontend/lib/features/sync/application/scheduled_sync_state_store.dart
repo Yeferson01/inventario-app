@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ScheduledSyncStateStore {
   static const _completedSlotsKey = 'scheduled_sync.completed_slots';
+  static const _attemptedScopedSlotsKey =
+      'scheduled_sync.attempted_scoped_slots.v1';
   static const _lastResultKey = 'scheduled_sync.last_result';
 
   Future<Set<String>> getCompletedSlotKeys() async {
@@ -31,6 +33,29 @@ class ScheduledSyncStateStore {
 
     await preferences.setString(
       _completedSlotsKey,
+      jsonEncode(slots.toList()..sort()),
+    );
+  }
+
+  Future<Set<String>> getAttemptedScopedSlotKeys() async {
+    final preferences = await SharedPreferences.getInstance();
+    final raw = preferences.getString(_attemptedScopedSlotsKey);
+
+    if (raw == null || raw.trim().isEmpty) return <String>{};
+
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return <String>{};
+
+    return decoded.map((item) => item.toString()).toSet();
+  }
+
+  Future<void> markScopedSlotAttempted(String slotKey) async {
+    final preferences = await SharedPreferences.getInstance();
+    final slots = await getAttemptedScopedSlotKeys();
+    slots.add(slotKey);
+
+    await preferences.setString(
+      _attemptedScopedSlotsKey,
       jsonEncode(slots.toList()..sort()),
     );
   }

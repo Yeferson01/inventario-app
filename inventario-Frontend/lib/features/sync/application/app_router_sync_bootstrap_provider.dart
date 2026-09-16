@@ -15,6 +15,7 @@ import 'inventory_sync_upload_provider.dart';
 import 'local_sync_outbox_providers.dart';
 import 'pos_sync_upload_provider.dart';
 import 'productive_manual_sync_service.dart';
+import 'productive_scheduled_sync_service.dart';
 import 'productive_sync_status_provider.dart';
 import 'productive_sync_status_revision_provider.dart';
 import 'purchases_sync_upload_provider.dart';
@@ -85,6 +86,16 @@ final appRouterSyncBootstrapProvider =
   );
 });
 
+final productiveSyncInputLoaderProvider =
+    Provider<ProductiveManualSyncInputLoader>((ref) {
+  return () async {
+    ref.invalidate(appRouterSyncBootstrapProvider);
+    final bootstrap = await ref.read(appRouterSyncBootstrapProvider.future);
+    if (!bootstrap.hasAuthenticatedUser) return null;
+    return bootstrap.input;
+  };
+});
+
 final productiveManualSyncServiceProvider =
     Provider<ProductiveManualSyncService>((ref) {
   final runtimeSetup = ref.watch(appRuntimeSetupServiceProvider);
@@ -101,14 +112,7 @@ final productiveManualSyncServiceProvider =
   final inventoryUpload = ref.watch(inventorySyncUploadServiceProvider);
 
   return ProductiveManualSyncService(
-    inputLoader: () async {
-      ref.invalidate(appRouterSyncBootstrapProvider);
-      final bootstrap = await ref.read(appRouterSyncBootstrapProvider.future);
-      if (!bootstrap.hasAuthenticatedUser) {
-        return null;
-      }
-      return bootstrap.input;
-    },
+    inputLoader: ref.watch(productiveSyncInputLoaderProvider),
     contextValidator: (input) async {
       final runtime = await runtimeSetup.prepareRuntimeContext(
         businessId: input.businessId,
@@ -230,6 +234,16 @@ final productiveManualSyncServiceProvider =
     onLocalStateChanged: ref
         .read(productiveSyncStatusRevisionProvider.notifier)
         .markLocalStateChanged,
+  );
+});
+
+final productiveScheduledSyncServiceProvider =
+    Provider<ProductiveScheduledSyncService>((ref) {
+  return ProductiveScheduledSyncService(
+    inputLoader: ref.watch(productiveSyncInputLoaderProvider),
+    productiveSyncService: ref.watch(productiveManualSyncServiceProvider),
+    policy: ref.watch(scheduledSyncPolicyProvider),
+    stateStore: ref.watch(scheduledSyncStateStoreProvider),
   );
 });
 
