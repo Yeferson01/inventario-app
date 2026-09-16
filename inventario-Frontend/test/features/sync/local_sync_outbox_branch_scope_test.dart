@@ -74,4 +74,76 @@ void main() {
     );
     expect(await dao.countPendingMutations(businessId: 'business-a'), 4);
   });
+
+  test(
+      'productive status includes business catalog and isolates operational branches',
+      () async {
+    Future<void> enqueue({
+      required String businessId,
+      required String domain,
+      required String batchId,
+      required String entityTable,
+      String? branchId,
+    }) {
+      return dao.enqueueUploadBatch(
+        businessId: businessId,
+        branchId: branchId,
+        domain: domain,
+        clientBatchId: batchId,
+        mutations: [
+          LocalSyncMutationDraft(
+            clientMutationId: '$batchId-mutation',
+            clientSequence: 1,
+            entityTable: entityTable,
+            entityId: '$batchId-entity',
+            operation: 'upsert',
+            payload: const {},
+            changedFields: const [],
+            idempotencyKey: '$batchId-key',
+          ),
+        ],
+      ).then((_) {});
+    }
+
+    await enqueue(
+      businessId: 'business-a',
+      domain: 'catalog',
+      batchId: 'catalog-a',
+      entityTable: 'products',
+    );
+    await enqueue(
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'inventory',
+      batchId: 'inventory-x',
+      entityTable: 'inventory_movements',
+    );
+    await enqueue(
+      businessId: 'business-a',
+      branchId: 'branch-y',
+      domain: 'inventory',
+      batchId: 'inventory-y',
+      entityTable: 'inventory_movements',
+    );
+    await enqueue(
+      businessId: 'business-b',
+      domain: 'catalog',
+      batchId: 'catalog-b',
+      entityTable: 'products',
+    );
+
+    final rows = await dao.getProductiveStatusRows(
+      businessId: 'business-a',
+      branchId: 'branch-x',
+    );
+    final entityIds = rows.map((row) => row['entity_id']).toSet();
+
+    expect(entityIds, hasLength(2));
+    expect(
+      entityIds,
+      containsAll(['catalog-a-entity', 'inventory-x-entity']),
+    );
+    expect(entityIds, isNot(contains('inventory-y-entity')));
+    expect(entityIds, isNot(contains('catalog-b-entity')));
+  });
 }

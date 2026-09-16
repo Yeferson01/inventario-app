@@ -19,6 +19,8 @@ import 'package:inventario_frontend/features/sync/application/app_context_models
 import 'package:inventario_frontend/features/sync/application/app_current_context_provider.dart';
 import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
 import 'package:inventario_frontend/features/sync/application/productive_manual_sync_service.dart';
+import 'package:inventario_frontend/features/sync/application/productive_sync_status.dart';
+import 'package:inventario_frontend/features/sync/application/productive_sync_status_provider.dart';
 
 void main() {
   testWidgets(
@@ -100,7 +102,7 @@ void main() {
       },
     );
 
-    final action = find.text('Sincronización');
+    final action = find.text('Actualizar catálogo');
     await tester.ensureVisible(action);
     await tester.pumpAndSettle();
     await tester.tap(action);
@@ -116,12 +118,12 @@ void main() {
     completer.complete(
       const ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.completed,
-        message: 'Pendientes publicados y catálogo actualizado.',
+        message: 'Catálogo publicado y actualizado.',
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Sincronización completada'), findsOneWidget);
+    expect(find.text('Catálogo actualizado'), findsOneWidget);
   });
 
   testWidgets('Actualizar keeps its reload-only contract', (tester) async {
@@ -143,6 +145,69 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(manualSyncCalls, 0);
+  });
+
+  testWidgets('shows an honest all-up-to-date catalog action', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+    );
+
+    expect(find.text('Actualizar catálogo'), findsOneWidget);
+    expect(find.text('Todo al día'), findsOneWidget);
+    expect(find.text('No hay operaciones locales pendientes.'), findsOneWidget);
+  });
+
+  testWidgets(
+      'shows local pending operations without technical mutation counts',
+      (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+      productiveSyncStatus: _status(
+        pendingSales: 2,
+        pendingPurchases: 1,
+      ),
+    );
+
+    expect(find.text('3 pendientes'), findsOneWidget);
+    expect(find.textContaining('2 ventas pendientes'), findsOneWidget);
+    expect(find.textContaining('1 compra pendiente'), findsOneWidget);
+    expect(find.textContaining('mutations'), findsNothing);
+    expect(find.textContaining('batches'), findsNothing);
+  });
+
+  testWidgets('offline pending uses productive copy', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+      productiveSyncStatus: _status(
+        connectivity: ProductiveSyncConnectivity.offline,
+        pendingSales: 1,
+      ),
+    );
+
+    expect(find.text('Sin conexión'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Tus operaciones guardadas permanecen en este dispositivo.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('attention uses productive copy', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+      productiveSyncStatus: _status(openIssueCount: 1),
+    );
+
+    expect(find.text('Requiere atención'), findsOneWidget);
+    expect(
+      find.text('Hay operaciones que necesitan revisión.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('alert actions open Inventory with the corresponding filter',
@@ -206,6 +271,7 @@ Future<void> _pumpDashboard(
   String Function()? currentBranchId,
   InventoryAlertSummary Function(InventoryAlertSummaryKey key)? summaryForKey,
   ProductiveManualSyncRunner? manualSyncRunner,
+  ProductiveSyncStatus? productiveSyncStatus,
 }) async {
   final database = AppDatabase.executor(NativeDatabase.memory());
   addTearDown(database.close);
@@ -264,10 +330,57 @@ Future<void> _pumpDashboard(
                     message: 'Completada.',
                   ),
         ),
+        productiveSyncStatusProvider.overrideWith((ref, request) async {
+          return productiveSyncStatus ??
+              ProductiveSyncStatus(
+                scope: ProductiveSyncScope(
+                  profileId: request.profileId,
+                  businessId: request.businessId,
+                  branchId: request.branchId,
+                ),
+                connectivity: ProductiveSyncConnectivity.online,
+                isSyncing: request.isSyncing,
+                pendingSales: 0,
+                pendingPurchases: 0,
+                pendingCashOperations: 0,
+                pendingProductOperations: 0,
+                pendingInventoryOperations: 0,
+                openIssueCount: 0,
+                attentionOperationCount: 0,
+              );
+        }),
       ],
       child: const MaterialApp(home: MainDashboardScreen()),
     ),
   );
   await tester.pump();
   await tester.pumpAndSettle();
+}
+
+ProductiveSyncStatus _status({
+  ProductiveSyncConnectivity connectivity = ProductiveSyncConnectivity.online,
+  int pendingSales = 0,
+  int pendingPurchases = 0,
+  int pendingCashOperations = 0,
+  int pendingProductOperations = 0,
+  int pendingInventoryOperations = 0,
+  int openIssueCount = 0,
+  int attentionOperationCount = 0,
+}) {
+  return ProductiveSyncStatus(
+    scope: const ProductiveSyncScope(
+      profileId: 'profile-1',
+      businessId: 'business-1',
+      branchId: 'branch-1',
+    ),
+    connectivity: connectivity,
+    isSyncing: false,
+    pendingSales: pendingSales,
+    pendingPurchases: pendingPurchases,
+    pendingCashOperations: pendingCashOperations,
+    pendingProductOperations: pendingProductOperations,
+    pendingInventoryOperations: pendingInventoryOperations,
+    openIssueCount: openIssueCount,
+    attentionOperationCount: attentionOperationCount,
+  );
 }

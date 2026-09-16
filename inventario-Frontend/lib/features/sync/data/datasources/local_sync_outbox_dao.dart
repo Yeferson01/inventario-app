@@ -342,6 +342,51 @@ class LocalSyncOutboxDao {
     return (row.data['total'] as int?) ?? 0;
   }
 
+  Future<List<Map<String, dynamic>>> getProductiveStatusRows({
+    required String businessId,
+    required String branchId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select
+        b.id as batch_id,
+        b.domain,
+        b.status as batch_status,
+        m.entity_table,
+        m.entity_id,
+        m.status as mutation_status
+      from local_sync_batches b
+      join local_sync_mutations m
+        on m.local_sync_batch_id = b.id
+      where b.business_id = ?
+        and (
+          b.branch_id = ?
+          or (b.domain = 'catalog' and b.branch_id is null)
+        )
+        and (
+          b.status in ('pending', 'uploading', 'error', 'partial', 'conflict')
+          or m.status in (
+            'pending',
+            'error',
+            'conflict',
+            'rejected'
+          )
+        )
+      order by b.created_at, m.client_sequence, m.created_at
+      ''',
+      variables: [
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+      ],
+      readsFrom: {
+        _db.localSyncBatches,
+        _db.localSyncMutations,
+      },
+    ).get();
+
+    return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
+  }
+
   Future<void> markBatchUploading(String localBatchId) async {
     await _updateBatchStatus(localBatchId, 'uploading');
   }

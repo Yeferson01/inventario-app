@@ -147,6 +147,29 @@ class ReconciliationIssueLocalDao {
     return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getOpenIssues({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+  }) async {
+    final rows = await _db.customSelect(
+      '''
+      select *
+      from local_reconciliation_issues
+      where profile_id = ? and business_id = ? and branch_id = ?
+        and status = 'open'
+      order by created_at
+      ''',
+      variables: [
+        Variable<String>(profileId),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
+      ],
+      readsFrom: {_db.localReconciliationIssues},
+    ).get();
+    return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
+  }
+
   Future<List<Map<String, dynamic>>> getIssues({
     required String profileId,
     required String businessId,

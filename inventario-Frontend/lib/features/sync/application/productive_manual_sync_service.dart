@@ -71,7 +71,7 @@ class ProductiveManualSyncService {
       if (!input.isOnline) {
         return const ProductiveManualSyncResult(
           outcome: ProductiveManualSyncOutcome.unavailable,
-          message: 'No hay conexión disponible para sincronizar ahora.',
+          message: 'No hay conexión disponible para actualizar el catálogo.',
         );
       }
 
@@ -103,7 +103,7 @@ class ProductiveManualSyncService {
         return ProductiveManualSyncResult(
           outcome: ProductiveManualSyncOutcome.failed,
           message:
-              'La sincronización manual no devolvió un resultado verificable.',
+              'La actualización del catálogo no devolvió un resultado verificable.',
           coordinatorResult: result,
         );
       }
@@ -118,21 +118,21 @@ class ProductiveManualSyncService {
         return ProductiveManualSyncResult(
           outcome: ProductiveManualSyncOutcome.completedWithIssues,
           message:
-              'La sincronización terminó con pendientes o un pull incompleto.',
+              'La actualización del catálogo terminó con pendientes o una descarga incompleta.',
           coordinatorResult: result,
         );
       }
 
       return ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.completed,
-        message: 'Pendientes publicados y catálogo actualizado.',
+        message: 'Catálogo publicado y actualizado.',
         coordinatorResult: result,
       );
     } catch (_) {
       return const ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.failed,
         message:
-            'No fue posible completar la sincronización. Los pendientes se conservaron.',
+            'No fue posible actualizar el catálogo. Los pendientes se conservaron.',
       );
     }
   }

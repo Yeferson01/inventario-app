@@ -19,6 +19,8 @@ import '../../../sync/application/app_current_context_provider.dart';
 import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/application/productive_manual_sync_service.dart';
+import '../../../sync/application/productive_sync_status.dart';
+import '../../../sync/application/productive_sync_status_provider.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
 import '../../../sync/presentation/widgets/operational_branch_switcher.dart';
 import '../../../sales/presentation/sales_presentation.dart';
@@ -295,22 +297,23 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     }
 
     setState(() => _isManualSyncing = false);
+    ref.invalidate(productiveSyncStatusProvider);
 
     final (title, message) = switch (result.outcome) {
       ProductiveManualSyncOutcome.completed => (
-          'Sincronización completada',
+          'Catálogo actualizado',
           result.message,
         ),
       ProductiveManualSyncOutcome.completedWithIssues => (
-          'Sincronización con pendientes',
+          'Catálogo con pendientes',
           result.message,
         ),
       ProductiveManualSyncOutcome.unavailable => (
-          'Sincronización no disponible',
+          'Actualización no disponible',
           result.message,
         ),
       ProductiveManualSyncOutcome.failed => (
-          'No fue posible sincronizar',
+          'No fue posible actualizar el catálogo',
           result.message,
         ),
     };
@@ -496,6 +499,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       branchId,
     );
     AsyncValue<InventoryAlertSummary>? inventoryAlerts;
+    AsyncValue<ProductiveSyncStatus>? productiveSyncStatus;
     if (moduleAccess.canReadInventory &&
         businessId?.trim().isNotEmpty == true &&
         branchId?.trim().isNotEmpty == true) {
@@ -504,6 +508,20 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           InventoryAlertSummaryKey(
             businessId: businessId!.trim(),
             branchId: branchId!.trim(),
+          ),
+        ),
+      );
+    }
+    if (profileId?.trim().isNotEmpty == true &&
+        businessId?.trim().isNotEmpty == true &&
+        branchId?.trim().isNotEmpty == true) {
+      productiveSyncStatus = ref.watch(
+        productiveSyncStatusProvider(
+          ProductiveSyncStatusRequest(
+            profileId: profileId!.trim(),
+            businessId: businessId!.trim(),
+            branchId: branchId!.trim(),
+            isSyncing: _isManualSyncing,
           ),
         ),
       );
@@ -600,6 +618,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                         ),
                         onOpenPurchases: _openPurchases,
                         isManualSyncing: _isManualSyncing,
+                        productiveSyncStatus: productiveSyncStatus,
                         onManualSync: _runManualSync,
                         onComingSoon: _showInfoSheet,
                       ),
@@ -882,6 +901,7 @@ class _ModulesGrid extends StatelessWidget {
     required this.onOpenInventory,
     required this.onOpenPurchases,
     required this.isManualSyncing,
+    required this.productiveSyncStatus,
     required this.onManualSync,
     required this.onComingSoon,
   });
@@ -894,6 +914,7 @@ class _ModulesGrid extends StatelessWidget {
   final VoidCallback onOpenInventory;
   final VoidCallback onOpenPurchases;
   final bool isManualSyncing;
+  final AsyncValue<ProductiveSyncStatus>? productiveSyncStatus;
   final VoidCallback onManualSync;
   final void Function({
     required String title,
@@ -928,6 +949,7 @@ class _ModulesGrid extends StatelessWidget {
     final posLabel = blockedReason == null ? 'Habilitado' : 'Bloqueado';
     final posTone =
         blockedReason == null ? AppStatusTone.success : AppStatusTone.danger;
+    final syncCopy = _productiveSyncCopy(productiveSyncStatus);
 
     final modules = [
       if (moduleAccess.canUseCash)
@@ -999,8 +1021,8 @@ class _ModulesGrid extends StatelessWidget {
         ),
       if (moduleAccess.hasEffectiveAuthorization)
         _DashboardModule(
-          title: 'Sincronización',
-          subtitle: 'Publicar pendientes y actualizar catálogo ahora.',
+          title: 'Actualizar catálogo',
+          subtitle: syncCopy.subtitle,
           icon: Icons.sync_outlined,
           gradient: const LinearGradient(
             colors: [
@@ -1008,9 +1030,8 @@ class _ModulesGrid extends StatelessWidget {
               Color(0xFF64748B),
             ],
           ),
-          statusLabel: isManualSyncing ? 'Sincronizando...' : 'Manual',
-          statusTone:
-              isManualSyncing ? AppStatusTone.warning : AppStatusTone.neutral,
+          statusLabel: syncCopy.statusLabel,
+          statusTone: syncCopy.statusTone,
           onTap: isManualSyncing ? null : onManualSync,
         ),
     ];
@@ -1051,6 +1072,107 @@ class _ModulesGrid extends StatelessWidget {
       },
     );
   }
+}
+
+class _ProductiveSyncCopy {
+  const _ProductiveSyncCopy({
+    required this.subtitle,
+    required this.statusLabel,
+    required this.statusTone,
+  });
+
+  final String subtitle;
+  final String statusLabel;
+  final AppStatusTone statusTone;
+}
+
+_ProductiveSyncCopy _productiveSyncCopy(
+  AsyncValue<ProductiveSyncStatus>? status,
+) {
+  if (status == null || status.isLoading) {
+    return const _ProductiveSyncCopy(
+      subtitle: 'Consultando el estado local de sincronización.',
+      statusLabel: 'Consultando...',
+      statusTone: AppStatusTone.neutral,
+    );
+  }
+
+  if (status.hasError) {
+    return const _ProductiveSyncCopy(
+      subtitle: 'No fue posible leer el estado local de sincronización.',
+      statusLabel: 'Estado no disponible',
+      statusTone: AppStatusTone.danger,
+    );
+  }
+
+  final value = status.value;
+  if (value == null) {
+    return const _ProductiveSyncCopy(
+      subtitle: 'No fue posible leer el estado local de sincronización.',
+      statusLabel: 'Estado no disponible',
+      statusTone: AppStatusTone.danger,
+    );
+  }
+
+  if (value.isSyncing) {
+    return const _ProductiveSyncCopy(
+      subtitle: 'Actualizando el catálogo del negocio actual.',
+      statusLabel: 'Sincronizando...',
+      statusTone: AppStatusTone.warning,
+    );
+  }
+
+  if (value.requiresAttention) {
+    return const _ProductiveSyncCopy(
+      subtitle: 'Hay operaciones que necesitan revisión.',
+      statusLabel: 'Requiere atención',
+      statusTone: AppStatusTone.danger,
+    );
+  }
+
+  if (!value.isOnline) {
+    final pending = value.totalPending;
+    return _ProductiveSyncCopy(
+      subtitle: pending == 0
+          ? 'Tus operaciones guardadas permanecen en este dispositivo.'
+          : 'Tus operaciones guardadas permanecen en este dispositivo. '
+              '$pending ${pending == 1 ? 'pendiente' : 'pendientes'} de sincronización.',
+      statusLabel: 'Sin conexión',
+      statusTone: AppStatusTone.warning,
+    );
+  }
+
+  if (value.allUpToDate) {
+    return const _ProductiveSyncCopy(
+      subtitle: 'No hay operaciones locales pendientes.',
+      statusLabel: 'Todo al día',
+      statusTone: AppStatusTone.success,
+    );
+  }
+
+  final pendingLabels = <String>[
+    _pendingLabel(value.pendingSales, 'venta', 'ventas'),
+    _pendingLabel(value.pendingPurchases, 'compra', 'compras'),
+    _pendingLabel(value.pendingCashOperations, 'operación de caja',
+        'operaciones de caja'),
+    _pendingLabel(value.pendingProductOperations, 'producto', 'productos'),
+    _pendingLabel(value.pendingInventoryOperations, 'movimiento de inventario',
+        'movimientos de inventario'),
+  ].where((label) => label.isNotEmpty).toList();
+
+  return _ProductiveSyncCopy(
+    subtitle: pendingLabels.join(' · '),
+    statusLabel:
+        '${value.totalPending} ${value.totalPending == 1 ? 'pendiente' : 'pendientes'}',
+    statusTone: AppStatusTone.warning,
+  );
+}
+
+String _pendingLabel(int count, String singular, String plural) {
+  if (count <= 0) {
+    return '';
+  }
+  return '$count ${count == 1 ? singular : plural} ${count == 1 ? 'pendiente' : 'pendientes'}';
 }
 
 class _TodaySummaryCard extends StatelessWidget {
