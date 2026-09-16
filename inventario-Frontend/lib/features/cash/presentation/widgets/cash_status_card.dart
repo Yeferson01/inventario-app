@@ -46,7 +46,7 @@ class CashStatusCard extends StatelessWidget {
           : 'Caja abierta, pero POS todavía está bloqueado.';
       gradient = CronosColors.successGradient;
       tone = canUploadPos ? AppStatusTone.success : AppStatusTone.warning;
-      chipLabel = canUploadPos ? 'Lista para POS' : 'Cash pendiente';
+      chipLabel = canUploadPos ? 'Lista para POS' : 'Caja pendiente';
     } else if (isClosed) {
       icon = Icons.lock_outline;
       title = 'Caja cerrada';

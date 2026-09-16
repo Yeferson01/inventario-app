@@ -6,6 +6,7 @@ import '../../../../core/logging/app_logger.dart';
 import '../../application/intentional_stale_sale_reconciliation_service.dart';
 import '../../application/productive_stale_sale_reconciliation_service.dart';
 import '../../application/unmaterialized_local_sale_discard_service.dart';
+import '../productive_error_presentation.dart';
 
 enum _SaleRealityDecision { occurred, didNotOccur, later }
 
@@ -51,10 +52,13 @@ class ProductiveStaleSaleReconciliationPresenter {
           stackTrace: stackTrace,
         );
         if (context.mounted) {
+          final copy = ProductiveErrorPresentation.forCategory(
+            ProductiveErrorCategory.retryable,
+          );
           await _message(
             context,
-            'No se pudieron cargar las ventas pendientes',
-            'Actualice el estado e intente nuevamente.',
+            copy.title,
+            copy.message,
             onDialogVisibilityChanged: onDialogVisibilityChanged,
             barrierColor: dialogBarrierColor,
           );
@@ -130,7 +134,7 @@ class ProductiveStaleSaleReconciliationPresenter {
           await _message(
             context,
             'Usuario autorizado requerido',
-            'No tiene permiso para reconciliar esta venta.',
+            'No tiene permiso para revisar esta venta.',
             onDialogVisibilityChanged: onDialogVisibilityChanged,
             barrierColor: dialogBarrierColor,
           );
@@ -218,7 +222,7 @@ class ProductiveStaleSaleReconciliationPresenter {
           targetSaleId: candidate.saleId,
         );
         if (!context.mounted) return;
-        _success(context, 'La venta real fue reconciliada correctamente.');
+        _success(context, 'La venta fue registrada correctamente.');
         if (remaining.isEmpty) return;
       } catch (error, stackTrace) {
         AppLogger.error(
@@ -313,8 +317,8 @@ class ProductiveStaleSaleReconciliationPresenter {
       builder: (dialogContext) => AlertDialog(
         title: Text(
           pendingCount == 1
-              ? 'Venta pendiente de reconciliación'
-              : '$pendingCount ventas pendientes de reconciliación',
+              ? 'Venta pendiente de revisión'
+              : '$pendingCount ventas pendientes de revisión',
         ),
         content: SingleChildScrollView(
           child: Text(
@@ -570,7 +574,7 @@ class ProductiveStaleSaleReconciliationPresenter {
               child: CircularProgressIndicator(),
             ),
             SizedBox(width: 16),
-            Flexible(child: Text('Reconciliando venta…')),
+            Flexible(child: Text('Actualizando venta…')),
           ],
         ),
       ),
@@ -604,30 +608,57 @@ class ProductiveStaleSaleReconciliationPresenter {
     if (error is UnmaterializedSaleDiscardException) {
       return switch (error.kind) {
         UnmaterializedSaleDiscardFailureKind.remoteUnavailable =>
-          'No se pudo verificar el estado en el servidor.',
+          ProductiveErrorPresentation.forCategory(
+            ProductiveErrorCategory.retryable,
+          ).message,
         UnmaterializedSaleDiscardFailureKind.remoteMaterializationFound =>
-          'La venta ya tiene información en el servidor y requiere revisión.',
-        _ => 'La venta no pudo descartarse de forma segura.',
+          ProductiveErrorPresentation.forCategory(
+            ProductiveErrorCategory.staleSale,
+          ).message,
+        _ => ProductiveErrorPresentation.forCategory(
+            ProductiveErrorCategory.staleSale,
+          ).message,
       };
     }
-    if (error is ProductiveStaleSaleException) return error.message;
+    if (error is ProductiveStaleSaleException) {
+      return switch (error.kind) {
+        ProductiveStaleSaleFailureKind.permissionDenied =>
+          ProductiveErrorPresentation.forCategory(
+            ProductiveErrorCategory.authorization,
+          ).message,
+        ProductiveStaleSaleFailureKind.destinationRequired =>
+          'Debe abrir una caja antes de revisar esta venta.',
+        ProductiveStaleSaleFailureKind.conflictUnavailable =>
+          ProductiveErrorPresentation.forCategory(
+            ProductiveErrorCategory.retryable,
+          ).message,
+      };
+    }
     if (error is IntentionalStaleSaleReconciliationException) {
       final source = '${error.message} ${error.cause}'.toLowerCase();
       if (source.contains('destination_cash_session_required')) {
-        return 'Debe abrir una caja antes de reconciliar esta venta.';
+        return 'Debe abrir una caja antes de revisar esta venta.';
       }
       if (source.contains('closed')) {
         return 'La caja destino ya fue cerrada. Actualice el estado.';
       }
       if (source.contains('permission') || source.contains('42501')) {
-        return 'No tiene permiso para reconciliar esta venta.';
+        return ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.authorization,
+        ).message;
       }
       if (source.contains('evidence')) {
-        return 'La venta ya tiene información en el servidor y requiere revisión.';
+        return ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.staleSale,
+        ).message;
       }
-      return 'No se pudo verificar el estado en el servidor.';
+      return ProductiveErrorPresentation.forCategory(
+        ProductiveErrorCategory.retryable,
+      ).message;
     }
-    return 'No fue posible completar la reconciliación. Intente actualizar.';
+    return ProductiveErrorPresentation.forCategory(
+      ProductiveErrorCategory.retryable,
+    ).message;
   }
 
   static String _money(num value) => '\$${value.toStringAsFixed(2)}';

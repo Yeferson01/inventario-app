@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/logging/app_logger.dart';
 import '../../../administration/application/business_administration_providers.dart';
 import '../../../administration/data/models/business_administration_models.dart';
 import '../../../administration/presentation/widgets/business_invitation_access_panel.dart';
@@ -26,6 +27,7 @@ import '../../application/recovery_blocked_stale_sale_service.dart';
 import '../../application/recovery_blocked_purchase_retry_provider.dart';
 import '../../application/recovery_blocked_purchase_retry_service.dart';
 import '../screens/business_context_selection_screen.dart';
+import '../productive_error_presentation.dart';
 import 'productive_stale_sale_reconciliation_presenter.dart';
 
 typedef NavigatorContextResolver = BuildContext? Function();
@@ -112,13 +114,22 @@ class _BusinessContextRequiredGateState
     }
     return entryAsync.when(
       loading: () => widget.loading ?? const _OperationalEntryLoading(),
-      error: (_, __) => _OperationalEntryStatus(
-        title: 'No se pudo preparar el contexto',
-        message:
-            'No fue posible verificar el acceso operacional. Puedes reintentarlo.',
-        actionLabel: 'Reintentar',
-        onAction: () => ref.invalidate(entryProvider),
-      ),
+      error: (error, stackTrace) {
+        AppLogger.error(
+          'Productive operational entry failed',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        final copy = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.contextNotReady,
+        );
+        return _OperationalEntryStatus(
+          title: copy.title,
+          message: copy.message,
+          actionLabel: copy.actionLabel,
+          onAction: () => ref.invalidate(entryProvider),
+        );
+      },
       data: (result) => _buildResult(result, request, access),
     );
   }
@@ -285,13 +296,19 @@ class _BusinessContextRequiredGateState
           const SnackBar(content: Text('Caja abierta correctamente.')),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Productive cash preparation failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
+        final copy = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.contextNotReady,
+        );
         await _showRecoveryMessage(
           'No se pudo abrir la caja',
-          error is CashRepairContextException
-              ? error.message
-              : 'No se pudo verificar el estado autoritativo de caja.',
+          copy.message,
         );
       }
     } finally {
@@ -393,17 +410,19 @@ class _BusinessContextRequiredGateState
                   child: widget.child,
                 );
         }
-        return const _OperationalEntryStatus(
-          title: 'Recuperación incompleta',
-          message:
-              'El contexto terminó sin cumplir las condiciones de operación offline.',
+        final copy = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.contextNotReady,
+        );
+        return _OperationalEntryStatus(
+          title: copy.title,
+          message: copy.message,
         );
       case OperationalBootstrapEntryOutcome.runtimeSetupRequired:
         return _OperationalEntryStatus(
           title: 'Configuración operativa requerida',
           message: result.canRequestAdministrativeSetup
               ? 'La sucursal necesita configuración administrativa antes de operar.'
-              : 'La sucursal aún no tiene runtime disponible. Solicita ayuda a un administrador.',
+              : 'La sucursal aún no está configurada para operar. Solicita ayuda a un administrador.',
         );
       case OperationalBootstrapEntryOutcome.bootstrapRecoveryBlocked:
         final issues = result.bootstrapResult?.blockingIssues ?? const [];
@@ -467,57 +486,85 @@ class _BusinessContextRequiredGateState
             }
             if (readiness.outcome ==
                 OfflineOperationalReadinessOutcome.authorizationRevoked) {
-              return const _OperationalEntryStatus(
-                title: 'Autorización no disponible',
-                message:
-                    'La autorización guardada de esta sucursal ya no permite continuar.',
+              final copy = ProductiveErrorPresentation.forCategory(
+                ProductiveErrorCategory.authorization,
+              );
+              return _OperationalEntryStatus(
+                title: copy.title,
+                message: copy.message,
+                actionLabel: copy.actionLabel,
+                onAction: _signOut,
               );
             }
             if (readiness.outcome ==
                 OfflineOperationalReadinessOutcome.recoveryRequired) {
+              final copy = ProductiveErrorPresentation.forCategory(
+                ProductiveErrorCategory.contextNotReady,
+              );
               return _OperationalEntryStatus(
-                title: 'Preparación necesaria',
-                message:
-                    'Conéctate a Internet y reintenta para completar la preparación de esta sucursal antes de continuar.',
-                actionLabel: 'Reintentar',
+                title: copy.title,
+                message: '${copy.message} Conéctate a Internet y reintenta.',
+                actionLabel: copy.actionLabel,
                 onAction: () => ref.invalidate(entryProvider),
               );
             }
+            final copy = ProductiveErrorPresentation.forCategory(
+              ProductiveErrorCategory.offline,
+            );
             return _OperationalEntryStatus(
-              title: 'Red no disponible',
-              message:
-                  'No fue posible validar el contexto en línea y no hay un contexto operativo preparado para continuar.',
-              actionLabel: 'Reintentar',
+              title: copy.title,
+              message: copy.message,
+              actionLabel: copy.actionLabel,
               onAction: () => ref.invalidate(entryProvider),
             );
           },
           loading: () => widget.loading ?? const _OperationalEntryLoading(),
-          error: (_, __) => _OperationalEntryStatus(
-            title: 'Red no disponible',
-            message:
-                'No fue posible comprobar el acceso en línea. Puedes reintentarlo.',
-            actionLabel: 'Reintentar',
-            onAction: () => ref.invalidate(entryProvider),
-          ),
+          error: (error, stackTrace) {
+            AppLogger.error(
+              'Cached productive readiness failed',
+              error: error,
+              stackTrace: stackTrace,
+            );
+            final copy = ProductiveErrorPresentation.forCategory(
+              ProductiveErrorCategory.offline,
+            );
+            return _OperationalEntryStatus(
+              title: copy.title,
+              message: copy.message,
+              actionLabel: copy.actionLabel,
+              onAction: () => ref.invalidate(entryProvider),
+            );
+          },
         );
       case OperationalBootstrapEntryOutcome.authorizationRevoked:
-        return const _OperationalEntryStatus(
-          title: 'Autorización no disponible',
-          message:
-              'La autorización del contexto ya no está disponible para esta sesión.',
+        final copy = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.authorization,
+        );
+        return _OperationalEntryStatus(
+          title: copy.title,
+          message: copy.message,
+          actionLabel: copy.actionLabel,
+          onAction: _signOut,
         );
       case OperationalBootstrapEntryOutcome.deviceBlocked:
-        return const _OperationalEntryStatus(
-          title: 'Dispositivo bloqueado',
+        final copy = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.authorization,
+        );
+        return _OperationalEntryStatus(
+          title: copy.title,
           message:
-              'Esta instalación no puede autorregistrarse. Se requiere una acción administrativa explícita.',
+              '${copy.message} Solicita ayuda al administrador del negocio.',
+          actionLabel: copy.actionLabel,
+          onAction: _signOut,
         );
       case OperationalBootstrapEntryOutcome.failed:
+        final copy = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.contextNotReady,
+        );
         return _OperationalEntryStatus(
-          title: 'No se pudo preparar la operación',
-          message:
-              'No fue posible completar la verificación del acceso. Puedes reintentarlo.',
-          actionLabel: 'Reintentar',
+          title: copy.title,
+          message: copy.message,
+          actionLabel: copy.actionLabel,
           onAction: () => ref.invalidate(entryProvider),
         );
     }
@@ -712,11 +759,18 @@ class _RecoveryBlockedOperationalEntryState
       );
       if (!mounted) return;
       widget.onRetry();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Productive pending Purchase retry failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _retryingPurchase = false;
-        _purchaseRetryError = error.toString();
+        _purchaseRetryError = ProductiveErrorPresentation.forCategory(
+          ProductiveErrorCategory.retryable,
+        ).message;
         _purchaseAssessment = _assessPurchase();
       });
     }
@@ -801,12 +855,15 @@ class _RecoveryBlockedOperationalEntryState
               if (purchaseAssessment?.canRetry == true) {
                 final hardMessage = purchaseAssessment!.hardIssues.isEmpty
                     ? ''
-                    : '\n\nOtros bloqueos permanecerán pendientes.';
+                    : '\n\nHay otras operaciones que también necesitan revisión.';
                 final errorMessage = _purchaseRetryError == null
                     ? ''
                     : '\n\n${_purchaseRetryError!}';
+                final copy = ProductiveErrorPresentation.forCategory(
+                  ProductiveErrorCategory.needsAttention,
+                );
                 return _OperationalEntryStatus(
-                  title: 'Recuperación requiere reintento',
+                  title: copy.title,
                   message: _retryingPurchase
                       ? 'Reintentando operación…'
                       : 'Una compra pendiente puede reenviarse de forma segura.'
@@ -815,47 +872,42 @@ class _RecoveryBlockedOperationalEntryState
                       ? 'Reintentando operación…'
                       : 'Reintentar operación pendiente',
                   onAction: _retryingPurchase ? null : _retryPurchase,
-                  secondaryActionLabel: 'Reintentar recuperación',
+                  secondaryActionLabel: 'Volver a comprobar',
                   onSecondaryAction: _retryingPurchase ? null : widget.onRetry,
                 );
               }
+              final copy = ProductiveErrorPresentation.forCategory(
+                ProductiveErrorCategory.needsAttention,
+              );
               return _OperationalEntryStatus(
-                title: 'Recuperación bloqueada',
-                message: _issueDetails(widget.result, widget.issues),
-                actionLabel: 'Reintentar',
+                title: copy.title,
+                message: copy.message,
+                actionLabel: 'Volver a comprobar',
                 onAction: widget.onRetry,
               );
             }
             final count = assessment.sales.length;
             final hardMessage = assessment.hardIssues.isEmpty
                 ? ''
-                : '\n\nAdemás existen otros bloqueos que deberán resolverse:\n'
-                    '${assessment.hardIssues.map((issue) => issue.message).join('\n')}';
+                : '\n\nHay otras operaciones que también necesitan revisión.';
+            final copy = ProductiveErrorPresentation.forCategory(
+              ProductiveErrorCategory.staleSale,
+            );
             return _OperationalEntryStatus(
-              title: 'Recuperación requiere revisión',
+              title: copy.title,
               message:
-                  'Hay operaciones pendientes que necesitan revisión antes '
-                  'de continuar.\n\n$count ${count == 1 ? 'venta no pudo' : 'ventas no pudieron'} '
-                  'sincronizarse porque la caja original ya estaba cerrada.'
+                  '${copy.message}\n\n$count ${count == 1 ? 'venta necesita' : 'ventas necesitan'} '
+                  'confirmación porque la caja original ya estaba cerrada.'
                   '$hardMessage',
-              actionLabel: 'Revisar ventas',
+              actionLabel: count == 1 ? copy.actionLabel : 'Revisar ventas',
               onAction: _reviewing ? null : _review,
-              secondaryActionLabel: 'Reintentar recuperación',
+              secondaryActionLabel: 'Volver a comprobar',
               onSecondaryAction: _reviewing ? null : widget.onRetry,
             );
           },
         );
       },
     );
-  }
-
-  String _issueDetails(
-    OperationalBootstrapEntryResult result,
-    List<OperationalBootstrapBlockingIssue> issues,
-  ) {
-    return issues.isEmpty
-        ? result.message
-        : issues.map((issue) => issue.message).join('\n');
   }
 }
 

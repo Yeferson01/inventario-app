@@ -54,11 +54,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Confirmo: la venta SÍ ocurrió'));
     await tester.pump();
-    expect(find.text('Reconciliando venta…'), findsOneWidget);
+    expect(find.text('Actualizando venta…'), findsOneWidget);
 
     final second = present();
     await tester.pump();
-    expect(find.text('Venta pendiente de reconciliación'), findsNothing);
+    expect(find.text('Venta pendiente de revisión'), findsNothing);
 
     gate.complete();
     await tester.pumpAndSettle();
@@ -113,7 +113,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Confirmo: la venta SÍ ocurrió'));
     await tester.pump();
-    expect(find.text('Reconciliando venta…'), findsOneWidget);
+    expect(find.text('Actualizando venta…'), findsOneWidget);
 
     final second = present(secondFake);
     await tester.pump();
@@ -151,7 +151,7 @@ void main() {
 
     expect(fake.reconcileCalls, 1);
     expect(presenterClosed, 1);
-    expect(find.text('Venta pendiente de reconciliación'), findsNothing);
+    expect(find.text('Venta pendiente de revisión'), findsNothing);
   });
 
   testWidgets('failed reconciliation keeps the Sale visible for retry',
@@ -170,6 +170,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No se pudo resolver la venta'), findsOneWidget);
+    expect(
+      find.text('Tus datos guardados siguen seguros en este dispositivo.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('reconciliation failed'), findsNothing);
     expect(fake.resolved, isFalse);
     await tester.tap(find.text('Entendido'));
     await tester.pumpAndSettle();
@@ -184,7 +189,7 @@ void main() {
     await _pumpHarness(tester, fake);
     await tester.tap(find.text('Abrir resolución'));
     await tester.pumpAndSettle();
-    expect(find.text('2 ventas pendientes de reconciliación'), findsOneWidget);
+    expect(find.text('2 ventas pendientes de revisión'), findsOneWidget);
     expect(find.textContaining('¿La venta ocurrió realmente?'), findsOneWidget);
   });
 

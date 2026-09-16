@@ -11,6 +11,8 @@ import 'package:inventario_frontend/features/sync/application/operational_bootst
 import 'package:inventario_frontend/features/sync/application/pos_sync_upload_provider.dart';
 import 'package:inventario_frontend/features/sync/application/productive_stale_sale_reconciliation_service.dart';
 import 'package:inventario_frontend/features/sync/application/recovery_blocked_stale_sale_service.dart';
+import 'package:inventario_frontend/features/sync/application/recovery_blocked_purchase_retry_provider.dart';
+import 'package:inventario_frontend/features/sync/application/recovery_blocked_purchase_retry_service.dart';
 import 'package:inventario_frontend/features/sync/application/unmaterialized_local_sale_discard_service.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/pos_sync_remote_datasource.dart';
 import 'package:inventario_frontend/features/sync/data/models/authorized_operational_context_models.dart';
@@ -29,15 +31,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Recuperación requiere revisión'), findsOneWidget);
-    expect(find.text('Revisar ventas'), findsOneWidget);
+    expect(find.text('Venta pendiente de revisión'), findsOneWidget);
+    expect(find.text('Revisar venta'), findsOneWidget);
     expect(
-        find.textContaining('1 venta no pudo sincronizarse'), findsOneWidget);
+        find.textContaining('1 venta necesita confirmación'), findsOneWidget);
     expect(find.text('PRODUCTIVE CHILD').hitTestable(), findsNothing);
-    await tester.tap(find.text('Revisar ventas'));
+    await tester.tap(find.text('Revisar venta'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('Venta pendiente de reconciliación'), findsOneWidget);
+    expect(find.text('Venta pendiente de revisión'), findsOneWidget);
     expect(find.textContaining('¿La venta ocurrió realmente?'), findsOneWidget);
   });
 
@@ -85,9 +87,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Recuperación bloqueada'), findsOneWidget);
-    expect(find.text('Revisar ventas'), findsNothing);
-    expect(find.text('Reintentar'), findsOneWidget);
+    expect(find.text('Operación pendiente de revisión'), findsOneWidget);
+    expect(find.text('Revisar venta'), findsNothing);
+    expect(find.text('Volver a comprobar'), findsOneWidget);
     expect(find.text('PRODUCTIVE CHILD').hitTestable(), findsNothing);
   });
 
@@ -105,7 +107,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Revisar ventas'));
+    await tester.tap(find.text('Revisar venta'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('No, no ocurrió'));
     await tester.pumpAndSettle();
@@ -131,7 +133,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Revisar ventas'));
+    await tester.tap(find.text('Revisar venta'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Resolver después').first);
     await tester.pumpAndSettle();
@@ -139,7 +141,7 @@ void main() {
     expect(controller.discardCalls, 0);
     expect(controller.reconcileCalls, 0);
     expect(runs, 1);
-    expect(find.text('Recuperación requiere revisión'), findsOneWidget);
+    expect(find.text('Venta pendiente de revisión'), findsOneWidget);
     expect(find.text('PRODUCTIVE CHILD').hitTestable(), findsNothing);
   });
 }
@@ -182,6 +184,12 @@ Widget _app({
       productiveStaleSaleReconciliationServiceProvider.overrideWithValue(
         controller,
       ),
+      recoveryBlockedPurchaseRetryServiceProvider.overrideWithValue(
+        RecoveryBlockedPurchaseRetryService(
+          authenticatedProfileId: () => 'profile-a',
+          gateway: _NoPurchaseRetryGateway(),
+        ),
+      ),
     ],
     child: MaterialApp(
       navigatorKey: navigatorKey,
@@ -194,6 +202,11 @@ Widget _app({
       home: const Scaffold(body: Text('PRODUCTIVE CHILD')),
     ),
   );
+}
+
+class _NoPurchaseRetryGateway implements RecoveryBlockedPurchaseRetryGateway {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 OperationalBootstrapEntryResult _blockedEntry(

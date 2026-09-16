@@ -21,6 +21,7 @@ import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/application/productive_sync_status.dart';
 import '../../../sync/application/productive_sync_status_provider.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
+import '../../../sync/presentation/productive_error_presentation.dart';
 import '../../../sync/presentation/widgets/operational_branch_switcher.dart';
 import '../../../sales/presentation/sales_presentation.dart';
 
@@ -135,10 +136,13 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         profileId == null ||
         cashRegisterId == null ||
         cashRegisterId.isEmpty) {
+      final copy = ProductiveErrorPresentation.forCategory(
+        ProductiveErrorCategory.contextNotReady,
+      );
       _showInfoSheet(
-        title: 'Recuperación requerida',
+        title: copy.title,
         message:
-            'La caja canónica de esta sucursal todavía no está disponible localmente. Actualiza el contexto antes de abrir caja.',
+            '${copy.message} Actualiza la información antes de abrir caja.',
       );
       return;
     }
@@ -339,7 +343,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir el POS.'
-            : 'Crear ventas requiere sales.create.',
+            : 'No tienes permiso para crear ventas en esta sucursal.',
       );
       return;
     }
@@ -380,9 +384,9 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (blockedReason != null) {
       _showInfoSheet(
-        title: 'POS bloqueado',
+        title: 'Venta no disponible',
         message:
-            'Para vender primero debes tener caja abierta y sin pendientes críticos de cash.\n\nMotivo: $blockedReason',
+            'Antes de vender, revisa que la caja esté abierta y que no tenga operaciones pendientes.',
         primaryLabel: 'Ir a Caja',
         onPrimary: () {
           Navigator.of(context).pop();
@@ -856,7 +860,7 @@ class _QuickStatusRow extends StatelessWidget {
           ),
         if (moduleAccess.canUseCash && dirtyCash)
           const AppStatusChip(
-            label: 'Cash pendiente',
+            label: 'Caja pendiente',
             tone: AppStatusTone.warning,
             icon: Icons.sync_problem_outlined,
           ),
@@ -905,7 +909,7 @@ class _ModulesGrid extends StatelessWidget {
         _int(cashReadiness?['dirty_cash_session_count']) > 0;
 
     final cashLabel = dirtyCash
-        ? 'Pendiente sync'
+        ? 'Pendiente de envío'
         : cashStatus == 'open'
             ? 'Abierta'
             : cashStatus == 'closed'

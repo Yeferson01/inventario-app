@@ -189,8 +189,33 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('PRODUCTIVE CHILD'), findsNothing);
-    expect(find.text('Preparación necesaria'), findsOneWidget);
+    expect(find.text('Información pendiente'), findsOneWidget);
     expect(find.textContaining('Conéctate a Internet'), findsOneWidget);
+  });
+
+  testWidgets('UX-06 revoked access uses productive copy and hides diagnostics',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const OperationalBootstrapEntryResult(
+          outcome: OperationalBootstrapEntryOutcome.authorizationRevoked,
+          contexts: [],
+          message: 'RPC forbidden for profile 00000000-technical',
+          offlineReady: false,
+          canRequestAdministrativeSetup: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Acceso no disponible'), findsOneWidget);
+    expect(
+      find.text('Tu acceso a este negocio o sucursal ya no está disponible.'),
+      findsOneWidget,
+    );
+    expect(find.text('Volver a iniciar sesión'), findsOneWidget);
+    expect(find.textContaining('RPC'), findsNothing);
+    expect(find.textContaining('00000000'), findsNothing);
   });
 }
 

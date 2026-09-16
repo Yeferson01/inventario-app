@@ -86,6 +86,10 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Cierre sincronizado'), findsOneWidget);
+    expect(find.text('La información de caja y ventas quedó actualizada.'),
+        findsOneWidget);
+    expect(find.textContaining('Batches'), findsNothing);
+    expect(find.textContaining('Mutaciones'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Aceptar'));
     await tester.pumpAndSettle();
