@@ -11,6 +11,7 @@ import '../../sales/application/pos_local_sale_provider.dart';
 import 'app_installation_id_store.dart';
 import 'app_sync_coordinator_models.dart';
 import 'cash_sync_upload_provider.dart';
+import 'cash_close_sync_trigger_service.dart';
 import 'inventory_sync_upload_provider.dart';
 import 'local_sync_outbox_providers.dart';
 import 'pos_sync_upload_provider.dart';
@@ -244,6 +245,14 @@ final productiveScheduledSyncServiceProvider =
     productiveSyncService: ref.watch(productiveManualSyncServiceProvider),
     policy: ref.watch(scheduledSyncPolicyProvider),
     stateStore: ref.watch(scheduledSyncStateStoreProvider),
+  );
+});
+
+final cashCloseSyncTriggerServiceProvider =
+    Provider<CashCloseSyncTriggerService>((ref) {
+  return CashCloseSyncTriggerService(
+    productiveSyncService: ref.watch(productiveManualSyncServiceProvider),
+    cashSessionService: ref.watch(cashSessionLocalServiceProvider),
   );
 });
 

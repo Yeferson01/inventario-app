@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/logging/app_logger.dart';
 import '../../../sync/application/cash_sync_upload_provider.dart';
+import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
+import '../../../sync/application/cash_close_sync_trigger_service.dart';
 import '../../../sync/application/cash_repair_context_service.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/presentation/productive_error_presentation.dart';
@@ -55,6 +57,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   ProductiveErrorPresentation? _error;
   bool _isLoading = false;
   bool _isRunningAction = false;
+  String? _runningAction;
   int _pendingStaleSales = 0;
 
   bool get _isBusy => _isLoading || _isRunningAction;
@@ -154,6 +157,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
     }
 
     await _runAction(
+      actionCode: 'open',
       successMessage: 'Caja abierta localmente.',
       action: () async {
         final service = ref.read(cashSessionLocalServiceProvider);
@@ -181,6 +185,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
     _CashCloseSyncUiSummary? syncSummary;
 
     await _runAction(
+      actionCode: 'sync',
       successMessage: 'Sincronización de caja completada.',
       action: () async {
         final cashBeforePosSummary = await _prepareAndUploadCashForCashClose();
@@ -245,59 +250,47 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
       return;
     }
 
-    _CashCloseSyncUiSummary? syncSummary;
+    ProductiveCashCloseResult? closeResult;
 
     await _runAction(
+      actionCode: 'close',
       successMessage: 'Caja cerrada y sincronización completada.',
       action: () async {
-        final cashBeforePosSummary = await _prepareAndUploadCashForCashClose();
-        final posSummary = await _prepareAndUploadPosForCashClose();
-
-        final service = ref.read(cashSessionLocalServiceProvider);
-
-        await service.closeCashSession(
-          CloseCashSessionInput(
-            businessId: widget.businessId,
-            branchId: widget.branchId,
-            profileId: widget.profileId,
-            actualClosingAmount: result.actualClosingAmount,
-            appDeviceId: widget.appDeviceId,
-            deviceInstallationId: widget.deviceInstallationId,
-            notes: result.notes,
-          ),
-        );
-
-        final cashAfterCloseSummary = await _prepareAndUploadCashForCashClose();
-
-        final cashSummary = cashBeforePosSummary.mergeWith(
-          cashAfterCloseSummary,
-        );
-
-        final summary = _CashCloseSyncUiSummary(
-          pos: posSummary,
-          cash: cashSummary,
-        );
-
-        _assertCashCloseSyncHealthy(summary);
-
-        syncSummary = summary;
+        closeResult = await ref
+            .read(cashCloseSyncTriggerServiceProvider)
+            .closeCashSession(
+              CloseCashSessionInput(
+                businessId: widget.businessId,
+                branchId: widget.branchId,
+                profileId: widget.profileId,
+                actualClosingAmount: result.actualClosingAmount,
+                appDeviceId: widget.appDeviceId,
+                deviceInstallationId: widget.deviceInstallationId,
+                notes: result.notes,
+              ),
+            );
       },
     );
 
-    if (!mounted || syncSummary == null) {
+    if (!mounted || closeResult == null) {
       return;
     }
+
+    final hasNonCriticalPending =
+        closeResult!.nonCriticalPendingDomains.isNotEmpty;
 
     await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(
-            syncSummary!.hasIssues
-                ? 'Cierre con alertas'
-                : 'Cierre sincronizado',
+          title: const Text('Cierre sincronizado'),
+          content: Text(
+            hasNonCriticalPending
+                ? 'La caja se cerró correctamente. Algunas operaciones no '
+                    'relacionadas con el cierre siguen pendientes y podrán '
+                    'reintentarse después.'
+                : 'La información de caja y ventas quedó actualizada.',
           ),
-          content: Text(syncSummary!.message),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -451,6 +444,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
   }
 
   Future<void> _runAction({
+    required String actionCode,
     required String successMessage,
     required Future<void> Function() action,
   }) async {
@@ -460,6 +454,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
     setState(() {
       _isRunningAction = true;
+      _runningAction = actionCode;
       _error = null;
     });
 
@@ -473,6 +468,24 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(successMessage)),
+      );
+    } on CashCloseSyncBlockedException catch (error, stackTrace) {
+      AppLogger.warning(
+        'Productive cash close was blocked safely',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+
+      final category =
+          error.reason == CashCloseSyncBlockReason.requiresAttention
+              ? ProductiveErrorCategory.needsAttention
+              : ProductiveErrorCategory.retryable;
+      setState(() {
+        _error = ProductiveErrorPresentation.forCategory(category);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
       );
     } catch (error, stackTrace) {
       AppLogger.error(
@@ -498,6 +511,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
       if (mounted) {
         setState(() {
           _isRunningAction = false;
+          _runningAction = null;
         });
       }
     }
@@ -608,6 +622,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                   summary: summary,
                   readiness: readiness,
                   isBusy: _isBusy,
+                  isClosing: _runningAction == 'close',
                   allowRead: widget.canReadCash,
                   allowOpen: widget.canOpenCash,
                   allowClose: widget.canCloseCash,
@@ -642,6 +657,7 @@ class _CashActionsSection extends StatelessWidget {
     required this.summary,
     required this.readiness,
     required this.isBusy,
+    required this.isClosing,
     required this.allowRead,
     required this.allowOpen,
     required this.allowClose,
@@ -654,6 +670,7 @@ class _CashActionsSection extends StatelessWidget {
   final Map<String, dynamic>? summary;
   final Map<String, dynamic>? readiness;
   final bool isBusy;
+  final bool isClosing;
   final bool allowRead;
   final bool allowOpen;
   final bool allowClose;
@@ -693,7 +710,7 @@ class _CashActionsSection extends StatelessWidget {
             FilledButton.icon(
               onPressed: isBusy || !canClose ? null : onCloseCash,
               icon: const Icon(Icons.lock_outline),
-              label: const Text('Cerrar caja'),
+              label: Text(isClosing ? 'Cerrando caja…' : 'Cerrar caja'),
             ),
             if (allowRead)
               OutlinedButton.icon(

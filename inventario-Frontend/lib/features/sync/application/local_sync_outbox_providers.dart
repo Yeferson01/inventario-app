@@ -17,7 +17,6 @@ import 'app_runtime_setup_service.dart';
 import 'runtime_resolution_service.dart';
 import 'app_selected_sync_context_store.dart';
 import 'app_sync_coordinator_service.dart';
-import 'cash_close_sync_trigger_service.dart';
 import 'catalog_sync_upload_service.dart';
 import 'local_sync_outbox_service.dart';
 import 'operational_context_pull_service.dart';
@@ -110,13 +109,6 @@ final appSyncCoordinatorServiceProvider =
 final appSelectedSyncContextStoreProvider =
     Provider<AppSelectedSyncContextStore>((ref) {
   return AppSelectedSyncContextStore();
-});
-
-final cashCloseSyncTriggerServiceProvider =
-    Provider<CashCloseSyncTriggerService>((ref) {
-  return CashCloseSyncTriggerService(
-    ref.watch(appSyncCoordinatorServiceProvider),
-  );
 });
 
 final appContextServiceProvider = Provider<AppContextService>((ref) {

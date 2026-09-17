@@ -13,17 +13,24 @@ import 'package:inventario_frontend/features/cash/presentation/screens/cash_dash
 import 'package:inventario_frontend/features/sales/application/pos_local_sale_provider.dart';
 import 'package:inventario_frontend/features/sales/application/pos_sync_outbox_service.dart';
 import 'package:inventario_frontend/features/sync/application/cash_sync_upload_provider.dart';
+import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
+import 'package:inventario_frontend/features/sync/application/app_sync_coordinator_models.dart';
+import 'package:inventario_frontend/features/sync/application/cash_close_sync_trigger_service.dart';
 import 'package:inventario_frontend/features/sync/application/cash_sync_upload_service.dart';
 import 'package:inventario_frontend/features/sync/application/intentional_stale_sale_reconciliation_service.dart';
 import 'package:inventario_frontend/features/sync/application/pos_sync_upload_provider.dart';
 import 'package:inventario_frontend/features/sync/application/pos_sync_upload_service.dart';
+import 'package:inventario_frontend/features/sync/application/productive_manual_sync_service.dart';
+import 'package:inventario_frontend/features/sync/application/productive_sync_status.dart';
 import 'package:inventario_frontend/features/sync/application/productive_stale_sale_reconciliation_service.dart';
 import 'package:inventario_frontend/features/sync/application/unmaterialized_local_sale_discard_service.dart';
 import 'package:inventario_frontend/features/sync/data/models/catalog_upload_models.dart';
+import 'package:inventario_frontend/features/sync/data/models/runtime_setup_models.dart';
 
 void main() {
   late AppDatabase database;
   late CashSessionLocalService service;
+  late CashCloseSyncTriggerService closeSyncService;
 
   setUp(() async {
     database = AppDatabase.executor(NativeDatabase.memory());
@@ -33,6 +40,10 @@ void main() {
       remoteDataSource: CashSessionRemoteDataSource.withInvoker(
         (functionName, parameters) async => _closedSnapshot,
       ),
+    );
+    closeSyncService = CashCloseSyncTriggerService(
+      productiveSyncService: _successfulProductiveSyncService(),
+      cashSessionService: service,
     );
   });
 
@@ -47,6 +58,9 @@ void main() {
       ProviderScope(
         overrides: [
           cashSessionLocalServiceProvider.overrideWithValue(service),
+          cashCloseSyncTriggerServiceProvider.overrideWithValue(
+            closeSyncService,
+          ),
           cashSyncOutboxServiceProvider.overrideWithValue(
             _FakeCashSyncOutboxService(),
           ),
@@ -155,6 +169,62 @@ void main() {
     expect(projected?.cashSessionId, result.cashSessionId);
     expect(projected?.status, 'closed');
   });
+}
+
+ProductiveManualSyncService _successfulProductiveSyncService() {
+  Future<ProductiveSyncDomainResult> succeed(
+    ProductiveSyncExecutionContext context,
+  ) async {
+    return const ProductiveSyncDomainResult.succeeded(
+      ProductiveSyncDomain.catalog,
+    );
+  }
+
+  return ProductiveManualSyncService(
+    inputLoader: () async => const AppSyncCoordinatorInput(
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      profileId: 'profile-a',
+      installationId: 'installation-a',
+      isOnline: true,
+    ),
+    contextValidator: (input) async => const AppRuntimeContext(
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      profileId: 'profile-a',
+      installationId: 'installation-a',
+      appDeviceId: 'device-a',
+    ),
+    catalogUploadRunner: succeed,
+    cashRunner: (context) async =>
+        const ProductiveSyncDomainResult.succeeded(ProductiveSyncDomain.cash),
+    posRunner: (context) async =>
+        const ProductiveSyncDomainResult.succeeded(ProductiveSyncDomain.pos),
+    purchasesRunner: (context) async =>
+        const ProductiveSyncDomainResult.succeeded(
+            ProductiveSyncDomain.purchases),
+    inventoryRunner: (context) async =>
+        const ProductiveSyncDomainResult.succeeded(
+            ProductiveSyncDomain.inventory),
+    catalogRefreshRunner: succeed,
+    statusLoader: ({
+      required scope,
+      required isOnline,
+      required isSyncing,
+    }) async =>
+        ProductiveSyncStatus(
+      scope: scope,
+      connectivity: ProductiveSyncConnectivity.online,
+      isSyncing: false,
+      pendingSales: 0,
+      pendingPurchases: 0,
+      pendingCashOperations: 0,
+      pendingProductOperations: 0,
+      pendingInventoryOperations: 0,
+      openIssueCount: 0,
+      attentionOperationCount: 0,
+    ),
+  );
 }
 
 class _NoPendingStaleSalesController

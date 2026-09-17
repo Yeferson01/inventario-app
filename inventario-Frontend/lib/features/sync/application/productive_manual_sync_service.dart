@@ -20,12 +20,13 @@ typedef ProductiveSyncStatusLoader = Future<ProductiveSyncStatus> Function({
 typedef ProductiveManualSyncRunner = Future<ProductiveManualSyncResult>
     Function();
 
-enum ProductiveSyncTrigger { manual, scheduled }
+enum ProductiveSyncTrigger { manual, scheduled, cashClose }
 
 extension ProductiveSyncTriggerCode on ProductiveSyncTrigger {
   String get code => switch (this) {
         ProductiveSyncTrigger.manual => 'manual',
         ProductiveSyncTrigger.scheduled => 'scheduled',
+        ProductiveSyncTrigger.cashClose => 'cash_close',
       };
 }
 
