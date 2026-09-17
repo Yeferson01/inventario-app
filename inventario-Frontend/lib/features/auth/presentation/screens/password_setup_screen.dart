@@ -76,7 +76,7 @@ class _PasswordSetupScreenState extends ConsumerState<PasswordSetupScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Tu sesión ya fue validada por Supabase. La invitación del negocio se comprobará después en el servidor.',
+                        'Tu sesión ya fue validada. Define una contraseña segura para continuar.',
                       ),
                       const SizedBox(height: 24),
                       TextField(

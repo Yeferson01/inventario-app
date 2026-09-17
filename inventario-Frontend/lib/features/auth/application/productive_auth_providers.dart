@@ -38,7 +38,10 @@ class ProductiveAuthSessionState {
 }
 
 final productiveAuthServiceProvider = Provider<ProductiveAuthService>((ref) {
-  return ProductiveAuthService(ref.watch(supabaseAuthProvider));
+  return ProductiveAuthService(
+    ref.watch(supabaseAuthProvider),
+    emailRedirectTo: AppConfig.authRedirectUrl,
+  );
 });
 
 final productiveAuthStateChangesProvider = supabaseAuthStateProvider;
@@ -47,12 +50,30 @@ final productiveAuthSessionProvider =
     Provider<ProductiveAuthSessionState>((ref) {
   final auth = ref.watch(supabaseAuthProvider);
   final change = ref.watch(productiveAuthStateChangesProvider);
-  final authState = change.value;
-  final session = authState?.session ?? auth.currentSession;
-  final event = authState?.event;
-  final user = session?.user;
+  return resolveProductiveAuthSession(
+    change: change,
+    currentSession: auth.currentSession,
+  );
+});
 
-  if (user == null) {
+ProductiveAuthSessionState resolveProductiveAuthSession({
+  required AsyncValue<AuthState> change,
+  required Session? currentSession,
+}) {
+  final authState = change.value;
+  final session = authState?.session ?? currentSession;
+  final event = authState?.event;
+  if (session == null && change.isLoading) {
+    return const ProductiveAuthSessionState(
+      phase: ProductiveAuthPhase.initializing,
+    );
+  }
+  final phase = productiveAuthPhaseFor(
+    user: session?.user,
+    event: event,
+  );
+
+  if (phase == ProductiveAuthPhase.unauthenticated) {
     return ProductiveAuthSessionState(
       phase: ProductiveAuthPhase.unauthenticated,
       lastEvent: event,
@@ -60,22 +81,31 @@ final productiveAuthSessionProvider =
     );
   }
 
-  final metadataRequiresPassword =
-      user.userMetadata?['platform_invitation_requires_password_setup'] == true;
-  final requiresPassword =
-      event == AuthChangeEvent.passwordRecovery || metadataRequiresPassword;
-
   return ProductiveAuthSessionState(
-    phase: requiresPassword
-        ? ProductiveAuthPhase.passwordSetupRequired
-        : ProductiveAuthPhase.authenticated,
+    phase: phase,
     session: session,
     lastEvent: event,
     streamError: change.error,
   );
-});
+}
+
+ProductiveAuthPhase productiveAuthPhaseFor({
+  required User? user,
+  AuthChangeEvent? event,
+}) {
+  if (user == null) return ProductiveAuthPhase.unauthenticated;
+  final requiresPassword = event == AuthChangeEvent.passwordRecovery ||
+      invitationPasswordSetupRequired(user.userMetadata);
+  return requiresPassword
+      ? ProductiveAuthPhase.passwordSetupRequired
+      : ProductiveAuthPhase.authenticated;
+}
 
 typedef ProductiveSignIn = Future<void> Function({
+  required String email,
+  required String password,
+});
+typedef ProductiveSignUp = Future<ProductiveSignUpResult> Function({
   required String email,
   required String password,
 });
@@ -85,6 +115,10 @@ typedef ProductiveSignOut = Future<void> Function();
 
 final productiveSignInProvider = Provider<ProductiveSignIn>((ref) {
   return ref.watch(productiveAuthServiceProvider).signInWithPassword;
+});
+
+final productiveSignUpProvider = Provider<ProductiveSignUp>((ref) {
+  return ref.watch(productiveAuthServiceProvider).signUp;
 });
 
 final productivePasswordRecoveryProvider =

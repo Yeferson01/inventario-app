@@ -372,9 +372,9 @@ class _BusinessContextRequiredGateState
           );
         }
         return _OperationalEntryStatus(
-          title: 'Sin contextos operacionales autorizados',
+          title: 'Aún no tienes acceso a ningún negocio',
           message:
-              'Esta cuenta no tiene un negocio autorizado. Contacta con el administrador de Cronos.',
+              'Puedes esperar a que un administrador te agregue o crear tu propio negocio.',
           actionLabel: 'Cerrar sesión',
           onAction: _signOut,
         );

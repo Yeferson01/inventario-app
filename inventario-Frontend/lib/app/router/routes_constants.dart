@@ -11,6 +11,9 @@ class AppRoutes {
   static const String passwordSetupPath = '/auth/password';
   static const String passwordSetupName = 'password-setup';
 
+  static const String authResolvingPath = '/auth/resolving';
+  static const String authResolvingName = 'auth-resolving';
+
   // --- Rutas Privadas (Requieren Auth) ---
   static const String dashboardPath = '/';
   static const String dashboardName = 'dashboard';

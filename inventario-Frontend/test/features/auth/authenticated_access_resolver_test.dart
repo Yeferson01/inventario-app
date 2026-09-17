@@ -89,7 +89,7 @@ void main() {
     expect(result.outcome, AuthenticatedAccessOutcome.noAuthorizedAccess);
   });
 
-  test('business invitation alone remains a valid private access path',
+  test('RG-08 existing-user business invitation remains a valid access path',
       () async {
     final resolver = AuthenticatedAccessResolver(
       loadContexts: () async => const [],

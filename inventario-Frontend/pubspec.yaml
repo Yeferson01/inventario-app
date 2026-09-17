@@ -39,6 +39,7 @@ dependencies:
   go_router: ^17.3.0
 
   # Networking y Backend
+  app_links: 7.1.2
   cached_network_image: ^3.4.1
   dio: ^5.5.0
   flutter_cache_manager: ^3.4.1

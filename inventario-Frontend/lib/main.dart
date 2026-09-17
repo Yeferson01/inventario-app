@@ -10,6 +10,7 @@ import 'app/router/app_router.dart';
 import 'app/theme/dark_theme.dart';
 import 'app/theme/light_theme.dart';
 import 'core/config/app_config.dart';
+import 'core/supabase/productive_supabase_auth_options.dart';
 import 'features/debug/presentation/screens/debug_ping_screen.dart';
 import 'features/auth/application/productive_auth_providers.dart';
 import 'features/sync/application/app_router_sync_bootstrap_provider.dart';
@@ -66,6 +67,7 @@ void main() {
         await Supabase.initialize(
           url: AppConfig.supabaseUrl,
           publishableKey: AppConfig.supabaseAnonKey,
+          authOptions: productiveSupabaseAuthOptions,
         ).timeout(
           const Duration(seconds: 12),
           onTimeout: () {

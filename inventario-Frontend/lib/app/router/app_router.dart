@@ -9,6 +9,7 @@ import '../../features/administration/presentation/screens/business_team_screen.
 import '../../features/auth/application/productive_auth_providers.dart';
 import '../../features/auth/presentation/screens/password_setup_screen.dart';
 import '../../features/auth/presentation/screens/productive_login_screen.dart';
+import '../../features/auth/presentation/screens/productive_registration_screen.dart';
 import '../../features/dashboard/presentation/dashboard_presentation.dart';
 import '../../features/debug/presentation/screens/debug_ping_screen.dart';
 import '../../features/debug/presentation/screens/debug_supabase_login_screen.dart';
@@ -46,7 +47,8 @@ class AppRouter {
       'debug_login' when debugAllowed => '/debug/login',
       'debug_ping' when debugAllowed => '/debug/ping',
       'debug_e2e' when debugAllowed => '/debug/e2e-real-sync',
-      'login' || 'register' => AppRoutes.loginPath,
+      'login' => AppRoutes.loginPath,
+      'register' => AppRoutes.registerPath,
       'inventory' => AppRoutes.inventarioPath,
       _ => AppRoutes.dashboardPath,
     };
@@ -72,31 +74,11 @@ class AppRouter {
       navigatorKey: navigatorKey ?? GlobalKey<NavigatorState>(),
       debugLogDiagnostics: debugAllowed,
       redirect: (context, state) {
-        final location = state.uri.path;
-        if (location.startsWith('/debug')) {
-          if (debugAllowed) return null;
-          return switch (phase) {
-            ProductiveAuthPhase.authenticated => AppRoutes.dashboardPath,
-            ProductiveAuthPhase.passwordSetupRequired =>
-              AppRoutes.passwordSetupPath,
-            _ => AppRoutes.loginPath,
-          };
-        }
-
-        final isLogin = location == AppRoutes.loginPath;
-        final isPasswordSetup = location == AppRoutes.passwordSetupPath;
-        if (location == AppRoutes.registerPath) return AppRoutes.loginPath;
-
-        return switch (phase) {
-          ProductiveAuthPhase.initializing =>
-            isLogin ? null : AppRoutes.loginPath,
-          ProductiveAuthPhase.unauthenticated =>
-            isLogin ? null : AppRoutes.loginPath,
-          ProductiveAuthPhase.passwordSetupRequired =>
-            isPasswordSetup ? null : AppRoutes.passwordSetupPath,
-          ProductiveAuthPhase.authenticated =>
-            (isLogin || isPasswordSetup) ? AppRoutes.dashboardPath : null,
-        };
+        return redirectFor(
+          phase: phase,
+          location: state.uri.path,
+          debugAllowed: debugAllowed,
+        );
       },
       routes: [
         if (debugAllowed) ...[
@@ -114,9 +96,19 @@ class AppRouter {
           ),
         ],
         GoRoute(
+          path: AppRoutes.authResolvingPath,
+          name: AppRoutes.authResolvingName,
+          builder: (context, state) => const _AuthResolvingScreen(),
+        ),
+        GoRoute(
           path: AppRoutes.loginPath,
           name: AppRoutes.loginName,
           builder: (context, state) => const ProductiveLoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.registerPath,
+          name: AppRoutes.registerName,
+          builder: (context, state) => const ProductiveRegistrationScreen(),
         ),
         GoRoute(
           path: AppRoutes.passwordSetupPath,
@@ -160,6 +152,62 @@ class AppRouter {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String? redirectFor({
+    required ProductiveAuthPhase phase,
+    required String location,
+    required bool debugAllowed,
+  }) {
+    if (location.startsWith('/debug')) {
+      if (debugAllowed) return null;
+      return switch (phase) {
+        ProductiveAuthPhase.authenticated => AppRoutes.dashboardPath,
+        ProductiveAuthPhase.passwordSetupRequired =>
+          AppRoutes.passwordSetupPath,
+        _ => AppRoutes.loginPath,
+      };
+    }
+
+    final isLogin = location == AppRoutes.loginPath;
+    final isRegister = location == AppRoutes.registerPath;
+    final isPasswordSetup = location == AppRoutes.passwordSetupPath;
+    final isAuthResolving = location == AppRoutes.authResolvingPath;
+
+    return switch (phase) {
+      ProductiveAuthPhase.initializing =>
+        isAuthResolving ? null : AppRoutes.authResolvingPath,
+      ProductiveAuthPhase.unauthenticated =>
+        (isLogin || isRegister) ? null : AppRoutes.loginPath,
+      ProductiveAuthPhase.passwordSetupRequired =>
+        isPasswordSetup ? null : AppRoutes.passwordSetupPath,
+      ProductiveAuthPhase.authenticated =>
+        (isLogin || isRegister || isPasswordSetup || isAuthResolving)
+            ? AppRoutes.dashboardPath
+            : null,
+    };
+  }
+}
+
+class _AuthResolvingScreen extends StatelessWidget {
+  const _AuthResolvingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Validando acceso seguro...'),
+            ],
           ),
         ),
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app/router/routes_constants.dart';
 import '../../application/productive_auth_providers.dart';
 
 class ProductiveLoginScreen extends ConsumerStatefulWidget {
@@ -166,6 +168,14 @@ class _ProductiveLoginScreenState extends ConsumerState<ProductiveLoginScreen> {
                               : 'Olvidé mi contraseña',
                         ),
                       ),
+                      if (!_isRecoveryMode)
+                        TextButton(
+                          key: const Key('login-create-account'),
+                          onPressed: _isSubmitting
+                              ? null
+                              : () => context.go(AppRoutes.registerPath),
+                          child: const Text('Crear cuenta'),
+                        ),
                     ],
                   ),
                 ),

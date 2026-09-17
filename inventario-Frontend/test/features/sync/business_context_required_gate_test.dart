@@ -81,7 +81,7 @@ void main() {
   });
 
   testWidgets(
-      'zero contexts renders a typed state instead of an empty selector',
+      'RG-07 zero contexts and invitations renders stable no-access state',
       (tester) async {
     await tester.pumpWidget(
       _app(
@@ -96,8 +96,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Aún no tienes acceso a ningún negocio'), findsOneWidget);
     expect(
-        find.text('Sin contextos operacionales autorizados'), findsOneWidget);
+      find.text(
+        'Puedes esperar a que un administrador te agregue o crear tu propio negocio.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Cerrar sesión'), findsOneWidget);
     expect(find.text('No tienes negocios disponibles.'), findsNothing);
   });
 
