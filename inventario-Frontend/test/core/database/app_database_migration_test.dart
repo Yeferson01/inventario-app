@@ -9,7 +9,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates schema 8 to 11 without replacing existing balance IDs',
+  test('migrates schema 8 to 12 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -27,7 +27,7 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 11);
+    expect(database.schemaVersion, 12);
     expect(balance.read<String>('id'), 'random-local-uuid');
     expect(balance.read<int>('quantity_on_hand'), 8);
 
@@ -58,6 +58,18 @@ void main() {
     expect(legacySaleItem.readNullable<double>('unit_cost_snapshot'), isNull);
     final productColumns = await _columnNames(database, 'products');
     expect(productColumns, contains('master_product_id'));
+    final movementColumns =
+        await _columnNames(database, 'local_inventory_movements');
+    expect(
+      movementColumns,
+      containsAll(<String>{
+        'previous_stock',
+        'new_stock',
+        'created_by',
+        'device_id',
+        'reversed_movement_id',
+      }),
+    );
 
     final recoveryTables = await database.customSelect(
       '''
@@ -66,11 +78,12 @@ void main() {
         'local_operational_bootstrap_checkpoints',
         'local_operational_bootstrap_seen_records',
         'local_reconciliation_issues',
-        'local_authorized_operational_contexts'
+        'local_authorized_operational_contexts',
+        'local_history_hydration_states'
       )
       ''',
     ).get();
-    expect(recoveryTables, hasLength(4));
+    expect(recoveryTables, hasLength(5));
 
     await _verifyRecoveryDaosAfterMigration(database);
 
@@ -87,7 +100,7 @@ void main() {
     );
   });
 
-  test('migrates schema 9 to 11 preserving Product identity', () async {
+  test('migrates schema 9 to 12 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema9IdentitySetupStatements) {
@@ -98,7 +111,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 11);
+    expect(database.schemaVersion, 12);
     final product = await database.customSelect(
       'select id, name, master_product_id from products where id = ?',
       variables: [const Variable<String>('legacy-product')],
@@ -121,7 +134,7 @@ void main() {
     expect(indexes, hasLength(3));
   });
 
-  test('migrates schema 10 to 11 leaving historical sale cost unknown',
+  test('HY-28 migrates schema 10 to 12 preserving existing movements',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -133,12 +146,20 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 11);
+    expect(database.schemaVersion, 12);
     final legacySaleItem = await database.customSelect(
       'select unit_cost_snapshot from sale_items where id = ?',
       variables: [const Variable<String>('legacy-sale-item')],
     ).getSingle();
     expect(legacySaleItem.readNullable<double>('unit_cost_snapshot'), isNull);
+    final movement = await database.customSelect(
+      'select * from local_inventory_movements where id = ?',
+      variables: [const Variable<String>('legacy-movement')],
+    ).getSingle();
+    expect(movement.read<String>('idempotency_key'), 'legacy-key');
+    expect(movement.read<int>('quantity_change'), 4);
+    expect(movement.readNullable<int>('previous_stock'), isNull);
+    expect(movement.readNullable<String>('device_id'), isNull);
   });
 
   test('enables SQLite foreign keys on every AppDatabase connection', () async {
@@ -307,8 +328,22 @@ const _schema8SetupStatements = <String>[
   create table local_inventory_movements (
     id text primary key not null, idempotency_key text not null,
     business_id text not null, branch_id text, product_id text not null,
+    movement_type text not null default 'purchase',
+    quantity_change integer not null default 0,
+    unit_cost real,
     sync_status integer not null default 0,
-    local_status text not null default 'dirty', created_at integer not null
+    local_status text not null default 'dirty',
+    occurred_at integer not null default 1,
+    created_at integer not null
+  )
+  ''',
+  '''
+  insert into local_inventory_movements (
+    id, idempotency_key, business_id, branch_id, product_id,
+    movement_type, quantity_change, occurred_at, created_at
+  ) values (
+    'legacy-movement', 'legacy-key', 'business-a', 'branch-x', 'product-p',
+    'purchase', 4, 1, 1
   )
   ''',
   '''

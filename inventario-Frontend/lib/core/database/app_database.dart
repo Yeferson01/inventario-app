@@ -903,6 +903,13 @@ class LocalInventoryMovements extends Table {
 
   RealColumn get unitCost => real().nullable().named('unit_cost')();
 
+  IntColumn get previousStock => integer().nullable().named('previous_stock')();
+  IntColumn get newStock => integer().nullable().named('new_stock')();
+  TextColumn get createdBy => text().nullable().named('created_by')();
+  TextColumn get deviceId => text().nullable().named('device_id')();
+  TextColumn get reversedMovementId =>
+      text().nullable().named('reversed_movement_id')();
+
   TextColumn get sourceType => text().nullable().named('source_type')();
   TextColumn get sourceId => text().nullable().named('source_id')();
 
@@ -938,6 +945,30 @@ class LocalInventoryMovements extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+class LocalHistoryHydrationStates extends Table {
+  @override
+  String get tableName => 'local_history_hydration_states';
+
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().named('branch_id')();
+  TextColumn get domain => text()();
+  DateTimeColumn get oldestCursorOccurredAt =>
+      dateTime().nullable().named('oldest_cursor_occurred_at')();
+  TextColumn get oldestCursorId =>
+      text().nullable().named('oldest_cursor_id')();
+  BoolColumn get hasMore =>
+      boolean().withDefault(const Constant(true)).named('has_more')();
+  DateTimeColumn get lastRefreshedAt =>
+      dateTime().nullable().named('last_refreshed_at')();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {businessId, branchId, domain};
 }
 
 class LocalProductStockBalances extends Table {
@@ -1119,6 +1150,7 @@ class LocalAuthorizedOperationalContexts extends Table {
     LocalSyncBatches,
     LocalSyncMutations,
     LocalInventoryMovements,
+    LocalHistoryHydrationStates,
     LocalProductStockBalances,
     LocalOperationalBootstrapCheckpoints,
     LocalOperationalBootstrapSeenRecords,
@@ -1155,7 +1187,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   Future<void> _createProductIdentityIndexesAndTriggers() async {
     await customStatement('''
@@ -1465,6 +1497,18 @@ class AppDatabase extends _$AppDatabase {
       'create index if not exists idx_local_inventory_movements_sync_status '
       'on local_inventory_movements(sync_status, local_status, created_at)',
     );
+
+    await customStatement(
+      'create index if not exists idx_local_inventory_movements_history_scope '
+      'on local_inventory_movements('
+      'business_id, branch_id, occurred_at desc, id desc)',
+    );
+
+    await customStatement(
+      'create index if not exists idx_local_inventory_movements_history_product_scope '
+      'on local_inventory_movements('
+      'business_id, branch_id, product_id, occurred_at desc, id desc)',
+    );
   }
 
   Future<void> _createAppContextIndexes() async {
@@ -1633,6 +1677,35 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 12) {
+            if (from >= 4) {
+              await m.addColumn(
+                localInventoryMovements,
+                localInventoryMovements.previousStock,
+              );
+              await m.addColumn(
+                localInventoryMovements,
+                localInventoryMovements.newStock,
+              );
+              await m.addColumn(
+                localInventoryMovements,
+                localInventoryMovements.createdBy,
+              );
+              await m.addColumn(
+                localInventoryMovements,
+                localInventoryMovements.deviceId,
+              );
+              await m.addColumn(
+                localInventoryMovements,
+                localInventoryMovements.reversedMovementId,
+              );
+            }
+            await m.createTable(localHistoryHydrationStates);
+            if (from >= 4) {
+              await _createInventoryMovementIndexes();
+            }
+          }
+
           if (from < 11) {
             await m.addColumn(saleItems, saleItems.unitCostSnapshot);
           }

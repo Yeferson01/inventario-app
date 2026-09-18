@@ -10132,6 +10132,36 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
   late final GeneratedColumn<double> unitCost = GeneratedColumn<double>(
       'unit_cost', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _previousStockMeta =
+      const VerificationMeta('previousStock');
+  @override
+  late final GeneratedColumn<int> previousStock = GeneratedColumn<int>(
+      'previous_stock', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _newStockMeta =
+      const VerificationMeta('newStock');
+  @override
+  late final GeneratedColumn<int> newStock = GeneratedColumn<int>(
+      'new_stock', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _createdByMeta =
+      const VerificationMeta('createdBy');
+  @override
+  late final GeneratedColumn<String> createdBy = GeneratedColumn<String>(
+      'created_by', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _deviceIdMeta =
+      const VerificationMeta('deviceId');
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+      'device_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _reversedMovementIdMeta =
+      const VerificationMeta('reversedMovementId');
+  @override
+  late final GeneratedColumn<String> reversedMovementId =
+      GeneratedColumn<String>('reversed_movement_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _sourceTypeMeta =
       const VerificationMeta('sourceType');
   @override
@@ -10240,6 +10270,11 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
         movementType,
         quantityChange,
         unitCost,
+        previousStock,
+        newStock,
+        createdBy,
+        deviceId,
+        reversedMovementId,
         sourceType,
         sourceId,
         referenceType,
@@ -10309,6 +10344,30 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
     if (data.containsKey('unit_cost')) {
       context.handle(_unitCostMeta,
           unitCost.isAcceptableOrUnknown(data['unit_cost']!, _unitCostMeta));
+    }
+    if (data.containsKey('previous_stock')) {
+      context.handle(
+          _previousStockMeta,
+          previousStock.isAcceptableOrUnknown(
+              data['previous_stock']!, _previousStockMeta));
+    }
+    if (data.containsKey('new_stock')) {
+      context.handle(_newStockMeta,
+          newStock.isAcceptableOrUnknown(data['new_stock']!, _newStockMeta));
+    }
+    if (data.containsKey('created_by')) {
+      context.handle(_createdByMeta,
+          createdBy.isAcceptableOrUnknown(data['created_by']!, _createdByMeta));
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(_deviceIdMeta,
+          deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta));
+    }
+    if (data.containsKey('reversed_movement_id')) {
+      context.handle(
+          _reversedMovementIdMeta,
+          reversedMovementId.isAcceptableOrUnknown(
+              data['reversed_movement_id']!, _reversedMovementIdMeta));
     }
     if (data.containsKey('source_type')) {
       context.handle(
@@ -10415,6 +10474,16 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
           .read(DriftSqlType.int, data['${effectivePrefix}quantity_change'])!,
       unitCost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit_cost']),
+      previousStock: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}previous_stock']),
+      newStock: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}new_stock']),
+      createdBy: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}created_by']),
+      deviceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}device_id']),
+      reversedMovementId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}reversed_movement_id']),
       sourceType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}source_type']),
       sourceId: attachedDatabase.typeMapping
@@ -10463,6 +10532,11 @@ class LocalInventoryMovement extends DataClass
   final String movementType;
   final int quantityChange;
   final double? unitCost;
+  final int? previousStock;
+  final int? newStock;
+  final String? createdBy;
+  final String? deviceId;
+  final String? reversedMovementId;
   final String? sourceType;
   final String? sourceId;
   final String? referenceType;
@@ -10486,6 +10560,11 @@ class LocalInventoryMovement extends DataClass
       required this.movementType,
       required this.quantityChange,
       this.unitCost,
+      this.previousStock,
+      this.newStock,
+      this.createdBy,
+      this.deviceId,
+      this.reversedMovementId,
       this.sourceType,
       this.sourceId,
       this.referenceType,
@@ -10514,6 +10593,21 @@ class LocalInventoryMovement extends DataClass
     map['quantity_change'] = Variable<int>(quantityChange);
     if (!nullToAbsent || unitCost != null) {
       map['unit_cost'] = Variable<double>(unitCost);
+    }
+    if (!nullToAbsent || previousStock != null) {
+      map['previous_stock'] = Variable<int>(previousStock);
+    }
+    if (!nullToAbsent || newStock != null) {
+      map['new_stock'] = Variable<int>(newStock);
+    }
+    if (!nullToAbsent || createdBy != null) {
+      map['created_by'] = Variable<String>(createdBy);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    if (!nullToAbsent || reversedMovementId != null) {
+      map['reversed_movement_id'] = Variable<String>(reversedMovementId);
     }
     if (!nullToAbsent || sourceType != null) {
       map['source_type'] = Variable<String>(sourceType);
@@ -10562,6 +10656,21 @@ class LocalInventoryMovement extends DataClass
       unitCost: unitCost == null && nullToAbsent
           ? const Value.absent()
           : Value(unitCost),
+      previousStock: previousStock == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previousStock),
+      newStock: newStock == null && nullToAbsent
+          ? const Value.absent()
+          : Value(newStock),
+      createdBy: createdBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdBy),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      reversedMovementId: reversedMovementId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reversedMovementId),
       sourceType: sourceType == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceType),
@@ -10606,6 +10715,12 @@ class LocalInventoryMovement extends DataClass
       movementType: serializer.fromJson<String>(json['movementType']),
       quantityChange: serializer.fromJson<int>(json['quantityChange']),
       unitCost: serializer.fromJson<double?>(json['unitCost']),
+      previousStock: serializer.fromJson<int?>(json['previousStock']),
+      newStock: serializer.fromJson<int?>(json['newStock']),
+      createdBy: serializer.fromJson<String?>(json['createdBy']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      reversedMovementId:
+          serializer.fromJson<String?>(json['reversedMovementId']),
       sourceType: serializer.fromJson<String?>(json['sourceType']),
       sourceId: serializer.fromJson<String?>(json['sourceId']),
       referenceType: serializer.fromJson<String?>(json['referenceType']),
@@ -10634,6 +10749,11 @@ class LocalInventoryMovement extends DataClass
       'movementType': serializer.toJson<String>(movementType),
       'quantityChange': serializer.toJson<int>(quantityChange),
       'unitCost': serializer.toJson<double?>(unitCost),
+      'previousStock': serializer.toJson<int?>(previousStock),
+      'newStock': serializer.toJson<int?>(newStock),
+      'createdBy': serializer.toJson<String?>(createdBy),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'reversedMovementId': serializer.toJson<String?>(reversedMovementId),
       'sourceType': serializer.toJson<String?>(sourceType),
       'sourceId': serializer.toJson<String?>(sourceId),
       'referenceType': serializer.toJson<String?>(referenceType),
@@ -10660,6 +10780,11 @@ class LocalInventoryMovement extends DataClass
           String? movementType,
           int? quantityChange,
           Value<double?> unitCost = const Value.absent(),
+          Value<int?> previousStock = const Value.absent(),
+          Value<int?> newStock = const Value.absent(),
+          Value<String?> createdBy = const Value.absent(),
+          Value<String?> deviceId = const Value.absent(),
+          Value<String?> reversedMovementId = const Value.absent(),
           Value<String?> sourceType = const Value.absent(),
           Value<String?> sourceId = const Value.absent(),
           Value<String?> referenceType = const Value.absent(),
@@ -10683,6 +10808,14 @@ class LocalInventoryMovement extends DataClass
         movementType: movementType ?? this.movementType,
         quantityChange: quantityChange ?? this.quantityChange,
         unitCost: unitCost.present ? unitCost.value : this.unitCost,
+        previousStock:
+            previousStock.present ? previousStock.value : this.previousStock,
+        newStock: newStock.present ? newStock.value : this.newStock,
+        createdBy: createdBy.present ? createdBy.value : this.createdBy,
+        deviceId: deviceId.present ? deviceId.value : this.deviceId,
+        reversedMovementId: reversedMovementId.present
+            ? reversedMovementId.value
+            : this.reversedMovementId,
         sourceType: sourceType.present ? sourceType.value : this.sourceType,
         sourceId: sourceId.present ? sourceId.value : this.sourceId,
         referenceType:
@@ -10717,6 +10850,15 @@ class LocalInventoryMovement extends DataClass
           ? data.quantityChange.value
           : this.quantityChange,
       unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
+      previousStock: data.previousStock.present
+          ? data.previousStock.value
+          : this.previousStock,
+      newStock: data.newStock.present ? data.newStock.value : this.newStock,
+      createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      reversedMovementId: data.reversedMovementId.present
+          ? data.reversedMovementId.value
+          : this.reversedMovementId,
       sourceType:
           data.sourceType.present ? data.sourceType.value : this.sourceType,
       sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
@@ -10758,6 +10900,11 @@ class LocalInventoryMovement extends DataClass
           ..write('movementType: $movementType, ')
           ..write('quantityChange: $quantityChange, ')
           ..write('unitCost: $unitCost, ')
+          ..write('previousStock: $previousStock, ')
+          ..write('newStock: $newStock, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('reversedMovementId: $reversedMovementId, ')
           ..write('sourceType: $sourceType, ')
           ..write('sourceId: $sourceId, ')
           ..write('referenceType: $referenceType, ')
@@ -10786,6 +10933,11 @@ class LocalInventoryMovement extends DataClass
         movementType,
         quantityChange,
         unitCost,
+        previousStock,
+        newStock,
+        createdBy,
+        deviceId,
+        reversedMovementId,
         sourceType,
         sourceId,
         referenceType,
@@ -10813,6 +10965,11 @@ class LocalInventoryMovement extends DataClass
           other.movementType == this.movementType &&
           other.quantityChange == this.quantityChange &&
           other.unitCost == this.unitCost &&
+          other.previousStock == this.previousStock &&
+          other.newStock == this.newStock &&
+          other.createdBy == this.createdBy &&
+          other.deviceId == this.deviceId &&
+          other.reversedMovementId == this.reversedMovementId &&
           other.sourceType == this.sourceType &&
           other.sourceId == this.sourceId &&
           other.referenceType == this.referenceType &&
@@ -10839,6 +10996,11 @@ class LocalInventoryMovementsCompanion
   final Value<String> movementType;
   final Value<int> quantityChange;
   final Value<double?> unitCost;
+  final Value<int?> previousStock;
+  final Value<int?> newStock;
+  final Value<String?> createdBy;
+  final Value<String?> deviceId;
+  final Value<String?> reversedMovementId;
   final Value<String?> sourceType;
   final Value<String?> sourceId;
   final Value<String?> referenceType;
@@ -10863,6 +11025,11 @@ class LocalInventoryMovementsCompanion
     this.movementType = const Value.absent(),
     this.quantityChange = const Value.absent(),
     this.unitCost = const Value.absent(),
+    this.previousStock = const Value.absent(),
+    this.newStock = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.reversedMovementId = const Value.absent(),
     this.sourceType = const Value.absent(),
     this.sourceId = const Value.absent(),
     this.referenceType = const Value.absent(),
@@ -10888,6 +11055,11 @@ class LocalInventoryMovementsCompanion
     required String movementType,
     required int quantityChange,
     this.unitCost = const Value.absent(),
+    this.previousStock = const Value.absent(),
+    this.newStock = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.reversedMovementId = const Value.absent(),
     this.sourceType = const Value.absent(),
     this.sourceId = const Value.absent(),
     this.referenceType = const Value.absent(),
@@ -10919,6 +11091,11 @@ class LocalInventoryMovementsCompanion
     Expression<String>? movementType,
     Expression<int>? quantityChange,
     Expression<double>? unitCost,
+    Expression<int>? previousStock,
+    Expression<int>? newStock,
+    Expression<String>? createdBy,
+    Expression<String>? deviceId,
+    Expression<String>? reversedMovementId,
     Expression<String>? sourceType,
     Expression<String>? sourceId,
     Expression<String>? referenceType,
@@ -10944,6 +11121,12 @@ class LocalInventoryMovementsCompanion
       if (movementType != null) 'movement_type': movementType,
       if (quantityChange != null) 'quantity_change': quantityChange,
       if (unitCost != null) 'unit_cost': unitCost,
+      if (previousStock != null) 'previous_stock': previousStock,
+      if (newStock != null) 'new_stock': newStock,
+      if (createdBy != null) 'created_by': createdBy,
+      if (deviceId != null) 'device_id': deviceId,
+      if (reversedMovementId != null)
+        'reversed_movement_id': reversedMovementId,
       if (sourceType != null) 'source_type': sourceType,
       if (sourceId != null) 'source_id': sourceId,
       if (referenceType != null) 'reference_type': referenceType,
@@ -10971,6 +11154,11 @@ class LocalInventoryMovementsCompanion
       Value<String>? movementType,
       Value<int>? quantityChange,
       Value<double?>? unitCost,
+      Value<int?>? previousStock,
+      Value<int?>? newStock,
+      Value<String?>? createdBy,
+      Value<String?>? deviceId,
+      Value<String?>? reversedMovementId,
       Value<String?>? sourceType,
       Value<String?>? sourceId,
       Value<String?>? referenceType,
@@ -10995,6 +11183,11 @@ class LocalInventoryMovementsCompanion
       movementType: movementType ?? this.movementType,
       quantityChange: quantityChange ?? this.quantityChange,
       unitCost: unitCost ?? this.unitCost,
+      previousStock: previousStock ?? this.previousStock,
+      newStock: newStock ?? this.newStock,
+      createdBy: createdBy ?? this.createdBy,
+      deviceId: deviceId ?? this.deviceId,
+      reversedMovementId: reversedMovementId ?? this.reversedMovementId,
       sourceType: sourceType ?? this.sourceType,
       sourceId: sourceId ?? this.sourceId,
       referenceType: referenceType ?? this.referenceType,
@@ -11037,6 +11230,21 @@ class LocalInventoryMovementsCompanion
     }
     if (unitCost.present) {
       map['unit_cost'] = Variable<double>(unitCost.value);
+    }
+    if (previousStock.present) {
+      map['previous_stock'] = Variable<int>(previousStock.value);
+    }
+    if (newStock.present) {
+      map['new_stock'] = Variable<int>(newStock.value);
+    }
+    if (createdBy.present) {
+      map['created_by'] = Variable<String>(createdBy.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (reversedMovementId.present) {
+      map['reversed_movement_id'] = Variable<String>(reversedMovementId.value);
     }
     if (sourceType.present) {
       map['source_type'] = Variable<String>(sourceType.value);
@@ -11099,6 +11307,11 @@ class LocalInventoryMovementsCompanion
           ..write('movementType: $movementType, ')
           ..write('quantityChange: $quantityChange, ')
           ..write('unitCost: $unitCost, ')
+          ..write('previousStock: $previousStock, ')
+          ..write('newStock: $newStock, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('reversedMovementId: $reversedMovementId, ')
           ..write('sourceType: $sourceType, ')
           ..write('sourceId: $sourceId, ')
           ..write('referenceType: $referenceType, ')
@@ -11114,6 +11327,518 @@ class LocalInventoryMovementsCompanion
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalHistoryHydrationStatesTable extends LocalHistoryHydrationStates
+    with
+        TableInfo<$LocalHistoryHydrationStatesTable,
+            LocalHistoryHydrationState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalHistoryHydrationStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+      'domain', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _oldestCursorOccurredAtMeta =
+      const VerificationMeta('oldestCursorOccurredAt');
+  @override
+  late final GeneratedColumn<DateTime> oldestCursorOccurredAt =
+      GeneratedColumn<DateTime>('oldest_cursor_occurred_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _oldestCursorIdMeta =
+      const VerificationMeta('oldestCursorId');
+  @override
+  late final GeneratedColumn<String> oldestCursorId = GeneratedColumn<String>(
+      'oldest_cursor_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _hasMoreMeta =
+      const VerificationMeta('hasMore');
+  @override
+  late final GeneratedColumn<bool> hasMore = GeneratedColumn<bool>(
+      'has_more', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("has_more" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _lastRefreshedAtMeta =
+      const VerificationMeta('lastRefreshedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastRefreshedAt =
+      GeneratedColumn<DateTime>('last_refreshed_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        businessId,
+        branchId,
+        domain,
+        oldestCursorOccurredAt,
+        oldestCursorId,
+        hasMore,
+        lastRefreshedAt,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_history_hydration_states';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalHistoryHydrationState> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('domain')) {
+      context.handle(_domainMeta,
+          domain.isAcceptableOrUnknown(data['domain']!, _domainMeta));
+    } else if (isInserting) {
+      context.missing(_domainMeta);
+    }
+    if (data.containsKey('oldest_cursor_occurred_at')) {
+      context.handle(
+          _oldestCursorOccurredAtMeta,
+          oldestCursorOccurredAt.isAcceptableOrUnknown(
+              data['oldest_cursor_occurred_at']!, _oldestCursorOccurredAtMeta));
+    }
+    if (data.containsKey('oldest_cursor_id')) {
+      context.handle(
+          _oldestCursorIdMeta,
+          oldestCursorId.isAcceptableOrUnknown(
+              data['oldest_cursor_id']!, _oldestCursorIdMeta));
+    }
+    if (data.containsKey('has_more')) {
+      context.handle(_hasMoreMeta,
+          hasMore.isAcceptableOrUnknown(data['has_more']!, _hasMoreMeta));
+    }
+    if (data.containsKey('last_refreshed_at')) {
+      context.handle(
+          _lastRefreshedAtMeta,
+          lastRefreshedAt.isAcceptableOrUnknown(
+              data['last_refreshed_at']!, _lastRefreshedAtMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {businessId, branchId, domain};
+  @override
+  LocalHistoryHydrationState map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalHistoryHydrationState(
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      domain: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}domain'])!,
+      oldestCursorOccurredAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}oldest_cursor_occurred_at']),
+      oldestCursorId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}oldest_cursor_id']),
+      hasMore: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}has_more'])!,
+      lastRefreshedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_refreshed_at']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $LocalHistoryHydrationStatesTable createAlias(String alias) {
+    return $LocalHistoryHydrationStatesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalHistoryHydrationState extends DataClass
+    implements Insertable<LocalHistoryHydrationState> {
+  final String businessId;
+  final String branchId;
+  final String domain;
+  final DateTime? oldestCursorOccurredAt;
+  final String? oldestCursorId;
+  final bool hasMore;
+  final DateTime? lastRefreshedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalHistoryHydrationState(
+      {required this.businessId,
+      required this.branchId,
+      required this.domain,
+      this.oldestCursorOccurredAt,
+      this.oldestCursorId,
+      required this.hasMore,
+      this.lastRefreshedAt,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['domain'] = Variable<String>(domain);
+    if (!nullToAbsent || oldestCursorOccurredAt != null) {
+      map['oldest_cursor_occurred_at'] =
+          Variable<DateTime>(oldestCursorOccurredAt);
+    }
+    if (!nullToAbsent || oldestCursorId != null) {
+      map['oldest_cursor_id'] = Variable<String>(oldestCursorId);
+    }
+    map['has_more'] = Variable<bool>(hasMore);
+    if (!nullToAbsent || lastRefreshedAt != null) {
+      map['last_refreshed_at'] = Variable<DateTime>(lastRefreshedAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalHistoryHydrationStatesCompanion toCompanion(bool nullToAbsent) {
+    return LocalHistoryHydrationStatesCompanion(
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      domain: Value(domain),
+      oldestCursorOccurredAt: oldestCursorOccurredAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(oldestCursorOccurredAt),
+      oldestCursorId: oldestCursorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(oldestCursorId),
+      hasMore: Value(hasMore),
+      lastRefreshedAt: lastRefreshedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastRefreshedAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalHistoryHydrationState.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalHistoryHydrationState(
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      domain: serializer.fromJson<String>(json['domain']),
+      oldestCursorOccurredAt:
+          serializer.fromJson<DateTime?>(json['oldestCursorOccurredAt']),
+      oldestCursorId: serializer.fromJson<String?>(json['oldestCursorId']),
+      hasMore: serializer.fromJson<bool>(json['hasMore']),
+      lastRefreshedAt: serializer.fromJson<DateTime?>(json['lastRefreshedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'domain': serializer.toJson<String>(domain),
+      'oldestCursorOccurredAt':
+          serializer.toJson<DateTime?>(oldestCursorOccurredAt),
+      'oldestCursorId': serializer.toJson<String?>(oldestCursorId),
+      'hasMore': serializer.toJson<bool>(hasMore),
+      'lastRefreshedAt': serializer.toJson<DateTime?>(lastRefreshedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalHistoryHydrationState copyWith(
+          {String? businessId,
+          String? branchId,
+          String? domain,
+          Value<DateTime?> oldestCursorOccurredAt = const Value.absent(),
+          Value<String?> oldestCursorId = const Value.absent(),
+          bool? hasMore,
+          Value<DateTime?> lastRefreshedAt = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      LocalHistoryHydrationState(
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        domain: domain ?? this.domain,
+        oldestCursorOccurredAt: oldestCursorOccurredAt.present
+            ? oldestCursorOccurredAt.value
+            : this.oldestCursorOccurredAt,
+        oldestCursorId:
+            oldestCursorId.present ? oldestCursorId.value : this.oldestCursorId,
+        hasMore: hasMore ?? this.hasMore,
+        lastRefreshedAt: lastRefreshedAt.present
+            ? lastRefreshedAt.value
+            : this.lastRefreshedAt,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  LocalHistoryHydrationState copyWithCompanion(
+      LocalHistoryHydrationStatesCompanion data) {
+    return LocalHistoryHydrationState(
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      oldestCursorOccurredAt: data.oldestCursorOccurredAt.present
+          ? data.oldestCursorOccurredAt.value
+          : this.oldestCursorOccurredAt,
+      oldestCursorId: data.oldestCursorId.present
+          ? data.oldestCursorId.value
+          : this.oldestCursorId,
+      hasMore: data.hasMore.present ? data.hasMore.value : this.hasMore,
+      lastRefreshedAt: data.lastRefreshedAt.present
+          ? data.lastRefreshedAt.value
+          : this.lastRefreshedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalHistoryHydrationState(')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('domain: $domain, ')
+          ..write('oldestCursorOccurredAt: $oldestCursorOccurredAt, ')
+          ..write('oldestCursorId: $oldestCursorId, ')
+          ..write('hasMore: $hasMore, ')
+          ..write('lastRefreshedAt: $lastRefreshedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      businessId,
+      branchId,
+      domain,
+      oldestCursorOccurredAt,
+      oldestCursorId,
+      hasMore,
+      lastRefreshedAt,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalHistoryHydrationState &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.domain == this.domain &&
+          other.oldestCursorOccurredAt == this.oldestCursorOccurredAt &&
+          other.oldestCursorId == this.oldestCursorId &&
+          other.hasMore == this.hasMore &&
+          other.lastRefreshedAt == this.lastRefreshedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalHistoryHydrationStatesCompanion
+    extends UpdateCompanion<LocalHistoryHydrationState> {
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> domain;
+  final Value<DateTime?> oldestCursorOccurredAt;
+  final Value<String?> oldestCursorId;
+  final Value<bool> hasMore;
+  final Value<DateTime?> lastRefreshedAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalHistoryHydrationStatesCompanion({
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.oldestCursorOccurredAt = const Value.absent(),
+    this.oldestCursorId = const Value.absent(),
+    this.hasMore = const Value.absent(),
+    this.lastRefreshedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalHistoryHydrationStatesCompanion.insert({
+    required String businessId,
+    required String branchId,
+    required String domain,
+    this.oldestCursorOccurredAt = const Value.absent(),
+    this.oldestCursorId = const Value.absent(),
+    this.hasMore = const Value.absent(),
+    this.lastRefreshedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : businessId = Value(businessId),
+        branchId = Value(branchId),
+        domain = Value(domain);
+  static Insertable<LocalHistoryHydrationState> custom({
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? domain,
+    Expression<DateTime>? oldestCursorOccurredAt,
+    Expression<String>? oldestCursorId,
+    Expression<bool>? hasMore,
+    Expression<DateTime>? lastRefreshedAt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (domain != null) 'domain': domain,
+      if (oldestCursorOccurredAt != null)
+        'oldest_cursor_occurred_at': oldestCursorOccurredAt,
+      if (oldestCursorId != null) 'oldest_cursor_id': oldestCursorId,
+      if (hasMore != null) 'has_more': hasMore,
+      if (lastRefreshedAt != null) 'last_refreshed_at': lastRefreshedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalHistoryHydrationStatesCompanion copyWith(
+      {Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? domain,
+      Value<DateTime?>? oldestCursorOccurredAt,
+      Value<String?>? oldestCursorId,
+      Value<bool>? hasMore,
+      Value<DateTime?>? lastRefreshedAt,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return LocalHistoryHydrationStatesCompanion(
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      domain: domain ?? this.domain,
+      oldestCursorOccurredAt:
+          oldestCursorOccurredAt ?? this.oldestCursorOccurredAt,
+      oldestCursorId: oldestCursorId ?? this.oldestCursorId,
+      hasMore: hasMore ?? this.hasMore,
+      lastRefreshedAt: lastRefreshedAt ?? this.lastRefreshedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (oldestCursorOccurredAt.present) {
+      map['oldest_cursor_occurred_at'] =
+          Variable<DateTime>(oldestCursorOccurredAt.value);
+    }
+    if (oldestCursorId.present) {
+      map['oldest_cursor_id'] = Variable<String>(oldestCursorId.value);
+    }
+    if (hasMore.present) {
+      map['has_more'] = Variable<bool>(hasMore.value);
+    }
+    if (lastRefreshedAt.present) {
+      map['last_refreshed_at'] = Variable<DateTime>(lastRefreshedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalHistoryHydrationStatesCompanion(')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('domain: $domain, ')
+          ..write('oldestCursorOccurredAt: $oldestCursorOccurredAt, ')
+          ..write('oldestCursorId: $oldestCursorId, ')
+          ..write('hasMore: $hasMore, ')
+          ..write('lastRefreshedAt: $lastRefreshedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -23076,6 +23801,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalSyncMutationsTable(this);
   late final $LocalInventoryMovementsTable localInventoryMovements =
       $LocalInventoryMovementsTable(this);
+  late final $LocalHistoryHydrationStatesTable localHistoryHydrationStates =
+      $LocalHistoryHydrationStatesTable(this);
   late final $LocalProductStockBalancesTable localProductStockBalances =
       $LocalProductStockBalancesTable(this);
   late final $LocalOperationalBootstrapCheckpointsTable
@@ -23125,6 +23852,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localSyncBatches,
         localSyncMutations,
         localInventoryMovements,
+        localHistoryHydrationStates,
         localProductStockBalances,
         localOperationalBootstrapCheckpoints,
         localOperationalBootstrapSeenRecords,
@@ -30075,6 +30803,11 @@ typedef $$LocalInventoryMovementsTableCreateCompanionBuilder
   required String movementType,
   required int quantityChange,
   Value<double?> unitCost,
+  Value<int?> previousStock,
+  Value<int?> newStock,
+  Value<String?> createdBy,
+  Value<String?> deviceId,
+  Value<String?> reversedMovementId,
   Value<String?> sourceType,
   Value<String?> sourceId,
   Value<String?> referenceType,
@@ -30101,6 +30834,11 @@ typedef $$LocalInventoryMovementsTableUpdateCompanionBuilder
   Value<String> movementType,
   Value<int> quantityChange,
   Value<double?> unitCost,
+  Value<int?> previousStock,
+  Value<int?> newStock,
+  Value<String?> createdBy,
+  Value<String?> deviceId,
+  Value<String?> reversedMovementId,
   Value<String?> sourceType,
   Value<String?> sourceId,
   Value<String?> referenceType,
@@ -30149,6 +30887,22 @@ class $$LocalInventoryMovementsTableFilterComposer
 
   ColumnFilters<double> get unitCost => $composableBuilder(
       column: $table.unitCost, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get previousStock => $composableBuilder(
+      column: $table.previousStock, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get newStock => $composableBuilder(
+      column: $table.newStock, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get createdBy => $composableBuilder(
+      column: $table.createdBy, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+      column: $table.deviceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reversedMovementId => $composableBuilder(
+      column: $table.reversedMovementId,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get sourceType => $composableBuilder(
       column: $table.sourceType, builder: (column) => ColumnFilters(column));
@@ -30229,6 +30983,23 @@ class $$LocalInventoryMovementsTableOrderingComposer
   ColumnOrderings<double> get unitCost => $composableBuilder(
       column: $table.unitCost, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get previousStock => $composableBuilder(
+      column: $table.previousStock,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get newStock => $composableBuilder(
+      column: $table.newStock, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get createdBy => $composableBuilder(
+      column: $table.createdBy, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+      column: $table.deviceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reversedMovementId => $composableBuilder(
+      column: $table.reversedMovementId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get sourceType => $composableBuilder(
       column: $table.sourceType, builder: (column) => ColumnOrderings(column));
 
@@ -30308,6 +31079,21 @@ class $$LocalInventoryMovementsTableAnnotationComposer
 
   GeneratedColumn<double> get unitCost =>
       $composableBuilder(column: $table.unitCost, builder: (column) => column);
+
+  GeneratedColumn<int> get previousStock => $composableBuilder(
+      column: $table.previousStock, builder: (column) => column);
+
+  GeneratedColumn<int> get newStock =>
+      $composableBuilder(column: $table.newStock, builder: (column) => column);
+
+  GeneratedColumn<String> get createdBy =>
+      $composableBuilder(column: $table.createdBy, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get reversedMovementId => $composableBuilder(
+      column: $table.reversedMovementId, builder: (column) => column);
 
   GeneratedColumn<String> get sourceType => $composableBuilder(
       column: $table.sourceType, builder: (column) => column);
@@ -30393,6 +31179,11 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             Value<String> movementType = const Value.absent(),
             Value<int> quantityChange = const Value.absent(),
             Value<double?> unitCost = const Value.absent(),
+            Value<int?> previousStock = const Value.absent(),
+            Value<int?> newStock = const Value.absent(),
+            Value<String?> createdBy = const Value.absent(),
+            Value<String?> deviceId = const Value.absent(),
+            Value<String?> reversedMovementId = const Value.absent(),
             Value<String?> sourceType = const Value.absent(),
             Value<String?> sourceId = const Value.absent(),
             Value<String?> referenceType = const Value.absent(),
@@ -30418,6 +31209,11 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             movementType: movementType,
             quantityChange: quantityChange,
             unitCost: unitCost,
+            previousStock: previousStock,
+            newStock: newStock,
+            createdBy: createdBy,
+            deviceId: deviceId,
+            reversedMovementId: reversedMovementId,
             sourceType: sourceType,
             sourceId: sourceId,
             referenceType: referenceType,
@@ -30443,6 +31239,11 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             required String movementType,
             required int quantityChange,
             Value<double?> unitCost = const Value.absent(),
+            Value<int?> previousStock = const Value.absent(),
+            Value<int?> newStock = const Value.absent(),
+            Value<String?> createdBy = const Value.absent(),
+            Value<String?> deviceId = const Value.absent(),
+            Value<String?> reversedMovementId = const Value.absent(),
             Value<String?> sourceType = const Value.absent(),
             Value<String?> sourceId = const Value.absent(),
             Value<String?> referenceType = const Value.absent(),
@@ -30468,6 +31269,11 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             movementType: movementType,
             quantityChange: quantityChange,
             unitCost: unitCost,
+            previousStock: previousStock,
+            newStock: newStock,
+            createdBy: createdBy,
+            deviceId: deviceId,
+            reversedMovementId: reversedMovementId,
             sourceType: sourceType,
             sourceId: sourceId,
             referenceType: referenceType,
@@ -30508,6 +31314,252 @@ typedef $$LocalInventoryMovementsTableProcessedTableManager
               LocalInventoryMovement>
         ),
         LocalInventoryMovement,
+        PrefetchHooks Function()>;
+typedef $$LocalHistoryHydrationStatesTableCreateCompanionBuilder
+    = LocalHistoryHydrationStatesCompanion Function({
+  required String businessId,
+  required String branchId,
+  required String domain,
+  Value<DateTime?> oldestCursorOccurredAt,
+  Value<String?> oldestCursorId,
+  Value<bool> hasMore,
+  Value<DateTime?> lastRefreshedAt,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$LocalHistoryHydrationStatesTableUpdateCompanionBuilder
+    = LocalHistoryHydrationStatesCompanion Function({
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> domain,
+  Value<DateTime?> oldestCursorOccurredAt,
+  Value<String?> oldestCursorId,
+  Value<bool> hasMore,
+  Value<DateTime?> lastRefreshedAt,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$LocalHistoryHydrationStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalHistoryHydrationStatesTable> {
+  $$LocalHistoryHydrationStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get domain => $composableBuilder(
+      column: $table.domain, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get oldestCursorOccurredAt => $composableBuilder(
+      column: $table.oldestCursorOccurredAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get oldestCursorId => $composableBuilder(
+      column: $table.oldestCursorId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hasMore => $composableBuilder(
+      column: $table.hasMore, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastRefreshedAt => $composableBuilder(
+      column: $table.lastRefreshedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalHistoryHydrationStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalHistoryHydrationStatesTable> {
+  $$LocalHistoryHydrationStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+      column: $table.domain, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get oldestCursorOccurredAt => $composableBuilder(
+      column: $table.oldestCursorOccurredAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get oldestCursorId => $composableBuilder(
+      column: $table.oldestCursorId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get hasMore => $composableBuilder(
+      column: $table.hasMore, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastRefreshedAt => $composableBuilder(
+      column: $table.lastRefreshedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalHistoryHydrationStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalHistoryHydrationStatesTable> {
+  $$LocalHistoryHydrationStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get oldestCursorOccurredAt => $composableBuilder(
+      column: $table.oldestCursorOccurredAt, builder: (column) => column);
+
+  GeneratedColumn<String> get oldestCursorId => $composableBuilder(
+      column: $table.oldestCursorId, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasMore =>
+      $composableBuilder(column: $table.hasMore, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastRefreshedAt => $composableBuilder(
+      column: $table.lastRefreshedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalHistoryHydrationStatesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalHistoryHydrationStatesTable,
+    LocalHistoryHydrationState,
+    $$LocalHistoryHydrationStatesTableFilterComposer,
+    $$LocalHistoryHydrationStatesTableOrderingComposer,
+    $$LocalHistoryHydrationStatesTableAnnotationComposer,
+    $$LocalHistoryHydrationStatesTableCreateCompanionBuilder,
+    $$LocalHistoryHydrationStatesTableUpdateCompanionBuilder,
+    (
+      LocalHistoryHydrationState,
+      BaseReferences<_$AppDatabase, $LocalHistoryHydrationStatesTable,
+          LocalHistoryHydrationState>
+    ),
+    LocalHistoryHydrationState,
+    PrefetchHooks Function()> {
+  $$LocalHistoryHydrationStatesTableTableManager(
+      _$AppDatabase db, $LocalHistoryHydrationStatesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalHistoryHydrationStatesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalHistoryHydrationStatesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalHistoryHydrationStatesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> domain = const Value.absent(),
+            Value<DateTime?> oldestCursorOccurredAt = const Value.absent(),
+            Value<String?> oldestCursorId = const Value.absent(),
+            Value<bool> hasMore = const Value.absent(),
+            Value<DateTime?> lastRefreshedAt = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalHistoryHydrationStatesCompanion(
+            businessId: businessId,
+            branchId: branchId,
+            domain: domain,
+            oldestCursorOccurredAt: oldestCursorOccurredAt,
+            oldestCursorId: oldestCursorId,
+            hasMore: hasMore,
+            lastRefreshedAt: lastRefreshedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String businessId,
+            required String branchId,
+            required String domain,
+            Value<DateTime?> oldestCursorOccurredAt = const Value.absent(),
+            Value<String?> oldestCursorId = const Value.absent(),
+            Value<bool> hasMore = const Value.absent(),
+            Value<DateTime?> lastRefreshedAt = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalHistoryHydrationStatesCompanion.insert(
+            businessId: businessId,
+            branchId: branchId,
+            domain: domain,
+            oldestCursorOccurredAt: oldestCursorOccurredAt,
+            oldestCursorId: oldestCursorId,
+            hasMore: hasMore,
+            lastRefreshedAt: lastRefreshedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalHistoryHydrationStatesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalHistoryHydrationStatesTable,
+        LocalHistoryHydrationState,
+        $$LocalHistoryHydrationStatesTableFilterComposer,
+        $$LocalHistoryHydrationStatesTableOrderingComposer,
+        $$LocalHistoryHydrationStatesTableAnnotationComposer,
+        $$LocalHistoryHydrationStatesTableCreateCompanionBuilder,
+        $$LocalHistoryHydrationStatesTableUpdateCompanionBuilder,
+        (
+          LocalHistoryHydrationState,
+          BaseReferences<_$AppDatabase, $LocalHistoryHydrationStatesTable,
+              LocalHistoryHydrationState>
+        ),
+        LocalHistoryHydrationState,
         PrefetchHooks Function()>;
 typedef $$LocalProductStockBalancesTableCreateCompanionBuilder
     = LocalProductStockBalancesCompanion Function({
@@ -38601,6 +39653,10 @@ class $AppDatabaseManager {
   $$LocalInventoryMovementsTableTableManager get localInventoryMovements =>
       $$LocalInventoryMovementsTableTableManager(
           _db, _db.localInventoryMovements);
+  $$LocalHistoryHydrationStatesTableTableManager
+      get localHistoryHydrationStates =>
+          $$LocalHistoryHydrationStatesTableTableManager(
+              _db, _db.localHistoryHydrationStates);
   $$LocalProductStockBalancesTableTableManager get localProductStockBalances =>
       $$LocalProductStockBalancesTableTableManager(
           _db, _db.localProductStockBalances);
