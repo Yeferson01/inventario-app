@@ -8,7 +8,9 @@ import '../../../administration/presentation/widgets/business_invitation_access_
 import '../../../auth/application/authenticated_access_models.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../auth/application/productive_auth_providers.dart';
+import '../../../auth/data/datasources/self_service_business_creation_remote_datasource.dart';
 import '../../../auth/data/models/platform_business_invitation_models.dart';
+import '../../../auth/presentation/screens/create_business_screen.dart';
 import '../../../auth/presentation/screens/private_invitation_screen.dart';
 import '../../../auth/presentation/widgets/platform_invitation_access_panel.dart';
 import '../../../cash/application/cash_session_local_models.dart';
@@ -16,6 +18,7 @@ import '../../../cash/application/cash_session_local_provider.dart';
 import '../../../cash/presentation/widgets/productive_open_cash_session_dialog.dart';
 import '../../application/app_current_context_provider.dart';
 import '../../application/app_router_sync_bootstrap_provider.dart';
+import '../../application/authorized_operational_context_providers.dart';
 import '../../application/cash_repair_context_service.dart';
 import '../../application/operational_bootstrap_entry_models.dart';
 import '../../application/operational_bootstrap_entry_providers.dart';
@@ -58,6 +61,7 @@ class BusinessContextRequiredGate extends ConsumerStatefulWidget {
 class _BusinessContextRequiredGateState
     extends ConsumerState<BusinessContextRequiredGate> {
   OperationalContextSelection? _selection;
+  bool _creatingBusiness = false;
   final _recoveryNavigatorHostKey =
       GlobalKey<_RecoveryBlockedNavigatorHostState>();
   bool _cashRepairRunning = false;
@@ -67,6 +71,7 @@ class _BusinessContextRequiredGateState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profileId != widget.profileId) {
       _selection = null;
+      _creatingBusiness = false;
     }
   }
 
@@ -174,6 +179,23 @@ class _BusinessContextRequiredGateState
   }
 
   Future<void> _signOut() => ref.read(productiveSignOutProvider)();
+
+  Future<void> _businessCreated(
+    SelfServiceBusinessCreationResult result,
+  ) async {
+    if (!mounted) return;
+    setState(() {
+      _creatingBusiness = false;
+      _selection = OperationalContextSelection(
+        businessId: result.businessId,
+        branchId: result.branchId,
+      );
+    });
+    ref.invalidate(authorizedOperationalContextServiceProvider);
+    ref.invalidate(authenticatedAccessResolverServiceProvider);
+    ref.invalidate(authenticatedAccessResolverProvider(widget.profileId));
+    ref.invalidate(productiveOperationalEntryProvider);
+  }
 
   Future<CashRepairContextResult> _refreshCashForRecovery(
     OperationalBootstrapEntryResult result, {
@@ -371,12 +393,21 @@ class _BusinessContextRequiredGateState
             onSignOut: _signOut,
           );
         }
+        if (_creatingBusiness) {
+          return CreateBusinessScreen(
+            onCreated: _businessCreated,
+            onCancel: () => setState(() => _creatingBusiness = false),
+            onSessionInvalid: _signOut,
+          );
+        }
         return _OperationalEntryStatus(
           title: 'Aún no tienes acceso a ningún negocio',
           message:
               'Puedes esperar a que un administrador te agregue o crear tu propio negocio.',
-          actionLabel: 'Cerrar sesión',
-          onAction: _signOut,
+          actionLabel: 'Crear negocio',
+          onAction: () => setState(() => _creatingBusiness = true),
+          secondaryActionLabel: 'Cerrar sesión',
+          onSecondaryAction: _signOut,
         );
       case OperationalBootstrapEntryOutcome.selectionRequired:
         return BusinessContextSelectionScreen(
