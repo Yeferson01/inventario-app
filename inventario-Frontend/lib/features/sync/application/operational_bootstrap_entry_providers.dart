@@ -16,6 +16,7 @@ import 'operational_bootstrap_entry_models.dart';
 import 'operational_bootstrap_entry_service.dart';
 import 'operational_bootstrap_orchestration_models.dart';
 import 'operational_bootstrap_providers.dart';
+import 'post_invitation_bootstrap_stabilization_service.dart';
 import '../data/models/authorized_operational_context_models.dart';
 
 class ProductiveOperationalSelectionIntent {
@@ -240,6 +241,27 @@ final productiveOperationalEntryProvider = FutureProvider.family<
     );
   },
 );
+
+final postInvitationBootstrapStabilizationServiceProvider =
+    Provider.family<PostInvitationBootstrapStabilizationService, String>(
+        (ref, profileId) {
+  return PostInvitationBootstrapStabilizationService(
+    refreshAccess: () async {
+      ref.invalidate(authorizedOperationalContextServiceProvider);
+      ref.invalidate(authenticatedAccessResolverServiceProvider);
+      ref.invalidate(authenticatedAccessResolverProvider(profileId));
+      return ref.read(authenticatedAccessResolverProvider(profileId).future);
+    },
+    runEntry: (selection) {
+      final request = ProductiveOperationalEntryRequest(
+        profileId: profileId,
+        selection: selection,
+      );
+      ref.invalidate(productiveOperationalEntryProvider(request));
+      return ref.read(productiveOperationalEntryProvider(request).future);
+    },
+  );
+});
 
 final offlineOperationalReadinessServiceProvider =
     Provider<OfflineOperationalReadinessService>((ref) {

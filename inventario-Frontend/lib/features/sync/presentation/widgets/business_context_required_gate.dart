@@ -62,6 +62,7 @@ class _BusinessContextRequiredGateState
     extends ConsumerState<BusinessContextRequiredGate> {
   OperationalContextSelection? _selection;
   bool _creatingBusiness = false;
+  bool _postInvitationEntryStabilizing = false;
   final _recoveryNavigatorHostKey =
       GlobalKey<_RecoveryBlockedNavigatorHostState>();
   bool _cashRepairRunning = false;
@@ -72,6 +73,7 @@ class _BusinessContextRequiredGateState
     if (oldWidget.profileId != widget.profileId) {
       _selection = null;
       _creatingBusiness = false;
+      _postInvitationEntryStabilizing = false;
     }
   }
 
@@ -117,6 +119,9 @@ class _BusinessContextRequiredGateState
     if (isRefreshingAccessDenial) {
       return widget.loading ?? const _OperationalEntryLoading();
     }
+    if (_postInvitationEntryStabilizing) {
+      return widget.loading ?? const _OperationalEntryLoading();
+    }
     return entryAsync.when(
       loading: () => widget.loading ?? const _OperationalEntryLoading(),
       error: (error, stackTrace) {
@@ -145,14 +150,10 @@ class _BusinessContextRequiredGateState
     final accepted =
         await ref.read(platformInvitationAcceptorProvider)(invitationId);
     if (!mounted) return accepted;
-    setState(() {
-      _selection = OperationalContextSelection(
-        businessId: accepted.businessId,
-        branchId: accepted.branchId,
-      );
-    });
-    ref.invalidate(authenticatedAccessResolverProvider(widget.profileId));
-    ref.invalidate(productiveOperationalEntryProvider);
+    await _continueAfterInvitationAcceptance(
+      businessId: accepted.businessId,
+      branchId: accepted.branchId,
+    );
     return accepted;
   }
 
@@ -162,20 +163,47 @@ class _BusinessContextRequiredGateState
     final accepted =
         await ref.read(businessInvitationAcceptorProvider)(invitationId);
     if (!mounted) return accepted;
-    setState(() {
-      _selection = accepted.branchId == null
-          ? null
-          : OperationalContextSelection(
-              businessId: accepted.businessId,
-              branchId: accepted.branchId!,
-            );
-    });
     ref.invalidate(
       myBusinessMemberInvitationsProvider(widget.profileId),
     );
-    ref.invalidate(authenticatedAccessResolverProvider(widget.profileId));
-    ref.invalidate(productiveOperationalEntryProvider);
+    await _continueAfterInvitationAcceptance(
+      businessId: accepted.businessId,
+      branchId: accepted.branchId,
+    );
     return accepted;
+  }
+
+  Future<void> _continueAfterInvitationAcceptance({
+    required String businessId,
+    String? branchId,
+  }) async {
+    setState(() => _postInvitationEntryStabilizing = true);
+    try {
+      final result = await ref
+          .read(
+            postInvitationBootstrapStabilizationServiceProvider(
+              widget.profileId,
+            ),
+          )
+          .stabilize(
+            profileId: widget.profileId,
+            businessId: businessId,
+            branchId: branchId,
+          );
+      if (!mounted) return;
+      setState(() {
+        _selection = result.selection;
+        _postInvitationEntryStabilizing = false;
+      });
+      if (result.selection == null) {
+        ref.invalidate(productiveOperationalEntryProvider);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _postInvitationEntryStabilizing = false);
+      }
+      rethrow;
+    }
   }
 
   Future<void> _signOut() => ref.read(productiveSignOutProvider)();
