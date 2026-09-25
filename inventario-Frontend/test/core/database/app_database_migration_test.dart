@@ -9,7 +9,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates schema 8 to 12 without replacing existing balance IDs',
+  test('migrates schema 8 to 13 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -27,7 +27,7 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 12);
+    expect(database.schemaVersion, 13);
     expect(balance.read<String>('id'), 'random-local-uuid');
     expect(balance.read<int>('quantity_on_hand'), 8);
 
@@ -79,12 +79,28 @@ void main() {
         'local_operational_bootstrap_seen_records',
         'local_reconciliation_issues',
         'local_authorized_operational_contexts',
-        'local_history_hydration_states'
+        'local_history_hydration_states',
+        'local_report_snapshots'
       )
       ''',
     ).get();
-    expect(recoveryTables, hasLength(5));
+    expect(recoveryTables, hasLength(6));
 
+    final reportColumns =
+        await _columnNames(database, 'local_report_snapshots');
+    expect(
+      reportColumns,
+      containsAll(<String>{
+        'profile_id',
+        'business_id',
+        'branch_id',
+        'report_type',
+        'filter_key',
+        'payload_json',
+        'authorization_validated_at',
+        'capability_fingerprint',
+      }),
+    );
     await _verifyRecoveryDaosAfterMigration(database);
 
     await expectLater(
@@ -100,7 +116,40 @@ void main() {
     );
   });
 
-  test('migrates schema 9 to 12 preserving Product identity', () async {
+  test('migrates current schema 12 to 13 additively', () async {
+    final executor = NativeDatabase.memory(
+      setup: (rawDatabase) {
+        for (final statement in _schema10CostSetupStatements) {
+          rawDatabase.execute(statement);
+        }
+        for (final statement in _schema12UpgradeStatements) {
+          rawDatabase.execute(statement);
+        }
+      },
+    );
+    final database = AppDatabase.executor(executor);
+    addTearDown(database.close);
+
+    expect(database.schemaVersion, 13);
+    expect(
+      await _columnNames(database, 'local_report_snapshots'),
+      containsAll(<String>{
+        'profile_id',
+        'business_id',
+        'branch_id',
+        'report_type',
+        'filter_key',
+        'payload_json',
+      }),
+    );
+    final legacyMovement = await database.customSelect(
+      'select id, quantity_change from local_inventory_movements where id = ?',
+      variables: [const Variable<String>('legacy-movement')],
+    ).getSingle();
+    expect(legacyMovement.read<String>('id'), 'legacy-movement');
+    expect(legacyMovement.read<int>('quantity_change'), 4);
+  });
+  test('migrates schema 9 to 13 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema9IdentitySetupStatements) {
@@ -111,7 +160,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 12);
+    expect(database.schemaVersion, 13);
     final product = await database.customSelect(
       'select id, name, master_product_id from products where id = ?',
       variables: [const Variable<String>('legacy-product')],
@@ -134,7 +183,7 @@ void main() {
     expect(indexes, hasLength(3));
   });
 
-  test('HY-28 migrates schema 10 to 12 preserving existing movements',
+  test('HY-28 migrates schema 10 to 13 preserving existing movements',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -146,7 +195,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 12);
+    expect(database.schemaVersion, 13);
     final legacySaleItem = await database.customSelect(
       'select unit_cost_snapshot from sale_items where id = ?',
       variables: [const Variable<String>('legacy-sale-item')],
@@ -253,6 +302,29 @@ Future<Set<String>> _columnNames(AppDatabase database, String table) async {
   return rows.map((row) => row.read<String>('name')).toSet();
 }
 
+const _schema12UpgradeStatements = <String>[
+  'alter table sale_items add column unit_cost_snapshot real',
+  'alter table local_inventory_movements add column previous_stock integer',
+  'alter table local_inventory_movements add column new_stock integer',
+  'alter table local_inventory_movements add column created_by text',
+  'alter table local_inventory_movements add column device_id text',
+  'alter table local_inventory_movements add column reversed_movement_id text',
+  '''
+  create table local_history_hydration_states (
+    business_id text not null,
+    branch_id text not null,
+    domain text not null,
+    oldest_cursor_occurred_at integer,
+    oldest_cursor_id text,
+    has_more integer not null default 1,
+    last_refreshed_at integer,
+    created_at integer not null,
+    updated_at integer not null,
+    primary key (business_id, branch_id, domain)
+  )
+  ''',
+  'pragma user_version = 12',
+];
 const _schema8SetupStatements = <String>[
   'pragma user_version = 8',
   '''

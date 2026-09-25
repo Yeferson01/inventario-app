@@ -51,6 +51,8 @@ class InventoryBalanceReconciliationLocalDao {
     final movements = movementRows.map((row) {
       final data = row.data;
       final metadata = _metadata(data['metadata_json']);
+      final serverAuthoritative =
+          metadata['server_authoritative_history'] == true;
       final sourceType = data['source_type']?.toString() ?? '';
       final sourceItemId = switch (sourceType) {
         'sale' => _nonEmpty(metadata['sale_item_id']),
@@ -85,6 +87,7 @@ class InventoryBalanceReconciliationLocalDao {
         occurredAt: _date(data['occurred_at']),
         clientSequence: _int(metadata['client_sequence']),
         transportState: transportState,
+        serverAuthoritative: serverAuthoritative,
         transportEvidence: matches
             .map((item) => '${item.mutationStatus}/${item.batchStatus ?? '-'}')
             .toList(growable: false),

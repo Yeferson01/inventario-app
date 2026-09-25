@@ -78,6 +78,25 @@ void main() {
     expect(access.canPurchaseInventory, isFalse);
   });
 
+  test('reports.sales authorizes sales reports without role-name checks', () {
+    final access = DashboardModuleAccess.fromContext(
+      _context(
+        roles: const ['custom_analyst'],
+        permissions: const ['reports.sales'],
+      ),
+    );
+
+    expect(access.canViewSalesReports, isTrue);
+  });
+
+  test('sales.read does not authorize sales reports', () {
+    final access = DashboardModuleAccess.fromContext(
+      _context(permissions: const ['sales.read']),
+    );
+
+    expect(access.canViewSalesReports, isFalse);
+  });
+
   test('legacy permissions without active projection grant no module', () {
     final access = DashboardModuleAccess.fromContext(
       _context(

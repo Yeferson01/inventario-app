@@ -383,6 +383,186 @@ void main() {
     );
   });
 
+  test(
+    'server-authoritative sale without sale_item_id does not block and resolves stale issue',
+    () async {
+      await _insertBalance(
+        database,
+        'server-history-product',
+        operative: 77,
+      );
+
+      await _insertMovement(
+        database,
+        id: 'server-history-movement',
+        productId: 'server-history-product',
+        sourceType: 'sale',
+        sourceId: 'server-history-sale',
+        quantity: -1,
+      );
+
+      // Reproduce una fila que llegó desde
+      // list_inventory_movement_history:
+      // ya existe autoritativamente en Hosted y solo fue hidratada
+      // para lectura histórica local.
+      await database.customStatement('''
+        update local_inventory_movements
+        set
+          sync_status = 1,
+          local_status = 'synced',
+          metadata_json = '{"server_authoritative_history":true}'
+        where id = 'server-history-movement'
+      ''');
+
+      // Reproduce el falso blocker que generó la versión anterior
+      // antes de que existiera el marker server_authoritative_history.
+      await database.customStatement('''
+        insert into local_reconciliation_issues (
+          id,
+          profile_id,
+          business_id,
+          branch_id,
+          domain,
+          entity_type,
+          entity_id,
+          issue_type,
+          severity,
+          status,
+          message,
+          metadata_json,
+          created_at,
+          updated_at
+        ) values (
+          'stale-server-history-issue',
+          'profile-a',
+          'business-a',
+          'branch-x',
+          'inventory_balance',
+          'inventory_movements',
+          'server-history-movement',
+          'missing_source_item_id',
+          'blocking',
+          'open',
+          'Historical false positive',
+          '{}',
+          1790000000,
+          1790000000
+        )
+      ''');
+
+      final harness = _Harness(
+        database,
+        rows: [
+          _balanceRow(
+            'server-history-product',
+            onHand: 10,
+          ),
+        ],
+      );
+
+      final result = await harness.service.reconcile(_request);
+
+      expect(result.converged, isTrue);
+      expect(result.blockingIssues, 0);
+
+      // Una fila que ya sabemos que existe en Hosted no necesita
+      // volver a pasar por acknowledgement.
+      expect(
+        harness.requestedMovementIds,
+        isNot(contains('server-history-movement')),
+      );
+
+      // La convergencia autoritativa puede reemplazar el valor operativo
+      // local por el balance remoto.
+      expect(
+        await _onHand(database, 'server-history-product'),
+        10,
+      );
+
+      final issue = await database.customSelect(
+        '''
+            select status, resolved_at
+            from local_reconciliation_issues
+            where id = 'stale-server-history-issue'
+            ''',
+      ).getSingle();
+
+      expect(issue.data['status'], 'resolved');
+      expect(issue.data['resolved_at'], isNotNull);
+    },
+  );
+
+  test(
+    'ordinary local sale without sale_item_id still blocks',
+    () async {
+      await _insertBalance(
+        database,
+        'local-missing-item-product',
+        operative: 77,
+      );
+
+      await _insertMovement(
+        database,
+        id: 'local-missing-item-movement',
+        productId: 'local-missing-item-product',
+        sourceType: 'sale',
+        sourceId: 'local-sale-1',
+        quantity: -1,
+      );
+
+      final harness = _Harness(
+        database,
+        rows: [
+          _balanceRow(
+            'local-missing-item-product',
+            onHand: 10,
+          ),
+        ],
+      );
+
+      final result = await harness.service.reconcile(_request);
+
+      expect(result.converged, isFalse);
+      expect(result.blockingIssues, greaterThan(0));
+
+      // Sin sale_item_id tampoco es seguro pedir acknowledgement,
+      // pero al NO ser server-authoritative debe producir blocker.
+      expect(
+        harness.requestedMovementIds,
+        isNot(contains('local-missing-item-movement')),
+      );
+
+      // Ante una inconsistencia local real conservamos el valor operativo.
+      expect(
+        await _onHand(database, 'local-missing-item-product'),
+        77,
+      );
+
+      final issues = await database.customSelect(
+        '''
+            select issue_type, severity, status
+            from local_reconciliation_issues
+            where entity_type = 'inventory_movements'
+              and entity_id = 'local-missing-item-movement'
+            ''',
+      ).get();
+
+      expect(issues, hasLength(1));
+      expect(
+        issues.single.data['issue_type'],
+        'missing_source_item_id',
+      );
+      expect(
+        issues.single.data['severity'],
+        'blocking',
+      );
+      expect(
+        issues.single.data['status'],
+        'open',
+      );
+    },
+  );
+
   test('clean tombstone invalidates while tombstone with pending blocks',
       () async {
     await _insertBalance(database, 'clean', operative: 4);

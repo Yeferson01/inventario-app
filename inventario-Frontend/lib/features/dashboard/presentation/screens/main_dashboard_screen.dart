@@ -13,7 +13,9 @@ import '../../../auth/application/productive_auth_providers.dart';
 import '../../application/dashboard_module_access.dart';
 import '../../../inventory/application/product_stock_balance_providers.dart';
 import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
+import '../../../inventory/presentation/screens/inventory_movements_screen.dart';
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
+import '../../../reports/presentation/screens/sales_report_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
 import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
@@ -259,6 +261,113 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           deviceInstallationId: appContext.installationId,
           effectivePermissions: appContext.permissions.values,
           initialStockFilter: initialStockFilter,
+          onOpenProductMovements: ({
+            required productId,
+            required productName,
+            productBarcode,
+          }) async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => InventoryMovementsScreen(
+                  appContext: appContext,
+                  branchName: branchName ?? branchId,
+                  productId: productId,
+                  productName: productName,
+                  productBarcode: productBarcode,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMovements({
+    String? branchName,
+  }) async {
+    final appContext = _appContext;
+    final access = DashboardModuleAccess.fromContext(appContext);
+
+    if (appContext == null || !access.canReadInventory) {
+      _showInfoSheet(
+        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        message: appContext == null
+            ? 'Selecciona un negocio y una sucursal antes de abrir movimientos.'
+            : 'Consultar movimientos requiere inventory.read.',
+      );
+      return;
+    }
+
+    final businessId = appContext.businessId.trim();
+    final branchId = appContext.branchId?.trim();
+    final profileId = appContext.profileId?.trim();
+
+    if (businessId.isEmpty ||
+        branchId == null ||
+        branchId.isEmpty ||
+        profileId == null ||
+        profileId.isEmpty ||
+        !appContext.authorizationContextReady) {
+      _showInfoSheet(
+        title: 'Contexto incompleto',
+        message:
+            'Movimientos necesita un perfil, negocio y sucursal operativos activos.',
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => InventoryMovementsScreen(
+          appContext: appContext,
+          branchName: branchName ?? branchId,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSalesReports({String? branchName}) async {
+    final appContext = _appContext;
+    final access = DashboardModuleAccess.fromContext(appContext);
+
+    if (appContext == null || !access.canViewSalesReports) {
+      _showInfoSheet(
+        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        message: appContext == null
+            ? 'Selecciona un negocio y una sucursal antes de abrir reportes.'
+            : 'Consultar reportes de ventas requiere reports.sales.',
+      );
+      return;
+    }
+
+    final businessId = appContext.businessId.trim();
+    final branchId = appContext.branchId?.trim();
+    final profileId = appContext.profileId?.trim();
+    if (businessId.isEmpty ||
+        branchId == null ||
+        branchId.isEmpty ||
+        profileId == null ||
+        profileId.isEmpty ||
+        !appContext.authorizationContextReady) {
+      _showInfoSheet(
+        title: 'Contexto incompleto',
+        message:
+            'Reportes necesita un perfil, negocio y sucursal operativos activos.',
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SalesReportScreen(
+          profileId: profileId,
+          businessId: businessId,
+          branchId: branchId,
+          branchName: branchName ?? branchId,
+          effectivePermissions: appContext.permissions.values,
+          authorizationContextReady: appContext.authorizationContextReady,
+          authorizationValidatedAt: appContext.authorizationValidatedAt,
         ),
       ),
     );
@@ -594,11 +703,16 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                         onOpenInventory: () => _openInventory(
                           branchName: operationalContext?.branchName,
                         ),
+                        onOpenMovements: () => _openMovements(
+                          branchName: operationalContext?.branchName,
+                        ),
                         onOpenPurchases: _openPurchases,
+                        onOpenSalesReports: () => _openSalesReports(
+                          branchName: operationalContext?.branchName,
+                        ),
                         isManualSyncing: _isManualSyncing,
                         productiveSyncStatus: productiveSyncStatus,
                         onManualSync: _runManualSync,
-                        onComingSoon: _showInfoSheet,
                       ),
                     ),
                     const SizedBox(height: CronosSpacing.lg),
@@ -877,11 +991,12 @@ class _ModulesGrid extends StatelessWidget {
     required this.onOpenCash,
     required this.onOpenPos,
     required this.onOpenInventory,
+    required this.onOpenMovements,
     required this.onOpenPurchases,
+    required this.onOpenSalesReports,
     required this.isManualSyncing,
     required this.productiveSyncStatus,
     required this.onManualSync,
-    required this.onComingSoon,
   });
 
   final DashboardModuleAccess moduleAccess;
@@ -890,16 +1005,12 @@ class _ModulesGrid extends StatelessWidget {
   final VoidCallback onOpenCash;
   final VoidCallback onOpenPos;
   final VoidCallback onOpenInventory;
+  final VoidCallback onOpenMovements;
   final VoidCallback onOpenPurchases;
+  final VoidCallback onOpenSalesReports;
   final bool isManualSyncing;
   final AsyncValue<ProductiveSyncStatus>? productiveSyncStatus;
   final VoidCallback onManualSync;
-  final void Function({
-    required String title,
-    required String message,
-    String primaryLabel,
-    VoidCallback? onPrimary,
-  }) onComingSoon;
 
   @override
   Widget build(BuildContext context) {
@@ -988,14 +1099,24 @@ class _ModulesGrid extends StatelessWidget {
               Color(0xFF14B8A6),
             ],
           ),
-          statusLabel: 'Pendiente',
-          statusTone: AppStatusTone.neutral,
-          onTap: () {
-            onComingSoon(
-              title: 'Movimientos',
-              message: 'Mostraremos movimientos de inventario y auditoría.',
-            );
-          },
+          statusLabel: 'Historial',
+          statusTone: AppStatusTone.success,
+          onTap: onOpenMovements,
+        ),
+      if (moduleAccess.canViewSalesReports)
+        _DashboardModule(
+          title: 'Reportes',
+          subtitle: 'Resumen autoritativo de ventas por periodo.',
+          icon: Icons.assessment_outlined,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF4338CA),
+              Color(0xFF7C3AED),
+            ],
+          ),
+          statusLabel: 'Ventas',
+          statusTone: AppStatusTone.info,
+          onTap: onOpenSalesReports,
         ),
       if (moduleAccess.hasEffectiveAuthorization)
         _DashboardModule(

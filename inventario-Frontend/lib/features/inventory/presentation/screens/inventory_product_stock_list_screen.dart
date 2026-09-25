@@ -9,12 +9,19 @@ import '../../../catalog/application/catalog_local_providers.dart';
 import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/data/models/authorized_operational_context_models.dart';
 import '../../application/business_product_creation_models.dart';
+import '../../application/inventory_cost_visibility_provider.dart';
 import '../../application/inventory_transfer_models.dart';
 import '../../application/inventory_transfer_providers.dart';
 import '../../application/inventory_valuation_models.dart';
 import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../widgets/inventory_transfer_dialog.dart';
+
+typedef InventoryProductMovementsCallback = Future<void> Function({
+  required String productId,
+  required String productName,
+  String? productBarcode,
+});
 
 class InventoryProductStockListScreen extends ConsumerStatefulWidget {
   const InventoryProductStockListScreen({
@@ -27,6 +34,7 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
     this.deviceInstallationId,
     this.effectivePermissions = const {},
     this.initialStockFilter = InventoryProductStockFilter.all,
+    this.onOpenProductMovements,
   });
 
   final String businessId;
@@ -37,6 +45,7 @@ class InventoryProductStockListScreen extends ConsumerStatefulWidget {
   final String? deviceInstallationId;
   final Set<String> effectivePermissions;
   final InventoryProductStockFilter initialStockFilter;
+  final InventoryProductMovementsCallback? onOpenProductMovements;
 
   @override
   ConsumerState<InventoryProductStockListScreen> createState() =>
@@ -310,14 +319,38 @@ class _InventoryProductStockListScreenState
         ),
       ),
     );
-    final valuationSummaryAsync = ref.watch(
-      inventoryValuationSummaryProvider(
-        InventoryValuationSummaryKey(
-          businessId: widget.businessId,
-          branchId: widget.branchId,
-        ),
-      ),
-    );
+    final profileId = widget.profileId?.trim();
+    final hasCostCapability =
+        widget.effectivePermissions.contains('inventory.view_costs');
+    final canViewCosts = !hasCostCapability
+        ? false
+        : profileId == null || profileId.isEmpty
+            ? true
+            : ref
+                .watch(
+                  inventoryCostVisibilityProvider(
+                    InventoryCostVisibilityKey(
+                      profileId: profileId,
+                      businessId: widget.businessId,
+                      branchId: widget.branchId,
+                    ),
+                  ),
+                )
+                .when(
+                  data: (allowed) => allowed,
+                  loading: () => false,
+                  error: (_, __) => false,
+                );
+    final valuationSummaryAsync = canViewCosts
+        ? ref.watch(
+            inventoryValuationSummaryProvider(
+              InventoryValuationSummaryKey(
+                businessId: widget.businessId,
+                branchId: widget.branchId,
+              ),
+            ),
+          )
+        : null;
     final hasSearch = _searchTerm.trim().isNotEmpty;
     final canTransfer = widget.profileId != null &&
         widget.effectivePermissions.contains('inventory.transfer');
@@ -443,21 +476,22 @@ class _InventoryProductStockListScreenState
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  CronosSpacing.md,
-                  CronosSpacing.sm,
-                  CronosSpacing.md,
-                  0,
-                ),
-                child: valuationSummaryAsync.when(
-                  loading: () => const _InventoryValuationLoading(),
-                  error: (_, __) => const _InventoryValuationUnavailable(),
-                  data: (summary) => _InventoryValuationSummaryCard(
-                    summary: summary,
+              if (canViewCosts)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    CronosSpacing.md,
+                    CronosSpacing.sm,
+                    CronosSpacing.md,
+                    0,
+                  ),
+                  child: valuationSummaryAsync!.when(
+                    loading: () => const _InventoryValuationLoading(),
+                    error: (_, __) => const _InventoryValuationUnavailable(),
+                    data: (summary) => _InventoryValuationSummaryCard(
+                      summary: summary,
+                    ),
                   ),
                 ),
-              ),
               Expanded(
                 child: productsAsync.when(
                   loading: () => const Center(
@@ -522,14 +556,27 @@ class _InventoryProductStockListScreenState
                           const SizedBox(height: CronosSpacing.sm),
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        final productId =
-                            _string(product['product_id']) ?? '$index';
+                        final actualProductId = _string(product['product_id']);
+                        final productKey = actualProductId ?? '$index';
 
                         return _InventoryProductCard(
-                          key: Key('inventory-product-$productId'),
+                          key: Key('inventory-product-$productKey'),
                           product: product,
+                          canViewCosts: canViewCosts,
                           isUpdatingMinimumStock:
-                              _minimumStockUpdates.contains(productId),
+                              _minimumStockUpdates.contains(productKey),
+                          onOpenMovements: actualProductId != null &&
+                                  widget.onOpenProductMovements != null
+                              ? () async {
+                                  await widget.onOpenProductMovements!(
+                                    productId: actualProductId,
+                                    productName:
+                                        _string(product['product_name']) ??
+                                            'Producto sin nombre',
+                                    productBarcode: _string(product['barcode']),
+                                  );
+                                }
+                              : null,
                           onEditMinimumStock: canEditMinimumStock
                               ? () => _editMinimumStock(product)
                               : null,
@@ -1086,13 +1133,17 @@ class _InventoryProductCard extends StatelessWidget {
   const _InventoryProductCard({
     super.key,
     required this.product,
+    required this.canViewCosts,
     required this.isUpdatingMinimumStock,
+    this.onOpenMovements,
     this.onEditMinimumStock,
     this.onTransfer,
   });
 
   final Map<String, dynamic> product;
+  final bool canViewCosts;
   final bool isUpdatingMinimumStock;
+  final VoidCallback? onOpenMovements;
   final VoidCallback? onEditMinimumStock;
   final VoidCallback? onTransfer;
 
@@ -1101,13 +1152,12 @@ class _InventoryProductCard extends StatelessWidget {
     final name = _string(product['product_name']) ?? 'Producto sin nombre';
     final barcode = _string(product['barcode']);
     final stock = _formatQuantity(product['quantity_on_hand']);
-    final averageCost = _formatAverageCost(product['stock_average_cost']);
     final minimumStock = _minimumStock(product['minimum_stock']);
     final productId = _string(product['product_id']) ?? '';
     final quantityOnHand = _int(product['quantity_on_hand']);
     final isOutOfStock = quantityOnHand <= 0;
     final isLowStock = quantityOnHand > 0 && quantityOnHand <= minimumStock;
-    final valuation = product['inventory_valuation'];
+    final valuation = canViewCosts ? product['inventory_valuation'] : null;
     final valuationLabel = valuation is InventoryProductValuation
         ? _formatProductValuation(valuation)
         : 'no disponible';
@@ -1170,24 +1220,33 @@ class _InventoryProductCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
               ),
-              const SizedBox(height: CronosSpacing.xs),
-              Text(
-                'Costo prom.: $averageCost',
-                key: Key('inventory-average-cost-$productId'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: CronosSpacing.xs),
-              Text(
-                'Valor: $valuationLabel',
-                key: Key('inventory-value-$productId'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              if (canViewCosts) ...[
+                const SizedBox(height: CronosSpacing.xs),
+                Text(
+                  'Costo prom.: ${_formatAverageCost(product['stock_average_cost'])}',
+                  key: Key('inventory-average-cost-$productId'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: CronosSpacing.xs),
+                Text(
+                  'Valor: $valuationLabel',
+                  key: Key('inventory-value-$productId'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               const SizedBox(height: CronosSpacing.xs),
               Text(
                 'Mínimo: $minimumStock',
                 key: Key('inventory-minimum-stock-$productId'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (onOpenMovements != null)
+                TextButton.icon(
+                  key: Key('inventory-movements-$productId'),
+                  onPressed: onOpenMovements,
+                  icon: const Icon(Icons.timeline_outlined),
+                  label: const Text('Movimientos'),
+                ),
               if (onEditMinimumStock != null)
                 TextButton.icon(
                   key: Key('inventory-edit-minimum-stock-$productId'),

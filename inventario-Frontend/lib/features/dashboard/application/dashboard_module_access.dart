@@ -10,6 +10,7 @@ class DashboardModuleAccess {
     required this.canReadInventory,
     required this.canPurchaseInventory,
     required this.canAdjustInventory,
+    required this.canViewSalesReports,
     required this.canManageBranches,
     required this.canInviteMembers,
     required this.canManageSettings,
@@ -29,6 +30,7 @@ class DashboardModuleAccess {
       canReadInventory: context.hasPermission('inventory.read'),
       canPurchaseInventory: context.hasPermission('inventory.purchase'),
       canAdjustInventory: context.hasPermission('inventory.adjust'),
+      canViewSalesReports: context.hasPermission('reports.sales'),
       canManageBranches: context.hasPermission('settings.branches'),
       canInviteMembers: context.hasPermission('members.invite'),
       canManageSettings: context.hasAnyPermission(const [
@@ -49,6 +51,7 @@ class DashboardModuleAccess {
         canReadInventory = false,
         canPurchaseInventory = false,
         canAdjustInventory = false,
+        canViewSalesReports = false,
         canManageBranches = false,
         canInviteMembers = false,
         canManageSettings = false;
@@ -61,6 +64,7 @@ class DashboardModuleAccess {
   final bool canReadInventory;
   final bool canPurchaseInventory;
   final bool canAdjustInventory;
+  final bool canViewSalesReports;
   final bool canManageBranches;
   final bool canInviteMembers;
   final bool canManageSettings;

@@ -43,6 +43,55 @@ void main() {
     expect(find.text('Información pendiente'), findsNothing);
   });
 
+  testWidgets('active context A accepts invitation B and enters context B',
+      (tester) async {
+    var accessCalls = 0;
+    final requestedBusinessIds = <String?>[];
+
+    await tester.pumpWidget(
+      _gateApp(
+        loadAccess: () {
+          accessCalls += 1;
+          return accessCalls == 1
+              ? AuthenticatedAccessResult(
+                  outcome: AuthenticatedAccessOutcome
+                      .existingContextsAndPendingInvitations,
+                  contexts: [_warehouseContext()],
+                  pendingInvitations: const [],
+                  pendingBusinessInvitations: [_businessTwoInvitation()],
+                  message: 'second business invitation pending',
+                )
+              : AuthenticatedAccessResult(
+                  outcome: AuthenticatedAccessOutcome.existingContexts,
+                  contexts: [_warehouseContext(), _businessTwoContext()],
+                  pendingInvitations: const [],
+                  message: 'both businesses authorized',
+                );
+        },
+        acceptInvitation: (_) async => _acceptedBusinessTwo(),
+        runEntry: (request) async {
+          requestedBusinessIds.add(request.selection?.businessId);
+          return request.selection?.businessId == 'business-2'
+              ? _readyFor(_businessTwoContext())
+              : _ready();
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('DASHBOARD'), findsOneWidget);
+    expect(find.text('1 invitación pendiente'), findsOneWidget);
+
+    await tester.tap(find.text('1 invitación pendiente'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aceptar y continuar'));
+    await tester.pumpAndSettle();
+
+    expect(accessCalls, 2);
+    expect(requestedBusinessIds, contains('business-2'));
+    expect(find.text('DASHBOARD'), findsOneWidget);
+    expect(find.text('Información pendiente'), findsNothing);
+  });
   testWidgets('IA-02 context appearing on second discovery cycle auto-recovers',
       (tester) async {
     var accessCalls = 0;
@@ -179,6 +228,8 @@ Widget _gateApp({
   required Future<OperationalBootstrapEntryResult> Function(
     ProductiveOperationalEntryRequest request,
   ) runEntry,
+  Future<AcceptedBusinessMemberInvitation> Function(String invitationId)?
+      acceptInvitation,
 }) {
   return ProviderScope(
     overrides: [
@@ -186,7 +237,7 @@ Widget _gateApp({
         (ref, profileId) async => loadAccess(),
       ),
       businessInvitationAcceptorProvider.overrideWithValue(
-        (_) async => _accepted(),
+        acceptInvitation ?? (_) async => _accepted(),
       ),
       productiveOperationalEntryProvider.overrideWith(
         (ref, request) => runEntry(request),
@@ -272,6 +323,74 @@ AuthorizedOperationalContext _warehouseContext() {
       ),
     ],
     effectivePermissions: const ['inventory.read', 'inventory.purchase'],
+  );
+}
+
+BusinessMemberInvitation _businessTwoInvitation() {
+  return BusinessMemberInvitation(
+    id: 'invitation-business-2',
+    businessId: 'business-2',
+    businessName: 'Negocio Dos',
+    email: 'warehouse@example.test',
+    roleId: 'role-warehouse',
+    roleName: 'warehouse',
+    branchId: 'branch-2',
+    branchName: 'Principal Dos',
+    scope: BusinessMemberInvitationScope.branch,
+    status: 'pending',
+    deliveryStatus: BusinessMemberInvitationDeliveryState.sent,
+    expiresAt: DateTime.utc(2099),
+    isExpired: false,
+  );
+}
+
+AcceptedBusinessMemberInvitation _acceptedBusinessTwo() {
+  return const AcceptedBusinessMemberInvitation(
+    invitationId: 'invitation-business-2',
+    profileId: 'profile-warehouse',
+    businessId: 'business-2',
+    branchId: 'branch-2',
+    roleId: 'role-warehouse',
+    membershipId: 'membership-warehouse-2',
+  );
+}
+
+AuthorizedOperationalContext _businessTwoContext() {
+  return AuthorizedOperationalContext(
+    profileId: 'profile-warehouse',
+    businessId: 'business-2',
+    businessName: 'Negocio Dos',
+    businessStatus: 'active',
+    businessUpdatedAt: DateTime.utc(2026, 9, 22),
+    branchId: 'branch-2',
+    branchName: 'Principal Dos',
+    branchStatus: 'active',
+    branchUpdatedAt: DateTime.utc(2026, 9, 22),
+    membershipIds: const ['membership-warehouse-2'],
+    membershipsUpdatedAt: DateTime.utc(2026, 9, 22),
+    effectiveRoles: const [
+      AuthorizedOperationalRole(
+        roleId: 'role-warehouse',
+        roleName: 'warehouse',
+        isSystemRole: true,
+        membershipIds: ['membership-warehouse-2'],
+      ),
+    ],
+    effectivePermissions: const ['inventory.read', 'inventory.purchase'],
+  );
+}
+
+OperationalBootstrapEntryResult _readyFor(
+  AuthorizedOperationalContext context,
+) {
+  return OperationalBootstrapEntryResult(
+    outcome: OperationalBootstrapEntryOutcome.runtimeReadyAndBootstrapCompleted,
+    contexts: [context],
+    profileId: 'profile-warehouse',
+    selectedContext: context,
+    message: 'ready',
+    offlineReady: true,
+    canRequestAdministrativeSetup: false,
   );
 }
 

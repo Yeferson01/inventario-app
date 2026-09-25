@@ -17,7 +17,7 @@ class AuthorizedOperationalContextLocalDao {
   ) async {
     final now = DateTime.now().toUtc();
 
-    await _db.customStatement(
+    await _write(
       '''
         insert into local_authorized_operational_contexts (
           id, profile_id, business_id, branch_id, effective_permissions,
@@ -64,24 +64,31 @@ class AuthorizedOperationalContextLocalDao {
     if (context == null) {
       return null;
     }
-    return AuthorizedOperationalContextRecord(
-      profileId: context['profile_id'] as String,
-      businessId: context['business_id'] as String,
-      branchId: context['branch_id'] as String,
-      effectivePermissions: _decodeStrings(
-        context['effective_permissions'],
-      ),
-      effectiveRoles: _decodeStrings(context['effective_roles']),
-      applicableMembershipIds: _decodeStrings(
-        context['applicable_membership_ids'],
-      ),
-      authorizationValidatedAt: _dateTime(
-        context['authorization_validated_at'],
-        'authorization_validated_at',
-      ),
-      snapshotId: context['snapshot_id'] as String?,
-      status: context['status'] as String,
-    );
+    return _recordFromMap(context);
+  }
+
+  Stream<AuthorizedOperationalContextRecord?> watchContextRecord({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+  }) {
+    return _db
+        .customSelect(
+          '''
+      select *
+      from local_authorized_operational_contexts
+      where profile_id = ? and business_id = ? and branch_id = ?
+      limit 1
+      ''',
+          variables: _contextVariables(profileId, businessId, branchId),
+          readsFrom: {_db.localAuthorizedOperationalContexts},
+        )
+        .watchSingleOrNull()
+        .map(
+          (row) => row == null
+              ? null
+              : _recordFromMap(Map<String, dynamic>.from(row.data)),
+        );
   }
 
   Future<Map<String, dynamic>?> getContext({
@@ -149,7 +156,7 @@ class AuthorizedOperationalContextLocalDao {
     required String branchId,
   }) async {
     final now = DateTime.now().toUtc();
-    await _db.customStatement(
+    await _write(
       '''
       update local_authorized_operational_contexts
       set status = 'revoked', updated_at = ?
@@ -175,6 +182,16 @@ class AuthorizedOperationalContextLocalDao {
         Variable<String>(branchId),
       ];
 
+  Future<void> _write(String sql, List<Object?> parameters) async {
+    await _db.customUpdate(
+      sql,
+      variables: normalizeSqliteParameters(parameters)
+          .map<Variable<Object>>((value) => Variable<Object>(value))
+          .toList(growable: false),
+      updates: {_db.localAuthorizedOperationalContexts},
+    );
+  }
+
   List<String> _decodeStrings(Object? value) {
     if (value is! String || value.isEmpty) {
       return const [];
@@ -184,6 +201,29 @@ class AuthorizedOperationalContextLocalDao {
       return const [];
     }
     return decoded.map((item) => item.toString()).toList(growable: false);
+  }
+
+  AuthorizedOperationalContextRecord _recordFromMap(
+    Map<String, dynamic> context,
+  ) {
+    return AuthorizedOperationalContextRecord(
+      profileId: context['profile_id'] as String,
+      businessId: context['business_id'] as String,
+      branchId: context['branch_id'] as String,
+      effectivePermissions: _decodeStrings(
+        context['effective_permissions'],
+      ),
+      effectiveRoles: _decodeStrings(context['effective_roles']),
+      applicableMembershipIds: _decodeStrings(
+        context['applicable_membership_ids'],
+      ),
+      authorizationValidatedAt: _dateTime(
+        context['authorization_validated_at'],
+        'authorization_validated_at',
+      ),
+      snapshotId: context['snapshot_id'] as String?,
+      status: context['status'] as String,
+    );
   }
 
   DateTime _dateTime(Object? value, String field) {

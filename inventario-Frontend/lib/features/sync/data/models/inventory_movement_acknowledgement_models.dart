@@ -22,6 +22,7 @@ class LocalInventoryMovementForReconciliation {
     required this.clientSequence,
     required this.transportState,
     required this.transportEvidence,
+    required this.serverAuthoritative,
   });
 
   final String id;
@@ -38,11 +39,13 @@ class LocalInventoryMovementForReconciliation {
   final int? clientSequence;
   final InventoryMovementTransportState transportState;
   final List<String> transportEvidence;
+  final bool serverAuthoritative;
 
   bool get requiresSourceItemId =>
       sourceType == 'sale' || sourceType == 'purchase';
 
   bool get canRequestAcknowledgement =>
+      !serverAuthoritative &&
       const {'sale', 'purchase', 'manual_adjustment'}.contains(sourceType) &&
       quantityChange != 0 &&
       (!requiresSourceItemId || (sourceId != null && sourceItemId != null));
@@ -83,6 +86,7 @@ class LocalInventoryMovementForReconciliation {
         'client_sequence': clientSequence,
         'transport_state': transportState.name,
         'transport_evidence': transportEvidence,
+        'server_authoritative': serverAuthoritative,
       });
 }
 

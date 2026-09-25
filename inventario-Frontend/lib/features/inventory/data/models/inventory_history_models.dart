@@ -122,6 +122,8 @@ class InventoryMovementHistoryEntry {
     required this.businessId,
     required this.branchId,
     required this.productId,
+    this.productName,
+    this.productBarcode,
     required this.movementType,
     required this.effectiveType,
     required this.quantityDelta,
@@ -142,6 +144,8 @@ class InventoryMovementHistoryEntry {
   final String businessId;
   final String branchId;
   final String productId;
+  final String? productName;
+  final String? productBarcode;
   final String movementType;
   final String? sourceType;
   final String effectiveType;

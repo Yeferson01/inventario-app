@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'dart:convert';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
@@ -10,6 +11,38 @@ class InventoryHistoryLocalDao {
   static const domain = 'inventory_movements';
 
   final AppDatabase _db;
+
+  String _serverAuthoritativeMetadata(Object? rawMetadata) {
+    final metadata = <String, dynamic>{};
+
+    if (rawMetadata != null) {
+      if (rawMetadata is! String) {
+        throw const FormatException(
+          'Inventory movement metadata_json must be a JSON object.',
+        );
+      }
+
+      final normalized = rawMetadata.trim();
+
+      if (normalized.isNotEmpty) {
+        final decoded = jsonDecode(normalized);
+
+        if (decoded is! Map) {
+          throw const FormatException(
+            'Inventory movement metadata_json must be a JSON object.',
+          );
+        }
+
+        for (final entry in decoded.entries) {
+          metadata[entry.key.toString()] = entry.value;
+        }
+      }
+    }
+
+    metadata['server_authoritative_history'] = true;
+
+    return jsonEncode(metadata);
+  }
 
   Future<void> applyRefreshPage({
     required String businessId,
@@ -97,42 +130,42 @@ class InventoryHistoryLocalDao {
     required bool canViewCosts,
   }) async {
     final clauses = <String>[
-      'business_id = ?',
-      'branch_id = ?',
-      'deleted_at is null',
+      'm.business_id = ?',
+      'm.branch_id = ?',
+      'm.deleted_at is null',
     ];
     final variables = <Variable>[
       Variable<String>(query.businessId),
       Variable<String>(query.branchId),
     ];
     if (query.productId != null) {
-      clauses.add('product_id = ?');
+      clauses.add('m.product_id = ?');
       variables.add(Variable<String>(query.productId!));
     }
     if (query.effectiveType != null) {
       clauses.add('''
         case
-          when lower(coalesce(reference_type, '')) in (
+          when lower(coalesce(m.reference_type, '')) in (
             'manual_initial_stock', 'initial_stock'
           ) then 'initial_stock'
           when nullif(lower(trim(source_type)), '') is not null
-            then lower(trim(source_type))
-          else lower(trim(movement_type))
+            then lower(trim(m.source_type))
+          else lower(trim(m.movement_type))
         end = ?
       ''');
       variables
           .add(Variable<String>(query.effectiveType!.trim().toLowerCase()));
     }
     if (query.from != null) {
-      clauses.add('occurred_at >= ?');
+      clauses.add('m.occurred_at >= ?');
       variables.add(Variable<String>(query.from!.toUtc().toIso8601String()));
     }
     if (query.to != null) {
-      clauses.add('occurred_at <= ?');
+      clauses.add('m.occurred_at <= ?');
       variables.add(Variable<String>(query.to!.toUtc().toIso8601String()));
     }
     if (query.cursor != null) {
-      clauses.add('(occurred_at < ? or (occurred_at = ? and id < ?))');
+      clauses.add('(m.occurred_at < ? or (m.occurred_at = ? and id < ?))');
       variables
         ..add(Variable<String>(
             query.cursor!.occurredAt.toUtc().toIso8601String()))
@@ -146,22 +179,48 @@ class InventoryHistoryLocalDao {
     final rows = await _db
         .customSelect(
           '''
-      select *,
+      select
+        m.*,
+        p.name as product_name,
+        coalesce(
+          (
+            select pb.barcode
+            from local_product_barcodes pb
+            where pb.scope = 'business'
+              and pb.business_id = m.business_id
+              and pb.product_id = m.product_id
+              and pb.status = 'active'
+              and pb.deleted_at is null
+            order by
+              pb.is_primary desc,
+              pb.updated_at desc,
+              pb.id desc
+            limit 1
+          ),
+          p.barcode
+        ) as product_barcode,
         case
-          when lower(coalesce(reference_type, '')) in (
+          when lower(coalesce(m.reference_type, '')) in (
             'manual_initial_stock', 'initial_stock'
           ) then 'initial_stock'
-          when nullif(lower(trim(source_type)), '') is not null
-            then lower(trim(source_type))
-          else lower(trim(movement_type))
+          when nullif(lower(trim(m.source_type)), '') is not null
+            then lower(trim(m.source_type))
+          else lower(trim(m.movement_type))
         end as effective_type
-      from local_inventory_movements
+      from local_inventory_movements m
+      left join products p
+        on p.id = m.product_id
+       and p.business_id = m.business_id
       where ${clauses.join(' and ')}
-      order by occurred_at desc, id desc
+      order by m.occurred_at desc, m.id desc
       limit ?
       ''',
           variables: variables,
-          readsFrom: {_db.localInventoryMovements},
+          readsFrom: {
+            _db.localInventoryMovements,
+            _db.products,
+            _db.localProductBarcodes,
+          },
         )
         .get();
 
@@ -172,6 +231,8 @@ class InventoryHistoryLocalDao {
         businessId: data['business_id'].toString(),
         branchId: data['branch_id'].toString(),
         productId: data['product_id'].toString(),
+        productName: data['product_name']?.toString(),
+        productBarcode: data['product_barcode']?.toString(),
         movementType: data['movement_type'].toString(),
         sourceType: data['source_type']?.toString(),
         effectiveType: data['effective_type'].toString(),
@@ -196,7 +257,7 @@ class InventoryHistoryLocalDao {
   }) async {
     final current = await _db.customSelect(
       '''
-      select business_id, branch_id, sync_status, local_status
+      select business_id, branch_id, sync_status, local_status, metadata_json
       from local_inventory_movements where id = ?
       ''',
       variables: [Variable<String>(row.id)],
@@ -212,10 +273,11 @@ class InventoryHistoryLocalDao {
           created_by, device_id, reversed_movement_id,
           source_type, source_id, reference_type, reference_id,
           idempotency_key, sync_status, local_status, version,
-          occurred_at, created_at, updated_at, last_synced_at
+	  metadata_json,
+	  occurred_at, created_at, updated_at, last_synced_at
         ) values (
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          1, 'synced', 1, ?, ?, ?, ?
+          1, 'synced', 1, ?, ?, ?, ?, ?
         )
         ''',
         [
@@ -236,6 +298,7 @@ class InventoryHistoryLocalDao {
           row.referenceType,
           row.referenceId,
           row.idempotencyKey,
+          _serverAuthoritativeMetadata(null),
           row.occurredAt,
           row.occurredAt,
           now,
@@ -288,7 +351,8 @@ class InventoryHistoryLocalDao {
         previous_stock = ?, new_stock = ?, created_by = ?, device_id = ?,
         reversed_movement_id = ?, source_type = ?, source_id = ?,
         reference_type = ?, reference_id = ?,
-        occurred_at = ?, updated_at = ?, last_synced_at = ?, deleted_at = null
+	metadata_json = ?,
+	occurred_at = ?, updated_at = ?, last_synced_at = ?, deleted_at = null
       where id = ?
       ''',
       [
@@ -308,6 +372,7 @@ class InventoryHistoryLocalDao {
         row.sourceId,
         row.referenceType,
         row.referenceId,
+        _serverAuthoritativeMetadata(current.data['metadata_json']),
         row.occurredAt,
         now,
         now,

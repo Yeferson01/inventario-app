@@ -46,6 +46,9 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
   bool _isSyncingPurchases = false;
   bool _isCreatingQuickProduct = false;
 
+  bool get _canViewInventoryCosts =>
+      widget.effectivePermissions.contains('inventory.view_costs');
+
   double get _total {
     return _cartItems.fold<double>(
       0,
@@ -96,8 +99,9 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
     final currentStock = _int(product['quantity_available']);
 
     final purchasePrice = _double(product['purchase_price']);
-    final averageCost = _double(product['stock_average_cost']);
-    final suggestedCost = purchasePrice > 0 ? purchasePrice : averageCost;
+    final suggestedCost = purchasePrice > 0 || !_canViewInventoryCosts
+        ? purchasePrice
+        : _double(product['stock_average_cost']);
 
     setState(() {
       _cartItems.add(
@@ -979,6 +983,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                       child: _ProductsPanel(
                         searchController: _searchController,
                         query: _query,
+                        canViewInventoryCosts: _canViewInventoryCosts,
                         productsAsync: productsAsync,
                         filterProducts: _filterProducts,
                         onQueryChanged: (value) {
@@ -1030,6 +1035,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                   _ProductsPanel(
                     searchController: _searchController,
                     query: _query,
+                    canViewInventoryCosts: _canViewInventoryCosts,
                     productsAsync: productsAsync,
                     filterProducts: _filterProducts,
                     onQueryChanged: (value) {
@@ -1106,6 +1112,7 @@ class _ProductsPanel extends StatelessWidget {
   const _ProductsPanel({
     required this.searchController,
     required this.query,
+    required this.canViewInventoryCosts,
     required this.productsAsync,
     required this.filterProducts,
     required this.onQueryChanged,
@@ -1115,6 +1122,7 @@ class _ProductsPanel extends StatelessWidget {
 
   final TextEditingController searchController;
   final String query;
+  final bool canViewInventoryCosts;
   final AsyncValue<List<Map<String, dynamic>>> productsAsync;
   final List<Map<String, dynamic>> Function(List<Map<String, dynamic>>)
       filterProducts;
@@ -1194,6 +1202,7 @@ class _ProductsPanel extends StatelessWidget {
 
                       return _ProductPurchaseTile(
                         product: product,
+                        canViewInventoryCosts: canViewInventoryCosts,
                         onTap: () => onProductTap(product),
                       );
                     },
@@ -1211,10 +1220,12 @@ class _ProductsPanel extends StatelessWidget {
 class _ProductPurchaseTile extends StatelessWidget {
   const _ProductPurchaseTile({
     required this.product,
+    required this.canViewInventoryCosts,
     required this.onTap,
   });
 
   final Map<String, dynamic> product;
+  final bool canViewInventoryCosts;
   final VoidCallback onTap;
 
   @override
@@ -1225,9 +1236,9 @@ class _ProductPurchaseTile extends StatelessWidget {
     final stock = _PurchaseEntryScreenState._int(product['quantity_available']);
     final purchasePrice =
         _PurchaseEntryScreenState._double(product['purchase_price']);
-    final averageCost =
-        _PurchaseEntryScreenState._double(product['stock_average_cost']);
-    final suggestedCost = purchasePrice > 0 ? purchasePrice : averageCost;
+    final suggestedCost = purchasePrice > 0 || !canViewInventoryCosts
+        ? purchasePrice
+        : _PurchaseEntryScreenState._double(product['stock_average_cost']);
 
     return Material(
       color: Colors.white.withValues(alpha: 0.78),

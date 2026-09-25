@@ -15836,6 +15836,771 @@ class LocalAuthorizedOperationalContextsCompanion
   }
 }
 
+class $LocalReportSnapshotsTable extends LocalReportSnapshots
+    with TableInfo<$LocalReportSnapshotsTable, LocalReportSnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalReportSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _profileIdMeta =
+      const VerificationMeta('profileId');
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+      'profile_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _businessIdMeta =
+      const VerificationMeta('businessId');
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+      'business_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _branchIdMeta =
+      const VerificationMeta('branchId');
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+      'branch_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _reportTypeMeta =
+      const VerificationMeta('reportType');
+  @override
+  late final GeneratedColumn<String> reportType = GeneratedColumn<String>(
+      'report_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _filterKeyMeta =
+      const VerificationMeta('filterKey');
+  @override
+  late final GeneratedColumn<String> filterKey = GeneratedColumn<String>(
+      'filter_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _payloadJsonMeta =
+      const VerificationMeta('payloadJson');
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+      'payload_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _fetchedAtMeta =
+      const VerificationMeta('fetchedAt');
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+      'fetched_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _authoritativeAsOfMeta =
+      const VerificationMeta('authoritativeAsOf');
+  @override
+  late final GeneratedColumn<DateTime> authoritativeAsOf =
+      GeneratedColumn<DateTime>('authoritative_as_of', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _authorizationValidatedAtMeta =
+      const VerificationMeta('authorizationValidatedAt');
+  @override
+  late final GeneratedColumn<DateTime> authorizationValidatedAt =
+      GeneratedColumn<DateTime>(
+          'authorization_validated_at', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _capabilityFingerprintMeta =
+      const VerificationMeta('capabilityFingerprint');
+  @override
+  late final GeneratedColumn<String> capabilityFingerprint =
+      GeneratedColumn<String>('capability_fingerprint', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _includesSensitiveDataMeta =
+      const VerificationMeta('includesSensitiveData');
+  @override
+  late final GeneratedColumn<bool> includesSensitiveData =
+      GeneratedColumn<bool>('includes_sensitive_data', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("includes_sensitive_data" IN (0, 1))'),
+          defaultValue: const Constant(false));
+  static const VerificationMeta _includesCostsMeta =
+      const VerificationMeta('includesCosts');
+  @override
+  late final GeneratedColumn<bool> includesCosts = GeneratedColumn<bool>(
+      'includes_costs', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("includes_costs" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        profileId,
+        businessId,
+        branchId,
+        reportType,
+        filterKey,
+        payloadJson,
+        fetchedAt,
+        authoritativeAsOf,
+        authorizationValidatedAt,
+        capabilityFingerprint,
+        includesSensitiveData,
+        includesCosts,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_report_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalReportSnapshot> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(_profileIdMeta,
+          profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta));
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+          _businessIdMeta,
+          businessId.isAcceptableOrUnknown(
+              data['business_id']!, _businessIdMeta));
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(_branchIdMeta,
+          branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta));
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('report_type')) {
+      context.handle(
+          _reportTypeMeta,
+          reportType.isAcceptableOrUnknown(
+              data['report_type']!, _reportTypeMeta));
+    } else if (isInserting) {
+      context.missing(_reportTypeMeta);
+    }
+    if (data.containsKey('filter_key')) {
+      context.handle(_filterKeyMeta,
+          filterKey.isAcceptableOrUnknown(data['filter_key']!, _filterKeyMeta));
+    } else if (isInserting) {
+      context.missing(_filterKeyMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+          _payloadJsonMeta,
+          payloadJson.isAcceptableOrUnknown(
+              data['payload_json']!, _payloadJsonMeta));
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(_fetchedAtMeta,
+          fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta));
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    if (data.containsKey('authoritative_as_of')) {
+      context.handle(
+          _authoritativeAsOfMeta,
+          authoritativeAsOf.isAcceptableOrUnknown(
+              data['authoritative_as_of']!, _authoritativeAsOfMeta));
+    } else if (isInserting) {
+      context.missing(_authoritativeAsOfMeta);
+    }
+    if (data.containsKey('authorization_validated_at')) {
+      context.handle(
+          _authorizationValidatedAtMeta,
+          authorizationValidatedAt.isAcceptableOrUnknown(
+              data['authorization_validated_at']!,
+              _authorizationValidatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_authorizationValidatedAtMeta);
+    }
+    if (data.containsKey('capability_fingerprint')) {
+      context.handle(
+          _capabilityFingerprintMeta,
+          capabilityFingerprint.isAcceptableOrUnknown(
+              data['capability_fingerprint']!, _capabilityFingerprintMeta));
+    } else if (isInserting) {
+      context.missing(_capabilityFingerprintMeta);
+    }
+    if (data.containsKey('includes_sensitive_data')) {
+      context.handle(
+          _includesSensitiveDataMeta,
+          includesSensitiveData.isAcceptableOrUnknown(
+              data['includes_sensitive_data']!, _includesSensitiveDataMeta));
+    }
+    if (data.containsKey('includes_costs')) {
+      context.handle(
+          _includesCostsMeta,
+          includesCosts.isAcceptableOrUnknown(
+              data['includes_costs']!, _includesCostsMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalReportSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalReportSnapshot(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      profileId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}profile_id'])!,
+      businessId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}business_id'])!,
+      branchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}branch_id'])!,
+      reportType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}report_type'])!,
+      filterKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}filter_key'])!,
+      payloadJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}payload_json'])!,
+      fetchedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}fetched_at'])!,
+      authoritativeAsOf: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}authoritative_as_of'])!,
+      authorizationValidatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}authorization_validated_at'])!,
+      capabilityFingerprint: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}capability_fingerprint'])!,
+      includesSensitiveData: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}includes_sensitive_data'])!,
+      includesCosts: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}includes_costs'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $LocalReportSnapshotsTable createAlias(String alias) {
+    return $LocalReportSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalReportSnapshot extends DataClass
+    implements Insertable<LocalReportSnapshot> {
+  final String id;
+  final String profileId;
+  final String businessId;
+  final String branchId;
+  final String reportType;
+  final String filterKey;
+  final String payloadJson;
+  final DateTime fetchedAt;
+  final DateTime authoritativeAsOf;
+  final DateTime authorizationValidatedAt;
+  final String capabilityFingerprint;
+  final bool includesSensitiveData;
+  final bool includesCosts;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalReportSnapshot(
+      {required this.id,
+      required this.profileId,
+      required this.businessId,
+      required this.branchId,
+      required this.reportType,
+      required this.filterKey,
+      required this.payloadJson,
+      required this.fetchedAt,
+      required this.authoritativeAsOf,
+      required this.authorizationValidatedAt,
+      required this.capabilityFingerprint,
+      required this.includesSensitiveData,
+      required this.includesCosts,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['report_type'] = Variable<String>(reportType);
+    map['filter_key'] = Variable<String>(filterKey);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    map['authoritative_as_of'] = Variable<DateTime>(authoritativeAsOf);
+    map['authorization_validated_at'] =
+        Variable<DateTime>(authorizationValidatedAt);
+    map['capability_fingerprint'] = Variable<String>(capabilityFingerprint);
+    map['includes_sensitive_data'] = Variable<bool>(includesSensitiveData);
+    map['includes_costs'] = Variable<bool>(includesCosts);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalReportSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return LocalReportSnapshotsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      reportType: Value(reportType),
+      filterKey: Value(filterKey),
+      payloadJson: Value(payloadJson),
+      fetchedAt: Value(fetchedAt),
+      authoritativeAsOf: Value(authoritativeAsOf),
+      authorizationValidatedAt: Value(authorizationValidatedAt),
+      capabilityFingerprint: Value(capabilityFingerprint),
+      includesSensitiveData: Value(includesSensitiveData),
+      includesCosts: Value(includesCosts),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalReportSnapshot.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalReportSnapshot(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      reportType: serializer.fromJson<String>(json['reportType']),
+      filterKey: serializer.fromJson<String>(json['filterKey']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+      authoritativeAsOf:
+          serializer.fromJson<DateTime>(json['authoritativeAsOf']),
+      authorizationValidatedAt:
+          serializer.fromJson<DateTime>(json['authorizationValidatedAt']),
+      capabilityFingerprint:
+          serializer.fromJson<String>(json['capabilityFingerprint']),
+      includesSensitiveData:
+          serializer.fromJson<bool>(json['includesSensitiveData']),
+      includesCosts: serializer.fromJson<bool>(json['includesCosts']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'reportType': serializer.toJson<String>(reportType),
+      'filterKey': serializer.toJson<String>(filterKey),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+      'authoritativeAsOf': serializer.toJson<DateTime>(authoritativeAsOf),
+      'authorizationValidatedAt':
+          serializer.toJson<DateTime>(authorizationValidatedAt),
+      'capabilityFingerprint': serializer.toJson<String>(capabilityFingerprint),
+      'includesSensitiveData': serializer.toJson<bool>(includesSensitiveData),
+      'includesCosts': serializer.toJson<bool>(includesCosts),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalReportSnapshot copyWith(
+          {String? id,
+          String? profileId,
+          String? businessId,
+          String? branchId,
+          String? reportType,
+          String? filterKey,
+          String? payloadJson,
+          DateTime? fetchedAt,
+          DateTime? authoritativeAsOf,
+          DateTime? authorizationValidatedAt,
+          String? capabilityFingerprint,
+          bool? includesSensitiveData,
+          bool? includesCosts,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      LocalReportSnapshot(
+        id: id ?? this.id,
+        profileId: profileId ?? this.profileId,
+        businessId: businessId ?? this.businessId,
+        branchId: branchId ?? this.branchId,
+        reportType: reportType ?? this.reportType,
+        filterKey: filterKey ?? this.filterKey,
+        payloadJson: payloadJson ?? this.payloadJson,
+        fetchedAt: fetchedAt ?? this.fetchedAt,
+        authoritativeAsOf: authoritativeAsOf ?? this.authoritativeAsOf,
+        authorizationValidatedAt:
+            authorizationValidatedAt ?? this.authorizationValidatedAt,
+        capabilityFingerprint:
+            capabilityFingerprint ?? this.capabilityFingerprint,
+        includesSensitiveData:
+            includesSensitiveData ?? this.includesSensitiveData,
+        includesCosts: includesCosts ?? this.includesCosts,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  LocalReportSnapshot copyWithCompanion(LocalReportSnapshotsCompanion data) {
+    return LocalReportSnapshot(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      businessId:
+          data.businessId.present ? data.businessId.value : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      reportType:
+          data.reportType.present ? data.reportType.value : this.reportType,
+      filterKey: data.filterKey.present ? data.filterKey.value : this.filterKey,
+      payloadJson:
+          data.payloadJson.present ? data.payloadJson.value : this.payloadJson,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+      authoritativeAsOf: data.authoritativeAsOf.present
+          ? data.authoritativeAsOf.value
+          : this.authoritativeAsOf,
+      authorizationValidatedAt: data.authorizationValidatedAt.present
+          ? data.authorizationValidatedAt.value
+          : this.authorizationValidatedAt,
+      capabilityFingerprint: data.capabilityFingerprint.present
+          ? data.capabilityFingerprint.value
+          : this.capabilityFingerprint,
+      includesSensitiveData: data.includesSensitiveData.present
+          ? data.includesSensitiveData.value
+          : this.includesSensitiveData,
+      includesCosts: data.includesCosts.present
+          ? data.includesCosts.value
+          : this.includesCosts,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalReportSnapshot(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('reportType: $reportType, ')
+          ..write('filterKey: $filterKey, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('authoritativeAsOf: $authoritativeAsOf, ')
+          ..write('authorizationValidatedAt: $authorizationValidatedAt, ')
+          ..write('capabilityFingerprint: $capabilityFingerprint, ')
+          ..write('includesSensitiveData: $includesSensitiveData, ')
+          ..write('includesCosts: $includesCosts, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      profileId,
+      businessId,
+      branchId,
+      reportType,
+      filterKey,
+      payloadJson,
+      fetchedAt,
+      authoritativeAsOf,
+      authorizationValidatedAt,
+      capabilityFingerprint,
+      includesSensitiveData,
+      includesCosts,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalReportSnapshot &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.reportType == this.reportType &&
+          other.filterKey == this.filterKey &&
+          other.payloadJson == this.payloadJson &&
+          other.fetchedAt == this.fetchedAt &&
+          other.authoritativeAsOf == this.authoritativeAsOf &&
+          other.authorizationValidatedAt == this.authorizationValidatedAt &&
+          other.capabilityFingerprint == this.capabilityFingerprint &&
+          other.includesSensitiveData == this.includesSensitiveData &&
+          other.includesCosts == this.includesCosts &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalReportSnapshotsCompanion
+    extends UpdateCompanion<LocalReportSnapshot> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> reportType;
+  final Value<String> filterKey;
+  final Value<String> payloadJson;
+  final Value<DateTime> fetchedAt;
+  final Value<DateTime> authoritativeAsOf;
+  final Value<DateTime> authorizationValidatedAt;
+  final Value<String> capabilityFingerprint;
+  final Value<bool> includesSensitiveData;
+  final Value<bool> includesCosts;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalReportSnapshotsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.reportType = const Value.absent(),
+    this.filterKey = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.authoritativeAsOf = const Value.absent(),
+    this.authorizationValidatedAt = const Value.absent(),
+    this.capabilityFingerprint = const Value.absent(),
+    this.includesSensitiveData = const Value.absent(),
+    this.includesCosts = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalReportSnapshotsCompanion.insert({
+    required String id,
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String reportType,
+    required String filterKey,
+    required String payloadJson,
+    required DateTime fetchedAt,
+    required DateTime authoritativeAsOf,
+    required DateTime authorizationValidatedAt,
+    required String capabilityFingerprint,
+    this.includesSensitiveData = const Value.absent(),
+    this.includesCosts = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        profileId = Value(profileId),
+        businessId = Value(businessId),
+        branchId = Value(branchId),
+        reportType = Value(reportType),
+        filterKey = Value(filterKey),
+        payloadJson = Value(payloadJson),
+        fetchedAt = Value(fetchedAt),
+        authoritativeAsOf = Value(authoritativeAsOf),
+        authorizationValidatedAt = Value(authorizationValidatedAt),
+        capabilityFingerprint = Value(capabilityFingerprint);
+  static Insertable<LocalReportSnapshot> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? reportType,
+    Expression<String>? filterKey,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? fetchedAt,
+    Expression<DateTime>? authoritativeAsOf,
+    Expression<DateTime>? authorizationValidatedAt,
+    Expression<String>? capabilityFingerprint,
+    Expression<bool>? includesSensitiveData,
+    Expression<bool>? includesCosts,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (reportType != null) 'report_type': reportType,
+      if (filterKey != null) 'filter_key': filterKey,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (authoritativeAsOf != null) 'authoritative_as_of': authoritativeAsOf,
+      if (authorizationValidatedAt != null)
+        'authorization_validated_at': authorizationValidatedAt,
+      if (capabilityFingerprint != null)
+        'capability_fingerprint': capabilityFingerprint,
+      if (includesSensitiveData != null)
+        'includes_sensitive_data': includesSensitiveData,
+      if (includesCosts != null) 'includes_costs': includesCosts,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalReportSnapshotsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? profileId,
+      Value<String>? businessId,
+      Value<String>? branchId,
+      Value<String>? reportType,
+      Value<String>? filterKey,
+      Value<String>? payloadJson,
+      Value<DateTime>? fetchedAt,
+      Value<DateTime>? authoritativeAsOf,
+      Value<DateTime>? authorizationValidatedAt,
+      Value<String>? capabilityFingerprint,
+      Value<bool>? includesSensitiveData,
+      Value<bool>? includesCosts,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return LocalReportSnapshotsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      reportType: reportType ?? this.reportType,
+      filterKey: filterKey ?? this.filterKey,
+      payloadJson: payloadJson ?? this.payloadJson,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      authoritativeAsOf: authoritativeAsOf ?? this.authoritativeAsOf,
+      authorizationValidatedAt:
+          authorizationValidatedAt ?? this.authorizationValidatedAt,
+      capabilityFingerprint:
+          capabilityFingerprint ?? this.capabilityFingerprint,
+      includesSensitiveData:
+          includesSensitiveData ?? this.includesSensitiveData,
+      includesCosts: includesCosts ?? this.includesCosts,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (reportType.present) {
+      map['report_type'] = Variable<String>(reportType.value);
+    }
+    if (filterKey.present) {
+      map['filter_key'] = Variable<String>(filterKey.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (authoritativeAsOf.present) {
+      map['authoritative_as_of'] = Variable<DateTime>(authoritativeAsOf.value);
+    }
+    if (authorizationValidatedAt.present) {
+      map['authorization_validated_at'] =
+          Variable<DateTime>(authorizationValidatedAt.value);
+    }
+    if (capabilityFingerprint.present) {
+      map['capability_fingerprint'] =
+          Variable<String>(capabilityFingerprint.value);
+    }
+    if (includesSensitiveData.present) {
+      map['includes_sensitive_data'] =
+          Variable<bool>(includesSensitiveData.value);
+    }
+    if (includesCosts.present) {
+      map['includes_costs'] = Variable<bool>(includesCosts.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalReportSnapshotsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('reportType: $reportType, ')
+          ..write('filterKey: $filterKey, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('authoritativeAsOf: $authoritativeAsOf, ')
+          ..write('authorizationValidatedAt: $authorizationValidatedAt, ')
+          ..write('capabilityFingerprint: $capabilityFingerprint, ')
+          ..write('includesSensitiveData: $includesSensitiveData, ')
+          ..write('includesCosts: $includesCosts, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CategoriesTable extends Categories
     with TableInfo<$CategoriesTable, Category> {
   @override
@@ -23816,6 +24581,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LocalAuthorizedOperationalContextsTable
       localAuthorizedOperationalContexts =
       $LocalAuthorizedOperationalContextsTable(this);
+  late final $LocalReportSnapshotsTable localReportSnapshots =
+      $LocalReportSnapshotsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ProductsTable products = $ProductsTable(this);
@@ -23858,6 +24625,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localOperationalBootstrapSeenRecords,
         localReconciliationIssues,
         localAuthorizedOperationalContexts,
+        localReportSnapshots,
         categories,
         customers,
         products,
@@ -33350,6 +34118,344 @@ typedef $$LocalAuthorizedOperationalContextsTableProcessedTableManager
         ),
         LocalAuthorizedOperationalContext,
         PrefetchHooks Function()>;
+typedef $$LocalReportSnapshotsTableCreateCompanionBuilder
+    = LocalReportSnapshotsCompanion Function({
+  required String id,
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String reportType,
+  required String filterKey,
+  required String payloadJson,
+  required DateTime fetchedAt,
+  required DateTime authoritativeAsOf,
+  required DateTime authorizationValidatedAt,
+  required String capabilityFingerprint,
+  Value<bool> includesSensitiveData,
+  Value<bool> includesCosts,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$LocalReportSnapshotsTableUpdateCompanionBuilder
+    = LocalReportSnapshotsCompanion Function({
+  Value<String> id,
+  Value<String> profileId,
+  Value<String> businessId,
+  Value<String> branchId,
+  Value<String> reportType,
+  Value<String> filterKey,
+  Value<String> payloadJson,
+  Value<DateTime> fetchedAt,
+  Value<DateTime> authoritativeAsOf,
+  Value<DateTime> authorizationValidatedAt,
+  Value<String> capabilityFingerprint,
+  Value<bool> includesSensitiveData,
+  Value<bool> includesCosts,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$LocalReportSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalReportSnapshotsTable> {
+  $$LocalReportSnapshotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reportType => $composableBuilder(
+      column: $table.reportType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get filterKey => $composableBuilder(
+      column: $table.filterKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+      column: $table.payloadJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+      column: $table.fetchedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get authoritativeAsOf => $composableBuilder(
+      column: $table.authoritativeAsOf,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get capabilityFingerprint => $composableBuilder(
+      column: $table.capabilityFingerprint,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get includesSensitiveData => $composableBuilder(
+      column: $table.includesSensitiveData,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get includesCosts => $composableBuilder(
+      column: $table.includesCosts, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalReportSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalReportSnapshotsTable> {
+  $$LocalReportSnapshotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+      column: $table.profileId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+      column: $table.branchId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reportType => $composableBuilder(
+      column: $table.reportType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get filterKey => $composableBuilder(
+      column: $table.filterKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+      column: $table.payloadJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+      column: $table.fetchedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get authoritativeAsOf => $composableBuilder(
+      column: $table.authoritativeAsOf,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get capabilityFingerprint => $composableBuilder(
+      column: $table.capabilityFingerprint,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get includesSensitiveData => $composableBuilder(
+      column: $table.includesSensitiveData,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get includesCosts => $composableBuilder(
+      column: $table.includesCosts,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalReportSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalReportSnapshotsTable> {
+  $$LocalReportSnapshotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+      column: $table.businessId, builder: (column) => column);
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get reportType => $composableBuilder(
+      column: $table.reportType, builder: (column) => column);
+
+  GeneratedColumn<String> get filterKey =>
+      $composableBuilder(column: $table.filterKey, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+      column: $table.payloadJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get authoritativeAsOf => $composableBuilder(
+      column: $table.authoritativeAsOf, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get authorizationValidatedAt => $composableBuilder(
+      column: $table.authorizationValidatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get capabilityFingerprint => $composableBuilder(
+      column: $table.capabilityFingerprint, builder: (column) => column);
+
+  GeneratedColumn<bool> get includesSensitiveData => $composableBuilder(
+      column: $table.includesSensitiveData, builder: (column) => column);
+
+  GeneratedColumn<bool> get includesCosts => $composableBuilder(
+      column: $table.includesCosts, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalReportSnapshotsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalReportSnapshotsTable,
+    LocalReportSnapshot,
+    $$LocalReportSnapshotsTableFilterComposer,
+    $$LocalReportSnapshotsTableOrderingComposer,
+    $$LocalReportSnapshotsTableAnnotationComposer,
+    $$LocalReportSnapshotsTableCreateCompanionBuilder,
+    $$LocalReportSnapshotsTableUpdateCompanionBuilder,
+    (
+      LocalReportSnapshot,
+      BaseReferences<_$AppDatabase, $LocalReportSnapshotsTable,
+          LocalReportSnapshot>
+    ),
+    LocalReportSnapshot,
+    PrefetchHooks Function()> {
+  $$LocalReportSnapshotsTableTableManager(
+      _$AppDatabase db, $LocalReportSnapshotsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalReportSnapshotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalReportSnapshotsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalReportSnapshotsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> profileId = const Value.absent(),
+            Value<String> businessId = const Value.absent(),
+            Value<String> branchId = const Value.absent(),
+            Value<String> reportType = const Value.absent(),
+            Value<String> filterKey = const Value.absent(),
+            Value<String> payloadJson = const Value.absent(),
+            Value<DateTime> fetchedAt = const Value.absent(),
+            Value<DateTime> authoritativeAsOf = const Value.absent(),
+            Value<DateTime> authorizationValidatedAt = const Value.absent(),
+            Value<String> capabilityFingerprint = const Value.absent(),
+            Value<bool> includesSensitiveData = const Value.absent(),
+            Value<bool> includesCosts = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalReportSnapshotsCompanion(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            reportType: reportType,
+            filterKey: filterKey,
+            payloadJson: payloadJson,
+            fetchedAt: fetchedAt,
+            authoritativeAsOf: authoritativeAsOf,
+            authorizationValidatedAt: authorizationValidatedAt,
+            capabilityFingerprint: capabilityFingerprint,
+            includesSensitiveData: includesSensitiveData,
+            includesCosts: includesCosts,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String profileId,
+            required String businessId,
+            required String branchId,
+            required String reportType,
+            required String filterKey,
+            required String payloadJson,
+            required DateTime fetchedAt,
+            required DateTime authoritativeAsOf,
+            required DateTime authorizationValidatedAt,
+            required String capabilityFingerprint,
+            Value<bool> includesSensitiveData = const Value.absent(),
+            Value<bool> includesCosts = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalReportSnapshotsCompanion.insert(
+            id: id,
+            profileId: profileId,
+            businessId: businessId,
+            branchId: branchId,
+            reportType: reportType,
+            filterKey: filterKey,
+            payloadJson: payloadJson,
+            fetchedAt: fetchedAt,
+            authoritativeAsOf: authoritativeAsOf,
+            authorizationValidatedAt: authorizationValidatedAt,
+            capabilityFingerprint: capabilityFingerprint,
+            includesSensitiveData: includesSensitiveData,
+            includesCosts: includesCosts,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalReportSnapshotsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalReportSnapshotsTable,
+        LocalReportSnapshot,
+        $$LocalReportSnapshotsTableFilterComposer,
+        $$LocalReportSnapshotsTableOrderingComposer,
+        $$LocalReportSnapshotsTableAnnotationComposer,
+        $$LocalReportSnapshotsTableCreateCompanionBuilder,
+        $$LocalReportSnapshotsTableUpdateCompanionBuilder,
+        (
+          LocalReportSnapshot,
+          BaseReferences<_$AppDatabase, $LocalReportSnapshotsTable,
+              LocalReportSnapshot>
+        ),
+        LocalReportSnapshot,
+        PrefetchHooks Function()>;
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String id,
   Value<String?> businessId,
@@ -39675,6 +40781,8 @@ class $AppDatabaseManager {
       get localAuthorizedOperationalContexts =>
           $$LocalAuthorizedOperationalContextsTableTableManager(
               _db, _db.localAuthorizedOperationalContexts);
+  $$LocalReportSnapshotsTableTableManager get localReportSnapshots =>
+      $$LocalReportSnapshotsTableTableManager(_db, _db.localReportSnapshots);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
   $$CustomersTableTableManager get customers =>

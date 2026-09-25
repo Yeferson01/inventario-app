@@ -51,10 +51,27 @@ void main() {
               id: 'product-2',
               businessId: const Value('business-1'),
               name: 'Producto sin código',
-              purchasePrice: const Value(3000),
+              purchasePrice: const Value(0),
               salePrice: 3500,
             ),
           );
+      await database.customStatement(
+        '''
+        insert into local_product_stock_balances (
+          id, business_id, branch_id, product_id,
+          quantity_on_hand, quantity_available, average_cost
+        ) values (?, ?, ?, ?, ?, ?, ?)
+        ''',
+        const [
+          'balance-product-2',
+          'business-1',
+          'branch-1',
+          'product-2',
+          4,
+          4,
+          7777,
+        ],
+      );
 
       await tester.pumpWidget(
         ProviderScope(
@@ -79,6 +96,8 @@ void main() {
           .toList();
       expect(productImages, contains('7622201764999'));
       expect(productImages, contains(null));
+      expect(find.text(r'Costo $7777'), findsNothing);
+      expect(find.text(r'Costo $0'), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.text('Coca-Cola 1.75'),
@@ -130,7 +149,7 @@ void main() {
         '''
         select quantity_on_hand, quantity_available, average_cost
         from local_product_stock_balances
-        limit 1
+        where product_id = 'product-1'
         ''',
       ).getSingle();
       final product = await database.customSelect(

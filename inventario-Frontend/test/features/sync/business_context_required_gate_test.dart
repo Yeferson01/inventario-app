@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventario_frontend/features/administration/data/models/business_administration_models.dart';
 import 'package:inventario_frontend/features/auth/application/authenticated_access_models.dart';
 import 'package:inventario_frontend/features/auth/application/authenticated_access_providers.dart';
 import 'package:inventario_frontend/features/auth/application/productive_auth_providers.dart';
@@ -337,6 +338,142 @@ void main() {
     );
   });
 
+  testWidgets(
+    'selection dropdown is hosted under Navigator in router-builder topology',
+    (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+
+      final result = OperationalBootstrapEntryResult(
+        outcome: OperationalBootstrapEntryOutcome.selectionRequired,
+        contexts: [
+          _context(),
+          _context(
+            branchId: 'branch-y',
+            branchName: 'Sucursal Y',
+          ),
+        ],
+        message: 'select',
+        offlineReady: false,
+        canRequestAdministrativeSetup: false,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            productiveOperationalEntryProvider.overrideWith(
+              (ref, request) async => result,
+            ),
+            authenticatedAccessResolverProvider.overrideWith(
+              (ref, profileId) async => _accessWithContext(),
+            ),
+          ],
+          child: MaterialApp(
+            navigatorKey: navigatorKey,
+            builder: (context, child) {
+              final navigatorHost = child ?? const SizedBox.shrink();
+
+              return BusinessContextRequiredGate(
+                profileId: 'profile-1',
+                navigatorContextResolver: () =>
+                    navigatorKey.currentState?.overlay?.context,
+                navigatorHost: navigatorHost,
+                child: navigatorHost,
+              );
+            },
+            home: const Text('PRODUCTIVE CHILD'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final branchSelector = find.byKey(
+        const Key('operational-branch-selector'),
+      );
+
+      expect(branchSelector, findsOneWidget);
+
+      await tester.tap(branchSelector);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Sucursal Y').last);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      final continueButton = tester.widget<FilledButton>(
+        find.byKey(const Key('confirm-operational-context')),
+      );
+
+      expect(continueButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'ready context opens pending business invitation under root Navigator',
+    (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      final context = _context();
+      final result = OperationalBootstrapEntryResult(
+        outcome:
+            OperationalBootstrapEntryOutcome.runtimeReadyAndBootstrapCompleted,
+        contexts: [context],
+        profileId: 'profile-1',
+        selectedContext: context,
+        message: 'ready',
+        offlineReady: true,
+        canRequestAdministrativeSetup: false,
+      );
+      final access = AuthenticatedAccessResult(
+        outcome:
+            AuthenticatedAccessOutcome.existingContextsAndPendingInvitations,
+        contexts: [context],
+        pendingInvitations: const [],
+        pendingBusinessInvitations: [_businessInvitation()],
+        message: 'invitation pending',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            productiveOperationalEntryProvider.overrideWith(
+              (ref, request) async => result,
+            ),
+            authenticatedAccessResolverProvider.overrideWith(
+              (ref, profileId) async => access,
+            ),
+          ],
+          child: MaterialApp(
+            navigatorKey: navigatorKey,
+            builder: (context, child) {
+              final navigatorHost = child ?? const SizedBox.shrink();
+              return BusinessContextRequiredGate(
+                profileId: 'profile-1',
+                navigatorContextResolver: () =>
+                    navigatorKey.currentState?.overlay?.context,
+                navigatorHost: navigatorHost,
+                child: navigatorHost,
+              );
+            },
+            home: const Scaffold(body: Text('DASHBOARD')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('DASHBOARD'), findsOneWidget);
+      expect(find.text('1 invitación pendiente'), findsOneWidget);
+
+      await tester.tap(find.text('1 invitación pendiente'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Invitaciones de negocio'), findsOneWidget);
+      expect(find.text('Aceptar y continuar'), findsOneWidget);
+    },
+  );
   testWidgets('OR-07 transient failure preserves a ready cached context',
       (tester) async {
     await tester.pumpWidget(
@@ -481,5 +618,23 @@ AuthorizedOperationalContext _context({
     membershipsUpdatedAt: DateTime.utc(2026, 8, 21),
     effectiveRoles: const [],
     effectivePermissions: const ['inventory.read'],
+  );
+}
+
+BusinessMemberInvitation _businessInvitation() {
+  return BusinessMemberInvitation(
+    id: 'invitation-business-2',
+    businessId: 'business-2',
+    businessName: 'Business 2',
+    email: 'warehouse@example.test',
+    roleId: 'role-warehouse',
+    roleName: 'warehouse',
+    branchId: 'branch-2',
+    branchName: 'Principal',
+    scope: BusinessMemberInvitationScope.branch,
+    status: 'pending',
+    deliveryStatus: BusinessMemberInvitationDeliveryState.sent,
+    expiresAt: DateTime.utc(2099),
+    isExpired: false,
   );
 }

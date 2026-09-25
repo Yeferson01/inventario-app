@@ -63,8 +63,8 @@ class _BusinessContextRequiredGateState
   OperationalContextSelection? _selection;
   bool _creatingBusiness = false;
   bool _postInvitationEntryStabilizing = false;
-  final _recoveryNavigatorHostKey =
-      GlobalKey<_RecoveryBlockedNavigatorHostState>();
+  final _blockingNavigatorHostKey =
+      GlobalKey<_NavigatorBlockingOverlayHostState>();
   bool _cashRepairRunning = false;
 
   @override
@@ -390,7 +390,7 @@ class _BusinessContextRequiredGateState
   }
 
   void _setRecoveryDialogVisible(bool visible) {
-    _recoveryNavigatorHostKey.currentState?.setBlockingOverlayVisible(!visible);
+    _blockingNavigatorHostKey.currentState?.setBlockingOverlayVisible(!visible);
   }
 
   BuildContext? get _dialogContext {
@@ -437,8 +437,9 @@ class _BusinessContextRequiredGateState
           secondaryActionLabel: 'Cerrar sesión',
           onSecondaryAction: _signOut,
         );
+
       case OperationalBootstrapEntryOutcome.selectionRequired:
-        return BusinessContextSelectionScreen(
+        final selection = BusinessContextSelectionScreen(
           contexts: result.contexts,
           additionalContent: !hasInvitations
               ? null
@@ -457,6 +458,14 @@ class _BusinessContextRequiredGateState
             });
           },
         );
+
+        return _NavigatorBlockingOverlayHost(
+          key: _blockingNavigatorHostKey,
+          navigatorHost: widget.navigatorHost ?? widget.child,
+          navigatorContextResolver: () => _dialogContext,
+          blocked: selection,
+        );
+
       case OperationalBootstrapEntryOutcome.runtimeReadyAndBootstrapCompleted:
         if (result.offlineReady) {
           return !hasInvitations
@@ -466,6 +475,7 @@ class _BusinessContextRequiredGateState
                   businessInvitations: businessInvitations,
                   onAcceptPlatform: _acceptInvitation,
                   onAcceptBusiness: _acceptBusinessInvitation,
+                  navigatorContextResolver: () => _dialogContext,
                   child: widget.child,
                 );
         }
@@ -528,8 +538,8 @@ class _BusinessContextRequiredGateState
           navigatorContextResolver: () => _dialogContext,
           onDialogVisibilityChanged: _setRecoveryDialogVisible,
         );
-        return _RecoveryBlockedNavigatorHost(
-          key: _recoveryNavigatorHostKey,
+        return _NavigatorBlockingOverlayHost(
+          key: _blockingNavigatorHostKey,
           navigatorHost: widget.navigatorHost ?? widget.child,
           navigatorContextResolver: () => _dialogContext,
           blocked: blocked,
@@ -630,8 +640,8 @@ class _BusinessContextRequiredGateState
   }
 }
 
-class _RecoveryBlockedNavigatorHost extends StatefulWidget {
-  const _RecoveryBlockedNavigatorHost({
+class _NavigatorBlockingOverlayHost extends StatefulWidget {
+  const _NavigatorBlockingOverlayHost({
     required this.navigatorHost,
     required this.navigatorContextResolver,
     required this.blocked,
@@ -643,90 +653,138 @@ class _RecoveryBlockedNavigatorHost extends StatefulWidget {
   final Widget blocked;
 
   @override
-  State<_RecoveryBlockedNavigatorHost> createState() =>
-      _RecoveryBlockedNavigatorHostState();
+  State<_NavigatorBlockingOverlayHost> createState() =>
+      _NavigatorBlockingOverlayHostState();
 }
 
-class _RecoveryBlockedNavigatorHostState
-    extends State<_RecoveryBlockedNavigatorHost> {
-  OverlayEntry? _entry;
+class _NavigatorBlockingOverlayHostState
+    extends State<_NavigatorBlockingOverlayHost> {
+  PageRoute<void>? _route;
+  NavigatorState? _navigator;
   bool _installScheduled = false;
-  bool _suspended = false;
+  late final ValueNotifier<Widget> _blocked;
+  late final ValueNotifier<bool> _visible;
 
   @override
-  void didUpdateWidget(covariant _RecoveryBlockedNavigatorHost oldWidget) {
+  void initState() {
+    super.initState();
+    _blocked = ValueNotifier(widget.blocked);
+    _visible = ValueNotifier(true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NavigatorBlockingOverlayHost oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _entry?.markNeedsBuild();
+    _blocked.value = widget.blocked;
   }
 
   @override
   void dispose() {
-    _entry?.remove();
-    _entry = null;
+    final route = _route;
+    final navigator = _navigator;
+    _route = null;
+    _navigator = null;
+    if (route != null && navigator?.mounted == true) {
+      navigator!.removeRoute(route);
+    }
+    _blocked.dispose();
+    _visible.dispose();
     super.dispose();
   }
 
   void _scheduleInstall() {
-    if (_installScheduled || _entry != null) return;
+    if (_installScheduled || _route != null) return;
+
     _installScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _installScheduled = false;
-      if (!mounted || _entry != null) return;
+      if (!mounted || _route != null) return;
+
       final navigatorContext = widget.navigatorContextResolver();
-      final overlay = navigatorContext == null
+      final navigator = navigatorContext == null || !navigatorContext.mounted
           ? null
-          : Overlay.maybeOf(navigatorContext, rootOverlay: true);
-      if (overlay == null) return;
-      final entry = OverlayEntry(builder: _buildBlockedOverlay);
-      overlay.insert(entry);
-      _entry = entry;
+          : Navigator.maybeOf(
+              navigatorContext,
+              rootNavigator: true,
+            );
+      if (navigator == null) return;
+
+      final route = PageRouteBuilder<void>(
+        opaque: true,
+        barrierDismissible: false,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return ValueListenableBuilder<bool>(
+            valueListenable: _visible,
+            builder: (context, visible, child) {
+              return Offstage(
+                offstage: !visible,
+                child: IgnorePointer(
+                  ignoring: !visible,
+                  child: child,
+                ),
+              );
+            },
+            child: ValueListenableBuilder<Widget>(
+              valueListenable: _blocked,
+              builder: (context, blocked, child) {
+                return PopScope(
+                  canPop: false,
+                  child: blocked,
+                );
+              },
+            ),
+          );
+        },
+      );
+      _navigator = navigator;
+      _route = route;
+      navigator.push<void>(route);
       if (mounted) setState(() {});
     });
   }
 
   void setBlockingOverlayVisible(bool visible) {
-    if (!mounted || visible == !_suspended) return;
-    if (!visible) {
-      _suspended = true;
-      _entry?.markNeedsBuild();
-      setState(() {});
-      return;
-    }
-    _suspended = false;
-    final navigatorContext = widget.navigatorContextResolver();
-    final overlay = navigatorContext == null
-        ? null
-        : Overlay.maybeOf(navigatorContext, rootOverlay: true);
-    if (overlay != null && _entry == null) {
-      final entry = OverlayEntry(builder: _buildBlockedOverlay);
-      overlay.insert(entry);
-      _entry = entry;
-    } else {
-      _entry?.markNeedsBuild();
-    }
-    setState(() {});
-  }
-
-  Widget _buildBlockedOverlay(BuildContext context) {
-    return Offstage(
-      offstage: _suspended,
-      child: IgnorePointer(
-        ignoring: _suspended,
-        child: widget.blocked,
-      ),
-    );
+    if (!mounted || _visible.value == visible) return;
+    _visible.value = visible;
   }
 
   @override
   Widget build(BuildContext context) {
     _scheduleInstall();
-    if (_entry != null) return widget.navigatorHost;
+
+    if (_route != null) {
+      return widget.navigatorHost;
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
-        widget.navigatorHost,
-        _buildBlockedOverlay(context),
+        IgnorePointer(
+          child: widget.navigatorHost,
+        ),
+        const _NavigatorOverlayPreparing(),
       ],
+    );
+  }
+}
+
+class _NavigatorOverlayPreparing extends StatelessWidget {
+  const _NavigatorOverlayPreparing();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Colors.transparent,
+      child: Center(
+        child: SizedBox.square(
+          dimension: 28,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -976,6 +1034,7 @@ class _PendingInvitationsOverlay extends StatelessWidget {
     required this.businessInvitations,
     required this.onAcceptPlatform,
     required this.onAcceptBusiness,
+    required this.navigatorContextResolver,
     required this.child,
   });
 
@@ -983,7 +1042,42 @@ class _PendingInvitationsOverlay extends StatelessWidget {
   final List<BusinessMemberInvitation> businessInvitations;
   final PlatformInvitationAcceptAction onAcceptPlatform;
   final BusinessInvitationAcceptAction onAcceptBusiness;
+  final NavigatorContextResolver navigatorContextResolver;
   final Widget child;
+
+  Future<void> _showInvitations() async {
+    final navigatorContext = navigatorContextResolver();
+    if (navigatorContext == null || !navigatorContext.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: navigatorContext,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: _InvitationPanels(
+            platformInvitations: platformInvitations,
+            businessInvitations: businessInvitations,
+            onAcceptPlatform: (id) async {
+              final result = await onAcceptPlatform(id);
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop();
+              }
+              return result;
+            },
+            onAcceptBusiness: (id) async {
+              final result = await onAcceptBusiness(id);
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop();
+              }
+              return result;
+            },
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -996,34 +1090,7 @@ class _PendingInvitationsOverlay extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(top: 8),
               child: FilledButton.tonalIcon(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  showDragHandle: true,
-                  builder: (sheetContext) => SafeArea(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: _InvitationPanels(
-                        platformInvitations: platformInvitations,
-                        businessInvitations: businessInvitations,
-                        onAcceptPlatform: (id) async {
-                          final result = await onAcceptPlatform(id);
-                          if (sheetContext.mounted) {
-                            Navigator.of(sheetContext).pop();
-                          }
-                          return result;
-                        },
-                        onAcceptBusiness: (id) async {
-                          final result = await onAcceptBusiness(id);
-                          if (sheetContext.mounted) {
-                            Navigator.of(sheetContext).pop();
-                          }
-                          return result;
-                        },
-                      ),
-                    ),
-                  ),
-                ),
+                onPressed: _showInvitations,
                 icon: const Icon(Icons.mark_email_unread_outlined),
                 label: Text(
                   platformInvitations.length + businessInvitations.length == 1

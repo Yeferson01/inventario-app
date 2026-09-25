@@ -1136,6 +1136,38 @@ class LocalAuthorizedOperationalContexts extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class LocalReportSnapshots extends Table {
+  @override
+  String get tableName => 'local_report_snapshots';
+
+  TextColumn get id => text()();
+  TextColumn get profileId => text().named('profile_id')();
+  TextColumn get businessId => text().named('business_id')();
+  TextColumn get branchId => text().named('branch_id')();
+  TextColumn get reportType => text().named('report_type')();
+  TextColumn get filterKey => text().named('filter_key')();
+  TextColumn get payloadJson => text().named('payload_json')();
+  DateTimeColumn get fetchedAt => dateTime().named('fetched_at')();
+  DateTimeColumn get authoritativeAsOf =>
+      dateTime().named('authoritative_as_of')();
+  DateTimeColumn get authorizationValidatedAt =>
+      dateTime().named('authorization_validated_at')();
+  TextColumn get capabilityFingerprint =>
+      text().named('capability_fingerprint')();
+  BoolColumn get includesSensitiveData => boolean()
+      .withDefault(const Constant(false))
+      .named('includes_sensitive_data')();
+  BoolColumn get includesCosts =>
+      boolean().withDefault(const Constant(false)).named('includes_costs')();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime).named('updated_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Branches,
@@ -1156,6 +1188,7 @@ class LocalAuthorizedOperationalContexts extends Table {
     LocalOperationalBootstrapSeenRecords,
     LocalReconciliationIssues,
     LocalAuthorizedOperationalContexts,
+    LocalReportSnapshots,
     Businesses,
     Profiles,
     Categories,
@@ -1187,7 +1220,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   Future<void> _createProductIdentityIndexesAndTriggers() async {
     await customStatement('''
@@ -1661,6 +1694,29 @@ class AppDatabase extends _$AppDatabase {
     ''');
   }
 
+  Future<void> _createReportSnapshotIndexes() async {
+    await customStatement('''
+      create unique index if not exists ux_local_report_snapshots_scope
+      on local_report_snapshots (
+        profile_id,
+        business_id,
+        branch_id,
+        report_type,
+        filter_key
+      )
+    ''');
+
+    await customStatement('''
+      create index if not exists idx_local_report_snapshots_authorization
+      on local_report_snapshots (
+        profile_id,
+        business_id,
+        branch_id,
+        authorization_validated_at
+      )
+    ''');
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
@@ -1672,11 +1728,16 @@ class AppDatabase extends _$AppDatabase {
           await _createInventoryMovementIndexes();
           await _createProductStockBalanceIndexes();
           await _createOperationalRecoveryIndexes();
+          await _createReportSnapshotIndexes();
           await _createPosIndexes();
           await _createPurchaseIndexes();
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 13) {
+            await m.createTable(localReportSnapshots);
+            await _createReportSnapshotIndexes();
+          }
           if (from < 12) {
             if (from >= 4) {
               await m.addColumn(
@@ -1833,6 +1894,7 @@ class AppDatabase extends _$AppDatabase {
           await _createCashSessionIndexes();
           await _createProductStockBalanceIndexes();
           await _createOperationalRecoveryIndexes();
+          await _createReportSnapshotIndexes();
           await _createPosIndexes();
           await _createInventoryMovementIndexes();
           await ensureLocalSyncOutboxIndexes();

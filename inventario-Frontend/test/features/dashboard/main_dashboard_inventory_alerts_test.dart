@@ -14,7 +14,15 @@ import 'package:inventario_frontend/features/cash/data/datasources/cash_session_
 import 'package:inventario_frontend/features/dashboard/presentation/screens/main_dashboard_screen.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_valuation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/product_stock_balance_providers.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_history_providers.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_history_service.dart';
+import 'package:inventario_frontend/features/inventory/data/models/inventory_history_models.dart';
+import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_movements_screen.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
+import 'package:inventario_frontend/features/reports/application/sales_report_providers.dart';
+import 'package:inventario_frontend/features/reports/application/sales_report_service.dart';
+import 'package:inventario_frontend/features/reports/data/models/sales_report_models.dart';
+import 'package:inventario_frontend/features/reports/presentation/screens/sales_report_screen.dart';
 import 'package:inventario_frontend/features/sync/application/app_context_models.dart';
 import 'package:inventario_frontend/features/sync/application/app_current_context_provider.dart';
 import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
@@ -23,6 +31,39 @@ import 'package:inventario_frontend/features/sync/application/productive_sync_st
 import 'package:inventario_frontend/features/sync/application/productive_sync_status_provider.dart';
 
 void main() {
+  testWidgets('shows Reports only with reports.sales', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'reports.sales'},
+    );
+
+    expect(find.text('Reportes'), findsOneWidget);
+  });
+
+  testWidgets('sales.read alone does not expose Reports', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'sales.read'},
+    );
+
+    expect(find.text('Reportes'), findsNothing);
+  });
+
+  testWidgets('Reports module opens SalesReportScreen', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'reports.sales'},
+    );
+
+    final reports = find.text('Reportes');
+    await tester.ensureVisible(reports);
+    await tester.tap(reports);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SalesReportScreen), findsOneWidget);
+    expect(find.text('Reporte no disponible sin conexión'), findsOneWidget);
+  });
+
   testWidgets(
       'shows branch-scoped local inventory alert counts when authorized',
       (tester) async {
@@ -261,6 +302,102 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets('opens inventory movement history from dashboard',
+      (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {'inventory.read'},
+    );
+
+    final movementsAction = find.text('Movimientos');
+    await tester.ensureVisible(movementsAction);
+    await tester.pumpAndSettle();
+
+    await tester.tap(movementsAction);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InventoryMovementsScreen), findsOneWidget);
+
+    final screen = tester.widget<InventoryMovementsScreen>(
+      find.byType(InventoryMovementsScreen),
+    );
+
+    expect(screen.appContext.businessId, 'business-1');
+    expect(screen.appContext.branchId, 'branch-1');
+    expect(screen.appContext.profileId, 'profile-1');
+    expect(screen.branchName, 'branch-1');
+    expect(screen.productId, isNull);
+
+    expect(find.text('Historial no disponible sin conexión'), findsNothing);
+  });
+
+  testWidgets(
+    'opens product movement timeline from inventory through dashboard wiring',
+    (tester) async {
+      await _pumpDashboard(
+        tester,
+        permissions: const {'inventory.read'},
+        inventoryProducts: const [
+          {
+            'product_id': 'product-1',
+            'product_name': 'Arroz premium',
+            'barcode': '7700000000001',
+            'quantity_on_hand': 10,
+            'quantity_available': 10,
+            'stock_average_cost': 2.67,
+            'minimum_stock': 3,
+          },
+        ],
+      );
+
+      final inventoryAction = find.text('Inventario');
+      await tester.ensureVisible(inventoryAction);
+      await tester.pumpAndSettle();
+
+      await tester.tap(inventoryAction);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(InventoryProductStockListScreen),
+        findsOneWidget,
+      );
+
+      final productMovements = find.byKey(
+        const Key('inventory-movements-product-1'),
+      );
+
+      await tester.ensureVisible(productMovements);
+      await tester.pumpAndSettle();
+
+      expect(productMovements, findsOneWidget);
+
+      await tester.tap(productMovements);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InventoryMovementsScreen), findsOneWidget);
+
+      final screen = tester.widget<InventoryMovementsScreen>(
+        find.byType(InventoryMovementsScreen),
+      );
+
+      expect(screen.appContext.businessId, 'business-1');
+      expect(screen.appContext.branchId, 'branch-1');
+      expect(screen.appContext.profileId, 'profile-1');
+
+      expect(screen.productId, 'product-1');
+      expect(screen.productName, 'Arroz premium');
+      expect(screen.productBarcode, '7700000000001');
+      expect(screen.branchName, 'branch-1');
+
+      expect(find.text('Movimientos del producto'), findsOneWidget);
+      expect(
+        find.byKey(const Key('inventory-history-product-header')),
+        findsOneWidget,
+      );
+      expect(find.text('Arroz premium'), findsWidgets);
+    },
+  );
 }
 
 Future<void> _pumpDashboard(
@@ -272,6 +409,7 @@ Future<void> _pumpDashboard(
   InventoryAlertSummary Function(InventoryAlertSummaryKey key)? summaryForKey,
   ProductiveManualSyncRunner? manualSyncRunner,
   ProductiveSyncStatus? productiveSyncStatus,
+  List<Map<String, dynamic>> inventoryProducts = const [],
 }) async {
   final database = AppDatabase.executor(NativeDatabase.memory());
   addTearDown(database.close);
@@ -319,9 +457,12 @@ Future<void> _pumpDashboard(
         inventoryValuationSummaryProvider.overrideWith(
           (ref, key) => Stream.value(InventoryValuationSummary.empty),
         ),
+        inventoryHistoryServiceProvider.overrideWithValue(
+          const _DashboardInventoryHistoryService(),
+        ),
         localProductsWithStockProvider.overrideWith((ref, key) {
           onInventoryRead?.call(key);
-          return Stream.value(const <Map<String, dynamic>>[]);
+          return Stream.value(inventoryProducts);
         }),
         productiveManualSyncRunnerProvider.overrideWithValue(
           manualSyncRunner ??
@@ -349,12 +490,36 @@ Future<void> _pumpDashboard(
                 attentionOperationCount: 0,
               );
         }),
+        salesReportServiceProvider.overrideWithValue(
+          const _DashboardSalesReportService(),
+        ),
+        salesReportOnlineCheckProvider.overrideWithValue(() async => false),
       ],
       child: const MaterialApp(home: MainDashboardScreen()),
     ),
   );
   await tester.pump();
   await tester.pumpAndSettle();
+}
+
+class _DashboardSalesReportService implements SalesReportService {
+  const _DashboardSalesReportService();
+
+  @override
+  Future<SalesReportCacheReadResult> readCached(
+    SalesReportScope scope,
+  ) async {
+    return const SalesReportCacheReadResult(
+      outcome: SalesReportCacheReadOutcome.noCache,
+    );
+  }
+
+  @override
+  Future<SalesReportRefreshResult> refresh(SalesReportScope scope) async {
+    return const SalesReportRefreshResult(
+      outcome: SalesReportRefreshOutcome.remoteFailure,
+    );
+  }
 }
 
 ProductiveSyncStatus _status({
@@ -383,4 +548,55 @@ ProductiveSyncStatus _status({
     openIssueCount: openIssueCount,
     attentionOperationCount: attentionOperationCount,
   );
+}
+
+class _DashboardInventoryHistoryService implements InventoryHistoryService {
+  const _DashboardInventoryHistoryService();
+
+  static const coverage = InventoryHistoryCoverage(
+    hasCachedRows: false,
+    hasMoreRemote: false,
+  );
+
+  @override
+  Future<List<InventoryMovementHistoryEntry>> loadCachedHistory({
+    required AppCurrentContext context,
+    String? productId,
+    String? effectiveType,
+    DateTime? from,
+    DateTime? to,
+    InventoryHistoryCursor? cursor,
+    int limit = 50,
+  }) async {
+    return const [];
+  }
+
+  @override
+  Future<InventoryHistoryCoverage> getCoverage({
+    required AppCurrentContext context,
+  }) async {
+    return coverage;
+  }
+
+  @override
+  Future<InventoryHistoryHydrationResult> refreshLatest({
+    required AppCurrentContext context,
+    int limit = 50,
+  }) async {
+    return const InventoryHistoryHydrationResult(
+      outcome: InventoryHistoryHydrationOutcome.hydrated,
+      coverage: coverage,
+    );
+  }
+
+  @override
+  Future<InventoryHistoryHydrationResult> loadOlder({
+    required AppCurrentContext context,
+    int limit = 50,
+  }) async {
+    return const InventoryHistoryHydrationResult(
+      outcome: InventoryHistoryHydrationOutcome.noMoreRemote,
+      coverage: coverage,
+    );
+  }
 }

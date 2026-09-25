@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:collection';
 
 import 'package:drift/drift.dart' show Variable;
@@ -441,6 +442,164 @@ void main() {
     expect(row['local_status'], 'dirty');
     expect(row['idempotency_key'], 'local-key');
   });
+
+  test(
+    'HY-29 hydrated remote movement is marked server authoritative',
+    () async {
+      final h = await _Harness.create([
+        [_row(id: 'remote-authoritative-1')],
+      ]);
+      addTearDown(h.close);
+
+      await h.service.refreshLatest(context: _context());
+
+      final row = await _movement(
+        h.database,
+        'remote-authoritative-1',
+      );
+
+      final metadata = jsonDecode(
+        row['metadata_json']!.toString(),
+      ) as Map<String, dynamic>;
+
+      expect(row['sync_status'], 1);
+      expect(row['local_status'], 'synced');
+      expect(metadata['server_authoritative_history'], isTrue);
+    },
+  );
+
+  test(
+    'HY-30 clean existing movement preserves metadata and gains authoritative provenance',
+    () async {
+      final h = await _Harness.create([
+        [_row(id: 'existing-synced-1')],
+      ]);
+      addTearDown(h.close);
+
+      await h.database.customStatement('''
+          insert into local_inventory_movements (
+            id,
+            business_id,
+            branch_id,
+            product_id,
+            movement_type,
+            quantity_change,
+            idempotency_key,
+            sync_status,
+            local_status,
+            metadata_json,
+            occurred_at,
+            created_at,
+            updated_at
+          ) values (
+            'existing-synced-1',
+            'business-a',
+            'branch-x',
+            'product-1',
+            'purchase',
+            1,
+            'existing-local-key',
+            1,
+            'synced',
+            '{"existing_key":"existing-value"}',
+            '2026-09-18T12:00:00.000Z',
+            '2026-09-18T12:00:00.000Z',
+            '2026-09-18T12:00:00.000Z'
+          )
+        ''');
+
+      await h.service.refreshLatest(
+        context: _context(viewCosts: true),
+      );
+
+      final row = await _movement(
+        h.database,
+        'existing-synced-1',
+      );
+
+      final metadata = jsonDecode(
+        row['metadata_json']!.toString(),
+      ) as Map<String, dynamic>;
+
+      expect(
+        row['idempotency_key'],
+        'existing-local-key',
+      );
+      expect(
+        metadata['existing_key'],
+        'existing-value',
+      );
+      expect(
+        metadata['server_authoritative_history'],
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'HY-31 pending local movement is not promoted to server authoritative',
+    () async {
+      final h = await _Harness.create([
+        [
+          _row(
+            id: 'pending-authoritative-guard-1',
+            quantity: 99,
+            unitCost: 9,
+          ),
+        ],
+      ]);
+      addTearDown(h.close);
+
+      await InventoryMovementLocalDao(h.database).insertInitialMovement(
+        id: 'pending-authoritative-guard-1',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        productId: 'product-1',
+        movementType: 'purchase',
+        quantityChange: 5,
+        unitCost: 6,
+        sourceType: 'purchase',
+        referenceType: 'purchase',
+        notes: 'local pending',
+        idempotencyKey: 'local-pending-key',
+        occurredAt: DateTime.utc(2026, 9, 18, 12),
+        metadata: const {
+          'origin': 'local-test',
+        },
+      );
+
+      await h.service.refreshLatest(
+        context: _context(viewCosts: true),
+      );
+
+      final row = await _movement(
+        h.database,
+        'pending-authoritative-guard-1',
+      );
+
+      final metadata = jsonDecode(
+        row['metadata_json']!.toString(),
+      ) as Map<String, dynamic>;
+
+      expect(row['quantity_change'], 5);
+      expect(row['sync_status'], 0);
+      expect(row['local_status'], 'dirty');
+      expect(
+        row['idempotency_key'],
+        'local-pending-key',
+      );
+
+      expect(
+        metadata['origin'],
+        'local-test',
+      );
+
+      expect(
+        metadata.containsKey('server_authoritative_history'),
+        isFalse,
+      );
+    },
+  );
 
   test('history merge preserves existing synced operational idempotency',
       () async {

@@ -1,15 +1,20 @@
 import 'dart:async';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventario_frontend/core/database/app_database.dart';
+import 'package:inventario_frontend/core/database/database_provider.dart';
 import 'package:inventario_frontend/features/catalog/application/catalog_local_providers.dart';
 import 'package:inventario_frontend/features/inventory/application/business_product_creation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_product_providers.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_valuation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/product_stock_balance_providers.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/authorized_operational_context_local_dao.dart';
+import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
   testWidgets('shows loading while the local stock stream has not emitted', (
@@ -616,6 +621,7 @@ void main() {
               businessId: 'business-1',
               branchId: branchId,
               branchName: branchName,
+              effectivePermissions: const {'inventory.view_costs'},
             ),
           ),
         ),
@@ -772,12 +778,122 @@ void main() {
     expect(find.text(r'Costo prom.: $2.67'), findsNothing);
     expect(find.text(r'Valor: $40.05'), findsNothing);
   });
+
+  testWidgets(
+    'cost capability removal hides valuation immediately and preserves stock',
+    (tester) async {
+      final database = AppDatabase.executor(NativeDatabase.memory());
+      addTearDown(database.close);
+      final authorizationDao = AuthorizedOperationalContextLocalDao(database);
+      final now = DateTime.utc(2026, 9, 23);
+
+      await authorizationDao.replaceContext(
+        AuthorizedOperationalContextProjection(
+          profileId: 'profile-1',
+          businessId: 'business-1',
+          branchId: 'branch-1',
+          effectivePermissions: const [
+            'inventory.read',
+            'inventory.view_costs',
+          ],
+          effectiveRoles: const ['owner'],
+          applicableMembershipIds: const ['membership-1'],
+          authorizationValidatedAt: now,
+          snapshotId: 'snapshot-owner',
+        ),
+      );
+
+      final product = <String, dynamic>{
+        'product_id': 'product-1',
+        'product_name': 'Producto protegido',
+        'quantity_on_hand': 2,
+        'stock_average_cost': 0,
+        'inventory_valuation': InventoryProductValuation.fromStock(
+          quantityOnHand: 2,
+          averageCost: 0,
+        ),
+      };
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            inventoryValuationSummaryProvider.overrideWith(
+              (ref, key) => Stream.value(
+                InventoryValuationSummary(
+                  knownValueCents: BigInt.zero,
+                  unknownCostProductCount: 0,
+                  unknownCostUnitCount: BigInt.zero,
+                  invalidStockProductCount: 0,
+                  precisionAnomalyProductCount: 0,
+                ),
+              ),
+            ),
+            localProductsWithStockProvider.overrideWith(
+              (ref, key) => Stream.value([product]),
+            ),
+          ],
+          child: const MaterialApp(
+            home: InventoryProductStockListScreen(
+              businessId: 'business-1',
+              branchId: 'branch-1',
+              branchName: 'Principal',
+              profileId: 'profile-1',
+              effectivePermissions: {
+                'inventory.read',
+                'inventory.view_costs',
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byKey(const Key('inventory-valuation-summary')), findsOneWidget);
+      expect(find.text(r'Costo prom.: $0.00'), findsOneWidget);
+      expect(find.text(r'Valor: $0.00'), findsOneWidget);
+
+      await authorizationDao.replaceContext(
+        AuthorizedOperationalContextProjection(
+          profileId: 'profile-1',
+          businessId: 'business-1',
+          branchId: 'branch-1',
+          effectivePermissions: const [
+            'inventory.read',
+            'reports.inventory',
+          ],
+          effectiveRoles: const ['warehouse'],
+          applicableMembershipIds: const ['membership-1'],
+          authorizationValidatedAt: now.add(const Duration(minutes: 1)),
+          snapshotId: 'snapshot-warehouse',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Stock: 2'), findsOneWidget);
+      expect(
+          find.byKey(const Key('inventory-valuation-summary')), findsNothing);
+      expect(
+        find.byKey(const Key('inventory-average-cost-product-1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('inventory-value-product-1')),
+        findsNothing,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+    },
+  );
 }
 
 Future<void> _pumpScreen(
   WidgetTester tester,
   Stream<List<Map<String, dynamic>>> stream, {
   InventoryValuationSummary? summary,
+  Set<String> effectivePermissions = const {'inventory.view_costs'},
 }) {
   return tester.pumpWidget(
     ProviderScope(
@@ -793,11 +909,12 @@ Future<void> _pumpScreen(
           return stream;
         }),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
         home: InventoryProductStockListScreen(
           businessId: 'business-1',
           branchId: 'branch-1',
           branchName: 'Principal',
+          effectivePermissions: effectivePermissions,
         ),
       ),
     ),

@@ -53,6 +53,23 @@ void main() {
             salePrice: 3500,
           ),
         );
+    await database.customStatement(
+      '''
+      insert into local_product_stock_balances (
+        id, business_id, branch_id, product_id,
+        quantity_on_hand, quantity_available, average_cost
+      ) values (?, ?, ?, ?, ?, ?, ?)
+      ''',
+      const [
+        'balance-product-with-barcode',
+        'business-1',
+        'branch-1',
+        'product-with-barcode',
+        10,
+        10,
+        7777,
+      ],
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -75,6 +92,10 @@ void main() {
         .toList();
     expect(productImages, contains('7622201764999'));
     expect(productImages, contains(null));
+    expect(find.textContaining('Costo'), findsNothing);
+    expect(find.textContaining('Margen'), findsNothing);
+    expect(find.textContaining('7777'), findsNothing);
+    expect(find.text('Agregar'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

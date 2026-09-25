@@ -416,6 +416,9 @@ class InventoryBalanceReconciliationService {
     LocalInventoryMovementForReconciliation movement,
     InventoryMovementAcknowledgement? acknowledgement,
   ) {
+    if (movement.serverAuthoritative) {
+      return null;
+    }
     if (movement.requiresSourceItemId && movement.sourceItemId == null) {
       return const _MovementIssue(
         type: 'missing_source_item_id',
