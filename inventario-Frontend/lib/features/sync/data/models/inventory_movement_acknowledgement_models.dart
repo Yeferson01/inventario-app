@@ -46,8 +46,10 @@ class LocalInventoryMovementForReconciliation {
 
   bool get canRequestAcknowledgement =>
       !serverAuthoritative &&
-      const {'sale', 'purchase', 'manual_adjustment'}.contains(sourceType) &&
+      const {'sale', 'purchase', 'manual_adjustment', 'loss'}
+          .contains(sourceType) &&
       quantityChange != 0 &&
+      (sourceType != 'loss' || quantityChange < 0) &&
       (!requiresSourceItemId || (sourceId != null && sourceItemId != null));
 
   bool get isAppliedServerAuthoritativeTransfer =>

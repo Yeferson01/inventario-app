@@ -25,7 +25,8 @@ class InventoryBalanceReconciliationLocalDao {
     ).get();
     final mutationRows = await _db.customSelect(
       '''
-      select m.entity_table, m.entity_id, m.status as mutation_status,
+      select m.entity_table, m.entity_id, m.idempotency_key, m.payload_json,
+             m.operation, m.status as mutation_status,
              b.status as batch_status
       from local_sync_mutations m
       left join local_sync_batches b on b.id = m.local_sync_batch_id
@@ -66,9 +67,11 @@ class InventoryBalanceReconciliationLocalDao {
         'manual_adjustment' => 'inventory_movements:${data['id']}',
         _ => null,
       };
-      final matches = evidenceKey == null
-          ? const <_TransportEvidence>[]
-          : evidence[evidenceKey] ?? const <_TransportEvidence>[];
+      final matches = sourceType == 'loss'
+          ? _lossEvidence(data, mutationRows)
+          : evidenceKey == null
+              ? const <_TransportEvidence>[]
+              : evidence[evidenceKey] ?? const <_TransportEvidence>[];
       final transportState = _transportState(
         matches,
         localStatus: data['local_status']?.toString(),
@@ -101,6 +104,41 @@ class InventoryBalanceReconciliationLocalDao {
       return bySequence != 0 ? bySequence : left.id.compareTo(right.id);
     });
     return List.unmodifiable(movements);
+  }
+
+  // Direct loss mutations preserve both ledger ID and key. A matching ID/key
+  // with a conflicting payload is not evidence of a valid pending operation.
+  List<_TransportEvidence> _lossEvidence(
+    Map<String, dynamic> movement,
+    List<QueryRow> mutations,
+  ) {
+    final result = <_TransportEvidence>[];
+    for (final row in mutations) {
+      final mutation = row.data;
+      if (mutation['entity_table'] != 'inventory_movements') continue;
+      if (mutation['entity_id'] != movement['id'] &&
+          mutation['idempotency_key'] != movement['idempotency_key']) {
+        continue;
+      }
+      final payload = _metadata(mutation['payload_json']);
+      final matches = mutation['operation'] == 'insert' &&
+          mutation['entity_id'] == movement['id'] &&
+          mutation['idempotency_key'] == movement['idempotency_key'] &&
+          payload['id'] == movement['id'] &&
+          payload['idempotency_key'] == movement['idempotency_key'] &&
+          payload['business_id'] == movement['business_id'] &&
+          payload['branch_id'] == movement['branch_id'] &&
+          payload['product_id'] == movement['product_id'] &&
+          payload['source_type'] == 'loss' &&
+          payload['movement_type'] == 'loss' &&
+          payload['quantity_change'] == movement['quantity_change'];
+      result.add(_TransportEvidence(
+        mutationStatus:
+            matches ? mutation['mutation_status'].toString() : 'conflict',
+        batchStatus: mutation['batch_status']?.toString(),
+      ));
+    }
+    return result;
   }
 
   InventoryMovementTransportState _transportState(

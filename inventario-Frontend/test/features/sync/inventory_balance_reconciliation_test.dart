@@ -31,6 +31,137 @@ void main() {
   setUp(() => database = AppDatabase.executor(NativeDatabase.memory()));
   tearDown(() => database.close());
 
+  test(
+      'loss ACK allowlist preserves identity and rejects unknown/positive loss',
+      () async {
+    for (final entry in {'loss': -2, 'unknown': -2, 'positive': 2}.entries) {
+      await _insertMovement(database,
+          id: entry.key,
+          productId: 'product-1',
+          sourceType: entry.key == 'unknown' ? 'unknown' : 'loss',
+          quantity: entry.value);
+    }
+    final rows = await InventoryBalanceReconciliationLocalDao(database)
+        .getMovements(businessId: 'business-a', branchId: 'branch-x');
+    final loss = rows.singleWhere((m) => m.id == 'loss');
+    expect(loss.canRequestAcknowledgement, isTrue);
+    expect(loss.acknowledgementOperation.toJson(),
+        containsPair('idempotency_key', 'key-loss'));
+    expect(loss.acknowledgementOperation.sourceType, 'loss');
+    expect(
+        rows
+            .where((m) => m.id != 'loss')
+            .every((m) => !m.canRequestAcknowledgement),
+        isTrue);
+  });
+
+  test('pending then applied loss converges 10 to 8, never 6, including retry',
+      () async {
+    await _insertBalance(database, 'product-1', operative: 8, averageCost: 2);
+    await _insertMovement(database,
+        id: 'loss',
+        productId: 'product-1',
+        sourceType: 'loss',
+        quantity: -2,
+        unitCost: 2);
+    await _insertLossOutbox(database, 'loss', status: 'pending');
+    final remoteRows = [_balanceRow('product-1', onHand: 10, averageCost: 2)];
+    var applied = false;
+    final harness = _Harness(database,
+        rows: remoteRows,
+        statusFor: (_, __) => applied ? 'applied' : 'not_found');
+    expect((await harness.service.reconcile(_request)).converged, isTrue);
+    expect(await _onHand(database, 'product-1'), 8);
+    applied = true;
+    remoteRows[0] = _balanceRow('product-1', onHand: 8, averageCost: 2);
+    for (var i = 0; i < 2; i++) {
+      expect((await harness.service.reconcile(_request)).converged, isTrue);
+      expect(await _onHand(database, 'product-1'), 8);
+      expect(await _averageCost(database, 'product-1'), 2);
+    }
+    expect(harness.requestedMovementIds, {'loss'});
+    expect(await _issueRows(database), isEmpty);
+    expect(await database.select(database.localInventoryMovements).get(),
+        hasLength(1));
+    expect(
+        await database.select(database.localSyncMutations).get(), hasLength(1));
+  });
+
+  test('rejected loss preserves operative stock and ledger with blocking issue',
+      () async {
+    await _insertBalance(database, 'product-1', operative: 8);
+    await _insertMovement(database,
+        id: 'loss', productId: 'product-1', sourceType: 'loss', quantity: -2);
+    await _insertLossOutbox(database, 'loss', status: 'conflict');
+    final harness = _Harness(database,
+        rows: [_balanceRow('product-1', onHand: 10)],
+        statusFor: (_, __) => 'rejected');
+    expect((await harness.service.reconcile(_request)).converged, isFalse);
+    expect(await _onHand(database, 'product-1'), 8);
+    expect((await _issueRows(database)).single['issue_type'],
+        'inventory_movement_rejected');
+    expect(await database.select(database.localInventoryMovements).get(),
+        hasLength(1));
+    expect(
+        (await database.select(database.localSyncMutations).get())
+            .single
+            .status,
+        'conflict');
+  });
+
+  test('loss evidence distinguishes repeated product/delta by ID and key',
+      () async {
+    for (final id in ['one', 'two']) {
+      await _insertMovement(database,
+          id: id, productId: 'product-1', sourceType: 'loss', quantity: -2);
+    }
+    await _insertLossOutbox(database, 'one', status: 'applied');
+    await _insertLossOutbox(database, 'two', status: 'pending');
+    final rows = await InventoryBalanceReconciliationLocalDao(database)
+        .getMovements(businessId: 'business-a', branchId: 'branch-x');
+    expect(rows.singleWhere((m) => m.id == 'one').transportState,
+        InventoryMovementTransportState.terminalApplied);
+    expect(rows.singleWhere((m) => m.id == 'two').transportState,
+        InventoryMovementTransportState.pending);
+  });
+
+  for (final mismatch in <String, Object>{
+    'id': 'other-id',
+    'idempotency_key': 'other-key',
+    'business_id': 'foreign-business',
+    'branch_id': 'foreign-branch',
+    'product_id': 'foreign-product',
+    'source_type': 'manual_adjustment',
+    'movement_type': 'manual_adjustment',
+    'quantity_change': -3,
+  }.entries) {
+    test('loss outbox ${mismatch.key} mismatch fails closed', () async {
+      await _insertBalance(database, 'product-1', operative: 8);
+      await _insertMovement(database,
+          id: 'loss', productId: 'product-1', sourceType: 'loss', quantity: -2);
+      await _insertLossOutbox(database, 'loss',
+          patch: {mismatch.key: mismatch.value});
+      final harness =
+          _Harness(database, rows: [_balanceRow('product-1', onHand: 10)]);
+      expect((await harness.service.reconcile(_request)).converged, isFalse);
+      expect(await _onHand(database, 'product-1'), 8);
+      expect((await _issueRows(database)).single['issue_type'],
+          'terminal_incompatible_inventory_movement');
+    });
+  }
+
+  test('loss lookup never borrows another branch outbox evidence', () async {
+    await _insertMovement(database,
+        id: 'loss', productId: 'product-1', sourceType: 'loss', quantity: -2);
+    await _insertLossOutbox(database, 'loss', status: 'applied');
+    await (database.update(database.localSyncMutations)).write(
+        const LocalSyncMutationsCompanion(branchId: Value('other-branch')));
+    final rows = await InventoryBalanceReconciliationLocalDao(database)
+        .getMovements(businessId: 'business-a', branchId: 'branch-x');
+    expect(rows.single.transportState, InventoryMovementTransportState.pending);
+    expect(rows.single.transportEvidence, isEmpty);
+  });
+
   test('ACK datasource chunks 401 operations and maps reversed results by ID',
       () async {
     var calls = 0;
@@ -1238,6 +1369,32 @@ Future<void> _insertMovementOutbox(
           status: const Value('applied'),
         ),
       );
+}
+
+Future<void> _insertLossOutbox(
+  AppDatabase database,
+  String id, {
+  String status = 'applied',
+  Map<String, Object?> patch = const {},
+}) async {
+  await _insertMovementOutbox(database, id);
+  await (database.update(database.localSyncMutations)
+        ..where((t) => t.entityId.equals(id)))
+      .write(
+    LocalSyncMutationsCompanion(
+        status: Value(status),
+        payloadJson: Value(jsonEncode({
+          'id': id,
+          'idempotency_key': 'key-$id',
+          'business_id': 'business-a',
+          'branch_id': 'branch-x',
+          'product_id': 'product-1',
+          'source_type': 'loss',
+          'movement_type': 'loss',
+          'quantity_change': -2,
+          ...patch,
+        }))),
+  );
 }
 
 Future<Map<String, dynamic>> _balance(
