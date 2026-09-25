@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 part 'app_database.g.dart';
+part 'local_cash_movements.dart';
 
 part '../../features/inventory/data/datasources/product_dao.dart';
 part '../../features/inventory/data/datasources/category_dao.dart';
@@ -1201,6 +1202,7 @@ class LocalReportSnapshots extends Table {
     SalePayments,
     Purchases,
     PurchaseItems,
+    LocalCashMovements,
   ],
   daos: [
     BusinessDao,
@@ -1220,7 +1222,58 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
+
+  Future<void> _createCashMovementFoundation() async {
+    await customStatement('''
+      create trigger if not exists local_cash_movements_scope_guard
+      before insert on local_cash_movements begin
+        select case when not exists (
+          select 1 from cash_sessions s
+          join cash_registers r on r.id = s.cash_register_id
+          join branches b on b.id = r.branch_id
+          where s.id = new.cash_session_id
+            and s.business_id = new.business_id
+            and s.branch_id = new.branch_id
+            and s.cash_register_id = new.cash_register_id
+            and r.business_id = new.business_id
+            and r.branch_id = new.branch_id
+            and b.business_id = new.business_id
+        ) then raise(abort, 'Cash movement scope mismatch') end;
+        select case when new.reversed_movement_id is not null
+          and not exists (
+            select 1 from local_cash_movements m
+            where m.id = new.reversed_movement_id
+              and m.business_id = new.business_id
+              and m.branch_id = new.branch_id
+              and m.cash_register_id = new.cash_register_id
+              and m.currency = new.currency
+          ) then raise(abort, 'Cash movement reversal scope mismatch') end;
+      end
+    ''');
+    await customStatement('''
+      create index if not exists idx_local_cash_movements_session
+      on local_cash_movements
+        (business_id, branch_id, cash_session_id, occurred_at desc, id)
+    ''');
+    await customStatement('''
+      create trigger if not exists local_cash_movements_no_delete
+      before delete on local_cash_movements begin
+        select raise(abort, 'Cash movement ledger is append-only');
+      end
+    ''');
+    // Only technical transport status may change; no functional edits.
+    await customStatement('''
+      create trigger if not exists local_cash_movements_no_functional_update
+      before update of id, business_id, branch_id, cash_register_id,
+        cash_session_id, direction, category, amount_cents, currency,
+        source_type, source_id, note, occurred_at, created_by, created_at,
+        idempotency_key, metadata_json, reversed_movement_id
+      on local_cash_movements begin
+        select raise(abort, 'Cash movement ledger is append-only');
+      end
+    ''');
+  }
 
   Future<void> _createProductIdentityIndexesAndTriggers() async {
     await customStatement('''
@@ -1721,6 +1774,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+          await _createCashMovementFoundation();
           await _createProductIdentityIndexesAndTriggers();
           await _createCashSessionIndexes();
 
@@ -1734,6 +1788,10 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 14) {
+            await m.createTable(localCashMovements);
+            await _createCashMovementFoundation();
+          }
           if (from < 13) {
             await m.createTable(localReportSnapshots);
             await _createReportSnapshotIndexes();
