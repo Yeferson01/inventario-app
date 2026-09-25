@@ -16,6 +16,8 @@ import '../../application/inventory_valuation_models.dart';
 import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../widgets/inventory_transfer_dialog.dart';
+import '../../application/inventory_adjustment_provider.dart';
+import '../widgets/inventory_adjustment_dialog.dart';
 
 typedef InventoryProductMovementsCallback = Future<void> Function({
   required String productId,
@@ -57,6 +59,7 @@ class _InventoryProductStockListScreenState
   final _searchController = TextEditingController();
   final _minimumStockUpdates = <String>{};
   bool _isCreatingProduct = false;
+  bool _adjustmentOpen = false;
   String _searchTerm = '';
   late InventoryProductStockFilter _stockFilter;
 
@@ -86,6 +89,50 @@ class _InventoryProductStockListScreenState
   void _setStockFilter(InventoryProductStockFilter filter) {
     if (_stockFilter == filter) return;
     setState(() => _stockFilter = filter);
+  }
+
+  Future<void> _openAdjustment(Map<String, dynamic> product) async {
+    final profileId = widget.profileId?.trim();
+    final productId = _string(product['product_id']);
+    if (_adjustmentOpen || profileId == null || productId == null) {
+      return;
+    }
+    final scope = (
+      profileId: profileId,
+      businessId: widget.businessId,
+      branchId: widget.branchId
+    );
+    if (!widget.effectivePermissions.contains('inventory.adjust') ||
+        ref.read(inventoryAdjustmentAllowedProvider(scope)).asData?.value !=
+            true) {
+      return;
+    }
+    _adjustmentOpen = true;
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => InventoryAdjustmentDialog(
+          key: ValueKey((scope, productId)),
+          scope: scope,
+          productId: productId,
+          productName: _string(product['product_name']) ?? 'Producto',
+          isScopeCurrent: () =>
+              mounted &&
+              widget.profileId?.trim() == scope.profileId &&
+              widget.businessId == scope.businessId &&
+              widget.branchId == scope.branchId &&
+              widget.effectivePermissions.contains('inventory.adjust'),
+        ),
+      );
+      if (mounted && saved == true) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Ajuste registrado en el dispositivo.'),
+        ));
+      }
+    } finally {
+      _adjustmentOpen = false;
+    }
   }
 
   Future<void> _openTransfer({
@@ -352,6 +399,18 @@ class _InventoryProductStockListScreenState
           )
         : null;
     final hasSearch = _searchTerm.trim().isNotEmpty;
+    final canAdjust = profileId != null &&
+        profileId.isNotEmpty &&
+        widget.effectivePermissions.contains('inventory.adjust') &&
+        ref
+                .watch(inventoryAdjustmentAllowedProvider((
+                  profileId: profileId,
+                  businessId: widget.businessId,
+                  branchId: widget.branchId
+                )))
+                .asData
+                ?.value ==
+            true;
     final canTransfer = widget.profileId != null &&
         widget.effectivePermissions.contains('inventory.transfer');
     final canEditMinimumStock = widget.profileId?.trim().isNotEmpty == true &&
@@ -579,6 +638,9 @@ class _InventoryProductStockListScreenState
                               : null,
                           onEditMinimumStock: canEditMinimumStock
                               ? () => _editMinimumStock(product)
+                              : null,
+                          onAdjust: canAdjust && actualProductId != null
+                              ? () => _openAdjustment(product)
                               : null,
                           onTransfer: sourceContext != null &&
                                   destinationContexts.isNotEmpty &&
@@ -1137,6 +1199,7 @@ class _InventoryProductCard extends StatelessWidget {
     required this.isUpdatingMinimumStock,
     this.onOpenMovements,
     this.onEditMinimumStock,
+    this.onAdjust,
     this.onTransfer,
   });
 
@@ -1145,6 +1208,7 @@ class _InventoryProductCard extends StatelessWidget {
   final bool isUpdatingMinimumStock;
   final VoidCallback? onOpenMovements;
   final VoidCallback? onEditMinimumStock;
+  final VoidCallback? onAdjust;
   final VoidCallback? onTransfer;
 
   @override
@@ -1260,6 +1324,13 @@ class _InventoryProductCard extends StatelessWidget {
                   label: Text(
                     isUpdatingMinimumStock ? 'Guardando…' : 'Editar mínimo',
                   ),
+                ),
+              if (onAdjust != null)
+                TextButton.icon(
+                  key: Key('inventory-adjust-$productId'),
+                  onPressed: onAdjust,
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Ajustar inventario'),
                 ),
               if (onTransfer != null)
                 TextButton.icon(

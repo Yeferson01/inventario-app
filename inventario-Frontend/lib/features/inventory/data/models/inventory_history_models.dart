@@ -18,6 +18,32 @@ class InventoryHistoryCursor {
   int get hashCode => Object.hash(occurredAt, id);
 }
 
+/// Local movement dates may be Drift Unix seconds, legacy Unix milliseconds,
+/// or ISO-8601 text from history hydration. Financial history is constrained
+/// to 2000-01-01 through 2100-01-01 UTC; out-of-range values fail closed.
+DateTime? parseInventoryHistoryTimestamp(Object? value) {
+  const firstValidMs = 946684800000; // 2000-01-01T00:00:00Z
+  const lastValidMs = 4102444800000; // 2100-01-01T00:00:00Z
+  DateTime? parsed;
+  if (value is int) {
+    // Every valid Unix second is below 100 billion; every valid Unix
+    // millisecond in the accepted period is above it.
+    final millis = value < 100000000000 ? value * 1000 : value;
+    if (millis < firstValidMs || millis >= lastValidMs) return null;
+    parsed = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+  } else if (value is String) {
+    parsed = DateTime.tryParse(value)?.toUtc();
+  } else if (value is DateTime) {
+    parsed = value.toUtc();
+  }
+  if (parsed == null ||
+      parsed.millisecondsSinceEpoch < firstValidMs ||
+      parsed.millisecondsSinceEpoch >= lastValidMs) {
+    return null;
+  }
+  return parsed;
+}
+
 class InventoryHistoryRemoteRow {
   const InventoryHistoryRemoteRow({
     required this.id,
@@ -279,9 +305,9 @@ DateTime _requiredDateTime(Map<String, dynamic> json, String key) {
   if (value is! String) {
     throw FormatException('Inventory history row has invalid $key.');
   }
-  final parsed = DateTime.tryParse(value);
+  final parsed = parseInventoryHistoryTimestamp(value);
   if (parsed == null) {
     throw FormatException('Inventory history row has invalid $key.');
   }
-  return parsed.toUtc();
+  return parsed;
 }

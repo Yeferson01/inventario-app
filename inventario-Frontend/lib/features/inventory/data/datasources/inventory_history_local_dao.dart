@@ -5,6 +5,21 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
 import '../models/inventory_history_models.dart';
 
+// Compare every storage representation on one UTC epoch-millisecond axis.
+// Drift stores DateTime as Unix seconds; hydrated history stores ISO text.
+// Numeric values below 100 billion are seconds, larger values milliseconds.
+const _occurredEpochMillisSql = '''
+  case
+    when typeof(m.occurred_at) in ('integer', 'real') then
+      case when m.occurred_at < 100000000000
+        then m.occurred_at * 1000 else m.occurred_at end
+    else round((julianday(m.occurred_at) - 2440587.5) * 86400000)
+  end
+''';
+
+int _sqlEpochMillis(DateTime value) =>
+    (value.toUtc().microsecondsSinceEpoch + 500) ~/ 1000;
+
 class InventoryHistoryLocalDao {
   InventoryHistoryLocalDao(this._db);
 
@@ -157,20 +172,22 @@ class InventoryHistoryLocalDao {
           .add(Variable<String>(query.effectiveType!.trim().toLowerCase()));
     }
     if (query.from != null) {
-      clauses.add('m.occurred_at >= ?');
-      variables.add(Variable<String>(query.from!.toUtc().toIso8601String()));
+      clauses.add('($_occurredEpochMillisSql) >= ?');
+      variables.add(Variable<int>(_sqlEpochMillis(query.from!)));
     }
     if (query.to != null) {
-      clauses.add('m.occurred_at <= ?');
-      variables.add(Variable<String>(query.to!.toUtc().toIso8601String()));
+      clauses.add('($_occurredEpochMillisSql) <= ?');
+      variables.add(Variable<int>(_sqlEpochMillis(query.to!)));
     }
     if (query.cursor != null) {
-      clauses.add('(m.occurred_at < ? or (m.occurred_at = ? and id < ?))');
+      clauses.add('''
+        (($_occurredEpochMillisSql) < ? or
+          (($_occurredEpochMillisSql) = ? and m.id < ?))
+      ''');
+      final cursorMillis = _sqlEpochMillis(query.cursor!.occurredAt);
       variables
-        ..add(Variable<String>(
-            query.cursor!.occurredAt.toUtc().toIso8601String()))
-        ..add(Variable<String>(
-            query.cursor!.occurredAt.toUtc().toIso8601String()))
+        ..add(Variable<int>(cursorMillis))
+        ..add(Variable<int>(cursorMillis))
         ..add(Variable<String>(query.cursor!.id));
     }
     final limit = query.limit.clamp(1, 200);
@@ -212,7 +229,7 @@ class InventoryHistoryLocalDao {
         on p.id = m.product_id
        and p.business_id = m.business_id
       where ${clauses.join(' and ')}
-      order by m.occurred_at desc, m.id desc
+      order by ($_occurredEpochMillisSql) desc, m.id desc
       limit ?
       ''',
           variables: variables,
@@ -240,7 +257,9 @@ class InventoryHistoryLocalDao {
         referenceType: data['reference_type']?.toString(),
         referenceId: data['reference_id']?.toString(),
         quantityDelta: (data['quantity_change'] as num).toInt(),
-        occurredAt: _asDateTime(data['occurred_at'])!,
+        occurredAt: _asDateTime(data['occurred_at']) ??
+            (throw const FormatException(
+                'Invalid inventory movement timestamp.')),
         previousStock: (data['previous_stock'] as num?)?.toInt(),
         newStock: (data['new_stock'] as num?)?.toInt(),
         createdBy: data['created_by']?.toString(),
@@ -456,12 +475,7 @@ class InventoryHistoryLocalDao {
 }
 
 DateTime? _asDateTime(Object? value) {
-  if (value is DateTime) return value.toUtc();
-  if (value is int) {
-    return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true);
-  }
-  if (value is String) return DateTime.tryParse(value)?.toUtc();
-  return null;
+  return parseInventoryHistoryTimestamp(value);
 }
 
 bool _asBool(Object? value) => value == true || value == 1;
