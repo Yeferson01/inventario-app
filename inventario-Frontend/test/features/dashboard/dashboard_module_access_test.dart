@@ -37,6 +37,24 @@ void main() {
     expect(access.canUseCash, isFalse);
   });
 
+  test('cash movement capabilities independently expose Caja', () {
+    final receiveOnly = DashboardModuleAccess.fromContext(
+      _context(permissions: const ['cash.receive']),
+    );
+    final disburseOnly = DashboardModuleAccess.fromContext(
+      _context(permissions: const ['cash.disburse']),
+    );
+
+    expect(receiveOnly.canUseCash, isTrue);
+    expect(receiveOnly.canReceiveCash, isTrue);
+    expect(receiveOnly.canDisburseCash, isFalse);
+    expect(receiveOnly.canReadCash, isFalse);
+    expect(disburseOnly.canUseCash, isTrue);
+    expect(disburseOnly.canReceiveCash, isFalse);
+    expect(disburseOnly.canDisburseCash, isTrue);
+    expect(disburseOnly.canReadCash, isFalse);
+  });
+
   test('custom role receives modules exclusively from its capabilities', () {
     final access = DashboardModuleAccess.fromContext(
       _context(

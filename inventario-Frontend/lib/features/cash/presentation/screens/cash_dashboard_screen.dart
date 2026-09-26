@@ -10,7 +10,10 @@ import '../../../sync/application/operational_bootstrap_entry_providers.dart';
 import '../../../sync/presentation/productive_error_presentation.dart';
 import '../../application/cash_session_local_models.dart';
 import '../../application/cash_session_local_provider.dart';
+import '../../application/cash_movement_models.dart';
+import '../../application/cash_movement_provider.dart';
 import '../widgets/cash_metric_tile.dart';
+import '../widgets/cash_movement_dialog.dart';
 import '../widgets/cash_status_card.dart';
 import '../widgets/productive_open_cash_session_dialog.dart';
 import '../../../../app/theme/app_theme.dart';
@@ -301,6 +304,49 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
       },
     );
     if (mounted) await _openPendingStaleSales();
+  }
+
+  Future<void> _openCashMovementDialog(CashMovementDirection direction) async {
+    if (_isBusy) return;
+    final permission = direction == CashMovementDirection.outflow
+        ? 'cash.disburse'
+        : 'cash.receive';
+    final summary = _summary;
+    final sessionId = summary?['cash_session_id']?.toString();
+    if (!widget.effectivePermissions.contains(permission) ||
+        summary?['status'] != 'open' ||
+        summary?['cash_register_id'] != widget.cashRegisterId ||
+        sessionId == null ||
+        sessionId.isEmpty) {
+      return;
+    }
+    final service = ref.read(cashMovementServiceProvider);
+    final recorded = await showDialog<bool>(
+      context: context,
+      builder: (_) => CashMovementDialog(
+        profileId: widget.profileId,
+        businessId: widget.businessId,
+        branchId: widget.branchId,
+        cashRegisterId: widget.cashRegisterId,
+        cashSessionId: sessionId,
+        direction: direction,
+        loadExpectedCashCents: () => service.loadExpectedCashCents(
+          profileId: widget.profileId,
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+          cashRegisterId: widget.cashRegisterId,
+          cashSessionId: sessionId,
+          direction: direction,
+        ),
+        submit: service.recordMovement,
+      ),
+    );
+    if (recorded != true || !mounted) return;
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Movimiento registrado en el dispositivo.'),
+    ));
   }
 
   Future<void> _openPendingStaleSales() async {
@@ -626,7 +672,18 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                   allowRead: widget.canReadCash,
                   allowOpen: widget.canOpenCash,
                   allowClose: widget.canCloseCash,
+                  allowReceive:
+                      widget.effectivePermissions.contains('cash.receive'),
+                  allowDisburse:
+                      widget.effectivePermissions.contains('cash.disburse'),
+                  cashRegisterId: widget.cashRegisterId,
                   onOpenCash: _openCashSessionDialog,
+                  onReceive: () => _openCashMovementDialog(
+                    CashMovementDirection.inflow,
+                  ),
+                  onDisburse: () => _openCashMovementDialog(
+                    CashMovementDirection.outflow,
+                  ),
                   onSyncCash: _syncCash,
                   onCloseCash: _closeCashSessionDialog,
                   onRefresh: _load,
@@ -661,7 +718,12 @@ class _CashActionsSection extends StatelessWidget {
     required this.allowRead,
     required this.allowOpen,
     required this.allowClose,
+    required this.allowReceive,
+    required this.allowDisburse,
+    required this.cashRegisterId,
     required this.onOpenCash,
+    required this.onReceive,
+    required this.onDisburse,
     required this.onSyncCash,
     required this.onCloseCash,
     required this.onRefresh,
@@ -674,7 +736,12 @@ class _CashActionsSection extends StatelessWidget {
   final bool allowRead;
   final bool allowOpen;
   final bool allowClose;
+  final bool allowReceive;
+  final bool allowDisburse;
+  final String cashRegisterId;
   final VoidCallback onOpenCash;
+  final VoidCallback onReceive;
+  final VoidCallback onDisburse;
   final VoidCallback onSyncCash;
   final VoidCallback onCloseCash;
   final VoidCallback onRefresh;
@@ -688,6 +755,9 @@ class _CashActionsSection extends StatelessWidget {
         _int(readiness?['dirty_cash_session_count']) > 0;
     final canClose = allowClose && isOpen;
     final canOpen = allowOpen && (summary == null || isClosed);
+    final canMove = isOpen &&
+        summary?['cash_register_id'] == cashRegisterId &&
+        (summary?['cash_session_id']?.toString().isNotEmpty ?? false);
 
     return Card(
       child: Padding(
@@ -712,6 +782,18 @@ class _CashActionsSection extends StatelessWidget {
               icon: const Icon(Icons.lock_outline),
               label: Text(isClosing ? 'Cerrando caja…' : 'Cerrar caja'),
             ),
+            if (canMove && allowReceive)
+              FilledButton.icon(
+                onPressed: isBusy ? null : onReceive,
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Text('Entrada de efectivo'),
+              ),
+            if (canMove && allowDisburse)
+              FilledButton.icon(
+                onPressed: isBusy ? null : onDisburse,
+                icon: const Icon(Icons.remove_circle_outline),
+                label: const Text('Salida de efectivo'),
+              ),
             if (allowRead)
               OutlinedButton.icon(
                 onPressed: isBusy ? null : onRefresh,

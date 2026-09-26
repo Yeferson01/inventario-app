@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/features/cash/application/cash_session_local_models.dart';
+import 'package:inventario_frontend/features/cash/application/cash_movement_provider.dart';
+import 'package:inventario_frontend/features/cash/application/cash_movement_service.dart';
 import 'package:inventario_frontend/features/cash/application/cash_session_local_provider.dart';
 import 'package:inventario_frontend/features/cash/application/cash_session_local_service.dart';
 import 'package:inventario_frontend/features/cash/application/cash_sync_outbox_service.dart';
@@ -13,6 +15,9 @@ import 'package:inventario_frontend/features/cash/presentation/screens/cash_dash
 import 'package:inventario_frontend/features/sales/application/pos_local_sale_provider.dart';
 import 'package:inventario_frontend/features/sales/application/pos_sync_outbox_service.dart';
 import 'package:inventario_frontend/features/sync/application/cash_sync_upload_provider.dart';
+import 'package:inventario_frontend/features/sync/application/app_context_models.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/authorized_operational_context_local_dao.dart';
+import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
 import 'package:inventario_frontend/features/sync/application/app_sync_coordinator_models.dart';
 import 'package:inventario_frontend/features/sync/application/cash_close_sync_trigger_service.dart';
@@ -108,6 +113,131 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Aceptar'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('receive-only Caja registers an offline inflow and refreshes',
+      (tester) async {
+    await _authorizeMovement(database, const ['cash.receive']);
+    await _pumpMovementDashboard(
+      tester,
+      database: database,
+      service: service,
+      closeSyncService: closeSyncService,
+      permissions: const {'cash.receive'},
+    );
+    expect(find.text('Entrada de efectivo'), findsOneWidget);
+    expect(find.text('Salida de efectivo'), findsNothing);
+    await tester.tap(find.text('Entrada de efectivo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aporte del propietario').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '10.000');
+    await tester.enterText(find.byType(TextField).last, 'Aporte adicional');
+    await tester.pumpAndSettle();
+    expect(find.text('Después del movimiento: \$ 10.050'), findsOneWidget);
+    await tester.tap(find.text('Registrar movimiento'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmar'));
+    await tester.pumpAndSettle();
+    expect(
+        find.text('Movimiento registrado en el dispositivo.'), findsOneWidget);
+    final movement = await database
+        .customSelect(
+          'select direction, category, amount_cents, note, source_type, '
+          'source_id, local_status '
+          'from local_cash_movements',
+        )
+        .getSingle();
+    expect(movement.read<String>('direction'), 'inflow');
+    expect(movement.read<String>('category'), 'owner_contribution');
+    expect(movement.read<int>('amount_cents'), 1000000);
+    expect(movement.read<String>('note'), 'Aporte adicional');
+    expect(movement.read<String>('source_type'), 'manual');
+    expect(movement.data['source_id'], isNull);
+    expect(movement.read<String>('local_status'), 'dirty');
+    expect(
+        await database
+            .customSelect(
+              'select count(*) as n from local_sync_mutations '
+              "where entity_table = 'cash_movements'",
+            )
+            .getSingle()
+            .then((row) => row.read<int>('n')),
+        1);
+  });
+
+  testWidgets('disburse-only Caja shows only outflow while session is open',
+      (tester) async {
+    await _authorizeMovement(database, const ['cash.disburse']);
+    await _pumpMovementDashboard(
+      tester,
+      database: database,
+      service: service,
+      closeSyncService: closeSyncService,
+      permissions: const {'cash.disburse'},
+    );
+    expect(find.text('Salida de efectivo'), findsOneWidget);
+    expect(find.text('Entrada de efectivo'), findsNothing);
+    await tester.tap(find.text('Salida de efectivo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Servicios públicos').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '20');
+    await tester.pumpAndSettle();
+    expect(find.text('Después del movimiento: \$ 30'), findsOneWidget);
+    await tester.tap(find.text('Registrar movimiento'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmar'));
+    await tester.pumpAndSettle();
+    expect(
+      await CashSessionLocalDao(database).calculateExpectedCashCentsForSession(
+        cashSessionId: 'session-s1',
+      ),
+      BigInt.from(3000),
+    );
+  });
+
+  testWidgets('both capabilities show both movement actions', (tester) async {
+    await _pumpMovementDashboard(
+      tester,
+      database: database,
+      service: service,
+      closeSyncService: closeSyncService,
+      permissions: const {'cash.receive', 'cash.disburse'},
+    );
+    expect(find.text('Entrada de efectivo'), findsOneWidget);
+    expect(find.text('Salida de efectivo'), findsOneWidget);
+  });
+
+  testWidgets('no movement capability hides both actions', (tester) async {
+    await _pumpMovementDashboard(
+      tester,
+      database: database,
+      service: service,
+      closeSyncService: closeSyncService,
+      permissions: const {},
+    );
+    expect(find.text('Entrada de efectivo'), findsNothing);
+    expect(find.text('Salida de efectivo'), findsNothing);
+  });
+
+  testWidgets('closed Caja does not expose movement actions', (tester) async {
+    await database.customStatement(
+      "update cash_sessions set status = 'closed' where id = 'session-s1'",
+    );
+    await _pumpMovementDashboard(
+      tester,
+      database: database,
+      service: service,
+      closeSyncService: closeSyncService,
+      permissions: const {'cash.receive', 'cash.disburse'},
+    );
+    expect(find.text('Entrada de efectivo'), findsNothing);
+    expect(find.text('Salida de efectivo'), findsNothing);
   });
 
   test('successful canonical close projects the closed state locally',
@@ -409,4 +539,83 @@ Future<void> _seed(AppDatabase database) async {
       'synced', 0
     )
   ''');
+}
+
+Future<void> _authorizeMovement(
+  AppDatabase database,
+  List<String> permissions,
+) async {
+  await AuthorizedOperationalContextLocalDao(database).replaceContext(
+    AuthorizedOperationalContextProjection(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      effectivePermissions: permissions,
+      effectiveRoles: const [],
+      applicableMembershipIds: const [],
+      authorizationValidatedAt: DateTime.now().toUtc(),
+      snapshotId: 'c3-snapshot',
+    ),
+  );
+}
+
+Future<void> _pumpMovementDashboard(
+  WidgetTester tester, {
+  required AppDatabase database,
+  required CashSessionLocalService service,
+  required CashCloseSyncTriggerService closeSyncService,
+  required Set<String> permissions,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1000, 1200));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final movementService = CashMovementService(
+    database: database,
+    loadCurrentContext: () async => AppCurrentContext(
+      businessId: 'business-a',
+      branchId: 'branch-a',
+      profileId: 'profile-a',
+      installationId: 'installation-a',
+      appDeviceId: 'device-a',
+      cashRegisterId: 'register-a',
+      cashSessionId: 'session-s1',
+      isOnline: false,
+      authorizationContextReady: true,
+      permissions: AppPermissionSet(permissions),
+    ),
+  );
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      cashSessionLocalServiceProvider.overrideWithValue(service),
+      cashMovementServiceProvider.overrideWithValue(movementService),
+      cashCloseSyncTriggerServiceProvider.overrideWithValue(closeSyncService),
+      cashSyncOutboxServiceProvider.overrideWithValue(
+        _FakeCashSyncOutboxService(),
+      ),
+      posSyncOutboxServiceProvider.overrideWithValue(
+        _FakePosSyncOutboxService(),
+      ),
+      cashSyncUploadServiceProvider.overrideWithValue(
+        _FakeCashSyncUploadService(),
+      ),
+      posSyncUploadServiceProvider.overrideWithValue(
+        _FakePosSyncUploadService(),
+      ),
+      productiveStaleSaleReconciliationServiceProvider.overrideWithValue(
+        _NoPendingStaleSalesController(),
+      ),
+    ],
+    child: MaterialApp(
+      home: CashDashboardScreen(
+        businessId: 'business-a',
+        branchId: 'branch-a',
+        profileId: 'profile-a',
+        cashRegisterId: 'register-a',
+        canReadCash: permissions.contains('cash.read'),
+        canOpenCash: permissions.contains('cash.open'),
+        canCloseCash: permissions.contains('cash.close'),
+        effectivePermissions: permissions,
+      ),
+    ),
+  ));
+  await tester.pumpAndSettle();
 }

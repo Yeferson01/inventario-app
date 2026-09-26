@@ -5,6 +5,7 @@ enum CashMovementFailure {
   invalidContext,
   permissionDenied,
   invalidSession,
+  insufficientCash,
   idempotencyConflict,
 }
 

@@ -9,6 +9,7 @@ import '../../sync/application/local_sync_outbox_service.dart';
 import '../../sync/data/datasources/local_sync_outbox_dao.dart';
 import '../../sync/data/models/local_sync_outbox_models.dart';
 import '../data/datasources/cash_movement_local_dao.dart';
+import '../data/datasources/cash_session_local_dao.dart';
 import 'cash_movement_models.dart';
 
 /// Offline-first recording only. Hosted application and acknowledgement are
@@ -18,41 +19,46 @@ class CashMovementService {
     required AppDatabase database,
     required Future<AppCurrentContext?> Function() loadCurrentContext,
   })  : _dao = CashMovementLocalDao(database),
+        _sessionDao = CashSessionLocalDao(database),
         _outbox = LocalSyncOutboxService(LocalSyncOutboxDao(database)),
         _loadCurrentContext = loadCurrentContext;
 
   final CashMovementLocalDao _dao;
+  final CashSessionLocalDao _sessionDao;
   final LocalSyncOutboxService _outbox;
   final Future<AppCurrentContext?> Function() _loadCurrentContext;
+
+  Future<BigInt> loadExpectedCashCents({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+    required String cashSessionId,
+    required CashMovementDirection direction,
+  }) async {
+    await _validateCurrentScope(
+      profileId: profileId,
+      businessId: businessId,
+      branchId: branchId,
+      cashRegisterId: cashRegisterId,
+      cashSessionId: cashSessionId,
+      direction: direction,
+    );
+    return _sessionDao.calculateExpectedCashCentsForSession(
+      cashSessionId: cashSessionId,
+    );
+  }
 
   Future<CashMovementResult> recordMovement(CashMovementRequest request) async {
     request.validate();
     return _dao.transaction(() async {
-      final context = await _loadCurrentContext();
-      if (context == null ||
-          !context.authorizationContextReady ||
-          context.profileId != request.profileId ||
-          context.businessId != request.businessId ||
-          context.branchId != request.branchId ||
-          context.cashRegisterId != request.cashRegisterId ||
-          context.cashSessionId != request.cashSessionId ||
-          context.installationId.trim().isEmpty ||
-          context.appDeviceId?.trim().isNotEmpty != true) {
-        throw const CashMovementException(CashMovementFailure.invalidContext);
-      }
-      final permission = request.direction == CashMovementDirection.outflow
-          ? 'cash.disburse'
-          : 'cash.receive';
-      if (!context.hasPermission(permission)) {
-        throw const CashMovementException(CashMovementFailure.permissionDenied);
-      }
-      await _dao.validateScope(
+      final context = await _validateCurrentScope(
         profileId: request.profileId,
         businessId: request.businessId,
         branchId: request.branchId,
         cashRegisterId: request.cashRegisterId,
         cashSessionId: request.cashSessionId,
-        permission: permission,
+        direction: request.direction,
       );
 
       final existing =
@@ -88,6 +94,16 @@ class CashMovementService {
         throw const CashMovementException(
           CashMovementFailure.idempotencyConflict,
         );
+      }
+
+      if (request.direction == CashMovementDirection.outflow) {
+        final expected = await _sessionDao.calculateExpectedCashCentsForSession(
+          cashSessionId: request.cashSessionId,
+        );
+        if (expected - request.amountCents < BigInt.zero) {
+          throw const CashMovementException(
+              CashMovementFailure.insufficientCash);
+        }
       }
 
       final now = DateTime.now().toUtc();
@@ -180,6 +196,43 @@ class CashMovementService {
       );
       return CashMovementResult(id: id, alreadyRecorded: false);
     });
+  }
+
+  Future<AppCurrentContext> _validateCurrentScope({
+    required String profileId,
+    required String businessId,
+    required String branchId,
+    required String cashRegisterId,
+    required String cashSessionId,
+    required CashMovementDirection direction,
+  }) async {
+    final context = await _loadCurrentContext();
+    if (context == null ||
+        !context.authorizationContextReady ||
+        context.profileId != profileId ||
+        context.businessId != businessId ||
+        context.branchId != branchId ||
+        context.cashRegisterId != cashRegisterId ||
+        context.cashSessionId != cashSessionId ||
+        context.installationId.trim().isEmpty ||
+        context.appDeviceId?.trim().isNotEmpty != true) {
+      throw const CashMovementException(CashMovementFailure.invalidContext);
+    }
+    final permission = direction == CashMovementDirection.outflow
+        ? 'cash.disburse'
+        : 'cash.receive';
+    if (!context.hasPermission(permission)) {
+      throw const CashMovementException(CashMovementFailure.permissionDenied);
+    }
+    await _dao.validateScope(
+      profileId: profileId,
+      businessId: businessId,
+      branchId: branchId,
+      cashRegisterId: cashRegisterId,
+      cashSessionId: cashSessionId,
+      permission: permission,
+    );
+    return context;
   }
 
   String _decimalAmount(BigInt cents) {

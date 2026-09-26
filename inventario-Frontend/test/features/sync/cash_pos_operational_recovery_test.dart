@@ -285,6 +285,124 @@ void main() {
         BigInt.from(8000));
   });
 
+  test('C3 outflow cannot make local expected cash negative', () async {
+    final service = await _prepareC2OutflowService(database);
+    CashMovementRequest request(BigInt cents, String key) =>
+        CashMovementRequest(
+          profileId: 'profile-a',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          cashRegisterId: 'register-x',
+          cashSessionId: 'session-s',
+          direction: CashMovementDirection.outflow,
+          category: 'utilities',
+          amountCents: cents,
+          idempotencyKey: key,
+        );
+
+    await expectLater(
+      service.recordMovement(request(BigInt.from(10001), 'too-much')),
+      throwsA(isA<CashMovementException>().having(
+        (error) => error.kind,
+        'kind',
+        CashMovementFailure.insufficientCash,
+      )),
+    );
+    expect(await _count(database, 'local_cash_movements'), 0);
+    expect(await _count(database, 'local_sync_mutations'), 0);
+
+    final first = await service.recordMovement(
+      request(BigInt.from(10000), 'exactly-all'),
+    );
+    final retry = await service.recordMovement(
+      request(BigInt.from(10000), 'exactly-all'),
+    );
+    expect(retry.id, first.id);
+    expect(retry.alreadyRecorded, isTrue);
+    expect(await _count(database, 'local_cash_movements'), 1);
+    expect(await _count(database, 'local_sync_mutations'), 1);
+    expect(
+      await service.loadExpectedCashCents(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        direction: CashMovementDirection.outflow,
+      ),
+      BigInt.zero,
+    );
+  });
+
+  test('C3 sequential offline outflow then inflow derives expected once',
+      () async {
+    await _prepareC2OutflowService(database);
+    await AuthorizedOperationalContextLocalDao(database).replaceContext(
+      AuthorizedOperationalContextProjection(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        effectivePermissions: const ['cash.disburse', 'cash.receive'],
+        effectiveRoles: const [],
+        applicableMembershipIds: const [],
+        authorizationValidatedAt: DateTime.now().toUtc(),
+        snapshotId: 'snapshot-c3',
+      ),
+    );
+    final service = CashMovementService(
+      database: database,
+      loadCurrentContext: () async => const AppCurrentContext(
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        profileId: 'profile-a',
+        installationId: 'install-a',
+        appDeviceId: 'device-a',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        isOnline: false,
+        authorizationContextReady: true,
+        permissions: AppPermissionSet({'cash.disburse', 'cash.receive'}),
+      ),
+    );
+    CashMovementRequest request(
+      CashMovementDirection direction,
+      BigInt amount,
+      String key,
+    ) =>
+        CashMovementRequest(
+          profileId: 'profile-a',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          cashRegisterId: 'register-x',
+          cashSessionId: 'session-s',
+          direction: direction,
+          category: 'other',
+          amountCents: amount,
+          idempotencyKey: key,
+        );
+
+    await service.recordMovement(
+      request(CashMovementDirection.outflow, BigInt.from(2000), 'c3-out'),
+    );
+    expect(
+      await CashSessionLocalDao(database).calculateExpectedCashCentsForSession(
+        cashSessionId: 'session-s',
+      ),
+      BigInt.from(8000),
+    );
+    await service.recordMovement(
+      request(CashMovementDirection.inflow, BigInt.from(500), 'c3-in'),
+    );
+    expect(
+      await CashSessionLocalDao(database).calculateExpectedCashCentsForSession(
+        cashSessionId: 'session-s',
+      ),
+      BigInt.from(8500),
+    );
+    expect(await _count(database, 'local_cash_movements'), 2);
+    expect(await _count(database, 'local_sync_mutations'), 2);
+  });
+
   test('C2 closed-session rejection preserves local movement and blocks',
       () async {
     final id = await _createC2Outflow(database);

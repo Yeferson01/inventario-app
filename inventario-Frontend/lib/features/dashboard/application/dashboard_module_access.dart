@@ -7,6 +7,8 @@ class DashboardModuleAccess {
     required this.canReadCash,
     required this.canOpenCash,
     required this.canCloseCash,
+    this.canReceiveCash = false,
+    this.canDisburseCash = false,
     required this.canReadInventory,
     required this.canPurchaseInventory,
     required this.canAdjustInventory,
@@ -27,6 +29,8 @@ class DashboardModuleAccess {
       canReadCash: context.hasPermission('cash.read'),
       canOpenCash: context.hasPermission('cash.open'),
       canCloseCash: context.hasPermission('cash.close'),
+      canReceiveCash: context.hasPermission('cash.receive'),
+      canDisburseCash: context.hasPermission('cash.disburse'),
       canReadInventory: context.hasPermission('inventory.read'),
       canPurchaseInventory: context.hasPermission('inventory.purchase'),
       canAdjustInventory: context.hasPermission('inventory.adjust'),
@@ -48,6 +52,8 @@ class DashboardModuleAccess {
         canReadCash = false,
         canOpenCash = false,
         canCloseCash = false,
+        canReceiveCash = false,
+        canDisburseCash = false,
         canReadInventory = false,
         canPurchaseInventory = false,
         canAdjustInventory = false,
@@ -61,6 +67,8 @@ class DashboardModuleAccess {
   final bool canReadCash;
   final bool canOpenCash;
   final bool canCloseCash;
+  final bool canReceiveCash;
+  final bool canDisburseCash;
   final bool canReadInventory;
   final bool canPurchaseInventory;
   final bool canAdjustInventory;
@@ -71,5 +79,10 @@ class DashboardModuleAccess {
 
   bool get canOpenAdministration => canManageBranches || canInviteMembers;
 
-  bool get canUseCash => canReadCash || canOpenCash || canCloseCash;
+  bool get canUseCash =>
+      canReadCash ||
+      canOpenCash ||
+      canCloseCash ||
+      canReceiveCash ||
+      canDisburseCash;
 }
