@@ -30,7 +30,7 @@ void main() {
     await PurchaseLocalService(
       dao: PurchaseLocalDao(fixture.database),
     ).createLocalPurchase(
-      const CreatePurchaseLocalInput(
+      CreatePurchaseLocalInput(
         businessId: _businessId,
         branchId: _branchId,
         profileId: _profileId,
@@ -38,7 +38,7 @@ void main() {
           PurchaseLocalItemInput(
             productId: _productId,
             quantity: 8,
-            unitCost: 7000,
+            unitCostCents: BigInt.from(700000),
           ),
         ],
       ),

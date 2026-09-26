@@ -24,6 +24,7 @@ import '../../application/pos_sync_upload_provider.dart';
 import '../../application/unmaterialized_local_sale_discard_service.dart';
 import '../../application/intentional_stale_sale_reconciliation_service.dart';
 import '../../../inventory/application/purchase_local_models.dart';
+import '../../../inventory/application/purchase_money.dart';
 import '../../../inventory/application/purchase_local_provider.dart';
 import '../../application/purchases_sync_upload_provider.dart';
 import '../../../cash/application/cash_session_local_models.dart';
@@ -1716,7 +1717,10 @@ class _AppE2ERealControlledTestScreenState
             PurchaseLocalItemInput(
               productId: productId,
               quantity: _intFromController(_purchaseQuantityController),
-              unitCost: _doubleFromController(_purchaseUnitCostController),
+              unitCostCents: parsePurchaseMoneyCents(
+                    _purchaseUnitCostController.text,
+                  ) ??
+                  (throw const FormatException('Invalid exact purchase unit cost')),
             ),
           ],
           metadata: {

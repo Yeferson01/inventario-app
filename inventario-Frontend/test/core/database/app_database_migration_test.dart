@@ -9,7 +9,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates schema 8 to 14 without replacing existing balance IDs',
+  test('migrates schema 8 to 15 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -27,7 +27,24 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 14);
+    expect(database.schemaVersion, 15);
+    expect(
+        await _columnNames(database, 'purchases'),
+        containsAll([
+          'total_cents',
+          'financial_finalized_at',
+          'monetary_contract_version'
+        ]));
+    expect(await _columnNames(database, 'purchase_items'),
+        containsAll(['unit_cost_cents', 'subtotal_cents']));
+    final legacyPurchase = await database
+        .customSelect(
+          "select total_cents, financial_finalized_at from purchases where id = 'legacy-purchase'",
+        )
+        .getSingle();
+    expect(legacyPurchase.readNullable<int>('total_cents'), isNull);
+    expect(legacyPurchase.readNullable<DateTime>('financial_finalized_at'),
+        isNull);
     expect(balance.read<String>('id'), 'random-local-uuid');
     expect(balance.read<int>('quantity_on_hand'), 8);
 
@@ -116,7 +133,7 @@ void main() {
     );
   });
 
-  test('migrates current schema 12 to 14 additively', () async {
+  test('migrates current schema 12 to 15 additively', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema10CostSetupStatements) {
@@ -130,7 +147,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 14);
+    expect(database.schemaVersion, 15);
     expect(
       await _columnNames(database, 'local_report_snapshots'),
       containsAll(<String>{
@@ -149,7 +166,7 @@ void main() {
     expect(legacyMovement.read<String>('id'), 'legacy-movement');
     expect(legacyMovement.read<int>('quantity_change'), 4);
   });
-  test('migrates schema 9 to 14 preserving Product identity', () async {
+  test('migrates schema 9 to 15 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema9IdentitySetupStatements) {
@@ -160,7 +177,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 14);
+    expect(database.schemaVersion, 15);
     final product = await database.customSelect(
       'select id, name, master_product_id from products where id = ?',
       variables: [const Variable<String>('legacy-product')],
@@ -183,7 +200,7 @@ void main() {
     expect(indexes, hasLength(3));
   });
 
-  test('HY-28 migrates schema 10 to 14 preserving existing movements',
+  test('HY-28 migrates schema 10 to 15 preserving existing movements',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -195,7 +212,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 14);
+    expect(database.schemaVersion, 15);
     final legacySaleItem = await database.customSelect(
       'select unit_cost_snapshot from sale_items where id = ?',
       variables: [const Variable<String>('legacy-sale-item')],
@@ -327,6 +344,9 @@ const _schema12UpgradeStatements = <String>[
 ];
 const _schema8SetupStatements = <String>[
   'pragma user_version = 8',
+  'create table purchases (id text primary key not null, total real not null)',
+  "insert into purchases (id, total) values ('legacy-purchase', 19.99)",
+  'create table purchase_items (id text primary key not null, unit_cost real not null, subtotal real not null)',
   '''
   create table local_product_stock_balances (
     id text primary key not null,

@@ -268,7 +268,7 @@ class _Harness {
               PurchaseLocalItemInput(
                 productId: 'product-$businessId',
                 quantity: 1,
-                unitCost: 500,
+                unitCostCents: BigInt.from(50000),
               ),
             ],
           ),

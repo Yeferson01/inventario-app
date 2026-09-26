@@ -2,6 +2,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/utils/app_uuid.dart';
 import '../data/datasources/purchase_local_dao.dart';
 import 'purchase_local_models.dart';
+import 'purchase_money.dart';
 
 class PurchaseLocalService {
   PurchaseLocalService({
@@ -12,6 +13,26 @@ class PurchaseLocalService {
 
   final PurchaseLocalDao _dao;
   final void Function()? _onCommitted;
+
+  Future<PurchasePaymentBasis?> getPaymentBasis({
+    required String purchaseId,
+    required String businessId,
+    required String branchId,
+  }) async {
+    final row = await _dao.getPurchasePaymentBasisRow(
+      purchaseId: purchaseId,
+      businessId: businessId,
+      branchId: branchId,
+    );
+    if (row == null) return null;
+    final cents = row['total_cents'];
+    return PurchasePaymentBasis(
+      purchaseId: row['id'] as String,
+      totalCents: cents is int ? BigInt.from(cents) : null,
+      financiallyFinalized: row['financial_finalized_at'] != null,
+      contractVersion: row['monetary_contract_version'] as String?,
+    );
+  }
 
   Future<PurchaseLocalResult> createLocalPurchase(
     CreatePurchaseLocalInput input,
@@ -26,7 +47,7 @@ class PurchaseLocalService {
     final movementDrafts = <Map<String, dynamic>>[];
     final lineResults = <PurchaseLocalLineResult>[];
 
-    var total = 0.0;
+    var totalCents = BigInt.zero;
     var sequence = sequenceStart;
 
     for (final item in input.items) {
@@ -45,12 +66,17 @@ class PurchaseLocalService {
 
       final stockBefore = _int(balance?['quantity_available']);
       final stockAfter = stockBefore + item.quantity;
-      final subtotal = item.quantity * item.unitCost;
+      final subtotalCents =
+          purchaseLineTotalCents(item.unitCostCents, item.quantity);
+      final subtotal = double.parse(formatPurchaseMoneyCents(subtotalCents));
 
       final itemId = AppUuid.v7();
       final movementId = AppUuid.v7();
 
-      total += subtotal;
+      totalCents += subtotalCents;
+      if (totalCents > BigInt.from(purchaseMoneyMaxCents)) {
+        throw RangeError('Purchase total exceeds numeric(12,2) range.');
+      }
 
       final itemIdempotencyKey =
           '${input.deviceInstallationId ?? input.profileId}:'
@@ -65,12 +91,16 @@ class PurchaseLocalService {
         'quantity': item.quantity,
         'unit_cost': item.unitCost,
         'subtotal': subtotal,
+        'unit_cost_cents': item.unitCostCents.toInt(),
+        'subtotal_cents': subtotalCents.toInt(),
         'idempotency_key': itemIdempotencyKey,
         'local_status': 'dirty',
         'metadata': {
           'source': 'purchase_local_service',
           'stock_before': stockBefore,
           'stock_after': stockAfter,
+          'unit_cost_cents': item.unitCostCents.toString(),
+          'subtotal_cents': subtotalCents.toString(),
         },
         'version': 1,
         'created_at': now,
@@ -123,6 +153,8 @@ class PurchaseLocalService {
           quantity: item.quantity,
           unitCost: item.unitCost,
           subtotal: subtotal,
+          unitCostCents: item.unitCostCents,
+          subtotalCents: subtotalCents,
           inventoryMovementId: movementId,
           stockAfter: stockAfter,
         ),
@@ -138,7 +170,8 @@ class PurchaseLocalService {
       'branch_id': input.branchId,
       'supplier_id': input.supplierId,
       'user_id': input.profileId,
-      'total': total,
+      'total': double.parse(formatPurchaseMoneyCents(totalCents)),
+      'total_cents': totalCents.toInt(),
       'status': 'completed',
       'created_at': now,
       'updated_at': now,
@@ -155,6 +188,8 @@ class PurchaseLocalService {
         'app_device_id': input.appDeviceId,
         'device_installation_id': input.deviceInstallationId,
         'item_count': input.items.length,
+        'monetary_contract_version': 'exact_v1',
+        'total_cents': totalCents.toString(),
       },
       'version': 1,
       'sync_status': SyncStatus.pendingInsert.index,
@@ -171,7 +206,8 @@ class PurchaseLocalService {
       purchaseId: purchaseId,
       businessId: input.businessId,
       branchId: input.branchId,
-      total: total,
+      total: double.parse(formatPurchaseMoneyCents(totalCents)),
+      totalCents: totalCents,
       itemCount: itemDrafts.length,
       lines: lineResults,
     );
@@ -203,7 +239,8 @@ class PurchaseLocalService {
         throw ArgumentError('La cantidad debe ser mayor a cero.');
       }
 
-      if (item.unitCost < 0) {
+      if (item.unitCostCents < BigInt.zero ||
+          item.unitCostCents > BigInt.from(purchaseMoneyMaxCents)) {
         throw ArgumentError('El costo unitario no puede ser negativo.');
       }
     }

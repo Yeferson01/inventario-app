@@ -113,7 +113,8 @@ void main() {
       await tester.ensureVisible(costButton);
       await tester.pumpAndSettle();
       expect(costButton, findsOneWidget);
-      expect(find.text('Costo unitario: \$6000 · Editar'), findsOneWidget);
+      expect(find.text('Costo unitario: Confirmar costo · Editar'),
+          findsOneWidget);
 
       await tester.tap(costButton);
       await tester.pumpAndSettle();

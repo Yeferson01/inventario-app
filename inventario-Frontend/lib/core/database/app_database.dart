@@ -281,6 +281,12 @@ class Purchases extends Table {
 
   RealColumn get total => real()();
 
+  IntColumn get totalCents => integer().nullable().named('total_cents')();
+  DateTimeColumn get financialFinalizedAt =>
+      dateTime().nullable().named('financial_finalized_at')();
+  TextColumn get monetaryContractVersion =>
+      text().nullable().named('monetary_contract_version')();
+
   TextColumn get status => text().withDefault(const Constant('completed'))();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -332,6 +338,10 @@ class PurchaseItems extends Table {
   RealColumn get unitCost => real()();
 
   RealColumn get subtotal => real()();
+
+  IntColumn get unitCostCents =>
+      integer().nullable().named('unit_cost_cents')();
+  IntColumn get subtotalCents => integer().nullable().named('subtotal_cents')();
 
   TextColumn get idempotencyKey => text().nullable().named('idempotency_key')();
 
@@ -1222,7 +1232,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   Future<void> _createCashMovementFoundation() async {
     await customStatement('''
@@ -1788,6 +1798,13 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 15) {
+            await m.addColumn(purchases, purchases.totalCents);
+            await m.addColumn(purchases, purchases.financialFinalizedAt);
+            await m.addColumn(purchases, purchases.monetaryContractVersion);
+            await m.addColumn(purchaseItems, purchaseItems.unitCostCents);
+            await m.addColumn(purchaseItems, purchaseItems.subtotalCents);
+          }
           if (from < 14) {
             await m.createTable(localCashMovements);
             await _createCashMovementFoundation();

@@ -11,6 +11,27 @@ class PurchaseLocalDao {
 
   final AppDatabase _db;
 
+  Future<Map<String, dynamic>?> getPurchasePaymentBasisRow({
+    required String purchaseId,
+    required String businessId,
+    required String branchId,
+  }) async {
+    final rows = await _db.customSelect('''
+      select id, total_cents, financial_finalized_at, monetary_contract_version
+      from purchases
+      where id = ? and business_id = ? and branch_id = ?
+        and deleted_at is null
+      limit 1
+    ''', variables: [
+      Variable<String>(purchaseId),
+      Variable<String>(businessId),
+      Variable<String>(branchId),
+    ], readsFrom: {
+      _db.purchases
+    }).get();
+    return rows.isEmpty ? null : rows.single.data;
+  }
+
   Future<Map<String, dynamic>> getRequiredProductSnapshot({
     required String businessId,
     required String productId,
@@ -110,6 +131,33 @@ class PurchaseLocalDao {
         await _insertInventoryMovement(movement);
         await _applyLocalStockMovement(movement);
       }
+
+      final exactTotal = purchase['total_cents'];
+      if (exactTotal is int) {
+        final sums = await _db.customSelect('''
+          select count(*) as item_count,
+            count(subtotal_cents) as exact_item_count,
+            coalesce(sum(subtotal_cents), 0) as total_cents
+          from purchase_items where purchase_id = ? and deleted_at is null
+        ''', variables: [
+          Variable<String>(purchase['id'] as String)
+        ]).getSingle();
+        if (sums.read<int>('item_count') != items.length ||
+            sums.read<int>('exact_item_count') != items.length ||
+            sums.read<int>('total_cents') != exactTotal) {
+          throw StateError('Purchase exact total does not match its items.');
+        }
+        await _db.customUpdate('''
+          update purchases set total_cents = ?, financial_finalized_at = ?,
+            monetary_contract_version = 'exact_v1' where id = ?
+        ''', variables: [
+          Variable<int>(exactTotal),
+          Variable<DateTime>(purchase['updated_at'] as DateTime),
+          Variable<String>(purchase['id'] as String),
+        ], updates: {
+          _db.purchases
+        });
+      }
     });
   }
 
@@ -174,6 +222,8 @@ class PurchaseLocalDao {
         quantity,
         unit_cost,
         subtotal,
+        unit_cost_cents,
+        subtotal_cents,
         idempotency_key,
         local_status,
         metadata_json,
@@ -183,7 +233,7 @@ class PurchaseLocalDao {
         deleted_at,
         last_synced_at,
         sync_status
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         item['id'],
@@ -194,6 +244,8 @@ class PurchaseLocalDao {
         item['quantity'],
         item['unit_cost'],
         item['subtotal'],
+        item['unit_cost_cents'],
+        item['subtotal_cents'],
         item['idempotency_key'],
         item['local_status'],
         jsonEncode(item['metadata'] ?? {}),

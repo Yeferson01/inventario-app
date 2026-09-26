@@ -1,13 +1,35 @@
+import 'purchase_money.dart';
+
+/// Documentary money only. Never fall back to the legacy REAL total.
+class PurchasePaymentBasis {
+  const PurchasePaymentBasis({
+    required this.purchaseId,
+    required this.totalCents,
+    required this.financiallyFinalized,
+    required this.contractVersion,
+  });
+
+  final String purchaseId;
+  final BigInt? totalCents;
+  final bool financiallyFinalized;
+  final String? contractVersion;
+
+  bool get paymentEligible => financiallyFinalized && totalCents != null;
+}
+
 class PurchaseLocalItemInput {
   const PurchaseLocalItemInput({
     required this.productId,
     required this.quantity,
-    required this.unitCost,
+    required this.unitCostCents,
   });
 
   final String productId;
   final int quantity;
-  final double unitCost;
+  final BigInt unitCostCents;
+
+  /// Compatibility only: the documentary source of truth is unitCostCents.
+  double get unitCost => double.parse(formatPurchaseMoneyCents(unitCostCents));
 }
 
 class CreatePurchaseLocalInput {
@@ -43,6 +65,8 @@ class PurchaseLocalLineResult {
     required this.quantity,
     required this.unitCost,
     required this.subtotal,
+    required this.unitCostCents,
+    required this.subtotalCents,
     required this.inventoryMovementId,
     required this.stockAfter,
   });
@@ -52,6 +76,8 @@ class PurchaseLocalLineResult {
   final int quantity;
   final double unitCost;
   final double subtotal;
+  final BigInt unitCostCents;
+  final BigInt subtotalCents;
   final String inventoryMovementId;
   final int stockAfter;
 
@@ -62,6 +88,8 @@ class PurchaseLocalLineResult {
       'quantity': quantity,
       'unit_cost': unitCost,
       'subtotal': subtotal,
+      'unit_cost_cents': unitCostCents.toString(),
+      'subtotal_cents': subtotalCents.toString(),
       'inventory_movement_id': inventoryMovementId,
       'stock_after': stockAfter,
     };
@@ -74,6 +102,7 @@ class PurchaseLocalResult {
     required this.businessId,
     required this.branchId,
     required this.total,
+    required this.totalCents,
     required this.itemCount,
     required this.lines,
   });
@@ -82,6 +111,7 @@ class PurchaseLocalResult {
   final String businessId;
   final String branchId;
   final double total;
+  final BigInt totalCents;
   final int itemCount;
   final List<PurchaseLocalLineResult> lines;
 
@@ -91,6 +121,7 @@ class PurchaseLocalResult {
       'business_id': businessId,
       'branch_id': branchId,
       'total': total,
+      'total_cents': totalCents.toString(),
       'item_count': itemCount,
       'lines': lines.map((line) => line.toJson()).toList(),
     };

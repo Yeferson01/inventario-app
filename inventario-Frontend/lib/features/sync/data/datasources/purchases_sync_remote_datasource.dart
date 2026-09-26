@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/utils/app_uuid.dart';
 import '../models/catalog_upload_models.dart';
+import 'sync_registration_remote_datasource.dart';
 
 class PurchasePermissionRetryEvidence {
   const PurchasePermissionRetryEvidence({
@@ -95,7 +96,7 @@ class PurchasesSyncRemoteDataSource {
           'No se puede subir un batch de compras sin mutaciones.');
     }
 
-    final serverBatchId = AppUuid.v7();
+    var serverBatchId = AppUuid.v7();
     final localBatchId = _requiredString(localBatch, 'id');
     final businessId = _requiredString(localBatch, 'business_id');
     final clientBatchId = _requiredString(localBatch, 'client_batch_id');
@@ -119,7 +120,8 @@ class PurchasesSyncRemoteDataSource {
       localMutations: uploadableMutations,
     );
 
-    await _client.from('sync_batches').upsert(
+    serverBatchId =
+        await SyncRegistrationRemoteDataSource(_client).registerBatch(
       {
         'id': serverBatchId,
         'business_id': businessId,
@@ -138,7 +140,6 @@ class PurchasesSyncRemoteDataSource {
         'created_at': now,
         'updated_at': now,
       },
-      onConflict: 'business_id,app_device_id,client_batch_id',
     );
 
     final serverMutations = uploadableMutations.map((mutation) {
@@ -173,10 +174,10 @@ class PurchasesSyncRemoteDataSource {
       };
     }).toList();
 
-    await _client.from('sync_mutations').upsert(
-          serverMutations,
-          onConflict: 'business_id,idempotency_key',
-        );
+    await SyncRegistrationRemoteDataSource(_client).registerMutations(
+      serverMutations,
+      expectedBatchId: serverBatchId,
+    );
 
     final processResult = await _client.rpc(
       'process_sync_batch',

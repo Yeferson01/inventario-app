@@ -22838,6 +22838,24 @@ class $PurchasesTable extends Purchases
   late final GeneratedColumn<double> total = GeneratedColumn<double>(
       'total', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _totalCentsMeta =
+      const VerificationMeta('totalCents');
+  @override
+  late final GeneratedColumn<int> totalCents = GeneratedColumn<int>(
+      'total_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _financialFinalizedAtMeta =
+      const VerificationMeta('financialFinalizedAt');
+  @override
+  late final GeneratedColumn<DateTime> financialFinalizedAt =
+      GeneratedColumn<DateTime>('financial_finalized_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _monetaryContractVersionMeta =
+      const VerificationMeta('monetaryContractVersion');
+  @override
+  late final GeneratedColumn<String> monetaryContractVersion =
+      GeneratedColumn<String>('monetary_contract_version', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -22936,6 +22954,9 @@ class $PurchasesTable extends Purchases
         supplierId,
         userId,
         total,
+        totalCents,
+        financialFinalizedAt,
+        monetaryContractVersion,
         status,
         createdAt,
         updatedAt,
@@ -22990,6 +23011,25 @@ class $PurchasesTable extends Purchases
           _totalMeta, total.isAcceptableOrUnknown(data['total']!, _totalMeta));
     } else if (isInserting) {
       context.missing(_totalMeta);
+    }
+    if (data.containsKey('total_cents')) {
+      context.handle(
+          _totalCentsMeta,
+          totalCents.isAcceptableOrUnknown(
+              data['total_cents']!, _totalCentsMeta));
+    }
+    if (data.containsKey('financial_finalized_at')) {
+      context.handle(
+          _financialFinalizedAtMeta,
+          financialFinalizedAt.isAcceptableOrUnknown(
+              data['financial_finalized_at']!, _financialFinalizedAtMeta));
+    }
+    if (data.containsKey('monetary_contract_version')) {
+      context.handle(
+          _monetaryContractVersionMeta,
+          monetaryContractVersion.isAcceptableOrUnknown(
+              data['monetary_contract_version']!,
+              _monetaryContractVersionMeta));
     }
     if (data.containsKey('status')) {
       context.handle(_statusMeta,
@@ -23074,6 +23114,14 @@ class $PurchasesTable extends Purchases
           .read(DriftSqlType.string, data['${effectivePrefix}user_id']),
       total: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}total'])!,
+      totalCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}total_cents']),
+      financialFinalizedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}financial_finalized_at']),
+      monetaryContractVersion: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}monetary_contract_version']),
       status: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
       createdAt: attachedDatabase.typeMapping
@@ -23120,6 +23168,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   final String? supplierId;
   final String? userId;
   final double total;
+  final int? totalCents;
+  final DateTime? financialFinalizedAt;
+  final String? monetaryContractVersion;
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23140,6 +23191,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       this.supplierId,
       this.userId,
       required this.total,
+      this.totalCents,
+      this.financialFinalizedAt,
+      this.monetaryContractVersion,
       required this.status,
       required this.createdAt,
       required this.updatedAt,
@@ -23170,6 +23224,16 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       map['user_id'] = Variable<String>(userId);
     }
     map['total'] = Variable<double>(total);
+    if (!nullToAbsent || totalCents != null) {
+      map['total_cents'] = Variable<int>(totalCents);
+    }
+    if (!nullToAbsent || financialFinalizedAt != null) {
+      map['financial_finalized_at'] = Variable<DateTime>(financialFinalizedAt);
+    }
+    if (!nullToAbsent || monetaryContractVersion != null) {
+      map['monetary_contract_version'] =
+          Variable<String>(monetaryContractVersion);
+    }
     map['status'] = Variable<String>(status);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -23216,6 +23280,15 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       userId:
           userId == null && nullToAbsent ? const Value.absent() : Value(userId),
       total: Value(total),
+      totalCents: totalCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalCents),
+      financialFinalizedAt: financialFinalizedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(financialFinalizedAt),
+      monetaryContractVersion: monetaryContractVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(monetaryContractVersion),
       status: Value(status),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -23254,6 +23327,11 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       supplierId: serializer.fromJson<String?>(json['supplierId']),
       userId: serializer.fromJson<String?>(json['userId']),
       total: serializer.fromJson<double>(json['total']),
+      totalCents: serializer.fromJson<int?>(json['totalCents']),
+      financialFinalizedAt:
+          serializer.fromJson<DateTime?>(json['financialFinalizedAt']),
+      monetaryContractVersion:
+          serializer.fromJson<String?>(json['monetaryContractVersion']),
       status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -23280,6 +23358,11 @@ class Purchase extends DataClass implements Insertable<Purchase> {
       'supplierId': serializer.toJson<String?>(supplierId),
       'userId': serializer.toJson<String?>(userId),
       'total': serializer.toJson<double>(total),
+      'totalCents': serializer.toJson<int?>(totalCents),
+      'financialFinalizedAt':
+          serializer.toJson<DateTime?>(financialFinalizedAt),
+      'monetaryContractVersion':
+          serializer.toJson<String?>(monetaryContractVersion),
       'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -23304,6 +23387,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           Value<String?> supplierId = const Value.absent(),
           Value<String?> userId = const Value.absent(),
           double? total,
+          Value<int?> totalCents = const Value.absent(),
+          Value<DateTime?> financialFinalizedAt = const Value.absent(),
+          Value<String?> monetaryContractVersion = const Value.absent(),
           String? status,
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -23324,6 +23410,13 @@ class Purchase extends DataClass implements Insertable<Purchase> {
         supplierId: supplierId.present ? supplierId.value : this.supplierId,
         userId: userId.present ? userId.value : this.userId,
         total: total ?? this.total,
+        totalCents: totalCents.present ? totalCents.value : this.totalCents,
+        financialFinalizedAt: financialFinalizedAt.present
+            ? financialFinalizedAt.value
+            : this.financialFinalizedAt,
+        monetaryContractVersion: monetaryContractVersion.present
+            ? monetaryContractVersion.value
+            : this.monetaryContractVersion,
         status: status ?? this.status,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -23354,6 +23447,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           data.supplierId.present ? data.supplierId.value : this.supplierId,
       userId: data.userId.present ? data.userId.value : this.userId,
       total: data.total.present ? data.total.value : this.total,
+      totalCents:
+          data.totalCents.present ? data.totalCents.value : this.totalCents,
+      financialFinalizedAt: data.financialFinalizedAt.present
+          ? data.financialFinalizedAt.value
+          : this.financialFinalizedAt,
+      monetaryContractVersion: data.monetaryContractVersion.present
+          ? data.monetaryContractVersion.value
+          : this.monetaryContractVersion,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -23393,6 +23494,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           ..write('supplierId: $supplierId, ')
           ..write('userId: $userId, ')
           ..write('total: $total, ')
+          ..write('totalCents: $totalCents, ')
+          ..write('financialFinalizedAt: $financialFinalizedAt, ')
+          ..write('monetaryContractVersion: $monetaryContractVersion, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -23411,26 +23515,30 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      businessId,
-      branchId,
-      supplierId,
-      userId,
-      total,
-      status,
-      createdAt,
-      updatedAt,
-      deletedAt,
-      lastSyncedAt,
-      invoicePhotoUrl,
-      processingStatus,
-      supplierName,
-      idempotencyKey,
-      localStatus,
-      metadataJson,
-      version,
-      syncStatus);
+  int get hashCode => Object.hashAll([
+        id,
+        businessId,
+        branchId,
+        supplierId,
+        userId,
+        total,
+        totalCents,
+        financialFinalizedAt,
+        monetaryContractVersion,
+        status,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt,
+        invoicePhotoUrl,
+        processingStatus,
+        supplierName,
+        idempotencyKey,
+        localStatus,
+        metadataJson,
+        version,
+        syncStatus
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -23441,6 +23549,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
           other.supplierId == this.supplierId &&
           other.userId == this.userId &&
           other.total == this.total &&
+          other.totalCents == this.totalCents &&
+          other.financialFinalizedAt == this.financialFinalizedAt &&
+          other.monetaryContractVersion == this.monetaryContractVersion &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -23463,6 +23574,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
   final Value<String?> supplierId;
   final Value<String?> userId;
   final Value<double> total;
+  final Value<int?> totalCents;
+  final Value<DateTime?> financialFinalizedAt;
+  final Value<String?> monetaryContractVersion;
   final Value<String> status;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -23484,6 +23598,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     this.supplierId = const Value.absent(),
     this.userId = const Value.absent(),
     this.total = const Value.absent(),
+    this.totalCents = const Value.absent(),
+    this.financialFinalizedAt = const Value.absent(),
+    this.monetaryContractVersion = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -23506,6 +23623,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     this.supplierId = const Value.absent(),
     this.userId = const Value.absent(),
     required double total,
+    this.totalCents = const Value.absent(),
+    this.financialFinalizedAt = const Value.absent(),
+    this.monetaryContractVersion = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -23529,6 +23649,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     Expression<String>? supplierId,
     Expression<String>? userId,
     Expression<double>? total,
+    Expression<int>? totalCents,
+    Expression<DateTime>? financialFinalizedAt,
+    Expression<String>? monetaryContractVersion,
     Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -23551,6 +23674,11 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       if (supplierId != null) 'supplier_id': supplierId,
       if (userId != null) 'user_id': userId,
       if (total != null) 'total': total,
+      if (totalCents != null) 'total_cents': totalCents,
+      if (financialFinalizedAt != null)
+        'financial_finalized_at': financialFinalizedAt,
+      if (monetaryContractVersion != null)
+        'monetary_contract_version': monetaryContractVersion,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -23575,6 +23703,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       Value<String?>? supplierId,
       Value<String?>? userId,
       Value<double>? total,
+      Value<int?>? totalCents,
+      Value<DateTime?>? financialFinalizedAt,
+      Value<String?>? monetaryContractVersion,
       Value<String>? status,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -23596,6 +23727,10 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       supplierId: supplierId ?? this.supplierId,
       userId: userId ?? this.userId,
       total: total ?? this.total,
+      totalCents: totalCents ?? this.totalCents,
+      financialFinalizedAt: financialFinalizedAt ?? this.financialFinalizedAt,
+      monetaryContractVersion:
+          monetaryContractVersion ?? this.monetaryContractVersion,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -23633,6 +23768,17 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     }
     if (total.present) {
       map['total'] = Variable<double>(total.value);
+    }
+    if (totalCents.present) {
+      map['total_cents'] = Variable<int>(totalCents.value);
+    }
+    if (financialFinalizedAt.present) {
+      map['financial_finalized_at'] =
+          Variable<DateTime>(financialFinalizedAt.value);
+    }
+    if (monetaryContractVersion.present) {
+      map['monetary_contract_version'] =
+          Variable<String>(monetaryContractVersion.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
@@ -23689,6 +23835,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
           ..write('supplierId: $supplierId, ')
           ..write('userId: $userId, ')
           ..write('total: $total, ')
+          ..write('totalCents: $totalCents, ')
+          ..write('financialFinalizedAt: $financialFinalizedAt, ')
+          ..write('monetaryContractVersion: $monetaryContractVersion, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -23773,6 +23922,18 @@ class $PurchaseItemsTable extends PurchaseItems
   late final GeneratedColumn<double> subtotal = GeneratedColumn<double>(
       'subtotal', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _unitCostCentsMeta =
+      const VerificationMeta('unitCostCents');
+  @override
+  late final GeneratedColumn<int> unitCostCents = GeneratedColumn<int>(
+      'unit_cost_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _subtotalCentsMeta =
+      const VerificationMeta('subtotalCents');
+  @override
+  late final GeneratedColumn<int> subtotalCents = GeneratedColumn<int>(
+      'subtotal_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _idempotencyKeyMeta =
       const VerificationMeta('idempotencyKey');
   @override
@@ -23846,6 +24007,8 @@ class $PurchaseItemsTable extends PurchaseItems
         quantity,
         unitCost,
         subtotal,
+        unitCostCents,
+        subtotalCents,
         idempotencyKey,
         localStatus,
         metadataJson,
@@ -23908,6 +24071,18 @@ class $PurchaseItemsTable extends PurchaseItems
           subtotal.isAcceptableOrUnknown(data['subtotal']!, _subtotalMeta));
     } else if (isInserting) {
       context.missing(_subtotalMeta);
+    }
+    if (data.containsKey('unit_cost_cents')) {
+      context.handle(
+          _unitCostCentsMeta,
+          unitCostCents.isAcceptableOrUnknown(
+              data['unit_cost_cents']!, _unitCostCentsMeta));
+    }
+    if (data.containsKey('subtotal_cents')) {
+      context.handle(
+          _subtotalCentsMeta,
+          subtotalCents.isAcceptableOrUnknown(
+              data['subtotal_cents']!, _subtotalCentsMeta));
     }
     if (data.containsKey('idempotency_key')) {
       context.handle(
@@ -23974,6 +24149,10 @@ class $PurchaseItemsTable extends PurchaseItems
           .read(DriftSqlType.double, data['${effectivePrefix}unit_cost'])!,
       subtotal: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}subtotal'])!,
+      unitCostCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}unit_cost_cents']),
+      subtotalCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}subtotal_cents']),
       idempotencyKey: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}idempotency_key']),
       localStatus: attachedDatabase.typeMapping
@@ -24014,6 +24193,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
   final int quantity;
   final double unitCost;
   final double subtotal;
+  final int? unitCostCents;
+  final int? subtotalCents;
   final String? idempotencyKey;
   final String localStatus;
   final String? metadataJson;
@@ -24032,6 +24213,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       required this.quantity,
       required this.unitCost,
       required this.subtotal,
+      this.unitCostCents,
+      this.subtotalCents,
       this.idempotencyKey,
       required this.localStatus,
       this.metadataJson,
@@ -24060,6 +24243,12 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
     map['quantity'] = Variable<int>(quantity);
     map['unit_cost'] = Variable<double>(unitCost);
     map['subtotal'] = Variable<double>(subtotal);
+    if (!nullToAbsent || unitCostCents != null) {
+      map['unit_cost_cents'] = Variable<int>(unitCostCents);
+    }
+    if (!nullToAbsent || subtotalCents != null) {
+      map['subtotal_cents'] = Variable<int>(subtotalCents);
+    }
     if (!nullToAbsent || idempotencyKey != null) {
       map['idempotency_key'] = Variable<String>(idempotencyKey);
     }
@@ -24101,6 +24290,12 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       quantity: Value(quantity),
       unitCost: Value(unitCost),
       subtotal: Value(subtotal),
+      unitCostCents: unitCostCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitCostCents),
+      subtotalCents: subtotalCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subtotalCents),
       idempotencyKey: idempotencyKey == null && nullToAbsent
           ? const Value.absent()
           : Value(idempotencyKey),
@@ -24133,6 +24328,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       quantity: serializer.fromJson<int>(json['quantity']),
       unitCost: serializer.fromJson<double>(json['unitCost']),
       subtotal: serializer.fromJson<double>(json['subtotal']),
+      unitCostCents: serializer.fromJson<int?>(json['unitCostCents']),
+      subtotalCents: serializer.fromJson<int?>(json['subtotalCents']),
       idempotencyKey: serializer.fromJson<String?>(json['idempotencyKey']),
       localStatus: serializer.fromJson<String>(json['localStatus']),
       metadataJson: serializer.fromJson<String?>(json['metadataJson']),
@@ -24157,6 +24354,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       'quantity': serializer.toJson<int>(quantity),
       'unitCost': serializer.toJson<double>(unitCost),
       'subtotal': serializer.toJson<double>(subtotal),
+      'unitCostCents': serializer.toJson<int?>(unitCostCents),
+      'subtotalCents': serializer.toJson<int?>(subtotalCents),
       'idempotencyKey': serializer.toJson<String?>(idempotencyKey),
       'localStatus': serializer.toJson<String>(localStatus),
       'metadataJson': serializer.toJson<String?>(metadataJson),
@@ -24179,6 +24378,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           int? quantity,
           double? unitCost,
           double? subtotal,
+          Value<int?> unitCostCents = const Value.absent(),
+          Value<int?> subtotalCents = const Value.absent(),
           Value<String?> idempotencyKey = const Value.absent(),
           String? localStatus,
           Value<String?> metadataJson = const Value.absent(),
@@ -24197,6 +24398,10 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
         quantity: quantity ?? this.quantity,
         unitCost: unitCost ?? this.unitCost,
         subtotal: subtotal ?? this.subtotal,
+        unitCostCents:
+            unitCostCents.present ? unitCostCents.value : this.unitCostCents,
+        subtotalCents:
+            subtotalCents.present ? subtotalCents.value : this.subtotalCents,
         idempotencyKey:
             idempotencyKey.present ? idempotencyKey.value : this.idempotencyKey,
         localStatus: localStatus ?? this.localStatus,
@@ -24222,6 +24427,12 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
       subtotal: data.subtotal.present ? data.subtotal.value : this.subtotal,
+      unitCostCents: data.unitCostCents.present
+          ? data.unitCostCents.value
+          : this.unitCostCents,
+      subtotalCents: data.subtotalCents.present
+          ? data.subtotalCents.value
+          : this.subtotalCents,
       idempotencyKey: data.idempotencyKey.present
           ? data.idempotencyKey.value
           : this.idempotencyKey,
@@ -24253,6 +24464,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           ..write('quantity: $quantity, ')
           ..write('unitCost: $unitCost, ')
           ..write('subtotal: $subtotal, ')
+          ..write('unitCostCents: $unitCostCents, ')
+          ..write('subtotalCents: $subtotalCents, ')
           ..write('idempotencyKey: $idempotencyKey, ')
           ..write('localStatus: $localStatus, ')
           ..write('metadataJson: $metadataJson, ')
@@ -24276,6 +24489,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       quantity,
       unitCost,
       subtotal,
+      unitCostCents,
+      subtotalCents,
       idempotencyKey,
       localStatus,
       metadataJson,
@@ -24297,6 +24512,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           other.quantity == this.quantity &&
           other.unitCost == this.unitCost &&
           other.subtotal == this.subtotal &&
+          other.unitCostCents == this.unitCostCents &&
+          other.subtotalCents == this.subtotalCents &&
           other.idempotencyKey == this.idempotencyKey &&
           other.localStatus == this.localStatus &&
           other.metadataJson == this.metadataJson &&
@@ -24317,6 +24534,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
   final Value<int> quantity;
   final Value<double> unitCost;
   final Value<double> subtotal;
+  final Value<int?> unitCostCents;
+  final Value<int?> subtotalCents;
   final Value<String?> idempotencyKey;
   final Value<String> localStatus;
   final Value<String?> metadataJson;
@@ -24336,6 +24555,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     this.quantity = const Value.absent(),
     this.unitCost = const Value.absent(),
     this.subtotal = const Value.absent(),
+    this.unitCostCents = const Value.absent(),
+    this.subtotalCents = const Value.absent(),
     this.idempotencyKey = const Value.absent(),
     this.localStatus = const Value.absent(),
     this.metadataJson = const Value.absent(),
@@ -24356,6 +24577,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     required int quantity,
     required double unitCost,
     required double subtotal,
+    this.unitCostCents = const Value.absent(),
+    this.subtotalCents = const Value.absent(),
     this.idempotencyKey = const Value.absent(),
     this.localStatus = const Value.absent(),
     this.metadataJson = const Value.absent(),
@@ -24379,6 +24602,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     Expression<int>? quantity,
     Expression<double>? unitCost,
     Expression<double>? subtotal,
+    Expression<int>? unitCostCents,
+    Expression<int>? subtotalCents,
     Expression<String>? idempotencyKey,
     Expression<String>? localStatus,
     Expression<String>? metadataJson,
@@ -24399,6 +24624,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
       if (quantity != null) 'quantity': quantity,
       if (unitCost != null) 'unit_cost': unitCost,
       if (subtotal != null) 'subtotal': subtotal,
+      if (unitCostCents != null) 'unit_cost_cents': unitCostCents,
+      if (subtotalCents != null) 'subtotal_cents': subtotalCents,
       if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
       if (localStatus != null) 'local_status': localStatus,
       if (metadataJson != null) 'metadata_json': metadataJson,
@@ -24421,6 +24648,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
       Value<int>? quantity,
       Value<double>? unitCost,
       Value<double>? subtotal,
+      Value<int?>? unitCostCents,
+      Value<int?>? subtotalCents,
       Value<String?>? idempotencyKey,
       Value<String>? localStatus,
       Value<String?>? metadataJson,
@@ -24440,6 +24669,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
       quantity: quantity ?? this.quantity,
       unitCost: unitCost ?? this.unitCost,
       subtotal: subtotal ?? this.subtotal,
+      unitCostCents: unitCostCents ?? this.unitCostCents,
+      subtotalCents: subtotalCents ?? this.subtotalCents,
       idempotencyKey: idempotencyKey ?? this.idempotencyKey,
       localStatus: localStatus ?? this.localStatus,
       metadataJson: metadataJson ?? this.metadataJson,
@@ -24479,6 +24710,12 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     }
     if (subtotal.present) {
       map['subtotal'] = Variable<double>(subtotal.value);
+    }
+    if (unitCostCents.present) {
+      map['unit_cost_cents'] = Variable<int>(unitCostCents.value);
+    }
+    if (subtotalCents.present) {
+      map['subtotal_cents'] = Variable<int>(subtotalCents.value);
     }
     if (idempotencyKey.present) {
       map['idempotency_key'] = Variable<String>(idempotencyKey.value);
@@ -24525,6 +24762,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
           ..write('quantity: $quantity, ')
           ..write('unitCost: $unitCost, ')
           ..write('subtotal: $subtotal, ')
+          ..write('unitCostCents: $unitCostCents, ')
+          ..write('subtotalCents: $subtotalCents, ')
           ..write('idempotencyKey: $idempotencyKey, ')
           ..write('localStatus: $localStatus, ')
           ..write('metadataJson: $metadataJson, ')
@@ -40710,6 +40949,9 @@ typedef $$PurchasesTableCreateCompanionBuilder = PurchasesCompanion Function({
   Value<String?> supplierId,
   Value<String?> userId,
   required double total,
+  Value<int?> totalCents,
+  Value<DateTime?> financialFinalizedAt,
+  Value<String?> monetaryContractVersion,
   Value<String> status,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -40732,6 +40974,9 @@ typedef $$PurchasesTableUpdateCompanionBuilder = PurchasesCompanion Function({
   Value<String?> supplierId,
   Value<String?> userId,
   Value<double> total,
+  Value<int?> totalCents,
+  Value<DateTime?> financialFinalizedAt,
+  Value<String?> monetaryContractVersion,
   Value<String> status,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -40828,6 +41073,17 @@ class $$PurchasesTableFilterComposer
 
   ColumnFilters<double> get total => $composableBuilder(
       column: $table.total, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get totalCents => $composableBuilder(
+      column: $table.totalCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get financialFinalizedAt => $composableBuilder(
+      column: $table.financialFinalizedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get monetaryContractVersion => $composableBuilder(
+      column: $table.monetaryContractVersion,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnFilters(column));
@@ -40973,6 +41229,17 @@ class $$PurchasesTableOrderingComposer
   ColumnOrderings<double> get total => $composableBuilder(
       column: $table.total, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get totalCents => $composableBuilder(
+      column: $table.totalCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get financialFinalizedAt => $composableBuilder(
+      column: $table.financialFinalizedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get monetaryContractVersion => $composableBuilder(
+      column: $table.monetaryContractVersion,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnOrderings(column));
 
@@ -41096,6 +41363,15 @@ class $$PurchasesTableAnnotationComposer
 
   GeneratedColumn<double> get total =>
       $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<int> get totalCents => $composableBuilder(
+      column: $table.totalCents, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get financialFinalizedAt => $composableBuilder(
+      column: $table.financialFinalizedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get monetaryContractVersion => $composableBuilder(
+      column: $table.monetaryContractVersion, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -41252,6 +41528,9 @@ class $$PurchasesTableTableManager extends RootTableManager<
             Value<String?> supplierId = const Value.absent(),
             Value<String?> userId = const Value.absent(),
             Value<double> total = const Value.absent(),
+            Value<int?> totalCents = const Value.absent(),
+            Value<DateTime?> financialFinalizedAt = const Value.absent(),
+            Value<String?> monetaryContractVersion = const Value.absent(),
             Value<String> status = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -41274,6 +41553,9 @@ class $$PurchasesTableTableManager extends RootTableManager<
             supplierId: supplierId,
             userId: userId,
             total: total,
+            totalCents: totalCents,
+            financialFinalizedAt: financialFinalizedAt,
+            monetaryContractVersion: monetaryContractVersion,
             status: status,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -41296,6 +41578,9 @@ class $$PurchasesTableTableManager extends RootTableManager<
             Value<String?> supplierId = const Value.absent(),
             Value<String?> userId = const Value.absent(),
             required double total,
+            Value<int?> totalCents = const Value.absent(),
+            Value<DateTime?> financialFinalizedAt = const Value.absent(),
+            Value<String?> monetaryContractVersion = const Value.absent(),
             Value<String> status = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -41318,6 +41603,9 @@ class $$PurchasesTableTableManager extends RootTableManager<
             supplierId: supplierId,
             userId: userId,
             total: total,
+            totalCents: totalCents,
+            financialFinalizedAt: financialFinalizedAt,
+            monetaryContractVersion: monetaryContractVersion,
             status: status,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -41440,6 +41728,8 @@ typedef $$PurchaseItemsTableCreateCompanionBuilder = PurchaseItemsCompanion
   required int quantity,
   required double unitCost,
   required double subtotal,
+  Value<int?> unitCostCents,
+  Value<int?> subtotalCents,
   Value<String?> idempotencyKey,
   Value<String> localStatus,
   Value<String?> metadataJson,
@@ -41461,6 +41751,8 @@ typedef $$PurchaseItemsTableUpdateCompanionBuilder = PurchaseItemsCompanion
   Value<int> quantity,
   Value<double> unitCost,
   Value<double> subtotal,
+  Value<int?> unitCostCents,
+  Value<int?> subtotalCents,
   Value<String?> idempotencyKey,
   Value<String> localStatus,
   Value<String?> metadataJson,
@@ -41559,6 +41851,12 @@ class $$PurchaseItemsTableFilterComposer
 
   ColumnFilters<double> get subtotal => $composableBuilder(
       column: $table.subtotal, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get unitCostCents => $composableBuilder(
+      column: $table.unitCostCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get subtotalCents => $composableBuilder(
+      column: $table.subtotalCents, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get idempotencyKey => $composableBuilder(
       column: $table.idempotencyKey,
@@ -41692,6 +41990,14 @@ class $$PurchaseItemsTableOrderingComposer
   ColumnOrderings<double> get subtotal => $composableBuilder(
       column: $table.subtotal, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get unitCostCents => $composableBuilder(
+      column: $table.unitCostCents,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get subtotalCents => $composableBuilder(
+      column: $table.subtotalCents,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get idempotencyKey => $composableBuilder(
       column: $table.idempotencyKey,
       builder: (column) => ColumnOrderings(column));
@@ -41823,6 +42129,12 @@ class $$PurchaseItemsTableAnnotationComposer
 
   GeneratedColumn<double> get subtotal =>
       $composableBuilder(column: $table.subtotal, builder: (column) => column);
+
+  GeneratedColumn<int> get unitCostCents => $composableBuilder(
+      column: $table.unitCostCents, builder: (column) => column);
+
+  GeneratedColumn<int> get subtotalCents => $composableBuilder(
+      column: $table.subtotalCents, builder: (column) => column);
 
   GeneratedColumn<String> get idempotencyKey => $composableBuilder(
       column: $table.idempotencyKey, builder: (column) => column);
@@ -41965,6 +42277,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             Value<int> quantity = const Value.absent(),
             Value<double> unitCost = const Value.absent(),
             Value<double> subtotal = const Value.absent(),
+            Value<int?> unitCostCents = const Value.absent(),
+            Value<int?> subtotalCents = const Value.absent(),
             Value<String?> idempotencyKey = const Value.absent(),
             Value<String> localStatus = const Value.absent(),
             Value<String?> metadataJson = const Value.absent(),
@@ -41985,6 +42299,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             quantity: quantity,
             unitCost: unitCost,
             subtotal: subtotal,
+            unitCostCents: unitCostCents,
+            subtotalCents: subtotalCents,
             idempotencyKey: idempotencyKey,
             localStatus: localStatus,
             metadataJson: metadataJson,
@@ -42005,6 +42321,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             required int quantity,
             required double unitCost,
             required double subtotal,
+            Value<int?> unitCostCents = const Value.absent(),
+            Value<int?> subtotalCents = const Value.absent(),
             Value<String?> idempotencyKey = const Value.absent(),
             Value<String> localStatus = const Value.absent(),
             Value<String?> metadataJson = const Value.absent(),
@@ -42025,6 +42343,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             quantity: quantity,
             unitCost: unitCost,
             subtotal: subtotal,
+            unitCostCents: unitCostCents,
+            subtotalCents: subtotalCents,
             idempotencyKey: idempotencyKey,
             localStatus: localStatus,
             metadataJson: metadataJson,

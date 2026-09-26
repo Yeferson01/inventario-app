@@ -7,6 +7,7 @@ import '../../application/business_product_creation_models.dart';
 import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../../application/purchase_local_models.dart';
+import '../../application/purchase_money.dart';
 import '../../application/purchase_local_provider.dart';
 import '../../application/purchase_sync_repair_provider.dart';
 import '../../../sync/application/local_sync_outbox_providers.dart';
@@ -50,10 +51,9 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       widget.effectivePermissions.contains('inventory.view_costs');
 
   double get _total {
-    return _cartItems.fold<double>(
-      0,
-      (sum, item) => sum + item.subtotal,
-    );
+    final cents = _cartItems.fold<BigInt>(
+        BigInt.zero, (sum, item) => sum + (item.subtotalCents ?? BigInt.zero));
+    return double.parse(formatPurchaseMoneyCents(cents));
   }
 
   int get _itemCount {
@@ -112,6 +112,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
           currentStock: currentStock,
           quantity: 1,
           unitCost: suggestedCost,
+          unitCostCents: null,
         ),
       );
     });
@@ -190,18 +191,57 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
   }
 
   Future<void> _editUnitCost(_PurchaseCartItem item) async {
-    final value = await _askNumber(
-      title: 'Costo unitario',
-      initialValue: item.unitCost,
-      decimal: true,
+    var costText = item.unitCostCents == null
+        ? ''
+        : formatPurchaseMoneyCents(item.unitCostCents!);
+    String? costError;
+    final value = await showDialog<BigInt>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, updateDialog) {
+          return AlertDialog(
+            title: const Text('Costo unitario'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: costText,
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Pesos, máximo 2 decimales',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (text) => costText = text,
+                ),
+                if (costError != null) Text(costError!),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final parsed = parsePurchaseMoneyCents(costText);
+                  if (parsed == null || parsed <= BigInt.zero) {
+                    updateDialog(() => costError =
+                        'Ingresa un costo mayor que cero, sin más de 2 decimales.');
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(parsed);
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
+      ),
     );
 
     if (!mounted || value == null) {
-      return;
-    }
-
-    if (value < 0) {
-      _showMessage('El costo unitario no puede ser negativo.');
       return;
     }
 
@@ -211,7 +251,10 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       );
 
       if (index >= 0) {
-        _cartItems[index] = _cartItems[index].copyWith(unitCost: value);
+        _cartItems[index] = _cartItems[index].copyWith(
+          unitCost: double.parse(formatPurchaseMoneyCents(value)),
+          unitCostCents: value,
+        );
       }
     });
   }
@@ -805,11 +848,14 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       return;
     }
 
-    final invalidCost = _cartItems.any((item) => item.unitCost <= 0);
+    final invalidCost = _cartItems.any((item) =>
+        item.unitCostCents == null ||
+        item.unitCostCents! <= BigInt.zero ||
+        item.subtotalCents == null);
 
     if (invalidCost) {
       _showMessage(
-          'Todos los productos deben tener costo unitario mayor a cero.');
+          'Confirma un costo unitario exacto mayor que cero para cada producto.');
       return;
     }
 
@@ -835,7 +881,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                 (item) => PurchaseLocalItemInput(
                   productId: item.productId,
                   quantity: item.quantity,
-                  unitCost: item.unitCost,
+                  unitCostCents: item.unitCostCents!,
                 ),
               )
               .toList(),
@@ -1497,7 +1543,7 @@ class _PurchaseCartTile extends StatelessWidget {
               icon: const Icon(Icons.edit_outlined),
               label: Text(
                 'Costo unitario: '
-                '${_PurchaseEntryScreenState._money(item.unitCost)} · Editar',
+                '${item.unitCostCents == null ? "Confirmar costo" : _PurchaseEntryScreenState._money(item.unitCost)} · Editar',
               ),
             ),
           ),
@@ -1607,6 +1653,7 @@ class _PurchaseCartItem {
     required this.currentStock,
     required this.quantity,
     required this.unitCost,
+    required this.unitCostCents,
   });
 
   final String productId;
@@ -1615,13 +1662,23 @@ class _PurchaseCartItem {
   final int currentStock;
   final int quantity;
   final double unitCost;
+  final BigInt? unitCostCents;
 
-  double get subtotal => quantity * unitCost;
+  BigInt? get subtotalCents {
+    if (unitCostCents == null || quantity <= 0) return null;
+    final total = unitCostCents! * BigInt.from(quantity);
+    return total <= BigInt.from(purchaseMoneyMaxCents) ? total : null;
+  }
+
+  double get subtotal => subtotalCents == null
+      ? 0
+      : double.parse(formatPurchaseMoneyCents(subtotalCents!));
 
   _PurchaseCartItem copyWith({
     int? currentStock,
     int? quantity,
     double? unitCost,
+    BigInt? unitCostCents,
   }) {
     return _PurchaseCartItem(
       productId: productId,
@@ -1630,6 +1687,7 @@ class _PurchaseCartItem {
       currentStock: currentStock ?? this.currentStock,
       quantity: quantity ?? this.quantity,
       unitCost: unitCost ?? this.unitCost,
+      unitCostCents: unitCostCents ?? this.unitCostCents,
     );
   }
 }
