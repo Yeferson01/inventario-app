@@ -3,23 +3,35 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/features/cash/application/cash_session_local_models.dart';
 import 'package:inventario_frontend/features/cash/application/cash_session_local_service.dart';
+import 'package:inventario_frontend/features/cash/application/cash_movement_models.dart';
+import 'package:inventario_frontend/features/cash/application/cash_movement_service.dart';
 import 'package:inventario_frontend/features/cash/data/datasources/cash_session_local_dao.dart';
+import 'package:inventario_frontend/features/cash/data/datasources/cash_movement_local_dao.dart';
 import 'package:inventario_frontend/features/sync/application/cash_pos_recovery_service.dart';
+import 'package:inventario_frontend/features/sync/application/cash_sync_upload_service.dart';
+import 'package:inventario_frontend/features/sync/application/local_sync_outbox_service.dart';
+import 'package:inventario_frontend/features/sync/application/app_context_models.dart';
 import 'package:inventario_frontend/features/sync/application/cash_pos_snapshot_applier.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_download_service.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_download_models.dart';
 import 'package:inventario_frontend/features/sync/application/operational_bootstrap_page_applier_router.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/authorized_operational_context_local_dao.dart';
+import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/cash_pos_reconciliation_local_dao.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/cash_sync_remote_datasource.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/local_sync_outbox_dao.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/operational_bootstrap_checkpoint_local_dao.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/operational_bootstrap_remote_datasource.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/operational_bootstrap_seen_record_local_dao.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/reconciliation_issue_local_dao.dart';
 import 'package:inventario_frontend/features/sync/data/models/cash_pos_recovery_models.dart';
-import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
+import 'package:inventario_frontend/features/sync/data/models/cash_movement_ack_models.dart';
+import 'package:inventario_frontend/features/sync/data/models/catalog_upload_models.dart';
+import 'package:inventario_frontend/features/sync/data/models/local_sync_outbox_models.dart';
 import 'package:inventario_frontend/features/sync/data/models/operational_bootstrap_models.dart';
 import 'support/operational_bootstrap_test_data.dart';
 
@@ -45,6 +57,394 @@ void main() {
     expect(register['branch_id'], 'branch-x');
     expect(register['local_status'], 'synced');
     expect(register['sync_status'], SyncStatus.synced.index);
+  });
+
+  test('C2 remote cash movement hydrates exact cents without outbox', () async {
+    final harness = _Harness(database, [
+      _cashResponse(movementRows: [_movementRow()]),
+    ]);
+
+    final result = await harness.recovery.recover(_request);
+    final movement = await (database.select(database.localCashMovements)
+          ..where((row) => row.id.equals('movement-r')))
+        .getSingle();
+
+    expect(result.cashContextReady, isTrue);
+    expect(movement.amountCents, BigInt.from(5025));
+    expect(movement.createdBy, 'profile-other');
+    expect(movement.localStatus, 'synced');
+    expect(await _count(database, 'local_sync_mutations'), 0);
+    expect(await _count(database, 'local_sync_batches'), 0);
+  });
+
+  test('C2 offline outflow is atomic, idempotent and changes expected once',
+      () async {
+    await _insertRegister(database, id: 'register-x');
+    await _insertSession(database, id: 'session-s', opening: 100);
+    await AuthorizedOperationalContextLocalDao(database).replaceContext(
+      AuthorizedOperationalContextProjection(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        effectivePermissions: const ['cash.disburse'],
+        effectiveRoles: const [],
+        applicableMembershipIds: const [],
+        authorizationValidatedAt: DateTime.now().toUtc(),
+        snapshotId: 'snapshot-c2',
+      ),
+    );
+    final service = CashMovementService(
+      database: database,
+      loadCurrentContext: () async => const AppCurrentContext(
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        profileId: 'profile-a',
+        installationId: 'install-a',
+        appDeviceId: 'device-a',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        isOnline: false,
+        authorizationContextReady: true,
+        permissions: AppPermissionSet({'cash.disburse'}),
+      ),
+    );
+    final request = CashMovementRequest(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      cashRegisterId: 'register-x',
+      cashSessionId: 'session-s',
+      direction: CashMovementDirection.outflow,
+      category: 'other',
+      amountCents: BigInt.from(2000),
+      idempotencyKey: 'cash-c2-key',
+      occurredAt: DateTime.utc(2026, 9, 25, 12, 34, 56, 789, 123),
+    );
+
+    final first = await service.recordMovement(request);
+    final second = await service.recordMovement(request);
+    expect(first.alreadyRecorded, isFalse);
+    expect(second.alreadyRecorded, isTrue);
+    expect(second.id, first.id);
+    expect(await _count(database, 'local_cash_movements'), 1);
+    expect(await _count(database, 'local_sync_mutations'), 1);
+    expect(await _count(database, 'local_sync_batches'), 1);
+    expect(
+      await CashSessionLocalDao(database).calculateExpectedCashCentsForSession(
+        cashSessionId: 'session-s',
+      ),
+      BigInt.from(8000),
+    );
+    final local = await (database.select(database.localCashMovements)
+          ..where((row) => row.id.equals(first.id)))
+        .getSingle();
+    final outbox = await database.customSelect(
+      'select payload_json from local_sync_mutations where entity_id = ?',
+      variables: [Variable<String>(first.id)],
+    ).getSingle();
+    final uploadedPayload =
+        jsonDecode(outbox.read<String>('payload_json')) as Map<String, dynamic>;
+    final remoteMovement = <String, Object?>{
+      'id': local.id,
+      'business_id': local.businessId,
+      'branch_id': local.branchId,
+      'cash_register_id': local.cashRegisterId,
+      'cash_session_id': local.cashSessionId,
+      'direction': local.direction,
+      'category': local.category,
+      'amount': '20.00',
+      'currency': local.currency,
+      'source_type': local.sourceType,
+      'source_id': local.sourceId,
+      'note': local.note,
+      'occurred_at': uploadedPayload['occurred_at'],
+      'created_by': local.createdBy,
+      'idempotency_key': local.idempotencyKey,
+      'metadata': jsonDecode(local.metadataJson),
+      'created_at': local.createdAt.toUtc().toIso8601String(),
+      'updated_at': local.updatedAt.toUtc().toIso8601String(),
+    };
+    expect(await CashMovementLocalDao(database).applyRemote(remoteMovement),
+        isTrue);
+    expect(
+      await CashMovementLocalDao(database).applyRemote({
+        ...remoteMovement,
+        'metadata': <String, Object?>{'source': 'different'},
+      }),
+      isFalse,
+    );
+    expect(
+      await CashSessionLocalDao(database).calculateExpectedCashCentsForSession(
+        cashSessionId: 'session-s',
+      ),
+      BigInt.from(8000),
+    );
+    final mutation = await database.customSelect(
+      'select status from local_sync_mutations where entity_id = ?',
+      variables: [Variable<String>(first.id)],
+    ).getSingle();
+    expect(mutation.read<String>('status'), 'applied');
+  });
+
+  test('C2 receive-only rejects outflow and permits exact offline inflow',
+      () async {
+    await _insertRegister(database, id: 'register-x');
+    await _insertSession(database, id: 'session-s');
+    await AuthorizedOperationalContextLocalDao(database).replaceContext(
+      AuthorizedOperationalContextProjection(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        effectivePermissions: const ['cash.receive'],
+        effectiveRoles: const [],
+        applicableMembershipIds: const [],
+        authorizationValidatedAt: DateTime.now().toUtc(),
+        snapshotId: 'snapshot-c2',
+      ),
+    );
+    final service = CashMovementService(
+      database: database,
+      loadCurrentContext: () async => const AppCurrentContext(
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        profileId: 'profile-a',
+        installationId: 'install-a',
+        appDeviceId: 'device-a',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        isOnline: false,
+        authorizationContextReady: true,
+        permissions: AppPermissionSet({'cash.receive'}),
+      ),
+    );
+    await expectLater(
+      service.recordMovement(CashMovementRequest(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        direction: CashMovementDirection.outflow,
+        category: 'other',
+        amountCents: BigInt.from(100),
+        idempotencyKey: 'denied-outflow',
+      )),
+      throwsA(isA<CashMovementException>().having(
+          (error) => error.kind, 'kind', CashMovementFailure.permissionDenied)),
+    );
+    expect(await _count(database, 'local_cash_movements'), 0);
+    expect(await _count(database, 'local_sync_mutations'), 0);
+    final received = await service.recordMovement(CashMovementRequest(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      cashRegisterId: 'register-x',
+      cashSessionId: 'session-s',
+      direction: CashMovementDirection.inflow,
+      category: 'owner_contribution',
+      amountCents: BigInt.from(525),
+      idempotencyKey: 'allowed-inflow',
+    ));
+    expect(received.alreadyRecorded, isFalse);
+    expect(await _count(database, 'local_sync_mutations'), 1);
+    expect(
+      await CashSessionLocalDao(database).calculateExpectedCashCentsForSession(
+        cashSessionId: 'session-s',
+      ),
+      BigInt.from(2525),
+    );
+  });
+
+  test('C2 applied ACK changes transport state but never cash twice', () async {
+    final id = await _createC2Outflow(database);
+    expect(
+        await CashMovementLocalDao(database)
+            .findByKey('business-b', 'c2-uploader-key'),
+        isNull);
+    expect(
+        await CashMovementLocalDao(database)
+            .outboxKeyExists('business-b', 'c2-uploader-key'),
+        isFalse);
+    final uploader = CashSyncUploadService(
+      outboxService: LocalSyncOutboxService(LocalSyncOutboxDao(database)),
+      remoteDataSource: _C2FakeRemote(CashMovementAckState.applied),
+      cashSessionLocalDao: CashSessionLocalDao(database),
+      cashMovementLocalDao: CashMovementLocalDao(database),
+      issueDao: ReconciliationIssueLocalDao(database),
+    );
+    final result = await uploader.uploadPendingCashBatches(
+        businessId: 'business-a', branchId: 'branch-x');
+    final movement = await (database.select(database.localCashMovements)
+          ..where((row) => row.id.equals(id)))
+        .getSingle();
+    expect(result.batchesCompleted, 1);
+    expect(movement.localStatus, 'synced');
+    expect(
+        await CashSessionLocalDao(database)
+            .calculateExpectedCashCentsForSession(cashSessionId: 'session-s'),
+        BigInt.from(8000));
+  });
+
+  test('C2 closed-session rejection preserves local movement and blocks',
+      () async {
+    final id = await _createC2Outflow(database);
+    final uploader = CashSyncUploadService(
+      outboxService: LocalSyncOutboxService(LocalSyncOutboxDao(database)),
+      remoteDataSource: _C2FakeRemote(CashMovementAckState.rejected),
+      cashSessionLocalDao: CashSessionLocalDao(database),
+      cashMovementLocalDao: CashMovementLocalDao(database),
+      issueDao: ReconciliationIssueLocalDao(database),
+    );
+    final result = await uploader.uploadPendingCashBatches(
+        businessId: 'business-a', branchId: 'branch-x');
+    final movement = await (database.select(database.localCashMovements)
+          ..where((row) => row.id.equals(id)))
+        .getSingle();
+    final mutation = await database.customSelect(
+      'select status from local_sync_mutations where entity_id = ?',
+      variables: [Variable<String>(id)],
+    ).getSingle();
+    expect(result.batchesPartial, 1);
+    expect(movement.localStatus, 'conflict');
+    expect(mutation.read<String>('status'), 'conflict');
+    expect(
+        await CashSessionLocalDao(database)
+            .calculateExpectedCashCentsForSession(cashSessionId: 'session-s'),
+        BigInt.from(8000));
+    expect(
+        await database
+            .customSelect(
+              "select count(*) as n from local_reconciliation_issues where entity_id = ? and status = 'open' and severity = 'blocking'",
+              variables: [Variable<String>(id)],
+            )
+            .getSingle()
+            .then((row) => row.read<int>('n')),
+        1);
+  });
+
+  test('C2 ambiguous ACK preserves movement and blocks recovery', () async {
+    final id = await _createC2Outflow(database);
+    final uploader = CashSyncUploadService(
+      outboxService: LocalSyncOutboxService(LocalSyncOutboxDao(database)),
+      remoteDataSource: _C2FakeRemote(CashMovementAckState.ambiguous),
+      cashSessionLocalDao: CashSessionLocalDao(database),
+      cashMovementLocalDao: CashMovementLocalDao(database),
+      issueDao: ReconciliationIssueLocalDao(database),
+    );
+    await uploader.uploadPendingCashBatches(
+        businessId: 'business-a', branchId: 'branch-x');
+    final movement = await (database.select(database.localCashMovements)
+          ..where((row) => row.id.equals(id)))
+        .getSingle();
+    expect(movement.localStatus, 'error');
+    expect(await _count(database, 'local_cash_movements'), 1);
+    expect(
+        await database
+            .customSelect(
+              "select count(*) as n from local_reconciliation_issues where entity_id = ? and status = 'open' and severity = 'blocking'",
+              variables: [Variable<String>(id)],
+            )
+            .getSingle()
+            .then((row) => row.read<int>('n')),
+        1);
+    expect(
+        () => CashMovementAck.fromJson(const {
+              'id': 'movement',
+              'state': 'unknown',
+            }),
+        throwsFormatException);
+  });
+
+  test('C2 cash movement batch precedes older same-session close batch',
+      () async {
+    final outbox = LocalSyncOutboxService(LocalSyncOutboxDao(database));
+    await outbox.enqueueUploadBatch(
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      profileId: 'profile-a',
+      appDeviceId: 'device-a',
+      deviceInstallationId: 'install-a',
+      domain: 'cash',
+      mutations: const [
+        LocalSyncMutationDraft(
+          clientMutationId: 'old-close',
+          clientSequence: 1,
+          entityTable: 'cash_sessions',
+          entityId: 'session-s',
+          operation: 'update',
+          payload: {
+            'id': 'session-s',
+            'cash_register_id': 'register-x',
+            'status': 'closed',
+            'actual_closing_amount': '80.00',
+          },
+          changedFields: ['status'],
+          idempotencyKey: 'old-close-key',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          profileId: 'profile-a',
+          appDeviceId: 'device-a',
+        )
+      ],
+    );
+    final movementId = await _createC2Outflow(database);
+    final pending = await outbox.getPendingCashBatches(
+        businessId: 'business-a', branchId: 'branch-x');
+    final firstMutations =
+        await outbox.getMutationsForBatch(pending.first['id'] as String);
+    expect(firstMutations.single['entity_id'], movementId);
+    expect(firstMutations.single['entity_table'], 'cash_movements');
+  });
+
+  test('C2 outbox insert failure rolls back the cash movement', () async {
+    final service = await _prepareC2OutflowService(database);
+    await database.customStatement('''
+      create trigger c2_fail_outbox before insert on local_sync_mutations
+      when new.entity_table = 'cash_movements'
+      begin select raise(abort, 'injected cash outbox failure'); end
+    ''');
+    await expectLater(
+      service.recordMovement(CashMovementRequest(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        direction: CashMovementDirection.outflow,
+        category: 'utilities',
+        amountCents: BigInt.from(2000),
+        idempotencyKey: 'c2-rollback-key',
+      )),
+      throwsA(isA<Exception>()),
+    );
+    expect(await _count(database, 'local_cash_movements'), 0);
+    expect(await _count(database, 'local_sync_mutations'), 0);
+    expect(await _count(database, 'local_sync_batches'), 0);
+  });
+
+  test('C2 locally closed session rejects recording before any write',
+      () async {
+    final service = await _prepareC2OutflowService(database);
+    await database.customStatement(
+      "update cash_sessions set status = 'closed' where id = 'session-s'",
+    );
+    await expectLater(
+      service.recordMovement(CashMovementRequest(
+        profileId: 'profile-a',
+        businessId: 'business-a',
+        branchId: 'branch-x',
+        cashRegisterId: 'register-x',
+        cashSessionId: 'session-s',
+        direction: CashMovementDirection.outflow,
+        category: 'utilities',
+        amountCents: BigInt.from(2000),
+        idempotencyKey: 'c2-closed-key',
+      )),
+      throwsA(isA<CashMovementException>().having(
+          (error) => error.kind, 'kind', CashMovementFailure.invalidSession)),
+    );
+    expect(await _count(database, 'local_cash_movements'), 0);
+    expect(await _count(database, 'local_sync_mutations'), 0);
   });
 
   test('2 canonical register lookup is business and branch scoped', () async {
@@ -1056,6 +1456,7 @@ Map<String, Object?> _cashResponse({
   List<Map<String, Object?>>? saleRows,
   List<Map<String, Object?>>? itemRows,
   List<Map<String, Object?>>? paymentRows,
+  List<Map<String, Object?>>? movementRows,
   bool registerHasMore = false,
   String? registerToken,
 }) {
@@ -1081,6 +1482,11 @@ Map<String, Object?> _cashResponse({
         dataset: 'open_cash_sessions',
         rows: sessionRows ?? [_sessionRow()],
       ),
+      if (movementRows != null)
+        'cash_movements': bootstrapDatasetPage(
+          dataset: 'cash_movements',
+          rows: movementRows,
+        ),
       'cash_registers': bootstrapDatasetPage(
         dataset: 'cash_registers',
         rows: registerRows ?? [_registerRow()],
@@ -1090,6 +1496,28 @@ Map<String, Object?> _cashResponse({
     },
   );
 }
+
+Map<String, Object?> _movementRow() => {
+      'id': 'movement-r',
+      'business_id': 'business-a',
+      'branch_id': 'branch-x',
+      'cash_register_id': 'register-x',
+      'cash_session_id': 'session-s',
+      'direction': 'outflow',
+      'category': 'other',
+      'amount': '50.25',
+      'currency': 'COP',
+      'source_type': 'manual',
+      'source_id': null,
+      'note': 'test',
+      'occurred_at': _created,
+      'created_by': 'profile-other',
+      'idempotency_key': 'movement-key',
+      'metadata': <String, Object?>{},
+      'created_at': _created,
+      'updated_at': _updated,
+      '_bootstrap_record_state': 'present',
+    };
 
 Map<String, Object?> _registerRow({
   String state = 'present',
@@ -1229,6 +1657,97 @@ Future<void> _seedContext(AppDatabase db) async {
           salePrice: 100,
         ),
       );
+}
+
+Future<CashMovementService> _prepareC2OutflowService(AppDatabase db) async {
+  await _insertRegister(db, id: 'register-x');
+  await _insertSession(db, id: 'session-s', opening: 100);
+  await AuthorizedOperationalContextLocalDao(db).replaceContext(
+    AuthorizedOperationalContextProjection(
+      profileId: 'profile-a',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      effectivePermissions: const ['cash.disburse'],
+      effectiveRoles: const [],
+      applicableMembershipIds: const [],
+      authorizationValidatedAt: DateTime.now().toUtc(),
+      snapshotId: 'snapshot-c2',
+    ),
+  );
+  return CashMovementService(
+    database: db,
+    loadCurrentContext: () async => const AppCurrentContext(
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      profileId: 'profile-a',
+      installationId: 'install-a',
+      appDeviceId: 'device-a',
+      cashRegisterId: 'register-x',
+      cashSessionId: 'session-s',
+      isOnline: false,
+      authorizationContextReady: true,
+      permissions: AppPermissionSet({'cash.disburse'}),
+    ),
+  );
+}
+
+Future<String> _createC2Outflow(AppDatabase db) async {
+  final service = await _prepareC2OutflowService(db);
+  return (await service.recordMovement(CashMovementRequest(
+    profileId: 'profile-a',
+    businessId: 'business-a',
+    branchId: 'branch-x',
+    cashRegisterId: 'register-x',
+    cashSessionId: 'session-s',
+    direction: CashMovementDirection.outflow,
+    category: 'utilities',
+    amountCents: BigInt.from(2000),
+    idempotencyKey: 'c2-uploader-key',
+  )))
+      .id;
+}
+
+class _C2FakeRemote extends CashSyncRemoteDataSource {
+  _C2FakeRemote(this.ackState)
+      : super(SupabaseClient('http://127.0.0.1', 'public-test-key'));
+
+  final CashMovementAckState ackState;
+
+  @override
+  Future<CatalogUploadBatchResult> uploadAndProcessCashBatch({
+    required Map<String, dynamic> localBatch,
+    required List<Map<String, dynamic>> localMutations,
+  }) async =>
+      CatalogUploadBatchResult(
+        localBatchId: localBatch['id'] as String,
+        serverBatchId: 'server-c2',
+        status:
+            ackState == CashMovementAckState.applied ? 'completed' : 'partial',
+        mutationCount: localMutations.length,
+        appliedCount: ackState == CashMovementAckState.applied ? 1 : 0,
+        skippedCount: 0,
+        conflictCount: 0,
+        errorCount: ackState == CashMovementAckState.applied ? 0 : 1,
+        raw: const {},
+      );
+
+  @override
+  Future<Map<String, CashMovementAck>> lookupMovementAcknowledgements({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required List<Map<String, dynamic>> mutations,
+  }) async =>
+      {
+        for (final mutation in mutations)
+          mutation['entity_id'] as String: CashMovementAck(
+            id: mutation['entity_id'] as String,
+            state: ackState,
+            reason: ackState == CashMovementAckState.rejected
+                ? 'cash_session_closed'
+                : null,
+          ),
+      };
 }
 
 Future<void> _insertRegister(
@@ -1502,6 +2021,7 @@ class _Harness {
     final localDao = CashPosReconciliationLocalDao(database);
     final applier = CashPosSnapshotApplier(
       localDao: localDao,
+      cashMovementDao: CashMovementLocalDao(database),
       seenRecordDao: seenDao,
       issueDao: issueDao,
     );

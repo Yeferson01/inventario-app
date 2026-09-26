@@ -81,6 +81,6 @@ select ok(not exists(select 1 from pg_policies where schemaname='public' and tab
 select ok(not has_table_privilege('service_role','public.cash_movements','DELETE'),'service role no delete grant');
 select ok(not has_table_privilege('service_role','public.cash_movements','UPDATE'),'service role no update grant');
 select ok(position($guard$if v_entity not in ('cash_registers', 'cash_sessions') then$guard$ in pg_get_functiondef('private.apply_sync_cash_mutation(uuid)'::regprocedure)) > 0,'cash dispatcher allowlist remains registers/sessions only');
-select ok(position('cash_movements' in pg_get_functiondef('public.close_cash_session_authoritatively(uuid,uuid,uuid,uuid,numeric,text)'::regprocedure))=0,'expected cash unchanged');
+select ok(position('cash_movements' in pg_get_functiondef('public.close_cash_session_authoritatively(uuid,uuid,uuid,uuid,numeric,text)'::regprocedure))>0,'C2 expected cash includes ordinary cash movements');
 select * from finish();
 rollback;

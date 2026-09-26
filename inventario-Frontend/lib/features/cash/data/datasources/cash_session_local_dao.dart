@@ -750,8 +750,14 @@ class CashSessionLocalDao {
       cashSessionId: cashSessionId,
     );
 
+    // The legacy widget contract is double, but the financial read model sums
+    // individual, cent-normalized rows. Never sum SQLite REAL payments here.
     final calculatedExpectedCashAmount =
-        openingCashAmount + cashPayments + cashAdjustments;
+        (await calculateExpectedCashCentsForSession(
+              cashSessionId: cashSessionId,
+            ))
+                .toDouble() /
+            100;
 
     final storedExpectedCashAmount = _cashSummaryNullableDouble(
       session['expected_cash_amount'],
@@ -865,56 +871,92 @@ class CashSessionLocalDao {
 
   Future<double> calculateExpectedCashAmountForSession({
     required String cashSessionId,
-  }) async {
-    final rows = await _db.customSelect(
-      '''
-      select
-        coalesce(cs.opening_cash_amount, 0)
-        + coalesce((
-          select sum(sp.amount)
-          from sale_payments sp
-          join sales s
-            on s.id = sp.sale_id
-          where s.cash_session_id = cs.id
-            and s.deleted_at is null
-            and sp.deleted_at is null
-            and lower(coalesce(sp.payment_method, '')) = 'cash'
-            and lower(coalesce(sp.status, 'completed')) in (
-              'completed',
-              'paid',
-              'approved',
-              'synced'
-            )
-        ), 0) as expected_cash_amount
-      from cash_sessions cs
-      where cs.id = ?
-        and cs.deleted_at is null
-      limit 1
-      ''',
-      variables: [
-        Variable<String>(cashSessionId),
-      ],
-      readsFrom: {
-        _db.cashSessions,
-        _db.sales,
-        _db.salePayments,
-      },
-    ).get();
+  }) async =>
+      (await calculateExpectedCashCentsForSession(
+        cashSessionId: cashSessionId,
+      ))
+          .toDouble() /
+      100;
 
-    if (rows.isEmpty) {
+  Future<BigInt> calculateExpectedCashCentsForSession({
+    required String cashSessionId,
+  }) async {
+    final session = await _db.customSelect('''
+      select business_id, branch_id, cash_register_id, opening_cash_amount
+      from cash_sessions where id = ? and deleted_at is null limit 1
+    ''', variables: [Variable<String>(cashSessionId)]).getSingleOrNull();
+    if (session == null) {
       throw StateError('No se encontró la sesión de caja local.');
     }
-
-    final value = rows.first.data['expected_cash_amount'];
-    final cashAdjustments = await _calculateReconciledCashAdjustmentForSession(
-      cashSessionId: cashSessionId,
-    );
-
-    if (value is num) {
-      return value.toDouble() + cashAdjustments;
+    var cents = _legacyAmountToCents(session.data['opening_cash_amount']);
+    final payments = await _db.customSelect('''
+      select sp.amount, s.metadata_json
+      from sale_payments sp join sales s on s.id = sp.sale_id
+      where s.cash_session_id = ? and s.business_id = ? and s.branch_id = ?
+        and s.deleted_at is null and sp.deleted_at is null
+        and lower(coalesce(sp.payment_method, '')) = 'cash'
+        and lower(coalesce(sp.status, 'completed')) in
+          ('completed', 'paid', 'approved', 'synced')
+    ''', variables: [
+      Variable<String>(cashSessionId),
+      Variable<String>(session.data['business_id'] as String),
+      Variable<String>(session.data['branch_id'] as String),
+    ]).get();
+    for (final row in payments) {
+      final payment = _legacyAmountToCents(row.data['amount']);
+      cents += payment;
+      final rawMetadata = row.data['metadata_json'];
+      if (rawMetadata is String && rawMetadata.isNotEmpty) {
+        final decoded = jsonDecode(rawMetadata);
+        if (decoded is Map &&
+            decoded['local_resolution'] ==
+                'intentional_stale_sale_reconciled' &&
+            decoded['cash_treatment'] ==
+                'already_included_in_destination_opening') {
+          cents -= payment;
+        }
+      }
     }
+    final movements = await _db.customSelect('''
+      select direction, amount_cents
+      from local_cash_movements
+      where business_id = ? and branch_id = ? and cash_register_id = ?
+        and cash_session_id = ?
+    ''', variables: [
+      Variable<String>(session.data['business_id'] as String),
+      Variable<String>(session.data['branch_id'] as String),
+      Variable<String>(session.data['cash_register_id'] as String),
+      Variable<String>(cashSessionId),
+    ], readsFrom: {
+      _db.localCashMovements
+    }).get();
+    for (final row in movements) {
+      final amount = row.data['amount_cents'];
+      if (amount is! int || amount <= 0) {
+        throw StateError('Monto de cash movement local inválido.');
+      }
+      // Rejected rows still represent unresolved physical cash and remain in
+      // this provisional local expectation; a blocking issue prevents close.
+      cents += row.data['direction'] == 'inflow'
+          ? BigInt.from(amount)
+          : -BigInt.from(amount);
+    }
+    return cents;
+  }
 
-    return (double.tryParse(value?.toString() ?? '') ?? 0) + cashAdjustments;
+  BigInt _legacyAmountToCents(Object? value) {
+    final text = value?.toString();
+    final match = RegExp(r'^(-?)(\d+)(?:\.(\d{1,2}))?$').firstMatch(text ?? '');
+    if (match == null) {
+      throw StateError('Legacy cash amount is not representable in cents.');
+    }
+    final units = BigInt.parse(match.group(2)!);
+    final fractions = (match.group(3) ?? '').padRight(2, '0');
+    final amount = units * BigInt.from(100) + BigInt.parse(fractions);
+    if (amount > BigInt.from(99999999999999)) {
+      throw StateError('Legacy cash amount exceeds the exact cash range.');
+    }
+    return match.group(1) == '-' ? -amount : amount;
   }
 
   Future<double> _calculateReconciledCashAdjustmentForSession({
@@ -1337,6 +1379,12 @@ class CashSessionLocalDao {
       where business_id = ?
         and domain = 'cash'
         and status in ('partial', 'error', 'failed', 'uploading')
+        and not exists (
+          select 1 from local_sync_mutations m
+          where m.local_sync_batch_id = local_sync_batches.id
+            and m.entity_table = 'cash_movements'
+            and m.status = 'conflict'
+        )
         and (
           ? is null
           or branch_id = ?

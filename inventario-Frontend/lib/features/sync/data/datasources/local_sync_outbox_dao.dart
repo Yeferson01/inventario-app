@@ -244,10 +244,33 @@ class LocalSyncOutboxDao {
             and status in ('pending', 'error')
             $whereDomain
             $whereBranch
-          order by created_at asc
+          order by
+            case when ? = 'cash' then
+              case
+                when exists (select 1 from local_sync_mutations m
+                  where m.local_sync_batch_id = local_sync_batches.id
+                    and (m.entity_table = 'cash_registers'
+                      or (m.entity_table = 'cash_sessions'
+                        and not (m.operation = 'update'
+                          and json_extract(m.payload_json, '\$.status') = 'closed'))))
+                  then 1
+                when exists (select 1 from local_sync_mutations m
+                  where m.local_sync_batch_id = local_sync_batches.id
+                    and m.entity_table = 'cash_movements') then 2
+                when exists (select 1 from local_sync_mutations m
+                  where m.local_sync_batch_id = local_sync_batches.id
+                    and m.entity_table = 'cash_sessions') then 3
+                else 4
+              end
+            else 0 end,
+            created_at asc
           limit ?
           ''',
-      variables: variables,
+      variables: [
+        ...variables.sublist(0, variables.length - 1),
+        Variable<String>(domain ?? ''),
+        variables.last
+      ],
     ).get();
 
     return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();

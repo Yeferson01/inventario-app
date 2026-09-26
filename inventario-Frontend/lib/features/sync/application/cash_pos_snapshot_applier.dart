@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../cash/data/datasources/cash_movement_local_dao.dart';
 import '../data/datasources/cash_pos_reconciliation_local_dao.dart';
 import '../data/datasources/operational_bootstrap_seen_record_local_dao.dart';
 import '../data/datasources/reconciliation_issue_local_dao.dart';
@@ -14,19 +15,23 @@ class CashPosSnapshotApplier
         OperationalBootstrapDatasetFinalizer {
   CashPosSnapshotApplier({
     required CashPosReconciliationLocalDao localDao,
+    required CashMovementLocalDao cashMovementDao,
     required OperationalBootstrapSeenRecordLocalDao seenRecordDao,
     required ReconciliationIssueLocalDao issueDao,
   })  : _localDao = localDao,
+        _cashMovementDao = cashMovementDao,
         _seenRecordDao = seenRecordDao,
         _issueDao = issueDao;
 
   final CashPosReconciliationLocalDao _localDao;
+  final CashMovementLocalDao _cashMovementDao;
   final OperationalBootstrapSeenRecordLocalDao _seenRecordDao;
   final ReconciliationIssueLocalDao _issueDao;
 
   static const datasets = [
     'cash_registers',
     'open_cash_sessions',
+    'cash_movements',
     'session_sales',
     'session_sale_items',
     'session_sale_payments',
@@ -60,6 +65,11 @@ class CashPosSnapshotApplier
             profileId,
             snapshot,
             CashSessionSnapshotRow.fromRow(raw),
+          ),
+        'cash_movements' => await _applyCashMovement(
+            profileId,
+            snapshot,
+            raw.data,
           ),
         'session_sales' => await _applySale(
             profileId,
@@ -181,6 +191,60 @@ class CashPosSnapshotApplier
       entityType: 'cash_registers',
       entityId: remote.id,
     );
+    return true;
+  }
+
+  Future<bool> _applyCashMovement(
+    String profileId,
+    OperationalBootstrapSnapshotPage snapshot,
+    Map<String, Object?> data,
+  ) async {
+    final id = data['id']?.toString() ?? '';
+    if (!_scopeMatches(
+      snapshot,
+      data['business_id']?.toString() ?? '',
+      data['branch_id']?.toString() ?? '',
+    )) {
+      return _dependencyIssue(
+        profileId,
+        snapshot,
+        entityType: 'cash_movements',
+        entityId: id,
+        issueType: 'scope_mismatch',
+        message: 'Cash movement belongs to another business or branch.',
+      );
+    }
+    final applied = await _cashMovementDao.applyRemote(data);
+    if (!applied) {
+      return _dependencyIssue(
+        profileId,
+        snapshot,
+        entityType: 'cash_movements',
+        entityId: id,
+        issueType: 'cash_movement_remote_conflict',
+        message: 'Cash movement could not be reconciled with local state.',
+      );
+    }
+    await _resolveEntityIssues(
+      profileId,
+      snapshot,
+      entityType: 'cash_movements',
+      entityId: id,
+    );
+    for (final issueType in const [
+      'cash_movement_ack_ambiguous',
+      'cash_movement_rejected',
+    ]) {
+      await _issueDao.resolveOpenIssue(
+        profileId: profileId,
+        businessId: snapshot.businessId,
+        branchId: snapshot.branchId,
+        domain: 'cash_pos',
+        issueType: issueType,
+        entityType: 'cash_movements',
+        entityId: id,
+      );
+    }
     return true;
   }
 
@@ -844,6 +908,7 @@ class CashPosSnapshotApplier
       'dirty_without_outbox',
       'dirty_vs_remote',
       'sale_item_cost_snapshot_conflict',
+      'cash_movement_remote_conflict',
     ]) {
       await _issueDao.resolveOpenIssue(
         profileId: profileId,

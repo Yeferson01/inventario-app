@@ -4,11 +4,66 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/utils/app_uuid.dart';
 import '../models/catalog_upload_models.dart';
+import '../models/cash_movement_ack_models.dart';
 
 class CashSyncRemoteDataSource {
   CashSyncRemoteDataSource(this._client);
 
   final SupabaseClient _client;
+
+  Future<Map<String, CashMovementAck>> lookupMovementAcknowledgements({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required List<Map<String, dynamic>> mutations,
+  }) async {
+    if (mutations.isEmpty ||
+        mutations.length > 100 ||
+        mutations.any((m) => m['entity_table'] != 'cash_movements')) {
+      throw ArgumentError('Invalid cash movement ACK batch.');
+    }
+    final candidates = mutations.map((mutation) {
+      final payload = _decodeRequiredJson(mutation['payload_json']);
+      if (payload is! Map) {
+        throw const FormatException('Cash movement payload must be an object.');
+      }
+      return <String, Object?>{
+        'id': mutation['entity_id'],
+        'idempotency_key': mutation['idempotency_key'],
+        'cash_register_id': payload['cash_register_id'],
+        'cash_session_id': payload['cash_session_id'],
+        'direction': payload['direction'],
+        'category': payload['category'],
+        'currency': payload['currency'],
+        'amount': payload['amount'],
+      };
+    }).toList(growable: false);
+    final raw = await _client.rpc(
+      'lookup_cash_movement_acknowledgements',
+      params: <String, Object?>{
+        'p_business_id': businessId,
+        'p_branch_id': branchId,
+        'p_app_device_id': appDeviceId,
+        'p_candidates': candidates,
+      },
+    );
+    if (raw is! List || raw.length != mutations.length) {
+      throw const FormatException('Incomplete cash movement ACK response.');
+    }
+    final result = <String, CashMovementAck>{};
+    for (final item in raw) {
+      if (item is! Map) {
+        throw const FormatException('Malformed cash movement ACK response.');
+      }
+      final ack = CashMovementAck.fromJson(Map<String, dynamic>.from(item));
+      if (result.containsKey(ack.id) ||
+          !mutations.any((m) => m['entity_id'] == ack.id)) {
+        throw const FormatException('Cash movement ACK scope mismatch.');
+      }
+      result[ack.id] = ack;
+    }
+    return result;
+  }
 
   Future<CatalogUploadBatchResult> uploadAndProcessCashBatch({
     required Map<String, dynamic> localBatch,

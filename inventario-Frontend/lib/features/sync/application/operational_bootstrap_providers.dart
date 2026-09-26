@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/database_provider.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
+import '../../cash/data/datasources/cash_movement_local_dao.dart';
 import '../data/datasources/authorized_operational_context_local_dao.dart';
 import '../data/datasources/catalog_entity_sync_state_resolver.dart';
 import '../data/datasources/core_context_local_dao.dart';
@@ -149,6 +150,7 @@ final cashPosReconciliationLocalDaoProvider =
 final cashPosSnapshotApplierProvider = Provider<CashPosSnapshotApplier>((ref) {
   return CashPosSnapshotApplier(
     localDao: ref.watch(cashPosReconciliationLocalDaoProvider),
+    cashMovementDao: CashMovementLocalDao(ref.watch(appDatabaseProvider)),
     seenRecordDao: ref.watch(operationalBootstrapSeenRecordLocalDaoProvider),
     issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
   );

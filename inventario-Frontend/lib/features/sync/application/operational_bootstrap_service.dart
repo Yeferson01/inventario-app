@@ -105,6 +105,8 @@ class OperationalBootstrapService {
     'cash.read',
     'cash.open',
     'cash.close',
+    'cash.receive',
+    'cash.disburse',
     'sales.create',
   };
 
