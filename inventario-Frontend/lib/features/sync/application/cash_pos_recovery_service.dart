@@ -56,6 +56,8 @@ class CashPosRecoveryService {
           severity: 'blocking',
           message:
               'Canonical runtime cash register is missing, inactive, or outside the selected scope.',
+          cashRegisterId: request.canonicalCashRegisterId,
+          scopeEvidenceType: 'canonical_runtime',
         ),
       );
     } else {

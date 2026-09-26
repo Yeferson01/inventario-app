@@ -128,6 +128,8 @@ class CashPosSnapshotApplier
           entityId: remote.id,
           classification: classification,
           tombstone: remote.state == OperationalBootstrapRecordState.tombstone,
+          cashRegisterId: remote.id,
+          scopeEvidenceType: 'direct_cash_register',
         );
         return false;
       }
@@ -181,6 +183,8 @@ class CashPosSnapshotApplier
             message:
                 'A legacy dirty cash register conflicts with canonical register ${remote.id}.',
             metadata: {'canonical_cash_register_id': remote.id},
+            cashRegisterId: candidate['id'].toString(),
+            scopeEvidenceType: 'local_cash_register',
           );
         }
       }
@@ -212,6 +216,7 @@ class CashPosSnapshotApplier
         entityId: id,
         issueType: 'scope_mismatch',
         message: 'Cash movement belongs to another business or branch.',
+        scopeEvidenceType: 'rejected_remote_scope',
       );
     }
     final applied = await _cashMovementDao.applyRemote(data);
@@ -223,6 +228,12 @@ class CashPosSnapshotApplier
         entityId: id,
         issueType: 'cash_movement_remote_conflict',
         message: 'Cash movement could not be reconciled with local state.',
+        cashRegisterId: data['cash_register_id']?.toString(),
+        cashSessionId: data['cash_session_id']?.toString(),
+        scopeResolutionStatus: data['cash_session_id'] == null
+            ? ReconciliationScopeResolutionStatus.unresolved
+            : ReconciliationScopeResolutionStatus.resolvedSession,
+        scopeEvidenceType: 'direct_cash_movement',
       );
     }
     await _resolveEntityIssues(
@@ -261,6 +272,7 @@ class CashPosSnapshotApplier
         entityId: remote.id,
         issueType: 'scope_mismatch',
         message: 'Cash session belongs to another business or branch.',
+        scopeEvidenceType: 'rejected_remote_scope',
       );
     }
     final register = await _localDao.getById(
@@ -279,6 +291,11 @@ class CashPosSnapshotApplier
         issueType: 'dependency_missing',
         message: 'Cash session references an unavailable canonical register.',
         metadata: {'cash_register_id': remote.cashRegisterId},
+        cashRegisterId: remote.cashRegisterId,
+        cashSessionId: remote.id,
+        scopeResolutionStatus:
+            ReconciliationScopeResolutionStatus.resolvedSession,
+        scopeEvidenceType: 'direct_cash_session',
       );
     }
     final local = await _localDao.getById('cash_sessions', remote.id);
@@ -303,6 +320,11 @@ class CashPosSnapshotApplier
             entityId: remote.id,
             classification: classification,
             tombstone: tombstone,
+            cashRegisterId: remote.cashRegisterId,
+            cashSessionId: remote.id,
+            scopeResolutionStatus:
+                ReconciliationScopeResolutionStatus.resolvedSession,
+            scopeEvidenceType: 'direct_cash_session',
           );
         }
         return false;
@@ -332,6 +354,10 @@ class CashPosSnapshotApplier
             'local_open_session_ids':
                 conflicts.map((row) => row['id']).toList(),
           },
+          cashRegisterId: remote.cashRegisterId,
+          // The conflict involves both remote and local sessions; a single
+          // session scope would silently omit the other side.
+          scopeEvidenceType: 'multiple_cash_sessions',
         );
         return false;
       }
@@ -359,6 +385,8 @@ class CashPosSnapshotApplier
         entityId: remote.id,
         issueType: 'scope_mismatch',
         message: 'Sale belongs to another business or branch.',
+        saleId: remote.id,
+        scopeEvidenceType: 'rejected_remote_scope',
       );
     }
     final session =
@@ -376,6 +404,12 @@ class CashPosSnapshotApplier
         issueType: 'dependency_missing',
         message: 'Sale references an unavailable remote open cash session.',
         metadata: {'cash_session_id': remote.cashSessionId},
+        saleId: remote.id,
+        cashRegisterId: remote.cashRegisterId,
+        cashSessionId: remote.cashSessionId,
+        scopeResolutionStatus:
+            ReconciliationScopeResolutionStatus.resolvedSession,
+        scopeEvidenceType: 'direct_sale_snapshot',
       );
     }
     final local = await _localDao.getById('sales', remote.id);
@@ -397,6 +431,12 @@ class CashPosSnapshotApplier
           entityId: remote.id,
           classification: classification,
           tombstone: remote.state == OperationalBootstrapRecordState.tombstone,
+          saleId: remote.id,
+          cashRegisterId: remote.cashRegisterId,
+          cashSessionId: remote.cashSessionId,
+          scopeResolutionStatus:
+              ReconciliationScopeResolutionStatus.resolvedSession,
+          scopeEvidenceType: 'direct_sale_snapshot',
         );
         return false;
       }
@@ -419,6 +459,7 @@ class CashPosSnapshotApplier
     OperationalBootstrapSnapshotPage snapshot,
     CashPosSaleItemSnapshotRow remote,
   ) async {
+    _validateParentSaleProvenance(snapshot, remote.parentSaleProvenance);
     final sale = await _localDao.getById('sales', remote.saleId);
     if (sale == null ||
         sale['business_id'] != snapshot.businessId ||
@@ -432,6 +473,11 @@ class CashPosSnapshotApplier
         issueType: 'dependency_missing',
         message: 'Sale item references an unavailable parent sale.',
         metadata: {'sale_id': remote.saleId},
+        saleId: remote.saleId,
+        cashRegisterId: remote.parentSaleProvenance.cashRegisterId,
+        cashSessionId: remote.parentSaleProvenance.cashSessionId,
+        scopeResolutionStatus: remote.parentSaleProvenance.status,
+        scopeEvidenceType: 'parent_sale_snapshot',
       );
     }
     if (remote.productId != null &&
@@ -447,6 +493,11 @@ class CashPosSnapshotApplier
         issueType: 'dependency_missing',
         message: 'Sale item references an unavailable product.',
         metadata: {'product_id': remote.productId, 'sale_id': remote.saleId},
+        saleId: remote.saleId,
+        cashRegisterId: remote.parentSaleProvenance.cashRegisterId,
+        cashSessionId: remote.parentSaleProvenance.cashSessionId,
+        scopeResolutionStatus: remote.parentSaleProvenance.status,
+        scopeEvidenceType: 'parent_sale_snapshot',
       );
     }
     final local = await _localDao.getById('sale_items', remote.id);
@@ -466,6 +517,11 @@ class CashPosSnapshotApplier
             'local_unit_cost_snapshot': local['unit_cost_snapshot'],
             'remote_unit_cost_snapshot': remote.unitCostSnapshot,
           },
+          saleId: remote.saleId,
+          cashRegisterId: remote.parentSaleProvenance.cashRegisterId,
+          cashSessionId: remote.parentSaleProvenance.cashSessionId,
+          scopeResolutionStatus: remote.parentSaleProvenance.status,
+          scopeEvidenceType: 'parent_sale_snapshot',
         );
         return false;
       }
@@ -487,6 +543,11 @@ class CashPosSnapshotApplier
           entityId: remote.id,
           classification: classification,
           tombstone: remote.state == OperationalBootstrapRecordState.tombstone,
+          saleId: remote.saleId,
+          cashRegisterId: remote.parentSaleProvenance.cashRegisterId,
+          cashSessionId: remote.parentSaleProvenance.cashSessionId,
+          scopeResolutionStatus: remote.parentSaleProvenance.status,
+          scopeEvidenceType: 'parent_sale_snapshot',
         );
         return false;
       }
@@ -506,6 +567,7 @@ class CashPosSnapshotApplier
     OperationalBootstrapSnapshotPage snapshot,
     CashPosSalePaymentSnapshotRow remote,
   ) async {
+    _validateParentSaleProvenance(snapshot, remote.parentSaleProvenance);
     final sale = await _localDao.getById('sales', remote.saleId);
     if (remote.businessId != snapshot.businessId ||
         sale == null ||
@@ -522,6 +584,11 @@ class CashPosSnapshotApplier
             : 'scope_mismatch',
         message: 'Sale payment has an invalid scope or parent sale.',
         metadata: {'sale_id': remote.saleId},
+        saleId: remote.saleId,
+        cashRegisterId: remote.parentSaleProvenance.cashRegisterId,
+        cashSessionId: remote.parentSaleProvenance.cashSessionId,
+        scopeResolutionStatus: remote.parentSaleProvenance.status,
+        scopeEvidenceType: 'parent_sale_snapshot',
       );
     }
     final local = await _localDao.getById('sale_payments', remote.id);
@@ -544,6 +611,11 @@ class CashPosSnapshotApplier
           entityId: remote.id,
           classification: classification,
           tombstone: remote.state == OperationalBootstrapRecordState.tombstone,
+          saleId: remote.saleId,
+          cashRegisterId: remote.parentSaleProvenance.cashRegisterId,
+          cashSessionId: remote.parentSaleProvenance.cashSessionId,
+          scopeResolutionStatus: remote.parentSaleProvenance.status,
+          scopeEvidenceType: 'parent_sale_snapshot',
         );
         return false;
       }
@@ -643,6 +715,8 @@ class CashPosSnapshotApplier
           issueType: 'multiple_clean_open_sessions',
           severity: 'blocking',
           message: 'More than one local session is open for the same register.',
+          cashRegisterId: register['id'].toString(),
+          scopeEvidenceType: 'local_cash_register',
         );
         continue;
       }
@@ -758,6 +832,26 @@ class CashPosSnapshotApplier
   ) =>
       businessId == snapshot.businessId && branchId == snapshot.branchId;
 
+  void _validateParentSaleProvenance(
+    OperationalBootstrapSnapshotPage snapshot,
+    CashPosParentSaleProvenance provenance,
+  ) {
+    if (!provenance.matchesSnapshot(snapshot.businessId, snapshot.branchId) ||
+        (provenance.status ==
+                ReconciliationScopeResolutionStatus.resolvedSession &&
+            (provenance.cashSessionId == null ||
+                provenance.cashRegisterId == null)) ||
+        (provenance.status ==
+                ReconciliationScopeResolutionStatus.resolvedNoSession &&
+            (provenance.cashSessionId != null ||
+                provenance.cashRegisterId != null))) {
+      throw const OperationalBootstrapException(
+        kind: OperationalBootstrapFailureKind.malformedResponse,
+        message: 'Cash/POS child has invalid authoritative parent scope.',
+      );
+    }
+  }
+
   Future<CashPosEntityClassification> _classify(
     OperationalBootstrapSnapshotPage snapshot,
     String domain,
@@ -787,6 +881,12 @@ class CashPosSnapshotApplier
     required String entityId,
     required CashPosEntityClassification classification,
     required bool tombstone,
+    String? saleId,
+    String? cashRegisterId,
+    String? cashSessionId,
+    ReconciliationScopeResolutionStatus scopeResolutionStatus =
+        ReconciliationScopeResolutionStatus.unresolved,
+    String? scopeEvidenceType,
   }) async {
     final orphan =
         classification.state == CashPosEntityState.dirtyWithoutOutbox;
@@ -805,6 +905,11 @@ class CashPosSnapshotApplier
           ? 'Dirty local Cash/POS state was preserved instead of applying a tombstone.'
           : 'Dirty local Cash/POS state was preserved instead of remote state.',
       metadata: {'classification': classification.state.name},
+      saleId: saleId,
+      cashRegisterId: cashRegisterId,
+      cashSessionId: cashSessionId,
+      scopeResolutionStatus: scopeResolutionStatus,
+      scopeEvidenceType: scopeEvidenceType,
     );
   }
 
@@ -851,6 +956,12 @@ class CashPosSnapshotApplier
     required String issueType,
     required String message,
     Map<String, Object?> metadata = const {},
+    String? saleId,
+    String? cashRegisterId,
+    String? cashSessionId,
+    ReconciliationScopeResolutionStatus scopeResolutionStatus =
+        ReconciliationScopeResolutionStatus.unresolved,
+    String? scopeEvidenceType,
   }) async {
     await _openIssue(
       profileId,
@@ -861,6 +972,11 @@ class CashPosSnapshotApplier
       severity: 'blocking',
       message: message,
       metadata: metadata,
+      saleId: saleId,
+      cashRegisterId: cashRegisterId,
+      cashSessionId: cashSessionId,
+      scopeResolutionStatus: scopeResolutionStatus,
+      scopeEvidenceType: scopeEvidenceType,
     );
     return false;
   }
@@ -874,6 +990,12 @@ class CashPosSnapshotApplier
     required String severity,
     required String message,
     Map<String, Object?> metadata = const {},
+    String? saleId,
+    String? cashRegisterId,
+    String? cashSessionId,
+    ReconciliationScopeResolutionStatus scopeResolutionStatus =
+        ReconciliationScopeResolutionStatus.unresolved,
+    String? scopeEvidenceType,
   }) =>
       _issueDao
           .openOrUpdateIssue(
@@ -891,6 +1013,11 @@ class CashPosSnapshotApplier
                 'snapshot_id': snapshot.snapshotId,
                 ...metadata,
               }),
+              saleId: saleId,
+              cashRegisterId: cashRegisterId,
+              cashSessionId: cashSessionId,
+              scopeResolutionStatus: scopeResolutionStatus,
+              scopeEvidenceType: scopeEvidenceType,
             ),
           )
           .then((_) {});

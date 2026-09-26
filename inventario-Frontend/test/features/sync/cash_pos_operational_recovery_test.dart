@@ -438,6 +438,16 @@ void main() {
             .getSingle()
             .then((row) => row.read<int>('n')),
         1);
+    final issue = (await database.customSelect(
+      'select cash_register_id, cash_session_id, scope_resolution_status, scope_evidence_type '
+      'from local_reconciliation_issues where entity_id = ?',
+      variables: [Variable<String>(id)],
+    ).getSingle())
+        .data;
+    expect(issue['cash_register_id'], 'register-x');
+    expect(issue['cash_session_id'], 'session-s');
+    expect(issue['scope_resolution_status'], 'resolved_session');
+    expect(issue['scope_evidence_type'], 'local_cash_movement');
   });
 
   test('C2 ambiguous ACK preserves movement and blocks recovery', () async {
@@ -807,6 +817,14 @@ void main() {
       (await _issues(database)).map((row) => row['issue_type']),
       contains('cash_open_session_conflict'),
     );
+    final conflict = (await _issues(database)).singleWhere(
+      (row) => row['issue_type'] == 'cash_open_session_conflict',
+    );
+    expect(conflict['cash_register_id'], 'register-x');
+    expect(conflict['cash_session_id'], isNull);
+    expect(conflict['scope_resolution_status'], 'unresolved');
+    expect(conflict['metadata_json'], contains('session-b'));
+    expect(conflict['metadata_json'], contains('session-s'));
   });
 
   test('10 remote A plus local dirty A preserves pending opening fields',
@@ -1284,6 +1302,91 @@ void main() {
     expect(foreignKeys.data.values.single, 1);
   });
 
+  test('B1A item blocker keeps authoritative session without local sale',
+      () async {
+    final harness = _Harness(database, [
+      _cashResponse(
+        saleRows: const [],
+        itemRows: [_withParentSaleProvenance(_itemRow())],
+        paymentRows: const [],
+      ),
+    ]);
+
+    await harness.recovery.recover(_request);
+
+    expect(await _row(database, 'sales', 'sale-r'), isNull);
+    final issue = (await _issues(database)).singleWhere(
+      (row) =>
+          row['entity_type'] == 'sale_items' && row['entity_id'] == 'item-r',
+    );
+    expect(issue['issue_type'], 'dependency_missing');
+    expect(issue['sale_id'], 'sale-r');
+    expect(issue['cash_register_id'], 'register-x');
+    expect(issue['cash_session_id'], 'session-s');
+    expect(issue['scope_resolution_status'], 'resolved_session');
+    expect(issue['scope_evidence_type'], 'parent_sale_snapshot');
+  });
+
+  test('B1A payment blocker keeps authoritative session without local sale',
+      () async {
+    final harness = _Harness(database, [
+      _cashResponse(
+        saleRows: const [],
+        itemRows: const [],
+        paymentRows: [_withParentSaleProvenance(_paymentRow())],
+      ),
+    ]);
+
+    await harness.recovery.recover(_request);
+
+    expect(await _row(database, 'sales', 'sale-r'), isNull);
+    final issue = (await _issues(database)).singleWhere(
+      (row) =>
+          row['entity_type'] == 'sale_payments' &&
+          row['entity_id'] == 'payment-r',
+    );
+    expect(issue['issue_type'], 'dependency_missing');
+    expect(issue['sale_id'], 'sale-r');
+    expect(issue['cash_session_id'], 'session-s');
+    expect(issue['scope_resolution_status'], 'resolved_session');
+  });
+
+  test('B1A missing parent and resolved no-session remain distinct', () async {
+    final harness = _Harness(database, [
+      _cashResponse(
+        saleRows: const [],
+        itemRows: [
+          {
+            ..._itemRow(id: 'item-unresolved'),
+            '_parent_sale_scope_status': 'unresolved'
+          },
+          {
+            ..._itemRow(id: 'item-no-session'),
+            '_parent_sale_scope_status': 'resolved_no_session',
+            '_parent_sale_business_id': 'business-a',
+            '_parent_sale_branch_id': 'branch-x',
+            '_parent_sale_cash_session_id': null,
+          },
+        ],
+        paymentRows: const [],
+      ),
+    ]);
+
+    await harness.recovery.recover(_request);
+
+    final issues = await _issues(database);
+    expect(
+      issues.singleWhere((row) => row['entity_id'] == 'item-unresolved')[
+          'scope_resolution_status'],
+      'unresolved',
+    );
+    expect(
+      issues.singleWhere((row) => row['entity_id'] == 'item-no-session')[
+          'scope_resolution_status'],
+      'resolved_no_session',
+    );
+  });
+
   test('23 two legacy clean open sessions are preserved and blocked', () async {
     await database.customStatement(
       'drop index ux_cash_sessions_one_open_per_register',
@@ -1740,6 +1843,15 @@ Map<String, Object?> _paymentRow() => {
       'updated_at': _updated,
       'deleted_at': null,
       '_bootstrap_record_state': 'present',
+    };
+
+Map<String, Object?> _withParentSaleProvenance(Map<String, Object?> row) => {
+      ...row,
+      '_parent_sale_scope_status': 'resolved_session',
+      '_parent_sale_business_id': 'business-a',
+      '_parent_sale_branch_id': 'branch-x',
+      '_parent_sale_cash_session_id': 'session-s',
+      '_parent_sale_cash_register_id': 'register-x',
     };
 
 Future<void> _seedContext(AppDatabase db) async {

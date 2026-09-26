@@ -136,6 +136,11 @@ class ReconciliationIssueDraft {
     this.entityType,
     this.entityId,
     this.metadataJson,
+    this.saleId,
+    this.cashRegisterId,
+    this.cashSessionId,
+    this.scopeResolutionStatus = ReconciliationScopeResolutionStatus.unresolved,
+    this.scopeEvidenceType,
   });
 
   final String profileId;
@@ -148,6 +153,34 @@ class ReconciliationIssueDraft {
   final String severity;
   final String message;
   final String? metadataJson;
+  final String? saleId;
+  final String? cashRegisterId;
+  final String? cashSessionId;
+  final ReconciliationScopeResolutionStatus scopeResolutionStatus;
+  final String? scopeEvidenceType;
+}
+
+enum ReconciliationScopeResolutionStatus {
+  unresolved,
+  resolvedSession,
+  resolvedNoSession;
+
+  String get storageValue => switch (this) {
+        ReconciliationScopeResolutionStatus.unresolved => 'unresolved',
+        ReconciliationScopeResolutionStatus.resolvedSession =>
+          'resolved_session',
+        ReconciliationScopeResolutionStatus.resolvedNoSession =>
+          'resolved_no_session',
+      };
+
+  static ReconciliationScopeResolutionStatus fromStorage(Object? value) =>
+      switch (value) {
+        'resolved_session' =>
+          ReconciliationScopeResolutionStatus.resolvedSession,
+        'resolved_no_session' =>
+          ReconciliationScopeResolutionStatus.resolvedNoSession,
+        _ => ReconciliationScopeResolutionStatus.unresolved,
+      };
 }
 
 class AuthorizedOperationalContextProjection {

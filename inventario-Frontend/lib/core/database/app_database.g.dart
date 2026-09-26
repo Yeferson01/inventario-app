@@ -14510,6 +14510,37 @@ class $LocalReconciliationIssuesTable extends LocalReconciliationIssues
   late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
       'entity_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
+  @override
+  late final GeneratedColumn<String> saleId = GeneratedColumn<String>(
+      'sale_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _cashRegisterIdMeta =
+      const VerificationMeta('cashRegisterId');
+  @override
+  late final GeneratedColumn<String> cashRegisterId = GeneratedColumn<String>(
+      'cash_register_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _cashSessionIdMeta =
+      const VerificationMeta('cashSessionId');
+  @override
+  late final GeneratedColumn<String> cashSessionId = GeneratedColumn<String>(
+      'cash_session_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _scopeResolutionStatusMeta =
+      const VerificationMeta('scopeResolutionStatus');
+  @override
+  late final GeneratedColumn<String> scopeResolutionStatus =
+      GeneratedColumn<String>('scope_resolution_status', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('unresolved'));
+  static const VerificationMeta _scopeEvidenceTypeMeta =
+      const VerificationMeta('scopeEvidenceType');
+  @override
+  late final GeneratedColumn<String> scopeEvidenceType =
+      GeneratedColumn<String>('scope_evidence_type', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _issueTypeMeta =
       const VerificationMeta('issueType');
   @override
@@ -14572,6 +14603,11 @@ class $LocalReconciliationIssuesTable extends LocalReconciliationIssues
         domain,
         entityType,
         entityId,
+        saleId,
+        cashRegisterId,
+        cashSessionId,
+        scopeResolutionStatus,
+        scopeEvidenceType,
         issueType,
         severity,
         status,
@@ -14632,6 +14668,34 @@ class $LocalReconciliationIssuesTable extends LocalReconciliationIssues
     if (data.containsKey('entity_id')) {
       context.handle(_entityIdMeta,
           entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    }
+    if (data.containsKey('sale_id')) {
+      context.handle(_saleIdMeta,
+          saleId.isAcceptableOrUnknown(data['sale_id']!, _saleIdMeta));
+    }
+    if (data.containsKey('cash_register_id')) {
+      context.handle(
+          _cashRegisterIdMeta,
+          cashRegisterId.isAcceptableOrUnknown(
+              data['cash_register_id']!, _cashRegisterIdMeta));
+    }
+    if (data.containsKey('cash_session_id')) {
+      context.handle(
+          _cashSessionIdMeta,
+          cashSessionId.isAcceptableOrUnknown(
+              data['cash_session_id']!, _cashSessionIdMeta));
+    }
+    if (data.containsKey('scope_resolution_status')) {
+      context.handle(
+          _scopeResolutionStatusMeta,
+          scopeResolutionStatus.isAcceptableOrUnknown(
+              data['scope_resolution_status']!, _scopeResolutionStatusMeta));
+    }
+    if (data.containsKey('scope_evidence_type')) {
+      context.handle(
+          _scopeEvidenceTypeMeta,
+          scopeEvidenceType.isAcceptableOrUnknown(
+              data['scope_evidence_type']!, _scopeEvidenceTypeMeta));
     }
     if (data.containsKey('issue_type')) {
       context.handle(_issueTypeMeta,
@@ -14699,6 +14763,17 @@ class $LocalReconciliationIssuesTable extends LocalReconciliationIssues
           .read(DriftSqlType.string, data['${effectivePrefix}entity_type']),
       entityId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}entity_id']),
+      saleId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sale_id']),
+      cashRegisterId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}cash_register_id']),
+      cashSessionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}cash_session_id']),
+      scopeResolutionStatus: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}scope_resolution_status'])!,
+      scopeEvidenceType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}scope_evidence_type']),
       issueType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}issue_type'])!,
       severity: attachedDatabase.typeMapping
@@ -14733,6 +14808,11 @@ class LocalReconciliationIssue extends DataClass
   final String domain;
   final String? entityType;
   final String? entityId;
+  final String? saleId;
+  final String? cashRegisterId;
+  final String? cashSessionId;
+  final String scopeResolutionStatus;
+  final String? scopeEvidenceType;
   final String issueType;
   final String severity;
   final String status;
@@ -14749,6 +14829,11 @@ class LocalReconciliationIssue extends DataClass
       required this.domain,
       this.entityType,
       this.entityId,
+      this.saleId,
+      this.cashRegisterId,
+      this.cashSessionId,
+      required this.scopeResolutionStatus,
+      this.scopeEvidenceType,
       required this.issueType,
       required this.severity,
       required this.status,
@@ -14770,6 +14855,19 @@ class LocalReconciliationIssue extends DataClass
     }
     if (!nullToAbsent || entityId != null) {
       map['entity_id'] = Variable<String>(entityId);
+    }
+    if (!nullToAbsent || saleId != null) {
+      map['sale_id'] = Variable<String>(saleId);
+    }
+    if (!nullToAbsent || cashRegisterId != null) {
+      map['cash_register_id'] = Variable<String>(cashRegisterId);
+    }
+    if (!nullToAbsent || cashSessionId != null) {
+      map['cash_session_id'] = Variable<String>(cashSessionId);
+    }
+    map['scope_resolution_status'] = Variable<String>(scopeResolutionStatus);
+    if (!nullToAbsent || scopeEvidenceType != null) {
+      map['scope_evidence_type'] = Variable<String>(scopeEvidenceType);
     }
     map['issue_type'] = Variable<String>(issueType);
     map['severity'] = Variable<String>(severity);
@@ -14799,6 +14897,18 @@ class LocalReconciliationIssue extends DataClass
       entityId: entityId == null && nullToAbsent
           ? const Value.absent()
           : Value(entityId),
+      saleId:
+          saleId == null && nullToAbsent ? const Value.absent() : Value(saleId),
+      cashRegisterId: cashRegisterId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cashRegisterId),
+      cashSessionId: cashSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cashSessionId),
+      scopeResolutionStatus: Value(scopeResolutionStatus),
+      scopeEvidenceType: scopeEvidenceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scopeEvidenceType),
       issueType: Value(issueType),
       severity: Value(severity),
       status: Value(status),
@@ -14825,6 +14935,13 @@ class LocalReconciliationIssue extends DataClass
       domain: serializer.fromJson<String>(json['domain']),
       entityType: serializer.fromJson<String?>(json['entityType']),
       entityId: serializer.fromJson<String?>(json['entityId']),
+      saleId: serializer.fromJson<String?>(json['saleId']),
+      cashRegisterId: serializer.fromJson<String?>(json['cashRegisterId']),
+      cashSessionId: serializer.fromJson<String?>(json['cashSessionId']),
+      scopeResolutionStatus:
+          serializer.fromJson<String>(json['scopeResolutionStatus']),
+      scopeEvidenceType:
+          serializer.fromJson<String?>(json['scopeEvidenceType']),
       issueType: serializer.fromJson<String>(json['issueType']),
       severity: serializer.fromJson<String>(json['severity']),
       status: serializer.fromJson<String>(json['status']),
@@ -14846,6 +14963,11 @@ class LocalReconciliationIssue extends DataClass
       'domain': serializer.toJson<String>(domain),
       'entityType': serializer.toJson<String?>(entityType),
       'entityId': serializer.toJson<String?>(entityId),
+      'saleId': serializer.toJson<String?>(saleId),
+      'cashRegisterId': serializer.toJson<String?>(cashRegisterId),
+      'cashSessionId': serializer.toJson<String?>(cashSessionId),
+      'scopeResolutionStatus': serializer.toJson<String>(scopeResolutionStatus),
+      'scopeEvidenceType': serializer.toJson<String?>(scopeEvidenceType),
       'issueType': serializer.toJson<String>(issueType),
       'severity': serializer.toJson<String>(severity),
       'status': serializer.toJson<String>(status),
@@ -14865,6 +14987,11 @@ class LocalReconciliationIssue extends DataClass
           String? domain,
           Value<String?> entityType = const Value.absent(),
           Value<String?> entityId = const Value.absent(),
+          Value<String?> saleId = const Value.absent(),
+          Value<String?> cashRegisterId = const Value.absent(),
+          Value<String?> cashSessionId = const Value.absent(),
+          String? scopeResolutionStatus,
+          Value<String?> scopeEvidenceType = const Value.absent(),
           String? issueType,
           String? severity,
           String? status,
@@ -14881,6 +15008,16 @@ class LocalReconciliationIssue extends DataClass
         domain: domain ?? this.domain,
         entityType: entityType.present ? entityType.value : this.entityType,
         entityId: entityId.present ? entityId.value : this.entityId,
+        saleId: saleId.present ? saleId.value : this.saleId,
+        cashRegisterId:
+            cashRegisterId.present ? cashRegisterId.value : this.cashRegisterId,
+        cashSessionId:
+            cashSessionId.present ? cashSessionId.value : this.cashSessionId,
+        scopeResolutionStatus:
+            scopeResolutionStatus ?? this.scopeResolutionStatus,
+        scopeEvidenceType: scopeEvidenceType.present
+            ? scopeEvidenceType.value
+            : this.scopeEvidenceType,
         issueType: issueType ?? this.issueType,
         severity: severity ?? this.severity,
         status: status ?? this.status,
@@ -14903,6 +15040,19 @@ class LocalReconciliationIssue extends DataClass
       entityType:
           data.entityType.present ? data.entityType.value : this.entityType,
       entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      saleId: data.saleId.present ? data.saleId.value : this.saleId,
+      cashRegisterId: data.cashRegisterId.present
+          ? data.cashRegisterId.value
+          : this.cashRegisterId,
+      cashSessionId: data.cashSessionId.present
+          ? data.cashSessionId.value
+          : this.cashSessionId,
+      scopeResolutionStatus: data.scopeResolutionStatus.present
+          ? data.scopeResolutionStatus.value
+          : this.scopeResolutionStatus,
+      scopeEvidenceType: data.scopeEvidenceType.present
+          ? data.scopeEvidenceType.value
+          : this.scopeEvidenceType,
       issueType: data.issueType.present ? data.issueType.value : this.issueType,
       severity: data.severity.present ? data.severity.value : this.severity,
       status: data.status.present ? data.status.value : this.status,
@@ -14927,6 +15077,11 @@ class LocalReconciliationIssue extends DataClass
           ..write('domain: $domain, ')
           ..write('entityType: $entityType, ')
           ..write('entityId: $entityId, ')
+          ..write('saleId: $saleId, ')
+          ..write('cashRegisterId: $cashRegisterId, ')
+          ..write('cashSessionId: $cashSessionId, ')
+          ..write('scopeResolutionStatus: $scopeResolutionStatus, ')
+          ..write('scopeEvidenceType: $scopeEvidenceType, ')
           ..write('issueType: $issueType, ')
           ..write('severity: $severity, ')
           ..write('status: $status, ')
@@ -14948,6 +15103,11 @@ class LocalReconciliationIssue extends DataClass
       domain,
       entityType,
       entityId,
+      saleId,
+      cashRegisterId,
+      cashSessionId,
+      scopeResolutionStatus,
+      scopeEvidenceType,
       issueType,
       severity,
       status,
@@ -14967,6 +15127,11 @@ class LocalReconciliationIssue extends DataClass
           other.domain == this.domain &&
           other.entityType == this.entityType &&
           other.entityId == this.entityId &&
+          other.saleId == this.saleId &&
+          other.cashRegisterId == this.cashRegisterId &&
+          other.cashSessionId == this.cashSessionId &&
+          other.scopeResolutionStatus == this.scopeResolutionStatus &&
+          other.scopeEvidenceType == this.scopeEvidenceType &&
           other.issueType == this.issueType &&
           other.severity == this.severity &&
           other.status == this.status &&
@@ -14986,6 +15151,11 @@ class LocalReconciliationIssuesCompanion
   final Value<String> domain;
   final Value<String?> entityType;
   final Value<String?> entityId;
+  final Value<String?> saleId;
+  final Value<String?> cashRegisterId;
+  final Value<String?> cashSessionId;
+  final Value<String> scopeResolutionStatus;
+  final Value<String?> scopeEvidenceType;
   final Value<String> issueType;
   final Value<String> severity;
   final Value<String> status;
@@ -15003,6 +15173,11 @@ class LocalReconciliationIssuesCompanion
     this.domain = const Value.absent(),
     this.entityType = const Value.absent(),
     this.entityId = const Value.absent(),
+    this.saleId = const Value.absent(),
+    this.cashRegisterId = const Value.absent(),
+    this.cashSessionId = const Value.absent(),
+    this.scopeResolutionStatus = const Value.absent(),
+    this.scopeEvidenceType = const Value.absent(),
     this.issueType = const Value.absent(),
     this.severity = const Value.absent(),
     this.status = const Value.absent(),
@@ -15021,6 +15196,11 @@ class LocalReconciliationIssuesCompanion
     required String domain,
     this.entityType = const Value.absent(),
     this.entityId = const Value.absent(),
+    this.saleId = const Value.absent(),
+    this.cashRegisterId = const Value.absent(),
+    this.cashSessionId = const Value.absent(),
+    this.scopeResolutionStatus = const Value.absent(),
+    this.scopeEvidenceType = const Value.absent(),
     required String issueType,
     required String severity,
     this.status = const Value.absent(),
@@ -15046,6 +15226,11 @@ class LocalReconciliationIssuesCompanion
     Expression<String>? domain,
     Expression<String>? entityType,
     Expression<String>? entityId,
+    Expression<String>? saleId,
+    Expression<String>? cashRegisterId,
+    Expression<String>? cashSessionId,
+    Expression<String>? scopeResolutionStatus,
+    Expression<String>? scopeEvidenceType,
     Expression<String>? issueType,
     Expression<String>? severity,
     Expression<String>? status,
@@ -15064,6 +15249,12 @@ class LocalReconciliationIssuesCompanion
       if (domain != null) 'domain': domain,
       if (entityType != null) 'entity_type': entityType,
       if (entityId != null) 'entity_id': entityId,
+      if (saleId != null) 'sale_id': saleId,
+      if (cashRegisterId != null) 'cash_register_id': cashRegisterId,
+      if (cashSessionId != null) 'cash_session_id': cashSessionId,
+      if (scopeResolutionStatus != null)
+        'scope_resolution_status': scopeResolutionStatus,
+      if (scopeEvidenceType != null) 'scope_evidence_type': scopeEvidenceType,
       if (issueType != null) 'issue_type': issueType,
       if (severity != null) 'severity': severity,
       if (status != null) 'status': status,
@@ -15084,6 +15275,11 @@ class LocalReconciliationIssuesCompanion
       Value<String>? domain,
       Value<String?>? entityType,
       Value<String?>? entityId,
+      Value<String?>? saleId,
+      Value<String?>? cashRegisterId,
+      Value<String?>? cashSessionId,
+      Value<String>? scopeResolutionStatus,
+      Value<String?>? scopeEvidenceType,
       Value<String>? issueType,
       Value<String>? severity,
       Value<String>? status,
@@ -15101,6 +15297,12 @@ class LocalReconciliationIssuesCompanion
       domain: domain ?? this.domain,
       entityType: entityType ?? this.entityType,
       entityId: entityId ?? this.entityId,
+      saleId: saleId ?? this.saleId,
+      cashRegisterId: cashRegisterId ?? this.cashRegisterId,
+      cashSessionId: cashSessionId ?? this.cashSessionId,
+      scopeResolutionStatus:
+          scopeResolutionStatus ?? this.scopeResolutionStatus,
+      scopeEvidenceType: scopeEvidenceType ?? this.scopeEvidenceType,
       issueType: issueType ?? this.issueType,
       severity: severity ?? this.severity,
       status: status ?? this.status,
@@ -15136,6 +15338,22 @@ class LocalReconciliationIssuesCompanion
     }
     if (entityId.present) {
       map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (saleId.present) {
+      map['sale_id'] = Variable<String>(saleId.value);
+    }
+    if (cashRegisterId.present) {
+      map['cash_register_id'] = Variable<String>(cashRegisterId.value);
+    }
+    if (cashSessionId.present) {
+      map['cash_session_id'] = Variable<String>(cashSessionId.value);
+    }
+    if (scopeResolutionStatus.present) {
+      map['scope_resolution_status'] =
+          Variable<String>(scopeResolutionStatus.value);
+    }
+    if (scopeEvidenceType.present) {
+      map['scope_evidence_type'] = Variable<String>(scopeEvidenceType.value);
     }
     if (issueType.present) {
       map['issue_type'] = Variable<String>(issueType.value);
@@ -15177,6 +15395,11 @@ class LocalReconciliationIssuesCompanion
           ..write('domain: $domain, ')
           ..write('entityType: $entityType, ')
           ..write('entityId: $entityId, ')
+          ..write('saleId: $saleId, ')
+          ..write('cashRegisterId: $cashRegisterId, ')
+          ..write('cashSessionId: $cashSessionId, ')
+          ..write('scopeResolutionStatus: $scopeResolutionStatus, ')
+          ..write('scopeEvidenceType: $scopeEvidenceType, ')
           ..write('issueType: $issueType, ')
           ..write('severity: $severity, ')
           ..write('status: $status, ')
@@ -34978,6 +35201,11 @@ typedef $$LocalReconciliationIssuesTableCreateCompanionBuilder
   required String domain,
   Value<String?> entityType,
   Value<String?> entityId,
+  Value<String?> saleId,
+  Value<String?> cashRegisterId,
+  Value<String?> cashSessionId,
+  Value<String> scopeResolutionStatus,
+  Value<String?> scopeEvidenceType,
   required String issueType,
   required String severity,
   Value<String> status,
@@ -34997,6 +35225,11 @@ typedef $$LocalReconciliationIssuesTableUpdateCompanionBuilder
   Value<String> domain,
   Value<String?> entityType,
   Value<String?> entityId,
+  Value<String?> saleId,
+  Value<String?> cashRegisterId,
+  Value<String?> cashSessionId,
+  Value<String> scopeResolutionStatus,
+  Value<String?> scopeEvidenceType,
   Value<String> issueType,
   Value<String> severity,
   Value<String> status,
@@ -35037,6 +35270,24 @@ class $$LocalReconciliationIssuesTableFilterComposer
 
   ColumnFilters<String> get entityId => $composableBuilder(
       column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleId => $composableBuilder(
+      column: $table.saleId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cashRegisterId => $composableBuilder(
+      column: $table.cashRegisterId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cashSessionId => $composableBuilder(
+      column: $table.cashSessionId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get scopeResolutionStatus => $composableBuilder(
+      column: $table.scopeResolutionStatus,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get scopeEvidenceType => $composableBuilder(
+      column: $table.scopeEvidenceType,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get issueType => $composableBuilder(
       column: $table.issueType, builder: (column) => ColumnFilters(column));
@@ -35093,6 +35344,25 @@ class $$LocalReconciliationIssuesTableOrderingComposer
   ColumnOrderings<String> get entityId => $composableBuilder(
       column: $table.entityId, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get saleId => $composableBuilder(
+      column: $table.saleId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get cashRegisterId => $composableBuilder(
+      column: $table.cashRegisterId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get cashSessionId => $composableBuilder(
+      column: $table.cashSessionId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get scopeResolutionStatus => $composableBuilder(
+      column: $table.scopeResolutionStatus,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get scopeEvidenceType => $composableBuilder(
+      column: $table.scopeEvidenceType,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get issueType => $composableBuilder(
       column: $table.issueType, builder: (column) => ColumnOrderings(column));
 
@@ -35148,6 +35418,21 @@ class $$LocalReconciliationIssuesTableAnnotationComposer
 
   GeneratedColumn<String> get entityId =>
       $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => column);
+
+  GeneratedColumn<String> get cashRegisterId => $composableBuilder(
+      column: $table.cashRegisterId, builder: (column) => column);
+
+  GeneratedColumn<String> get cashSessionId => $composableBuilder(
+      column: $table.cashSessionId, builder: (column) => column);
+
+  GeneratedColumn<String> get scopeResolutionStatus => $composableBuilder(
+      column: $table.scopeResolutionStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get scopeEvidenceType => $composableBuilder(
+      column: $table.scopeEvidenceType, builder: (column) => column);
 
   GeneratedColumn<String> get issueType =>
       $composableBuilder(column: $table.issueType, builder: (column) => column);
@@ -35212,6 +35497,11 @@ class $$LocalReconciliationIssuesTableTableManager extends RootTableManager<
             Value<String> domain = const Value.absent(),
             Value<String?> entityType = const Value.absent(),
             Value<String?> entityId = const Value.absent(),
+            Value<String?> saleId = const Value.absent(),
+            Value<String?> cashRegisterId = const Value.absent(),
+            Value<String?> cashSessionId = const Value.absent(),
+            Value<String> scopeResolutionStatus = const Value.absent(),
+            Value<String?> scopeEvidenceType = const Value.absent(),
             Value<String> issueType = const Value.absent(),
             Value<String> severity = const Value.absent(),
             Value<String> status = const Value.absent(),
@@ -35230,6 +35520,11 @@ class $$LocalReconciliationIssuesTableTableManager extends RootTableManager<
             domain: domain,
             entityType: entityType,
             entityId: entityId,
+            saleId: saleId,
+            cashRegisterId: cashRegisterId,
+            cashSessionId: cashSessionId,
+            scopeResolutionStatus: scopeResolutionStatus,
+            scopeEvidenceType: scopeEvidenceType,
             issueType: issueType,
             severity: severity,
             status: status,
@@ -35248,6 +35543,11 @@ class $$LocalReconciliationIssuesTableTableManager extends RootTableManager<
             required String domain,
             Value<String?> entityType = const Value.absent(),
             Value<String?> entityId = const Value.absent(),
+            Value<String?> saleId = const Value.absent(),
+            Value<String?> cashRegisterId = const Value.absent(),
+            Value<String?> cashSessionId = const Value.absent(),
+            Value<String> scopeResolutionStatus = const Value.absent(),
+            Value<String?> scopeEvidenceType = const Value.absent(),
             required String issueType,
             required String severity,
             Value<String> status = const Value.absent(),
@@ -35266,6 +35566,11 @@ class $$LocalReconciliationIssuesTableTableManager extends RootTableManager<
             domain: domain,
             entityType: entityType,
             entityId: entityId,
+            saleId: saleId,
+            cashRegisterId: cashRegisterId,
+            cashSessionId: cashSessionId,
+            scopeResolutionStatus: scopeResolutionStatus,
+            scopeEvidenceType: scopeEvidenceType,
             issueType: issueType,
             severity: severity,
             status: status,

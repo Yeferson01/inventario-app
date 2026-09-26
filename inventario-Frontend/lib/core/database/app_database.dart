@@ -1104,6 +1104,15 @@ class LocalReconciliationIssues extends Table {
   TextColumn get domain => text()();
   TextColumn get entityType => text().nullable().named('entity_type')();
   TextColumn get entityId => text().nullable().named('entity_id')();
+  TextColumn get saleId => text().nullable().named('sale_id')();
+  TextColumn get cashRegisterId =>
+      text().nullable().named('cash_register_id')();
+  TextColumn get cashSessionId => text().nullable().named('cash_session_id')();
+  TextColumn get scopeResolutionStatus => text()
+      .withDefault(const Constant('unresolved'))
+      .named('scope_resolution_status')();
+  TextColumn get scopeEvidenceType =>
+      text().nullable().named('scope_evidence_type')();
   TextColumn get issueType => text().named('issue_type')();
   TextColumn get severity => text()();
   TextColumn get status => text().withDefault(const Constant('open'))();
@@ -1232,7 +1241,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   Future<void> _createCashMovementFoundation() async {
     await customStatement('''
@@ -1798,6 +1807,18 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from >= 9 && from < 16) {
+            await m.addColumn(
+                localReconciliationIssues, localReconciliationIssues.saleId);
+            await m.addColumn(localReconciliationIssues,
+                localReconciliationIssues.cashRegisterId);
+            await m.addColumn(localReconciliationIssues,
+                localReconciliationIssues.cashSessionId);
+            await m.addColumn(localReconciliationIssues,
+                localReconciliationIssues.scopeResolutionStatus);
+            await m.addColumn(localReconciliationIssues,
+                localReconciliationIssues.scopeEvidenceType);
+          }
           if (from < 15) {
             await m.addColumn(purchases, purchases.totalCents);
             await m.addColumn(purchases, purchases.financialFinalizedAt);

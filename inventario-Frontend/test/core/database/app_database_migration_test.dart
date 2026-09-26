@@ -9,7 +9,7 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates schema 8 to 15 without replacing existing balance IDs',
+  test('migrates schema 8 to 16 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -27,7 +27,7 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 15);
+    expect(database.schemaVersion, 16);
     expect(
         await _columnNames(database, 'purchases'),
         containsAll([
@@ -102,6 +102,16 @@ void main() {
       ''',
     ).get();
     expect(recoveryTables, hasLength(6));
+    expect(
+      await _columnNames(database, 'local_reconciliation_issues'),
+      containsAll(<String>{
+        'sale_id',
+        'cash_register_id',
+        'cash_session_id',
+        'scope_resolution_status',
+        'scope_evidence_type',
+      }),
+    );
 
     final reportColumns =
         await _columnNames(database, 'local_report_snapshots');
@@ -133,7 +143,7 @@ void main() {
     );
   });
 
-  test('migrates current schema 12 to 15 additively', () async {
+  test('migrates current schema 12 to 16 additively', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema10CostSetupStatements) {
@@ -147,7 +157,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 15);
+    expect(database.schemaVersion, 16);
     expect(
       await _columnNames(database, 'local_report_snapshots'),
       containsAll(<String>{
@@ -166,7 +176,7 @@ void main() {
     expect(legacyMovement.read<String>('id'), 'legacy-movement');
     expect(legacyMovement.read<int>('quantity_change'), 4);
   });
-  test('migrates schema 9 to 15 preserving Product identity', () async {
+  test('migrates schema 9 to 16 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema9IdentitySetupStatements) {
@@ -177,7 +187,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 15);
+    expect(database.schemaVersion, 16);
     final product = await database.customSelect(
       'select id, name, master_product_id from products where id = ?',
       variables: [const Variable<String>('legacy-product')],
@@ -200,7 +210,7 @@ void main() {
     expect(indexes, hasLength(3));
   });
 
-  test('HY-28 migrates schema 10 to 15 preserving existing movements',
+  test('HY-28 migrates schema 10 to 16 preserving existing movements',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -212,7 +222,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 15);
+    expect(database.schemaVersion, 16);
     final legacySaleItem = await database.customSelect(
       'select unit_cost_snapshot from sale_items where id = ?',
       variables: [const Variable<String>('legacy-sale-item')],

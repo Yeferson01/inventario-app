@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
@@ -11,9 +13,7 @@ class ReconciliationIssueLocalDao {
   final AppDatabase _db;
 
   Future<String> openIssue(ReconciliationIssueDraft issue) async {
-    if (issue.severity != 'warning' && issue.severity != 'blocking') {
-      throw ArgumentError('Severity de reconciliación no soportada.');
-    }
+    _validateIssue(issue);
 
     final id = AppUuid.v7();
     final now = DateTime.now().toUtc();
@@ -26,6 +26,12 @@ class ReconciliationIssueLocalDao {
             domain: issue.domain,
             entityType: Value(issue.entityType),
             entityId: Value(issue.entityId),
+            saleId: Value(issue.saleId),
+            cashRegisterId: Value(issue.cashRegisterId),
+            cashSessionId: Value(issue.cashSessionId),
+            scopeResolutionStatus:
+                Value(issue.scopeResolutionStatus.storageValue),
+            scopeEvidenceType: Value(issue.scopeEvidenceType),
             issueType: issue.issueType,
             severity: issue.severity,
             message: issue.message,
@@ -38,12 +44,11 @@ class ReconciliationIssueLocalDao {
   }
 
   Future<String> openOrUpdateIssue(ReconciliationIssueDraft issue) async {
-    if (issue.severity != 'warning' && issue.severity != 'blocking') {
-      throw ArgumentError('Severity de reconciliación no soportada.');
-    }
+    _validateIssue(issue);
     final existing = await _db.customSelect(
       '''
-      select id
+      select id, sale_id, cash_register_id, cash_session_id,
+        scope_resolution_status, scope_evidence_type
       from local_reconciliation_issues
       where profile_id = ? and business_id = ? and branch_id = ?
         and domain = ? and issue_type = ? and status = 'open'
@@ -66,6 +71,57 @@ class ReconciliationIssueLocalDao {
     }
 
     final id = existing.read<String>('id');
+    final prior = existing.data;
+    final priorStatus = ReconciliationScopeResolutionStatus.fromStorage(
+      prior['scope_resolution_status'],
+    );
+    final incomingStatus = issue.scopeResolutionStatus;
+    final conflict = (priorStatus !=
+                ReconciliationScopeResolutionStatus.unresolved &&
+            incomingStatus != ReconciliationScopeResolutionStatus.unresolved &&
+            priorStatus != incomingStatus) ||
+        (prior['cash_session_id'] != null &&
+            issue.cashSessionId != null &&
+            prior['cash_session_id'] != issue.cashSessionId) ||
+        (prior['cash_register_id'] != null &&
+            issue.cashRegisterId != null &&
+            prior['cash_register_id'] != issue.cashRegisterId) ||
+        (prior['sale_id'] != null &&
+            issue.saleId != null &&
+            prior['sale_id'] != issue.saleId);
+    if (conflict) {
+      if (issue.issueType != 'scope_provenance_conflict') {
+        await openOrUpdateIssue(ReconciliationIssueDraft(
+          profileId: issue.profileId,
+          businessId: issue.businessId,
+          branchId: issue.branchId,
+          domain: issue.domain,
+          entityType: issue.entityType,
+          entityId: issue.entityId,
+          issueType: 'scope_provenance_conflict',
+          severity: 'blocking',
+          message: 'Contradictory authoritative cash-session provenance.',
+          metadataJson: jsonEncode({
+            'prior_sale_id': prior['sale_id'],
+            'incoming_sale_id': issue.saleId,
+            'prior_register_id': prior['cash_register_id'],
+            'incoming_register_id': issue.cashRegisterId,
+            'prior_session_id': prior['cash_session_id'],
+            'incoming_session_id': issue.cashSessionId,
+            'prior_status': priorStatus.storageValue,
+            'incoming_status': incomingStatus.storageValue,
+          }),
+        ));
+      }
+      return id;
+    }
+
+    final promote =
+        priorStatus == ReconciliationScopeResolutionStatus.unresolved &&
+            incomingStatus != ReconciliationScopeResolutionStatus.unresolved;
+    final keepPrior =
+        priorStatus != ReconciliationScopeResolutionStatus.unresolved &&
+            incomingStatus == ReconciliationScopeResolutionStatus.unresolved;
     final now = DateTime.now().toUtc();
     await (_db.update(_db.localReconciliationIssues)
           ..where((row) => row.id.equals(id)))
@@ -74,10 +130,42 @@ class ReconciliationIssueLocalDao {
         severity: Value(issue.severity),
         message: Value(issue.message),
         metadataJson: Value(issue.metadataJson),
+        saleId: Value(keepPrior
+            ? prior['sale_id'] as String?
+            : issue.saleId ?? prior['sale_id'] as String?),
+        cashRegisterId: Value(keepPrior
+            ? prior['cash_register_id'] as String?
+            : issue.cashRegisterId ?? prior['cash_register_id'] as String?),
+        cashSessionId: Value(keepPrior
+            ? prior['cash_session_id'] as String?
+            : issue.cashSessionId ?? prior['cash_session_id'] as String?),
+        scopeResolutionStatus: Value(
+            promote ? incomingStatus.storageValue : priorStatus.storageValue),
+        scopeEvidenceType: Value(keepPrior
+            ? prior['scope_evidence_type'] as String?
+            : issue.scopeEvidenceType ??
+                prior['scope_evidence_type'] as String?),
         updatedAt: Value(now),
       ),
     );
     return id;
+  }
+
+  void _validateIssue(ReconciliationIssueDraft issue) {
+    if (issue.severity != 'warning' && issue.severity != 'blocking') {
+      throw ArgumentError('Severity de reconciliación no soportada.');
+    }
+    if (issue.scopeResolutionStatus ==
+            ReconciliationScopeResolutionStatus.resolvedSession &&
+        (issue.cashSessionId == null || issue.cashSessionId!.trim().isEmpty)) {
+      throw ArgumentError('Resolved session requires cash_session_id.');
+    }
+    if (issue.scopeResolutionStatus ==
+            ReconciliationScopeResolutionStatus.resolvedNoSession &&
+        issue.cashSessionId != null) {
+      throw ArgumentError(
+          'Resolved no-session cannot contain cash_session_id.');
+    }
   }
 
   Future<void> resolveIssue(String id) async {

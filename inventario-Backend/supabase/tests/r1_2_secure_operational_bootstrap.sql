@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(52);
+select plan(59);
 
 create temporary table r12_state (
   key text primary key,
@@ -215,14 +215,16 @@ insert into public.sale_items (
 )
 values
   ('a2000000-0000-0000-0000-000000000084', 'a2000000-0000-0000-0000-000000000081', 'a2000000-0000-0000-0000-000000000001', md5('r12-product-3')::uuid, 'Open sale item', 1, 10000, 10000, 10000),
-  ('a2000000-0000-0000-0000-000000000085', 'a2000000-0000-0000-0000-000000000082', 'a2000000-0000-0000-0000-000000000001', md5('r12-product-4')::uuid, 'Closed sale item', 1, 2000, 2000, 2000);
+  ('a2000000-0000-0000-0000-000000000085', 'a2000000-0000-0000-0000-000000000082', 'a2000000-0000-0000-0000-000000000001', md5('r12-product-4')::uuid, 'Closed sale item', 1, 2000, 2000, 2000),
+  ('a2000000-0000-0000-0000-000000000088', 'a2000000-0000-0000-0000-000000000083', 'a2000000-0000-0000-0000-000000000001', md5('r12-product-5')::uuid, 'Other branch item', 1, 3000, 3000, 3000);
 
 insert into public.sale_payments (
   id, business_id, sale_id, payment_method, amount, status
 )
 values
   ('a2000000-0000-0000-0000-000000000086', 'a2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000081', 'cash', 10000, 'completed'),
-  ('a2000000-0000-0000-0000-000000000087', 'a2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000082', 'cash', 2000, 'completed');
+  ('a2000000-0000-0000-0000-000000000087', 'a2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000082', 'cash', 2000, 'completed'),
+  ('a2000000-0000-0000-0000-000000000089', 'a2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000083', 'card', 3000, 'completed');
 
 insert into public.sync_cursors (
   id, business_id, app_device_id, profile_id, branch_id, entity_table,
@@ -273,6 +275,20 @@ select ok(
     'EXECUTE'
   ),
   '3. bootstrap implementation helpers remain private'
+);
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'private.pull_operational_bootstrap_dataset_page_base(text,uuid,uuid,timestamp with time zone,uuid,integer,uuid[])',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'private.pull_operational_bootstrap_dataset_page_base(text,uuid,uuid,timestamp with time zone,uuid,integer,uuid[])',
+    'EXECUTE'
+  ),
+  'B1A renamed base helper remains inaccessible to API roles'
 );
 
 select set_config('request.jwt.claim.sub', '', true);
@@ -652,6 +668,42 @@ select is(
   (select (payload->'datasets'->'session_sale_payments'->'rows'->0->>'amount')::numeric from r12_state where key = 'cash-cashier'),
   10000::numeric,
   '38. cash bundle includes completed cash payment data needed to calculate expected cash'
+);
+
+select is(
+  (select payload->'datasets'->'session_sale_items'->'rows'->0->>'_parent_sale_scope_status' from r12_state where key = 'cash-cashier'),
+  'resolved_session',
+  'B1A item child carries resolved parent sale session status'
+);
+
+select is(
+  (select payload->'datasets'->'session_sale_items'->'rows'->0->>'_parent_sale_cash_session_id' from r12_state where key = 'cash-cashier'),
+  'a2000000-0000-0000-0000-000000000073',
+  'B1A item child resolves cash session from remote parent sale'
+);
+
+select is(
+  (select payload->'datasets'->'session_sale_payments'->'rows'->0->>'_parent_sale_cash_register_id' from r12_state where key = 'cash-cashier'),
+  'a2000000-0000-0000-0000-000000000071',
+  'B1A payment child resolves register from parent cash session'
+);
+
+select ok(
+  (select payload->'datasets'->'session_sale_payments'->'rows'->0->>'_parent_sale_business_id' from r12_state where key = 'cash-cashier') = 'a2000000-0000-0000-0000-000000000001'
+  and (select payload->'datasets'->'session_sale_payments'->'rows'->0->>'_parent_sale_branch_id' from r12_state where key = 'cash-cashier') = 'a2000000-0000-0000-0000-000000000011',
+  'B1A payment child carries parent sale tenant and branch, not client scope'
+);
+
+select is(
+  (select payload->'datasets'->'session_sale_items'->>'count' from r12_state where key = 'cash-cashier'),
+  '1',
+  'B1A branch A1 cannot receive child item provenance from branch A2'
+);
+
+select is(
+  (select payload->'datasets'->'session_sale_payments'->>'count' from r12_state where key = 'cash-cashier'),
+  '1',
+  'B1A branch A1 cannot receive card payment provenance from branch A2'
 );
 
 -- 39-43. Every call revalidates membership, branch, device and device owner.

@@ -46,6 +46,12 @@ class PosCashSessionFailureReconciliationService {
             'remote_reason': failure.reason,
             'remote_error': failure.message,
           }),
+          saleId: failure.saleId,
+          cashRegisterId: failure.cashRegisterId,
+          cashSessionId: failure.cashSessionId,
+          scopeResolutionStatus:
+              ReconciliationScopeResolutionStatus.resolvedSession,
+          scopeEvidenceType: 'remote_pos_apply_failure',
         ),
       );
       recorded++;

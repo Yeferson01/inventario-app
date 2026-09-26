@@ -1,4 +1,28 @@
 import 'operational_bootstrap_models.dart';
+import 'local_recovery_models.dart';
+
+class CashPosParentSaleProvenance {
+  CashPosParentSaleProvenance.fromData(Map<String, Object?> data)
+      : businessId = _optionalString(data['_parent_sale_business_id']),
+        branchId = _optionalString(data['_parent_sale_branch_id']),
+        cashRegisterId = _optionalString(data['_parent_sale_cash_register_id']),
+        cashSessionId = _optionalString(data['_parent_sale_cash_session_id']),
+        status = ReconciliationScopeResolutionStatus.fromStorage(
+          data['_parent_sale_scope_status'],
+        );
+
+  final String? businessId;
+  final String? branchId;
+  final String? cashRegisterId;
+  final String? cashSessionId;
+  final ReconciliationScopeResolutionStatus status;
+
+  bool matchesSnapshot(String businessId, String branchId) =>
+      (this.businessId == null || this.businessId == businessId) &&
+      (this.branchId == null || this.branchId == branchId) &&
+      (status == ReconciliationScopeResolutionStatus.unresolved ||
+          (this.businessId == businessId && this.branchId == branchId));
+}
 
 class CashPosRecoveryRequest {
   const CashPosRecoveryRequest({
@@ -125,6 +149,7 @@ class CashPosSaleSnapshotRow {
         businessId = _requiredString(row.data, 'business_id'),
         branchId = _requiredString(row.data, 'branch_id'),
         cashSessionId = _requiredString(row.data, 'cash_session_id'),
+        cashRegisterId = _optionalString(row.data['cash_register_id']),
         userId = _optionalString(row.data['user_id']),
         customerId = _optionalString(row.data['customer_id']),
         subtotal = _requiredDouble(row.data, 'subtotal'),
@@ -145,6 +170,7 @@ class CashPosSaleSnapshotRow {
   final String businessId;
   final String branchId;
   final String cashSessionId;
+  final String? cashRegisterId;
   final String? userId;
   final String? customerId;
   final double subtotal;
@@ -166,6 +192,7 @@ class CashPosSaleItemSnapshotRow {
   CashPosSaleItemSnapshotRow.fromRow(OperationalBootstrapRow row)
       : id = _requiredString(row.data, 'id'),
         saleId = _requiredString(row.data, 'sale_id'),
+        parentSaleProvenance = CashPosParentSaleProvenance.fromData(row.data),
         productId = _optionalString(row.data['product_id']),
         productNameSnapshot =
             _optionalString(row.data['product_name_snapshot']),
@@ -197,6 +224,7 @@ class CashPosSaleItemSnapshotRow {
 
   final String id;
   final String saleId;
+  final CashPosParentSaleProvenance parentSaleProvenance;
   final String? productId;
   final String? productNameSnapshot;
   final String? barcodeSnapshot;
@@ -219,6 +247,7 @@ class CashPosSalePaymentSnapshotRow {
       : id = _requiredString(row.data, 'id'),
         businessId = _requiredString(row.data, 'business_id'),
         saleId = _requiredString(row.data, 'sale_id'),
+        parentSaleProvenance = CashPosParentSaleProvenance.fromData(row.data),
         paymentMethod = _requiredPaymentMethod(row.data),
         amount = _requiredPositiveDouble(row.data, 'amount'),
         currency = _requiredString(row.data, 'currency'),
@@ -233,6 +262,7 @@ class CashPosSalePaymentSnapshotRow {
   final String id;
   final String businessId;
   final String saleId;
+  final CashPosParentSaleProvenance parentSaleProvenance;
   final String paymentMethod;
   final double amount;
   final String currency;

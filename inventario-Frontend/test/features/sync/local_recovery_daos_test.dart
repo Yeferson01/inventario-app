@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
@@ -214,4 +216,179 @@ void main() {
     );
     expect(blockers, isEmpty);
   });
+
+  test('B1A same blocker enriches unresolved scope without changing identity',
+      () async {
+    final dao = ReconciliationIssueLocalDao(database);
+    final unresolved = _saleItemIssue();
+    final id = await dao.openOrUpdateIssue(unresolved);
+    final promoted = await dao.openOrUpdateIssue(_saleItemIssue(
+      cashSessionId: 'session-s',
+      status: ReconciliationScopeResolutionStatus.resolvedSession,
+    ));
+    final repeated = await dao.openOrUpdateIssue(_saleItemIssue(
+      cashSessionId: 'session-s',
+      status: ReconciliationScopeResolutionStatus.resolvedSession,
+    ));
+
+    expect(promoted, id);
+    expect(repeated, id);
+    final issues = await dao.getIssues(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'cash_pos',
+    );
+    expect(issues, hasLength(1));
+    expect(issues.single['cash_session_id'], 'session-s');
+    expect(issues.single['scope_resolution_status'], 'resolved_session');
+  });
+
+  test('B1A contradictory session creates blocker and preserves prior scope',
+      () async {
+    final dao = ReconciliationIssueLocalDao(database);
+    await dao.openOrUpdateIssue(_saleItemIssue(
+      cashSessionId: 'session-s',
+      status: ReconciliationScopeResolutionStatus.resolvedSession,
+    ));
+    await dao.openOrUpdateIssue(_saleItemIssue(
+      cashSessionId: 'session-s2',
+      status: ReconciliationScopeResolutionStatus.resolvedSession,
+    ));
+
+    final issues = await dao.getIssues(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'cash_pos',
+    );
+    expect(issues, hasLength(2));
+    expect(
+      issues.singleWhere((row) => row['issue_type'] == 'dependency_missing')[
+          'cash_session_id'],
+      'session-s',
+    );
+    expect(
+      issues.singleWhere((row) =>
+          row['issue_type'] == 'scope_provenance_conflict')['severity'],
+      'blocking',
+    );
+  });
+
+  test('B1A issue provenance survives database reopen', () async {
+    final directory = await Directory.systemTemp.createTemp('b1a-provenance-');
+    final file =
+        File('${directory.path}${Platform.pathSeparator}issues.sqlite');
+    try {
+      final first = AppDatabase.executor(NativeDatabase(file));
+      await ReconciliationIssueLocalDao(first).openOrUpdateIssue(
+        _saleItemIssue(
+          cashSessionId: 'session-s',
+          status: ReconciliationScopeResolutionStatus.resolvedSession,
+        ),
+      );
+      await first.close();
+
+      final reopened = AppDatabase.executor(NativeDatabase(file));
+      try {
+        final issues = await ReconciliationIssueLocalDao(reopened).getIssues(
+          profileId: 'profile-p',
+          businessId: 'business-a',
+          branchId: 'branch-x',
+          domain: 'cash_pos',
+        );
+        expect(issues.single['cash_session_id'], 'session-s');
+        expect(issues.single['cash_register_id'], 'register-r');
+        expect(issues.single['scope_resolution_status'], 'resolved_session');
+      } finally {
+        await reopened.close();
+      }
+    } finally {
+      await directory.delete(recursive: true);
+    }
+  });
+
+  test('B1A scoped issue read distinguishes two sessions and unresolved',
+      () async {
+    final dao = ReconciliationIssueLocalDao(database);
+    await dao.openOrUpdateIssue(_saleItemIssue(
+      cashSessionId: 'session-s',
+      status: ReconciliationScopeResolutionStatus.resolvedSession,
+    ));
+    await dao.openOrUpdateIssue(const ReconciliationIssueDraft(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'cash_pos',
+      entityType: 'sale_payments',
+      entityId: 'payment-2',
+      saleId: 'sale-2',
+      cashRegisterId: 'register-r',
+      cashSessionId: 'session-s2',
+      scopeResolutionStatus:
+          ReconciliationScopeResolutionStatus.resolvedSession,
+      issueType: 'dependency_missing',
+      severity: 'blocking',
+      message: 'missing',
+    ));
+    await dao.openOrUpdateIssue(const ReconciliationIssueDraft(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'cash_pos',
+      entityType: 'sale_items',
+      entityId: 'item-3',
+      saleId: 'sale-3',
+      issueType: 'dependency_missing',
+      severity: 'blocking',
+      message: 'missing',
+    ));
+    await dao.openOrUpdateIssue(const ReconciliationIssueDraft(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-y',
+      domain: 'cash_pos',
+      entityType: 'sale_items',
+      entityId: 'item-other',
+      cashSessionId: 'session-y',
+      scopeResolutionStatus:
+          ReconciliationScopeResolutionStatus.resolvedSession,
+      issueType: 'dependency_missing',
+      severity: 'blocking',
+      message: 'other',
+    ));
+
+    final current = await dao.getOpenBlockingIssues(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+    );
+    expect(current, hasLength(3));
+    expect(current.map((row) => row['cash_session_id']).toSet(),
+        {'session-s', 'session-s2', null});
+    expect(
+        current.map((row) => row['entity_id']), isNot(contains('item-other')));
+  });
 }
+
+ReconciliationIssueDraft _saleItemIssue({
+  String? cashSessionId,
+  ReconciliationScopeResolutionStatus status =
+      ReconciliationScopeResolutionStatus.unresolved,
+}) =>
+    ReconciliationIssueDraft(
+      profileId: 'profile-p',
+      businessId: 'business-a',
+      branchId: 'branch-x',
+      domain: 'cash_pos',
+      entityType: 'sale_items',
+      entityId: 'item-1',
+      saleId: 'sale-1',
+      cashRegisterId: 'register-r',
+      cashSessionId: cashSessionId,
+      scopeResolutionStatus: status,
+      scopeEvidenceType: 'parent_sale_snapshot',
+      issueType: 'dependency_missing',
+      severity: 'blocking',
+      message: 'Parent sale unavailable locally.',
+    );

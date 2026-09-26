@@ -255,6 +255,14 @@ class CashSyncUploadService {
   }) async {
     final issueDao = _issueDao;
     if (issueDao == null) return;
+    Map<String, dynamic>? payload;
+    try {
+      final decoded = jsonDecode(_requiredString(mutation, 'payload_json'));
+      if (decoded is Map<String, dynamic>) payload = decoded;
+    } on FormatException {
+      // Keep the blocker unresolved rather than losing it on malformed data.
+    }
+    final cashSessionId = payload?['cash_session_id']?.toString();
     await issueDao.openOrUpdateIssue(ReconciliationIssueDraft(
       profileId: _requiredString(batch, 'profile_id'),
       businessId: _requiredString(batch, 'business_id'),
@@ -266,6 +274,12 @@ class CashSyncUploadService {
       severity: 'blocking',
       message: 'Cash movement requires reconciliation before cash is ready.',
       metadataJson: jsonEncode(<String, String>{'reason': reason}),
+      cashRegisterId: payload?['cash_register_id']?.toString(),
+      cashSessionId: cashSessionId,
+      scopeResolutionStatus: cashSessionId == null
+          ? ReconciliationScopeResolutionStatus.unresolved
+          : ReconciliationScopeResolutionStatus.resolvedSession,
+      scopeEvidenceType: 'local_cash_movement',
     ));
   }
 
