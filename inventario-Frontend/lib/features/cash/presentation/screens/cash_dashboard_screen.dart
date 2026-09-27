@@ -792,7 +792,7 @@ class _CashActionsSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: isBusy ? null : onDisburse,
                 icon: const Icon(Icons.remove_circle_outline),
-                label: const Text('Salida de efectivo'),
+                label: const Text('Gastos y salidas'),
               ),
             if (allowRead)
               OutlinedButton.icon(

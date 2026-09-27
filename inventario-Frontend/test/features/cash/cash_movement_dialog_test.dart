@@ -6,6 +6,66 @@ import 'package:inventario_frontend/features/cash/application/cash_movement_mode
 import 'package:inventario_frontend/features/cash/presentation/widgets/cash_movement_dialog.dart';
 
 void main() {
+  test('pilot cash categories have one complete financial classification', () {
+    const categories = CashMovementCategoryMetadata.byCode;
+    const expectedOutflows = <String>{
+      'supplier_purchase',
+      'payroll',
+      'utilities',
+      'rent',
+      'maintenance',
+      'repairs',
+      'transport',
+      'infrastructure',
+      'cleaning',
+      'office_supplies',
+      'owner_withdrawal',
+      'other',
+    };
+    expect(categories.keys.toSet(), hasLength(14));
+    expect(
+      categories.values
+          .where((category) => category.supports(CashMovementDirection.outflow))
+          .map((category) => category.code)
+          .toSet(),
+      expectedOutflows,
+    );
+    for (final entry in categories.entries) {
+      expect(entry.value.code, entry.key);
+      expect(entry.value.displayLabel.trim(), isNotEmpty);
+      expect(entry.value.directions, isNotEmpty);
+    }
+    expect(
+        categories['supplier_purchase']!.countsAsInventoryAcquisition, isTrue);
+    expect(categories['supplier_purchase']!.countsAsOperatingExpense, isFalse);
+    for (final code in <String>[
+      'payroll',
+      'utilities',
+      'rent',
+      'maintenance',
+      'repairs',
+      'transport',
+      'infrastructure',
+      'cleaning',
+      'office_supplies',
+    ]) {
+      expect(categories[code]!.countsAsOperatingExpense, isTrue, reason: code);
+    }
+    expect(categories['owner_withdrawal']!.countsAsOwnerMovement, isTrue);
+    expect(categories['owner_withdrawal']!.countsAsOperatingExpense, isFalse);
+    expect(categories['other']!.financialClass,
+        CashMovementFinancialClass.otherCashMovement);
+    expect(categories['other']!.countsAsOperatingExpense, isFalse);
+    expect(
+        categories['other']!
+            .countsAsOtherCashOutflow(CashMovementDirection.outflow),
+        isTrue);
+    expect(
+        categories['other']!
+            .countsAsOtherCashOutflow(CashMovementDirection.inflow),
+        isFalse);
+  });
+
   test('COP parsing is exact and rejects decimals, zero and ambiguity', () {
     for (final input in ['50000', '50.000', '50,000']) {
       expect(parseCashMovementCopCents(input), BigInt.from(5000000));
@@ -48,6 +108,7 @@ void main() {
 
   testWidgets('direction only offers compatible C2 categories', (tester) async {
     await _openDialog(tester, CashMovementDirection.outflow);
+    expect(find.text('Gastos y salidas'), findsOneWidget);
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
     expect(find.text('Compra a proveedor'), findsOneWidget);
@@ -67,6 +128,41 @@ void main() {
     expect(find.text('Otro'), findsOneWidget);
     expect(find.text('Compra a proveedor'), findsNothing);
     expect(find.text('Retiro del propietario'), findsNothing);
+  });
+
+  testWidgets(
+      'supplier purchase describes physical cash without claiming payment',
+      (tester) async {
+    await _openDialog(tester, CashMovementDirection.outflow);
+    await _enterMovement(tester,
+        amount: '1.000', category: 'Compra a proveedor');
+    expect(find.textContaining('No confirma el pago de una compra específica'),
+        findsOneWidget);
+    expect(
+        find.textContaining('Si fue transferencia o crédito'), findsOneWidget);
+    expect(find.text('Después del movimiento: \$ 99.000'), findsOneWidget);
+  });
+
+  testWidgets('outflow exactly equal to expected cash is allowed',
+      (tester) async {
+    final requests = <CashMovementRequest>[];
+    await _openDialog(
+      tester,
+      CashMovementDirection.outflow,
+      expected: () async => BigInt.from(100000),
+      submit: (request) async {
+        requests.add(request);
+        return const CashMovementResult(
+            id: 'movement-zero', alreadyRecorded: false);
+      },
+    );
+    await _enterMovement(tester,
+        amount: '1.000', category: 'Compra a proveedor');
+    expect(find.text('Después del movimiento: \$ 0'), findsOneWidget);
+    await _confirm(tester);
+    expect(requests, hasLength(1));
+    expect(requests.single.category, 'supplier_purchase');
+    expect(requests.single.amountCents, BigInt.from(100000));
   });
 
   testWidgets('outflow preview, confirmation and single-flight use one key',

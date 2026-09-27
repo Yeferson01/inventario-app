@@ -148,7 +148,7 @@ void main() {
       permissions: const {'cash.receive'},
     );
     expect(find.text('Entrada de efectivo'), findsOneWidget);
-    expect(find.text('Salida de efectivo'), findsNothing);
+    expect(find.text('Gastos y salidas'), findsNothing);
     await tester.tap(find.text('Entrada de efectivo'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -200,9 +200,9 @@ void main() {
       closeSyncService: closeSyncService,
       permissions: const {'cash.disburse'},
     );
-    expect(find.text('Salida de efectivo'), findsOneWidget);
+    expect(find.text('Gastos y salidas'), findsOneWidget);
     expect(find.text('Entrada de efectivo'), findsNothing);
-    await tester.tap(find.text('Salida de efectivo'));
+    await tester.tap(find.text('Gastos y salidas'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
@@ -232,7 +232,7 @@ void main() {
       permissions: const {'cash.receive', 'cash.disburse'},
     );
     expect(find.text('Entrada de efectivo'), findsOneWidget);
-    expect(find.text('Salida de efectivo'), findsOneWidget);
+    expect(find.text('Gastos y salidas'), findsOneWidget);
   });
 
   testWidgets('no movement capability hides both actions', (tester) async {
@@ -244,7 +244,7 @@ void main() {
       permissions: const {},
     );
     expect(find.text('Entrada de efectivo'), findsNothing);
-    expect(find.text('Salida de efectivo'), findsNothing);
+    expect(find.text('Gastos y salidas'), findsNothing);
   });
 
   testWidgets('closed Caja does not expose movement actions', (tester) async {
@@ -259,7 +259,7 @@ void main() {
       permissions: const {'cash.receive', 'cash.disburse'},
     );
     expect(find.text('Entrada de efectivo'), findsNothing);
-    expect(find.text('Salida de efectivo'), findsNothing);
+    expect(find.text('Gastos y salidas'), findsNothing);
   });
 
   test('successful canonical close projects the closed state locally',

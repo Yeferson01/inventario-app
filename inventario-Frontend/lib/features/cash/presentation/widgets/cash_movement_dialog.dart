@@ -84,23 +84,6 @@ class CashMovementDialog extends StatefulWidget {
 }
 
 class _CashMovementDialogState extends State<CashMovementDialog> {
-  static const _labels = <String, String>{
-    'supplier_purchase': 'Compra a proveedor',
-    'payroll': 'Nómina',
-    'utilities': 'Servicios públicos',
-    'rent': 'Arriendo',
-    'maintenance': 'Mantenimiento',
-    'repairs': 'Reparaciones',
-    'transport': 'Transporte',
-    'infrastructure': 'Infraestructura',
-    'cleaning': 'Aseo',
-    'office_supplies': 'Papelería / suministros',
-    'owner_withdrawal': 'Retiro del propietario',
-    'owner_contribution': 'Aporte del propietario',
-    'other_income': 'Otro ingreso',
-    'other': 'Otro',
-  };
-
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   String? _category;
@@ -111,13 +94,12 @@ class _CashMovementDialogState extends State<CashMovementDialog> {
   bool _submitting = false;
 
   bool get _isOutflow => widget.direction == CashMovementDirection.outflow;
-  String get _title =>
-      _isOutflow ? 'Salida de efectivo' : 'Entrada de efectivo';
+  String get _title => _isOutflow ? 'Gastos y salidas' : 'Entrada de efectivo';
 
   Iterable<String> get _availableCategories =>
-      CashMovementRequest.categories.where((category) => _isOutflow
-          ? !CashMovementRequest.inflowOnly.contains(category)
-          : !CashMovementRequest.outflowOnly.contains(category));
+      CashMovementCategoryMetadata.byCode.values
+          .where((category) => category.supports(widget.direction))
+          .map((category) => category.code);
 
   @override
   void initState() {
@@ -195,7 +177,7 @@ class _CashMovementDialogState extends State<CashMovementDialog> {
         builder: (dialogContext) => AlertDialog(
           title: Text(_title),
           content: Text(
-            'Categoría: ${_labels[category]}\n'
+            'Categoría: ${CashMovementCategoryMetadata.byCode[category]!.displayLabel}\n'
             'Monto: ${formatCashMovementCopCents(amount)}\n'
             'Efectivo esperado: ${formatCashMovementCopCents(expected)} '
             '→ ${formatCashMovementCopCents(after)}\n\n'
@@ -270,7 +252,10 @@ class _CashMovementDialogState extends State<CashMovementDialog> {
                 for (final category in _availableCategories)
                   DropdownMenuItem(
                     value: category,
-                    child: Text(_labels[category]!),
+                    child: Text(
+                      CashMovementCategoryMetadata
+                          .byCode[category]!.displayLabel,
+                    ),
                   ),
               ],
               onChanged: _submitting
@@ -280,6 +265,12 @@ class _CashMovementDialogState extends State<CashMovementDialog> {
                       _semanticEdit();
                     },
             ),
+            if (_isOutflow && _category == 'supplier_purchase')
+              const Text(
+                'Registra efectivo que salió de caja para comprar mercancía. '
+                'No confirma el pago de una compra específica. '
+                'Si fue transferencia o crédito, no registres salida de caja.',
+              ),
             TextField(
               controller: _amountController,
               enabled: !_submitting,
