@@ -40,9 +40,8 @@ class CashSessionLocalService {
     );
   }
 
-  Future<CloseCashSessionResult> closeCashSession(
-    CloseCashSessionInput input,
-  ) async {
+  Future<CloseCashSessionResult> closeCashSession(CloseCashSessionInput input,
+      {String? expectedCashSessionId}) async {
     if (input.actualClosingAmount < 0) {
       throw ArgumentError('El monto de cierre no puede ser negativo.');
     }
@@ -62,6 +61,10 @@ class CashSessionLocalService {
 
     if (cashSessionId.isEmpty) {
       throw StateError('La sesión abierta no tiene id local válido.');
+    }
+    if (expectedCashSessionId != null &&
+        cashSessionId != expectedCashSessionId) {
+      throw StateError('La sesión de caja cambió después de validarla.');
     }
 
     if (cashRegisterId.isEmpty) {

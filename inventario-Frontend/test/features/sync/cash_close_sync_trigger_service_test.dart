@@ -5,11 +5,34 @@ import 'package:inventario_frontend/features/cash/application/cash_session_local
 import 'package:inventario_frontend/features/cash/application/cash_session_local_service.dart';
 import 'package:inventario_frontend/features/sync/application/app_sync_coordinator_models.dart';
 import 'package:inventario_frontend/features/sync/application/cash_close_sync_trigger_service.dart';
+import 'package:inventario_frontend/features/sync/application/cash_session_close_readiness_service.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/cash_session_close_readiness_dao.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/local_sync_outbox_dao.dart';
 import 'package:inventario_frontend/features/sync/application/productive_manual_sync_service.dart';
 import 'package:inventario_frontend/features/sync/application/productive_sync_status.dart';
 import 'package:inventario_frontend/features/sync/data/models/runtime_setup_models.dart';
 
 void main() {
+  test('C4B1B same-device cash effect converges before close RPC', () async {
+    final fixture = _Fixture(cashMovementInitiallyPending: true);
+    await fixture.closeService.closeCashSession(_closeInput);
+    expect(fixture.events.indexOf('cash'),
+        lessThan(fixture.events.indexOf('close')));
+    expect(fixture.closeCalls, 1);
+  });
+
+  test('C4B1B failed cash effect blocks close RPC', () async {
+    final fixture = _Fixture(
+      cashMovementInitiallyPending: true,
+      retryableDomain: ProductiveSyncDomain.cash,
+    );
+    await expectLater(fixture.closeService.closeCashSession(_closeInput),
+        throwsA(isA<CashCloseSyncBlockedException>()));
+    expect(fixture.closeCalls, 0);
+    fixture.retryableDomain = null;
+    await fixture.closeService.closeCashSession(_closeInput);
+    expect(fixture.closeCalls, 1);
+  });
   test('CC-01 clean close runs productive sync before authoritative close',
       () async {
     final fixture = _Fixture();
@@ -97,28 +120,18 @@ void main() {
         isA<CashCloseSyncBlockedException>().having(
           (error) => error.reason,
           'reason',
-          CashCloseSyncBlockReason.retryablePending,
+          CashCloseSyncBlockReason.sessionNotReady,
         ),
       ),
     );
     expect(fixture.closeCalls, 0);
   });
 
-  test('CC-08 attention in any domain blocks close with review outcome',
+  test('CC-08 unrelated global attention does not block clean session close',
       () async {
     final fixture = _Fixture(requiresAttention: true);
-
-    await expectLater(
-      fixture.closeService.closeCashSession(_closeInput),
-      throwsA(
-        isA<CashCloseSyncBlockedException>().having(
-          (error) => error.reason,
-          'reason',
-          CashCloseSyncBlockReason.requiresAttention,
-        ),
-      ),
-    );
-    expect(fixture.closeCalls, 0);
+    await fixture.closeService.closeCashSession(_closeInput);
+    expect(fixture.closeCalls, 1);
   });
 
   test('CC-09 offline does not fake a local or authoritative close', () async {
@@ -182,7 +195,9 @@ class _Fixture {
     this.retryableDomain,
     this.requiresAttention = false,
     this.firstDomainGate,
+    this.cashMovementInitiallyPending = false,
   }) {
+    movementSynced = !cashMovementInitiallyPending;
     productive = ProductiveManualSyncService(
       inputLoader: () async => AppSyncCoordinatorInput(
         businessId: 'business-1',
@@ -237,15 +252,40 @@ class _Fixture {
     closeService = CashCloseSyncTriggerService(
       productiveSyncService: productive,
       cashSessionService: cash,
+      closeReadinessService: CashSessionCloseReadinessService(
+        evidenceLoader: (
+                {required profileId,
+                required businessId,
+                required branchId}) async =>
+            CashSessionCloseEvidence(
+          session: const {
+            'id': 'session-1',
+            'cash_register_id': 'register-1',
+            'local_status': 'synced',
+            'sync_status': 0,
+          },
+          cashMovements: movementSynced
+              ? const []
+              : const [
+                  {'id': 'cm', 'local_status': 'dirty', 'sync_status': 1}
+                ],
+          outboxMutations: const [],
+          dirtyPosCount: retryableDomain == ProductiveSyncDomain.pos ? 1 : 0,
+          openIssues: const [],
+        ),
+        dependencyReadinessLoader: (_) async => BatchDependencyReadiness.ready,
+      ),
     );
   }
 
   final bool isOnline;
   final int pendingSales;
   final int pendingPurchases;
-  final ProductiveSyncDomain? retryableDomain;
+  ProductiveSyncDomain? retryableDomain;
   final bool requiresAttention;
   final Completer<ProductiveSyncDomainResult>? firstDomainGate;
+  final bool cashMovementInitiallyPending;
+  late bool movementSynced;
   final events = <String>[];
   late final ProductiveManualSyncService productive;
   late final CashCloseSyncTriggerService closeService;
@@ -274,6 +314,7 @@ class _Fixture {
     if (retryableDomain == domain) {
       return ProductiveSyncDomainResult.failedRetryable(domain);
     }
+    if (domain == ProductiveSyncDomain.cash) movementSynced = true;
     return ProductiveSyncDomainResult.succeeded(domain);
   }
 }
@@ -284,9 +325,9 @@ class _RecordingCashSessionService implements CashSessionLocalService {
   final _Fixture fixture;
 
   @override
-  Future<CloseCashSessionResult> closeCashSession(
-    CloseCashSessionInput input,
-  ) async {
+  Future<CloseCashSessionResult> closeCashSession(CloseCashSessionInput input,
+      {String? expectedCashSessionId}) async {
+    expect(expectedCashSessionId, 'session-1');
     fixture.events.add('close');
     fixture.closeCalls++;
     return CloseCashSessionResult(

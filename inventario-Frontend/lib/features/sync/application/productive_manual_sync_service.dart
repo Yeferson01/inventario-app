@@ -19,6 +19,10 @@ typedef ProductiveSyncStatusLoader = Future<ProductiveSyncStatus> Function({
 });
 typedef ProductiveManualSyncRunner = Future<ProductiveManualSyncResult>
     Function();
+typedef ProductiveDependencyProgressLoader = Future<(int, int)> Function({
+  required String businessId,
+  required String branchId,
+});
 
 enum ProductiveSyncTrigger { manual, scheduled, cashClose }
 
@@ -179,6 +183,7 @@ class ProductiveManualSyncService {
     required ProductiveSyncDomainRunner inventoryRunner,
     required ProductiveSyncDomainRunner catalogRefreshRunner,
     required ProductiveSyncStatusLoader statusLoader,
+    ProductiveDependencyProgressLoader? dependencyProgressLoader,
     void Function()? onLocalStateChanged,
   })  : _inputLoader = inputLoader,
         _contextValidator = contextValidator,
@@ -189,6 +194,7 @@ class ProductiveManualSyncService {
         _inventoryRunner = inventoryRunner,
         _catalogRefreshRunner = catalogRefreshRunner,
         _statusLoader = statusLoader,
+        _dependencyProgressLoader = dependencyProgressLoader,
         _onLocalStateChanged = onLocalStateChanged;
 
   final ProductiveManualSyncInputLoader _inputLoader;
@@ -200,6 +206,7 @@ class ProductiveManualSyncService {
   final ProductiveSyncDomainRunner _inventoryRunner;
   final ProductiveSyncDomainRunner _catalogRefreshRunner;
   final ProductiveSyncStatusLoader _statusLoader;
+  final ProductiveDependencyProgressLoader? _dependencyProgressLoader;
   final void Function()? _onLocalStateChanged;
 
   Future<ProductiveManualSyncResult>? _activeRun;
@@ -263,30 +270,47 @@ class ProductiveManualSyncService {
       );
     }
 
-    var catalog = await _attempt(
-      ProductiveSyncDomain.catalog,
-      _catalogUploadRunner,
-      context,
-    );
-    final cash =
-        await _attempt(ProductiveSyncDomain.cash, _cashRunner, context);
-    final pos = await _attempt(ProductiveSyncDomain.pos, _posRunner, context);
-    final purchases = await _attempt(
-      ProductiveSyncDomain.purchases,
-      _purchasesRunner,
-      context,
-    );
-    final inventory = await _attempt(
-      ProductiveSyncDomain.inventory,
-      _inventoryRunner,
-      context,
-    );
+    var results = <ProductiveSyncDomainResult>[];
+    // The dependency graph is batch-scoped. Re-run the existing domain order
+    // only when authoritative prerequisite results make further work eligible.
+    // Eight passes bound latency even for unexpectedly deep future chains.
+    try {
+      for (var pass = 0; pass < 8; pass++) {
+        final before = await _dependencyProgressLoader?.call(
+          businessId: context.businessId,
+          branchId: context.branchId,
+        );
+        results = [
+          await _attempt(
+              ProductiveSyncDomain.catalog, _catalogUploadRunner, context),
+          await _attempt(ProductiveSyncDomain.cash, _cashRunner, context),
+          await _attempt(ProductiveSyncDomain.pos, _posRunner, context),
+          await _attempt(
+              ProductiveSyncDomain.purchases, _purchasesRunner, context),
+          await _attempt(
+              ProductiveSyncDomain.inventory, _inventoryRunner, context),
+        ];
+        if (before == null || pass == 7) break;
+        final after = await _dependencyProgressLoader!(
+          businessId: context.businessId,
+          branchId: context.branchId,
+        );
+        if (after.$1 <= before.$1 && after.$2 <= before.$2) break;
+      }
+    } catch (_) {
+      return ProductiveManualSyncResult(
+        outcome: ProductiveManualSyncOutcome.failed,
+        message: 'No fue posible verificar el progreso del outbox.',
+        domainResults: results.isEmpty ? _notAttemptedDomainResults : results,
+        scope: context.scope,
+      );
+    }
     final refresh = await _attempt(
       ProductiveSyncDomain.catalog,
       _catalogRefreshRunner,
       context,
     );
-    catalog = catalog.merge(refresh);
+    results[0] = results[0].merge(refresh);
     _onLocalStateChanged?.call();
 
     final ProductiveSyncStatus finalStatus;
@@ -301,42 +325,42 @@ class ProductiveManualSyncService {
         outcome: ProductiveManualSyncOutcome.failed,
         message:
             'La sincronización terminó, pero no fue posible verificar el estado final.',
-        domainResults: [catalog, cash, pos, purchases, inventory],
+        domainResults: results,
         scope: context.scope,
       );
     }
 
-    final results = _applyFinalPendingCounts(
+    final finalResults = _applyFinalPendingCounts(
       finalStatus,
-      [catalog, cash, pos, purchases, inventory],
+      results,
     );
 
     if (finalStatus.allUpToDate &&
-        results.every((result) => result.succeeded)) {
+        finalResults.every((result) => result.succeeded)) {
       return ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.completed,
         message: 'Todo al día.',
-        domainResults: results,
+        domainResults: finalResults,
         finalStatus: finalStatus,
         scope: context.scope,
       );
     }
     if (finalStatus.requiresAttention ||
-        results.any((result) => result.requiresAttention)) {
+        finalResults.any((result) => result.requiresAttention)) {
       return ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.requiresAttention,
         message: 'Hay operaciones que necesitan revisión.',
-        domainResults: results,
+        domainResults: finalResults,
         finalStatus: finalStatus,
         scope: context.scope,
       );
     }
     if (finalStatus.totalPending > 0 ||
-        results.any((result) => result.pending)) {
+        finalResults.any((result) => result.pending)) {
       return ProductiveManualSyncResult(
         outcome: ProductiveManualSyncOutcome.pending,
         message: 'Quedan operaciones pendientes de sincronización.',
-        domainResults: results,
+        domainResults: finalResults,
         finalStatus: finalStatus,
         scope: context.scope,
       );
@@ -344,7 +368,7 @@ class ProductiveManualSyncService {
     return ProductiveManualSyncResult(
       outcome: ProductiveManualSyncOutcome.failed,
       message: 'No fue posible completar la sincronización.',
-      domainResults: results,
+      domainResults: finalResults,
       finalStatus: finalStatus,
       scope: context.scope,
     );

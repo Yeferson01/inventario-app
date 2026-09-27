@@ -10085,6 +10085,364 @@ class LocalSyncMutationsCompanion extends UpdateCompanion<LocalSyncMutation> {
   }
 }
 
+class $LocalSyncBatchDependenciesTable extends LocalSyncBatchDependencies
+    with TableInfo<$LocalSyncBatchDependenciesTable, LocalSyncBatchDependency> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalSyncBatchDependenciesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _prerequisiteMutationIdMeta =
+      const VerificationMeta('prerequisiteMutationId');
+  @override
+  late final GeneratedColumn<String> prerequisiteMutationId =
+      GeneratedColumn<String>('prerequisite_mutation_id', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: true,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'REFERENCES local_sync_mutations (id)'));
+  static const VerificationMeta _dependentBatchIdMeta =
+      const VerificationMeta('dependentBatchId');
+  @override
+  late final GeneratedColumn<String> dependentBatchId = GeneratedColumn<String>(
+      'dependent_batch_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES local_sync_batches (id)'));
+  static const VerificationMeta _relationTypeMeta =
+      const VerificationMeta('relationType');
+  @override
+  late final GeneratedColumn<String> relationType = GeneratedColumn<String>(
+      'relation_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _completionSnapshotIdMeta =
+      const VerificationMeta('completionSnapshotId');
+  @override
+  late final GeneratedColumn<String> completionSnapshotId =
+      GeneratedColumn<String>('completion_snapshot_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        prerequisiteMutationId,
+        dependentBatchId,
+        relationType,
+        completionSnapshotId,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_sync_batch_dependencies';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalSyncBatchDependency> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('prerequisite_mutation_id')) {
+      context.handle(
+          _prerequisiteMutationIdMeta,
+          prerequisiteMutationId.isAcceptableOrUnknown(
+              data['prerequisite_mutation_id']!, _prerequisiteMutationIdMeta));
+    } else if (isInserting) {
+      context.missing(_prerequisiteMutationIdMeta);
+    }
+    if (data.containsKey('dependent_batch_id')) {
+      context.handle(
+          _dependentBatchIdMeta,
+          dependentBatchId.isAcceptableOrUnknown(
+              data['dependent_batch_id']!, _dependentBatchIdMeta));
+    } else if (isInserting) {
+      context.missing(_dependentBatchIdMeta);
+    }
+    if (data.containsKey('relation_type')) {
+      context.handle(
+          _relationTypeMeta,
+          relationType.isAcceptableOrUnknown(
+              data['relation_type']!, _relationTypeMeta));
+    } else if (isInserting) {
+      context.missing(_relationTypeMeta);
+    }
+    if (data.containsKey('completion_snapshot_id')) {
+      context.handle(
+          _completionSnapshotIdMeta,
+          completionSnapshotId.isAcceptableOrUnknown(
+              data['completion_snapshot_id']!, _completionSnapshotIdMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey =>
+      {prerequisiteMutationId, dependentBatchId};
+  @override
+  LocalSyncBatchDependency map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalSyncBatchDependency(
+      prerequisiteMutationId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}prerequisite_mutation_id'])!,
+      dependentBatchId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}dependent_batch_id'])!,
+      relationType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}relation_type'])!,
+      completionSnapshotId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}completion_snapshot_id']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $LocalSyncBatchDependenciesTable createAlias(String alias) {
+    return $LocalSyncBatchDependenciesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalSyncBatchDependency extends DataClass
+    implements Insertable<LocalSyncBatchDependency> {
+  final String prerequisiteMutationId;
+  final String dependentBatchId;
+  final String relationType;
+  final String? completionSnapshotId;
+  final DateTime createdAt;
+  const LocalSyncBatchDependency(
+      {required this.prerequisiteMutationId,
+      required this.dependentBatchId,
+      required this.relationType,
+      this.completionSnapshotId,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['prerequisite_mutation_id'] = Variable<String>(prerequisiteMutationId);
+    map['dependent_batch_id'] = Variable<String>(dependentBatchId);
+    map['relation_type'] = Variable<String>(relationType);
+    if (!nullToAbsent || completionSnapshotId != null) {
+      map['completion_snapshot_id'] = Variable<String>(completionSnapshotId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LocalSyncBatchDependenciesCompanion toCompanion(bool nullToAbsent) {
+    return LocalSyncBatchDependenciesCompanion(
+      prerequisiteMutationId: Value(prerequisiteMutationId),
+      dependentBatchId: Value(dependentBatchId),
+      relationType: Value(relationType),
+      completionSnapshotId: completionSnapshotId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completionSnapshotId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LocalSyncBatchDependency.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalSyncBatchDependency(
+      prerequisiteMutationId:
+          serializer.fromJson<String>(json['prerequisiteMutationId']),
+      dependentBatchId: serializer.fromJson<String>(json['dependentBatchId']),
+      relationType: serializer.fromJson<String>(json['relationType']),
+      completionSnapshotId:
+          serializer.fromJson<String?>(json['completionSnapshotId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'prerequisiteMutationId':
+          serializer.toJson<String>(prerequisiteMutationId),
+      'dependentBatchId': serializer.toJson<String>(dependentBatchId),
+      'relationType': serializer.toJson<String>(relationType),
+      'completionSnapshotId': serializer.toJson<String?>(completionSnapshotId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LocalSyncBatchDependency copyWith(
+          {String? prerequisiteMutationId,
+          String? dependentBatchId,
+          String? relationType,
+          Value<String?> completionSnapshotId = const Value.absent(),
+          DateTime? createdAt}) =>
+      LocalSyncBatchDependency(
+        prerequisiteMutationId:
+            prerequisiteMutationId ?? this.prerequisiteMutationId,
+        dependentBatchId: dependentBatchId ?? this.dependentBatchId,
+        relationType: relationType ?? this.relationType,
+        completionSnapshotId: completionSnapshotId.present
+            ? completionSnapshotId.value
+            : this.completionSnapshotId,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  LocalSyncBatchDependency copyWithCompanion(
+      LocalSyncBatchDependenciesCompanion data) {
+    return LocalSyncBatchDependency(
+      prerequisiteMutationId: data.prerequisiteMutationId.present
+          ? data.prerequisiteMutationId.value
+          : this.prerequisiteMutationId,
+      dependentBatchId: data.dependentBatchId.present
+          ? data.dependentBatchId.value
+          : this.dependentBatchId,
+      relationType: data.relationType.present
+          ? data.relationType.value
+          : this.relationType,
+      completionSnapshotId: data.completionSnapshotId.present
+          ? data.completionSnapshotId.value
+          : this.completionSnapshotId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSyncBatchDependency(')
+          ..write('prerequisiteMutationId: $prerequisiteMutationId, ')
+          ..write('dependentBatchId: $dependentBatchId, ')
+          ..write('relationType: $relationType, ')
+          ..write('completionSnapshotId: $completionSnapshotId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(prerequisiteMutationId, dependentBatchId,
+      relationType, completionSnapshotId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalSyncBatchDependency &&
+          other.prerequisiteMutationId == this.prerequisiteMutationId &&
+          other.dependentBatchId == this.dependentBatchId &&
+          other.relationType == this.relationType &&
+          other.completionSnapshotId == this.completionSnapshotId &&
+          other.createdAt == this.createdAt);
+}
+
+class LocalSyncBatchDependenciesCompanion
+    extends UpdateCompanion<LocalSyncBatchDependency> {
+  final Value<String> prerequisiteMutationId;
+  final Value<String> dependentBatchId;
+  final Value<String> relationType;
+  final Value<String?> completionSnapshotId;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LocalSyncBatchDependenciesCompanion({
+    this.prerequisiteMutationId = const Value.absent(),
+    this.dependentBatchId = const Value.absent(),
+    this.relationType = const Value.absent(),
+    this.completionSnapshotId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalSyncBatchDependenciesCompanion.insert({
+    required String prerequisiteMutationId,
+    required String dependentBatchId,
+    required String relationType,
+    this.completionSnapshotId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : prerequisiteMutationId = Value(prerequisiteMutationId),
+        dependentBatchId = Value(dependentBatchId),
+        relationType = Value(relationType);
+  static Insertable<LocalSyncBatchDependency> custom({
+    Expression<String>? prerequisiteMutationId,
+    Expression<String>? dependentBatchId,
+    Expression<String>? relationType,
+    Expression<String>? completionSnapshotId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (prerequisiteMutationId != null)
+        'prerequisite_mutation_id': prerequisiteMutationId,
+      if (dependentBatchId != null) 'dependent_batch_id': dependentBatchId,
+      if (relationType != null) 'relation_type': relationType,
+      if (completionSnapshotId != null)
+        'completion_snapshot_id': completionSnapshotId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalSyncBatchDependenciesCompanion copyWith(
+      {Value<String>? prerequisiteMutationId,
+      Value<String>? dependentBatchId,
+      Value<String>? relationType,
+      Value<String?>? completionSnapshotId,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return LocalSyncBatchDependenciesCompanion(
+      prerequisiteMutationId:
+          prerequisiteMutationId ?? this.prerequisiteMutationId,
+      dependentBatchId: dependentBatchId ?? this.dependentBatchId,
+      relationType: relationType ?? this.relationType,
+      completionSnapshotId: completionSnapshotId ?? this.completionSnapshotId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (prerequisiteMutationId.present) {
+      map['prerequisite_mutation_id'] =
+          Variable<String>(prerequisiteMutationId.value);
+    }
+    if (dependentBatchId.present) {
+      map['dependent_batch_id'] = Variable<String>(dependentBatchId.value);
+    }
+    if (relationType.present) {
+      map['relation_type'] = Variable<String>(relationType.value);
+    }
+    if (completionSnapshotId.present) {
+      map['completion_snapshot_id'] =
+          Variable<String>(completionSnapshotId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSyncBatchDependenciesCompanion(')
+          ..write('prerequisiteMutationId: $prerequisiteMutationId, ')
+          ..write('dependentBatchId: $dependentBatchId, ')
+          ..write('relationType: $relationType, ')
+          ..write('completionSnapshotId: $completionSnapshotId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LocalInventoryMovementsTable extends LocalInventoryMovements
     with TableInfo<$LocalInventoryMovementsTable, LocalInventoryMovement> {
   @override
@@ -26033,6 +26391,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalSyncBatchesTable(this);
   late final $LocalSyncMutationsTable localSyncMutations =
       $LocalSyncMutationsTable(this);
+  late final $LocalSyncBatchDependenciesTable localSyncBatchDependencies =
+      $LocalSyncBatchDependenciesTable(this);
   late final $LocalInventoryMovementsTable localInventoryMovements =
       $LocalInventoryMovementsTable(this);
   late final $LocalHistoryHydrationStatesTable localHistoryHydrationStates =
@@ -26089,6 +26449,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localCatalogContributionQueue,
         localSyncBatches,
         localSyncMutations,
+        localSyncBatchDependencies,
         localInventoryMovements,
         localHistoryHydrationStates,
         localProductStockBalances,
@@ -32370,6 +32731,32 @@ typedef $$LocalSyncBatchesTableUpdateCompanionBuilder
   Value<int> rowid,
 });
 
+final class $$LocalSyncBatchesTableReferences extends BaseReferences<
+    _$AppDatabase, $LocalSyncBatchesTable, LocalSyncBatche> {
+  $$LocalSyncBatchesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$LocalSyncBatchDependenciesTable,
+      List<LocalSyncBatchDependency>> _localSyncBatchDependenciesRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.localSyncBatchDependencies,
+          aliasName: $_aliasNameGenerator(db.localSyncBatches.id,
+              db.localSyncBatchDependencies.dependentBatchId));
+
+  $$LocalSyncBatchDependenciesTableProcessedTableManager
+      get localSyncBatchDependenciesRefs {
+    final manager = $$LocalSyncBatchDependenciesTableTableManager(
+            $_db, $_db.localSyncBatchDependencies)
+        .filter((f) =>
+            f.dependentBatchId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult
+        .readTableOrNull(_localSyncBatchDependenciesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
 class $$LocalSyncBatchesTableFilterComposer
     extends Composer<_$AppDatabase, $LocalSyncBatchesTable> {
   $$LocalSyncBatchesTableFilterComposer({
@@ -32439,6 +32826,30 @@ class $$LocalSyncBatchesTableFilterComposer
 
   ColumnFilters<DateTime> get uploadedAt => $composableBuilder(
       column: $table.uploadedAt, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> localSyncBatchDependenciesRefs(
+      Expression<bool> Function(
+              $$LocalSyncBatchDependenciesTableFilterComposer f)
+          f) {
+    final $$LocalSyncBatchDependenciesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.localSyncBatchDependencies,
+            getReferencedColumn: (t) => t.dependentBatchId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$LocalSyncBatchDependenciesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.localSyncBatchDependencies,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$LocalSyncBatchesTableOrderingComposer
@@ -32586,6 +32997,30 @@ class $$LocalSyncBatchesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get uploadedAt => $composableBuilder(
       column: $table.uploadedAt, builder: (column) => column);
+
+  Expression<T> localSyncBatchDependenciesRefs<T extends Object>(
+      Expression<T> Function(
+              $$LocalSyncBatchDependenciesTableAnnotationComposer a)
+          f) {
+    final $$LocalSyncBatchDependenciesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.localSyncBatchDependencies,
+            getReferencedColumn: (t) => t.dependentBatchId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$LocalSyncBatchDependenciesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.localSyncBatchDependencies,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$LocalSyncBatchesTableTableManager extends RootTableManager<
@@ -32597,12 +33032,9 @@ class $$LocalSyncBatchesTableTableManager extends RootTableManager<
     $$LocalSyncBatchesTableAnnotationComposer,
     $$LocalSyncBatchesTableCreateCompanionBuilder,
     $$LocalSyncBatchesTableUpdateCompanionBuilder,
-    (
-      LocalSyncBatche,
-      BaseReferences<_$AppDatabase, $LocalSyncBatchesTable, LocalSyncBatche>
-    ),
+    (LocalSyncBatche, $$LocalSyncBatchesTableReferences),
     LocalSyncBatche,
-    PrefetchHooks Function()> {
+    PrefetchHooks Function({bool localSyncBatchDependenciesRefs})> {
   $$LocalSyncBatchesTableTableManager(
       _$AppDatabase db, $LocalSyncBatchesTable table)
       : super(TableManagerState(
@@ -32707,9 +33139,38 @@ class $$LocalSyncBatchesTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map((e) => (
+                    e.readTable(table),
+                    $$LocalSyncBatchesTableReferences(db, table, e)
+                  ))
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({localSyncBatchDependenciesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (localSyncBatchDependenciesRefs)
+                  db.localSyncBatchDependencies
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (localSyncBatchDependenciesRefs)
+                    await $_getPrefetchedData<LocalSyncBatche,
+                            $LocalSyncBatchesTable, LocalSyncBatchDependency>(
+                        currentTable: table,
+                        referencedTable: $$LocalSyncBatchesTableReferences
+                            ._localSyncBatchDependenciesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$LocalSyncBatchesTableReferences(db, table, p0)
+                                .localSyncBatchDependenciesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.dependentBatchId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
         ));
 }
 
@@ -32722,12 +33183,9 @@ typedef $$LocalSyncBatchesTableProcessedTableManager = ProcessedTableManager<
     $$LocalSyncBatchesTableAnnotationComposer,
     $$LocalSyncBatchesTableCreateCompanionBuilder,
     $$LocalSyncBatchesTableUpdateCompanionBuilder,
-    (
-      LocalSyncBatche,
-      BaseReferences<_$AppDatabase, $LocalSyncBatchesTable, LocalSyncBatche>
-    ),
+    (LocalSyncBatche, $$LocalSyncBatchesTableReferences),
     LocalSyncBatche,
-    PrefetchHooks Function()>;
+    PrefetchHooks Function({bool localSyncBatchDependenciesRefs})>;
 typedef $$LocalSyncMutationsTableCreateCompanionBuilder
     = LocalSyncMutationsCompanion Function({
   required String id,
@@ -32792,6 +33250,32 @@ typedef $$LocalSyncMutationsTableUpdateCompanionBuilder
   Value<DateTime?> resolvedAt,
   Value<int> rowid,
 });
+
+final class $$LocalSyncMutationsTableReferences extends BaseReferences<
+    _$AppDatabase, $LocalSyncMutationsTable, LocalSyncMutation> {
+  $$LocalSyncMutationsTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$LocalSyncBatchDependenciesTable,
+      List<LocalSyncBatchDependency>> _localSyncBatchDependenciesRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.localSyncBatchDependencies,
+          aliasName: $_aliasNameGenerator(db.localSyncMutations.id,
+              db.localSyncBatchDependencies.prerequisiteMutationId));
+
+  $$LocalSyncBatchDependenciesTableProcessedTableManager
+      get localSyncBatchDependenciesRefs {
+    final manager = $$LocalSyncBatchDependenciesTableTableManager(
+            $_db, $_db.localSyncBatchDependencies)
+        .filter((f) =>
+            f.prerequisiteMutationId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult
+        .readTableOrNull(_localSyncBatchDependenciesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
 
 class $$LocalSyncMutationsTableFilterComposer
     extends Composer<_$AppDatabase, $LocalSyncMutationsTable> {
@@ -32892,6 +33376,30 @@ class $$LocalSyncMutationsTableFilterComposer
 
   ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
       column: $table.resolvedAt, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> localSyncBatchDependenciesRefs(
+      Expression<bool> Function(
+              $$LocalSyncBatchDependenciesTableFilterComposer f)
+          f) {
+    final $$LocalSyncBatchDependenciesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.localSyncBatchDependencies,
+            getReferencedColumn: (t) => t.prerequisiteMutationId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$LocalSyncBatchDependenciesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.localSyncBatchDependencies,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$LocalSyncMutationsTableOrderingComposer
@@ -33090,6 +33598,30 @@ class $$LocalSyncMutationsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
       column: $table.resolvedAt, builder: (column) => column);
+
+  Expression<T> localSyncBatchDependenciesRefs<T extends Object>(
+      Expression<T> Function(
+              $$LocalSyncBatchDependenciesTableAnnotationComposer a)
+          f) {
+    final $$LocalSyncBatchDependenciesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.localSyncBatchDependencies,
+            getReferencedColumn: (t) => t.prerequisiteMutationId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$LocalSyncBatchDependenciesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.localSyncBatchDependencies,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$LocalSyncMutationsTableTableManager extends RootTableManager<
@@ -33101,12 +33633,9 @@ class $$LocalSyncMutationsTableTableManager extends RootTableManager<
     $$LocalSyncMutationsTableAnnotationComposer,
     $$LocalSyncMutationsTableCreateCompanionBuilder,
     $$LocalSyncMutationsTableUpdateCompanionBuilder,
-    (
-      LocalSyncMutation,
-      BaseReferences<_$AppDatabase, $LocalSyncMutationsTable, LocalSyncMutation>
-    ),
+    (LocalSyncMutation, $$LocalSyncMutationsTableReferences),
     LocalSyncMutation,
-    PrefetchHooks Function()> {
+    PrefetchHooks Function({bool localSyncBatchDependenciesRefs})> {
   $$LocalSyncMutationsTableTableManager(
       _$AppDatabase db, $LocalSyncMutationsTable table)
       : super(TableManagerState(
@@ -33244,9 +33773,38 @@ class $$LocalSyncMutationsTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map((e) => (
+                    e.readTable(table),
+                    $$LocalSyncMutationsTableReferences(db, table, e)
+                  ))
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({localSyncBatchDependenciesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (localSyncBatchDependenciesRefs)
+                  db.localSyncBatchDependencies
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (localSyncBatchDependenciesRefs)
+                    await $_getPrefetchedData<LocalSyncMutation,
+                            $LocalSyncMutationsTable, LocalSyncBatchDependency>(
+                        currentTable: table,
+                        referencedTable: $$LocalSyncMutationsTableReferences
+                            ._localSyncBatchDependenciesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$LocalSyncMutationsTableReferences(db, table, p0)
+                                .localSyncBatchDependenciesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems.where(
+                                (e) => e.prerequisiteMutationId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
         ));
 }
 
@@ -33259,12 +33817,383 @@ typedef $$LocalSyncMutationsTableProcessedTableManager = ProcessedTableManager<
     $$LocalSyncMutationsTableAnnotationComposer,
     $$LocalSyncMutationsTableCreateCompanionBuilder,
     $$LocalSyncMutationsTableUpdateCompanionBuilder,
-    (
-      LocalSyncMutation,
-      BaseReferences<_$AppDatabase, $LocalSyncMutationsTable, LocalSyncMutation>
-    ),
+    (LocalSyncMutation, $$LocalSyncMutationsTableReferences),
     LocalSyncMutation,
-    PrefetchHooks Function()>;
+    PrefetchHooks Function({bool localSyncBatchDependenciesRefs})>;
+typedef $$LocalSyncBatchDependenciesTableCreateCompanionBuilder
+    = LocalSyncBatchDependenciesCompanion Function({
+  required String prerequisiteMutationId,
+  required String dependentBatchId,
+  required String relationType,
+  Value<String?> completionSnapshotId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+typedef $$LocalSyncBatchDependenciesTableUpdateCompanionBuilder
+    = LocalSyncBatchDependenciesCompanion Function({
+  Value<String> prerequisiteMutationId,
+  Value<String> dependentBatchId,
+  Value<String> relationType,
+  Value<String?> completionSnapshotId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+final class $$LocalSyncBatchDependenciesTableReferences extends BaseReferences<
+    _$AppDatabase, $LocalSyncBatchDependenciesTable, LocalSyncBatchDependency> {
+  $$LocalSyncBatchDependenciesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $LocalSyncMutationsTable _prerequisiteMutationIdTable(
+          _$AppDatabase db) =>
+      db.localSyncMutations.createAlias($_aliasNameGenerator(
+          db.localSyncBatchDependencies.prerequisiteMutationId,
+          db.localSyncMutations.id));
+
+  $$LocalSyncMutationsTableProcessedTableManager get prerequisiteMutationId {
+    final $_column = $_itemColumn<String>('prerequisite_mutation_id')!;
+
+    final manager =
+        $$LocalSyncMutationsTableTableManager($_db, $_db.localSyncMutations)
+            .filter((f) => f.id.sqlEquals($_column));
+    final item =
+        $_typedResult.readTableOrNull(_prerequisiteMutationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LocalSyncBatchesTable _dependentBatchIdTable(_$AppDatabase db) =>
+      db.localSyncBatches.createAlias($_aliasNameGenerator(
+          db.localSyncBatchDependencies.dependentBatchId,
+          db.localSyncBatches.id));
+
+  $$LocalSyncBatchesTableProcessedTableManager get dependentBatchId {
+    final $_column = $_itemColumn<String>('dependent_batch_id')!;
+
+    final manager =
+        $$LocalSyncBatchesTableTableManager($_db, $_db.localSyncBatches)
+            .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_dependentBatchIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$LocalSyncBatchDependenciesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalSyncBatchDependenciesTable> {
+  $$LocalSyncBatchDependenciesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get relationType => $composableBuilder(
+      column: $table.relationType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get completionSnapshotId => $composableBuilder(
+      column: $table.completionSnapshotId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  $$LocalSyncMutationsTableFilterComposer get prerequisiteMutationId {
+    final $$LocalSyncMutationsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.prerequisiteMutationId,
+        referencedTable: $db.localSyncMutations,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$LocalSyncMutationsTableFilterComposer(
+              $db: $db,
+              $table: $db.localSyncMutations,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$LocalSyncBatchesTableFilterComposer get dependentBatchId {
+    final $$LocalSyncBatchesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.dependentBatchId,
+        referencedTable: $db.localSyncBatches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$LocalSyncBatchesTableFilterComposer(
+              $db: $db,
+              $table: $db.localSyncBatches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$LocalSyncBatchDependenciesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalSyncBatchDependenciesTable> {
+  $$LocalSyncBatchDependenciesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get relationType => $composableBuilder(
+      column: $table.relationType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get completionSnapshotId => $composableBuilder(
+      column: $table.completionSnapshotId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  $$LocalSyncMutationsTableOrderingComposer get prerequisiteMutationId {
+    final $$LocalSyncMutationsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.prerequisiteMutationId,
+        referencedTable: $db.localSyncMutations,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$LocalSyncMutationsTableOrderingComposer(
+              $db: $db,
+              $table: $db.localSyncMutations,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$LocalSyncBatchesTableOrderingComposer get dependentBatchId {
+    final $$LocalSyncBatchesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.dependentBatchId,
+        referencedTable: $db.localSyncBatches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$LocalSyncBatchesTableOrderingComposer(
+              $db: $db,
+              $table: $db.localSyncBatches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$LocalSyncBatchDependenciesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalSyncBatchDependenciesTable> {
+  $$LocalSyncBatchDependenciesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get relationType => $composableBuilder(
+      column: $table.relationType, builder: (column) => column);
+
+  GeneratedColumn<String> get completionSnapshotId => $composableBuilder(
+      column: $table.completionSnapshotId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$LocalSyncMutationsTableAnnotationComposer get prerequisiteMutationId {
+    final $$LocalSyncMutationsTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.prerequisiteMutationId,
+            referencedTable: $db.localSyncMutations,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$LocalSyncMutationsTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.localSyncMutations,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+
+  $$LocalSyncBatchesTableAnnotationComposer get dependentBatchId {
+    final $$LocalSyncBatchesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.dependentBatchId,
+        referencedTable: $db.localSyncBatches,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$LocalSyncBatchesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.localSyncBatches,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$LocalSyncBatchDependenciesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalSyncBatchDependenciesTable,
+    LocalSyncBatchDependency,
+    $$LocalSyncBatchDependenciesTableFilterComposer,
+    $$LocalSyncBatchDependenciesTableOrderingComposer,
+    $$LocalSyncBatchDependenciesTableAnnotationComposer,
+    $$LocalSyncBatchDependenciesTableCreateCompanionBuilder,
+    $$LocalSyncBatchDependenciesTableUpdateCompanionBuilder,
+    (LocalSyncBatchDependency, $$LocalSyncBatchDependenciesTableReferences),
+    LocalSyncBatchDependency,
+    PrefetchHooks Function(
+        {bool prerequisiteMutationId, bool dependentBatchId})> {
+  $$LocalSyncBatchDependenciesTableTableManager(
+      _$AppDatabase db, $LocalSyncBatchDependenciesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalSyncBatchDependenciesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalSyncBatchDependenciesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalSyncBatchDependenciesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> prerequisiteMutationId = const Value.absent(),
+            Value<String> dependentBatchId = const Value.absent(),
+            Value<String> relationType = const Value.absent(),
+            Value<String?> completionSnapshotId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalSyncBatchDependenciesCompanion(
+            prerequisiteMutationId: prerequisiteMutationId,
+            dependentBatchId: dependentBatchId,
+            relationType: relationType,
+            completionSnapshotId: completionSnapshotId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String prerequisiteMutationId,
+            required String dependentBatchId,
+            required String relationType,
+            Value<String?> completionSnapshotId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalSyncBatchDependenciesCompanion.insert(
+            prerequisiteMutationId: prerequisiteMutationId,
+            dependentBatchId: dependentBatchId,
+            relationType: relationType,
+            completionSnapshotId: completionSnapshotId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$LocalSyncBatchDependenciesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {prerequisiteMutationId = false, dependentBatchId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (prerequisiteMutationId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.prerequisiteMutationId,
+                    referencedTable: $$LocalSyncBatchDependenciesTableReferences
+                        ._prerequisiteMutationIdTable(db),
+                    referencedColumn:
+                        $$LocalSyncBatchDependenciesTableReferences
+                            ._prerequisiteMutationIdTable(db)
+                            .id,
+                  ) as T;
+                }
+                if (dependentBatchId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.dependentBatchId,
+                    referencedTable: $$LocalSyncBatchDependenciesTableReferences
+                        ._dependentBatchIdTable(db),
+                    referencedColumn:
+                        $$LocalSyncBatchDependenciesTableReferences
+                            ._dependentBatchIdTable(db)
+                            .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$LocalSyncBatchDependenciesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LocalSyncBatchDependenciesTable,
+        LocalSyncBatchDependency,
+        $$LocalSyncBatchDependenciesTableFilterComposer,
+        $$LocalSyncBatchDependenciesTableOrderingComposer,
+        $$LocalSyncBatchDependenciesTableAnnotationComposer,
+        $$LocalSyncBatchDependenciesTableCreateCompanionBuilder,
+        $$LocalSyncBatchDependenciesTableUpdateCompanionBuilder,
+        (LocalSyncBatchDependency, $$LocalSyncBatchDependenciesTableReferences),
+        LocalSyncBatchDependency,
+        PrefetchHooks Function(
+            {bool prerequisiteMutationId, bool dependentBatchId})>;
 typedef $$LocalInventoryMovementsTableCreateCompanionBuilder
     = LocalInventoryMovementsCompanion Function({
   required String id,
@@ -43716,6 +44645,10 @@ class $AppDatabaseManager {
       $$LocalSyncBatchesTableTableManager(_db, _db.localSyncBatches);
   $$LocalSyncMutationsTableTableManager get localSyncMutations =>
       $$LocalSyncMutationsTableTableManager(_db, _db.localSyncMutations);
+  $$LocalSyncBatchDependenciesTableTableManager
+      get localSyncBatchDependencies =>
+          $$LocalSyncBatchDependenciesTableTableManager(
+              _db, _db.localSyncBatchDependencies);
   $$LocalInventoryMovementsTableTableManager get localInventoryMovements =>
       $$LocalInventoryMovementsTableTableManager(
           _db, _db.localInventoryMovements);

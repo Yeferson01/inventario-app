@@ -1,12 +1,14 @@
 import '../../cash/application/cash_session_local_models.dart';
 import '../../cash/application/cash_session_local_service.dart';
 import 'productive_manual_sync_service.dart';
+import 'cash_session_close_readiness_service.dart';
 
 enum CashCloseSyncBlockReason {
   unavailable,
   retryablePending,
   requiresAttention,
   scopeMismatch,
+  sessionNotReady,
 }
 
 class CashCloseSyncBlockedException implements Exception {
@@ -35,11 +37,14 @@ class CashCloseSyncTriggerService {
   CashCloseSyncTriggerService({
     required ProductiveManualSyncService productiveSyncService,
     required CashSessionLocalService cashSessionService,
+    required CashSessionCloseReadinessService closeReadinessService,
   })  : _productiveSyncService = productiveSyncService,
-        _cashSessionService = cashSessionService;
+        _cashSessionService = cashSessionService,
+        _closeReadinessService = closeReadinessService;
 
   final ProductiveManualSyncService _productiveSyncService;
   final CashSessionLocalService _cashSessionService;
+  final CashSessionCloseReadinessService _closeReadinessService;
   Future<ProductiveCashCloseResult>? _activeClose;
 
   Future<ProductiveCashCloseResult> closeCashSession(
@@ -76,34 +81,24 @@ class CashCloseSyncTriggerService {
     }
 
     _assertExpectedScope(syncResult, input);
-    if (syncResult.outcome == ProductiveManualSyncOutcome.requiresAttention ||
-        syncResult.domainResults.any((result) => result.requiresAttention)) {
+    final CashSessionCloseReadinessResult readiness;
+    try {
+      readiness = await _closeReadinessService.evaluate(
+        profileId: input.profileId,
+        businessId: input.businessId,
+        branchId: input.branchId,
+        appDeviceId: input.appDeviceId,
+      );
+    } catch (_) {
       throw const CashCloseSyncBlockedException(
-        CashCloseSyncBlockReason.requiresAttention,
-        'Hay operaciones pendientes que necesitan revisión.',
+        CashCloseSyncBlockReason.sessionNotReady,
+        'No fue posible verificar el estado de esta sesión de caja.',
       );
     }
-    if (syncResult.outcome == ProductiveManualSyncOutcome.failed) {
+    if (readiness.readiness != CashSessionCloseReadiness.ready) {
       throw const CashCloseSyncBlockedException(
-        CashCloseSyncBlockReason.retryablePending,
-        'No se pudo completar el cierre ahora.',
-      );
-    }
-
-    final criticalResults = syncResult.domainResults.where(
-      (result) =>
-          result.domain == ProductiveSyncDomain.cash ||
-          result.domain == ProductiveSyncDomain.pos,
-    );
-    if (criticalResults.length != 2 ||
-        criticalResults.any((result) =>
-            !result.attempted ||
-            !result.succeeded ||
-            result.pending ||
-            result.failedRetryable)) {
-      throw const CashCloseSyncBlockedException(
-        CashCloseSyncBlockReason.retryablePending,
-        'No se pudo completar el cierre ahora.',
+        CashCloseSyncBlockReason.sessionNotReady,
+        'La sesión de caja tiene operaciones pendientes o requiere revisión.',
       );
     }
 
@@ -115,7 +110,10 @@ class CashCloseSyncTriggerService {
         .map((result) => result.domain)
         .toSet();
 
-    final closeResult = await _cashSessionService.closeCashSession(input);
+    final closeResult = await _cashSessionService.closeCashSession(
+      input,
+      expectedCashSessionId: readiness.sessionId,
+    );
     return ProductiveCashCloseResult(
       closeResult: closeResult,
       preCloseSyncResult: syncResult,

@@ -7,6 +7,40 @@ import 'package:inventario_frontend/features/sync/application/productive_sync_st
 import 'package:inventario_frontend/features/sync/data/models/runtime_setup_models.dart';
 
 void main() {
+  test('C4B1B authoritative progress re-runs the shared domain order',
+      () async {
+    var progress = (0, 0);
+    var purchaseCalls = 0;
+    final fixture = _Fixture(
+      dependencyProgress: () => progress,
+      onPurchases: () {
+        purchaseCalls++;
+        if (purchaseCalls == 1) progress = (1, 1);
+      },
+    );
+    await fixture.service().run();
+    expect(fixture.calls.where((call) => call == 'cash'), hasLength(2));
+    expect(purchaseCalls, 2);
+  });
+
+  test('C4B1B no authoritative progress stops after one pass', () async {
+    final fixture = _Fixture(
+      dependencyProgress: () => (0, 0),
+      purchasesResult: () => throw StateError('network'),
+    );
+    await fixture.service().run();
+    expect(fixture.calls.where((call) => call == 'cash'), hasLength(1));
+  });
+
+  test('C4B1B progress is deterministically bounded at eight passes', () async {
+    var applied = 0;
+    final fixture = _Fixture(
+      dependencyProgress: () => (applied, 0),
+      onPurchases: () => applied++,
+    );
+    await fixture.service().run();
+    expect(fixture.calls.where((call) => call == 'cash'), hasLength(8));
+  });
   test('SY-01 clean no-op reports Todo al día without duplicate stages',
       () async {
     final fixture = _Fixture();
@@ -189,6 +223,7 @@ class _Fixture {
     this.catalogResult,
     this.posResult,
     this.purchasesResult,
+    this.dependencyProgress,
   })  : input = input ?? _input(),
         status = status ?? _status;
 
@@ -202,6 +237,7 @@ class _Fixture {
   final FutureOr<ProductiveSyncDomainResult> Function()? catalogResult;
   final FutureOr<ProductiveSyncDomainResult> Function()? posResult;
   final FutureOr<ProductiveSyncDomainResult> Function()? purchasesResult;
+  final (int, int) Function()? dependencyProgress;
   final calls = <String>[];
   var localStateChangeCalls = 0;
 
@@ -281,6 +317,10 @@ class _Fixture {
         expect(isSyncing, isFalse);
         return status();
       },
+      dependencyProgressLoader: dependencyProgress == null
+          ? null
+          : ({required businessId, required branchId}) async =>
+              dependencyProgress!(),
       onLocalStateChanged: () => localStateChangeCalls++,
     );
   }

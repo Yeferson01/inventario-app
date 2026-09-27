@@ -157,7 +157,11 @@ class ProductiveSyncStatusService {
       pendingSales: _distinctEntityCount(pendingSales),
       pendingPurchases: _distinctEntityCount(pendingPurchases),
       pendingCashOperations: _int(cashReadiness['dirty_cash_register_count']) +
-          _int(cashReadiness['dirty_cash_session_count']),
+          _int(cashReadiness['dirty_cash_session_count']) +
+          (_int(cashReadiness['dirty_cash_movement_count']) >
+                  outboxSummary.pendingCashMovementBatches
+              ? _int(cashReadiness['dirty_cash_movement_count'])
+              : outboxSummary.pendingCashMovementBatches),
       pendingProductOperations: outboxSummary.pendingProductOperations,
       pendingInventoryOperations: outboxSummary.pendingInventoryOperations,
       openIssueCount: openIssues.length,
@@ -173,6 +177,7 @@ _ProductiveOutboxSummary _summarizeOutbox(
 ) {
   final productBatchIds = <String>{};
   final inventoryBatchIds = <String>{};
+  final cashMovementBatchIds = <String>{};
   final attentionBatchIds = <String>{};
 
   for (final row in rows) {
@@ -200,6 +205,9 @@ _ProductiveOutboxSummary _summarizeOutbox(
       if (domain == 'inventory') {
         inventoryBatchIds.add(batchId);
       }
+      if (domain == 'cash' && entityTable == 'cash_movements') {
+        cashMovementBatchIds.add(batchId);
+      }
     }
 
     if (batchStatus == 'partial' ||
@@ -213,6 +221,7 @@ _ProductiveOutboxSummary _summarizeOutbox(
   return _ProductiveOutboxSummary(
     pendingProductOperations: productBatchIds.length,
     pendingInventoryOperations: inventoryBatchIds.length,
+    pendingCashMovementBatches: cashMovementBatchIds.length,
     attentionOperationCount: attentionBatchIds.length,
   );
 }
@@ -240,10 +249,12 @@ class _ProductiveOutboxSummary {
   const _ProductiveOutboxSummary({
     required this.pendingProductOperations,
     required this.pendingInventoryOperations,
+    required this.pendingCashMovementBatches,
     required this.attentionOperationCount,
   });
 
   final int pendingProductOperations;
   final int pendingInventoryOperations;
+  final int pendingCashMovementBatches;
   final int attentionOperationCount;
 }

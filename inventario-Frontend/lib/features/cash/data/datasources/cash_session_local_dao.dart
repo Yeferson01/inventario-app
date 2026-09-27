@@ -426,6 +426,12 @@ class CashSessionLocalDao {
         ) as dirty_cash_session_count,
         (
           select count(*)
+          from local_cash_movements cm
+          where cm.business_id = ? and cm.branch_id = ?
+            and (cm.local_status <> 'synced' or cm.sync_status <> 0)
+        ) as dirty_cash_movement_count,
+        (
+          select count(*)
           from sales s
           where s.business_id = ?
             and s.branch_id = ?
@@ -489,6 +495,8 @@ class CashSessionLocalDao {
         Variable<String>(branchId),
         Variable<String>(businessId),
         Variable<String>(branchId),
+        Variable<String>(businessId),
+        Variable<String>(branchId),
       ],
       readsFrom: {
         _db.cashRegisters,
@@ -502,6 +510,8 @@ class CashSessionLocalDao {
     final dirtyRegisters =
         _cashDiagnosticInt(data['dirty_cash_register_count']);
     final dirtySessions = _cashDiagnosticInt(data['dirty_cash_session_count']);
+    final dirtyMovements =
+        _cashDiagnosticInt(data['dirty_cash_movement_count']);
     final salesWithoutCash =
         _cashDiagnosticInt(data['pending_sales_without_cash_count']);
     final salesWithUnsyncedSession = _cashDiagnosticInt(
@@ -516,6 +526,7 @@ class CashSessionLocalDao {
       'branch_id': branchId,
       'dirty_cash_register_count': dirtyRegisters,
       'dirty_cash_session_count': dirtySessions,
+      'dirty_cash_movement_count': dirtyMovements,
       'pending_sales_without_cash_count': salesWithoutCash,
       'pending_sales_with_unsynced_cash_session_count':
           salesWithUnsyncedSession,

@@ -774,6 +774,31 @@ class LocalSyncMutations extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// A prerequisite mutation gates the upload of an entire dependent batch.
+/// Financial chains use dedicated dependent batches; existing mixed POS batches
+/// remain indivisible.
+class LocalSyncBatchDependencies extends Table {
+  @override
+  String get tableName => 'local_sync_batch_dependencies';
+
+  TextColumn get prerequisiteMutationId => text()
+      .named('prerequisite_mutation_id')
+      .references(LocalSyncMutations, #id)();
+  TextColumn get dependentBatchId =>
+      text().named('dependent_batch_id').references(LocalSyncBatches, #id)();
+  TextColumn get relationType => text().named('relation_type')();
+  TextColumn get completionSnapshotId =>
+      text().nullable().named('completion_snapshot_id')();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime).named('created_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {
+        prerequisiteMutationId,
+        dependentBatchId,
+      };
+}
+
 // === 6.18C.17 LOCAL APP CONTEXT TABLES ===
 
 class Branches extends Table {
@@ -1201,6 +1226,7 @@ class LocalReportSnapshots extends Table {
     LocalCatalogContributionQueue,
     LocalSyncBatches,
     LocalSyncMutations,
+    LocalSyncBatchDependencies,
     LocalInventoryMovements,
     LocalHistoryHydrationStates,
     LocalProductStockBalances,
@@ -1241,7 +1267,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   Future<void> _createCashMovementFoundation() async {
     await customStatement('''
@@ -1669,6 +1695,13 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> _createBatchDependencyIndexes() async {
+    await customStatement('''
+      create index if not exists idx_local_sync_batch_dependencies_dependent
+      on local_sync_batch_dependencies(dependent_batch_id)
+    ''');
+  }
+
   Future<void> _createProductStockBalanceIndexes() async {
     await customStatement('''
       create unique index if not exists ux_local_product_stock_balances_scope
@@ -1793,6 +1826,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+          await _createBatchDependencyIndexes();
           await _createCashMovementFoundation();
           await _createProductIdentityIndexesAndTriggers();
           await _createCashSessionIndexes();
@@ -1807,6 +1841,10 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 17) {
+            await m.createTable(localSyncBatchDependencies);
+            await _createBatchDependencyIndexes();
+          }
           if (from >= 9 && from < 16) {
             await m.addColumn(
                 localReconciliationIssues, localReconciliationIssues.saleId);
@@ -1986,6 +2024,7 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await customStatement('pragma foreign_keys = on');
+          await _createBatchDependencyIndexes();
           await _createProductIdentityIndexesAndTriggers();
           await _createCashSessionIndexes();
           await _createProductStockBalanceIndexes();

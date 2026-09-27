@@ -8,6 +8,49 @@ void main() {
     branchId: 'branch-a',
   );
 
+  test('C4B1B pending local cash movement is not Todo al día', () async {
+    final status = await _service(
+      cash: const {'dirty_cash_movement_count': 1},
+    ).load(scope: scope, isOnline: true, isSyncing: false);
+    expect(status.pendingCashOperations, 1);
+    expect(status.allUpToDate, isFalse);
+  });
+
+  test('C4B1B pending cash outbox is visible without double count', () async {
+    final status = await _service(
+      cash: const {'dirty_cash_movement_count': 1},
+      outboxRows: const [
+        {
+          'batch_id': 'cm-batch',
+          'domain': 'cash',
+          'batch_status': 'pending',
+          'mutation_status': 'pending',
+          'entity_table': 'cash_movements',
+          'entity_id': 'cm',
+        }
+      ],
+    ).load(scope: scope, isOnline: true, isSyncing: false);
+    expect(status.pendingCashOperations, 1);
+    expect(status.allUpToDate, isFalse);
+  });
+
+  test('C4B1B applied cash movement is no longer pending', () async {
+    final status = await _service(
+      outboxRows: const [
+        {
+          'batch_id': 'cm-batch',
+          'domain': 'cash',
+          'batch_status': 'completed',
+          'mutation_status': 'applied',
+          'entity_table': 'cash_movements',
+          'entity_id': 'cm',
+        }
+      ],
+    ).load(scope: scope, isOnline: true, isSyncing: false);
+    expect(status.pendingCashOperations, 0);
+    expect(status.allUpToDate, isTrue);
+  });
+
   test('PS-01 clean scope is all up to date', () async {
     final status = await _service().load(
       scope: scope,

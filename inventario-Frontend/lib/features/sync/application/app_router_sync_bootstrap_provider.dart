@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/supabase/supabase_client_provider.dart';
+import '../../../core/database/database_provider.dart';
 import '../../catalog/application/catalog_local_providers.dart';
 import '../../cash/application/cash_session_local_provider.dart';
 import '../../inventory/application/purchase_local_provider.dart';
@@ -12,6 +13,10 @@ import 'app_installation_id_store.dart';
 import 'app_sync_coordinator_models.dart';
 import 'cash_sync_upload_provider.dart';
 import 'cash_close_sync_trigger_service.dart';
+import 'cash_session_close_readiness_service.dart';
+import '../data/datasources/cash_session_close_readiness_dao.dart';
+import '../data/models/cash_pos_recovery_models.dart';
+import 'operational_bootstrap_providers.dart';
 import 'inventory_sync_upload_provider.dart';
 import 'local_sync_outbox_providers.dart';
 import 'pos_sync_upload_provider.dart';
@@ -232,6 +237,11 @@ final productiveManualSyncServiceProvider =
             );
     },
     statusLoader: ref.watch(productiveSyncStatusServiceProvider).load,
+    dependencyProgressLoader: ({required businessId, required branchId}) =>
+        ref.read(localSyncOutboxDaoProvider).getDependencyProgress(
+              businessId: businessId,
+              branchId: branchId,
+            ),
     onLocalStateChanged: ref
         .read(productiveSyncStatusRevisionProvider.notifier)
         .markLocalStateChanged,
@@ -250,9 +260,36 @@ final productiveScheduledSyncServiceProvider =
 
 final cashCloseSyncTriggerServiceProvider =
     Provider<CashCloseSyncTriggerService>((ref) {
+  final evidenceDao = CashSessionCloseReadinessDao(
+    database: ref.watch(appDatabaseProvider),
+    cashSessionDao: ref.watch(cashSessionLocalDaoProvider),
+    issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
+  );
   return CashCloseSyncTriggerService(
     productiveSyncService: ref.watch(productiveManualSyncServiceProvider),
     cashSessionService: ref.watch(cashSessionLocalServiceProvider),
+    closeReadinessService: CashSessionCloseReadinessService(
+      evidenceLoader: evidenceDao.load,
+      dependencyReadinessLoader:
+          ref.watch(localSyncOutboxDaoProvider).getBatchDependencyReadiness,
+      provenanceRefresher: ({
+        required profileId,
+        required businessId,
+        required branchId,
+        required cashRegisterId,
+        required appDeviceId,
+      }) async {
+        await ref.read(cashPosRecoveryServiceProvider).recover(
+              CashPosRecoveryRequest(
+                profileId: profileId,
+                businessId: businessId,
+                branchId: branchId,
+                appDeviceId: appDeviceId,
+                canonicalCashRegisterId: cashRegisterId,
+              ),
+            );
+      },
+    ),
   );
 });
 

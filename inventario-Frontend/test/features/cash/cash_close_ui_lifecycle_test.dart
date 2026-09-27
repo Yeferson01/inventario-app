@@ -21,6 +21,9 @@ import 'package:inventario_frontend/features/sync/data/models/local_recovery_mod
 import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
 import 'package:inventario_frontend/features/sync/application/app_sync_coordinator_models.dart';
 import 'package:inventario_frontend/features/sync/application/cash_close_sync_trigger_service.dart';
+import 'package:inventario_frontend/features/sync/application/cash_session_close_readiness_service.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/cash_session_close_readiness_dao.dart';
+import 'package:inventario_frontend/features/sync/data/datasources/local_sync_outbox_dao.dart';
 import 'package:inventario_frontend/features/sync/application/cash_sync_upload_service.dart';
 import 'package:inventario_frontend/features/sync/application/intentional_stale_sale_reconciliation_service.dart';
 import 'package:inventario_frontend/features/sync/application/pos_sync_upload_provider.dart';
@@ -49,6 +52,25 @@ void main() {
     closeSyncService = CashCloseSyncTriggerService(
       productiveSyncService: _successfulProductiveSyncService(),
       cashSessionService: service,
+      closeReadinessService: CashSessionCloseReadinessService(
+        evidenceLoader: (
+                {required profileId,
+                required businessId,
+                required branchId}) async =>
+            const CashSessionCloseEvidence(
+          session: {
+            'id': 'session-s1',
+            'cash_register_id': 'register-a',
+            'local_status': 'synced',
+            'sync_status': 0,
+          },
+          cashMovements: [],
+          outboxMutations: [],
+          dirtyPosCount: 0,
+          openIssues: [],
+        ),
+        dependencyReadinessLoader: (_) async => BatchDependencyReadiness.ready,
+      ),
     );
   });
 
