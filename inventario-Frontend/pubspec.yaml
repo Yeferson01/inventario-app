@@ -76,6 +76,15 @@ dev_dependencies:
   drift_dev: ^2.20.1
   freezed: ^3.2.5
   json_serializable: ^6.8.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/branding/cronos_pos_icon.png
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: assets/branding/cronos_pos_icon.png
+  adaptive_icon_foreground_inset: 4
 
 # The following section is specific to Flutter packages.
 flutter:
