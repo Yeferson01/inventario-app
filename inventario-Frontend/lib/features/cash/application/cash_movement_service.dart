@@ -18,15 +18,18 @@ class CashMovementService {
   CashMovementService({
     required AppDatabase database,
     required Future<AppCurrentContext?> Function() loadCurrentContext,
+    void Function()? onCommitted,
   })  : _dao = CashMovementLocalDao(database),
         _sessionDao = CashSessionLocalDao(database),
         _outbox = LocalSyncOutboxService(LocalSyncOutboxDao(database)),
-        _loadCurrentContext = loadCurrentContext;
+        _loadCurrentContext = loadCurrentContext,
+        _onCommitted = onCommitted;
 
   final CashMovementLocalDao _dao;
   final CashSessionLocalDao _sessionDao;
   final LocalSyncOutboxService _outbox;
   final Future<AppCurrentContext?> Function() _loadCurrentContext;
+  final void Function()? _onCommitted;
 
   Future<BigInt> loadExpectedCashCents({
     required String profileId,
@@ -51,7 +54,7 @@ class CashMovementService {
 
   Future<CashMovementResult> recordMovement(CashMovementRequest request) async {
     request.validate();
-    return _dao.transaction(() async {
+    final result = await _dao.transaction(() async {
       final context = await _validateCurrentScope(
         profileId: request.profileId,
         businessId: request.businessId,
@@ -196,6 +199,8 @@ class CashMovementService {
       );
       return CashMovementResult(id: id, alreadyRecorded: false);
     });
+    if (!result.alreadyRecorded) _onCommitted?.call();
+    return result;
   }
 
   Future<AppCurrentContext> _validateCurrentScope({
