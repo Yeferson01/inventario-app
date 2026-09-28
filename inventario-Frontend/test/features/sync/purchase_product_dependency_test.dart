@@ -509,6 +509,26 @@ class _FakePurchasesRemoteDataSource implements PurchasesSyncRemoteDataSource {
   int uploadCalls = 0;
 
   @override
+  Future<PurchasePermissionRetryEvidence> inspectPermissionRetry({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String purchaseId,
+  }) async {
+    throw UnsupportedError('Permission retry is outside this dependency test.');
+  }
+
+  @override
+  Future<PurchasePermissionRetryEvidence> finalizePermissionRetry({
+    required String businessId,
+    required String branchId,
+    required String appDeviceId,
+    required String purchaseId,
+  }) async {
+    throw UnsupportedError('Permission retry is outside this dependency test.');
+  }
+
+  @override
   Future<bool> allPurchaseMutationEntitiesAlreadyExist({
     required List<Map<String, dynamic>> localMutations,
   }) async {

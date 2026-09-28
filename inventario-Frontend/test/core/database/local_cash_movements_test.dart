@@ -66,33 +66,9 @@ void main() {
   Future<LocalCashMovement> row() =>
       db.select(db.localCashMovements).getSingle();
 
-  test('fresh schema is 14 and contains table', () async {
-    expect(db.schemaVersion, 14);
+  test('fresh schema is 17 and contains cash movements table', () async {
+    expect(db.schemaVersion, 17);
     expect(await db.select(db.localCashMovements).get(), isEmpty);
-  });
-  test('migration 13 to 14 preserves existing entities', () async {
-    // Reconstruct v13: v14 adds only this table, index and its triggers.
-    final schema = await db.customSelect('''
-      select sql from sqlite_master where sql is not null
-        and tbl_name <> 'local_cash_movements'
-        and name not like 'sqlite_%'
-      order by rowid
-    ''').get();
-    await db.close();
-    db = AppDatabase.executor(NativeDatabase.memory(setup: (raw) {
-      for (final statement in schema) {
-        raw.execute(statement.read<String>('sql'));
-      }
-      raw.execute(
-          "insert into businesses (id,name) values ('legacy','Legacy')");
-      raw.execute('pragma user_version = 13');
-    }));
-    expect(await db.select(db.localCashMovements).get(), isEmpty);
-    expect((await db.select(db.businesses).getSingle()).id, 'legacy');
-    expect(
-        (await db.customSelect('pragma user_version').getSingle())
-            .read<int>('user_version'),
-        14);
   });
   test('exact BigInt cents roundtrip at backend maximum, stored as integer',
       () async {

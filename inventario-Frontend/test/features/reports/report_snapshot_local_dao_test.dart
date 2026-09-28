@@ -17,8 +17,9 @@ void main() {
     await database.close();
   });
 
-  test('schema 13 creates scoped report table and unique index', () async {
-    expect(database.schemaVersion, 13);
+  test('current schema 17 contains scoped report table and unique index',
+      () async {
+    expect(database.schemaVersion, 17);
     final columns = await database
         .customSelect('pragma table_info(local_report_snapshots)')
         .get();

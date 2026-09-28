@@ -240,6 +240,7 @@ class _Harness {
       if (includeCash) ...const [
         (bundle: 'cash_pos', dataset: 'cash_registers'),
         (bundle: 'cash_pos', dataset: 'open_cash_sessions'),
+        (bundle: 'cash_pos', dataset: 'cash_movements'),
         (bundle: 'cash_pos', dataset: 'session_sales'),
         (bundle: 'cash_pos', dataset: 'session_sale_items'),
         (bundle: 'cash_pos', dataset: 'session_sale_payments'),

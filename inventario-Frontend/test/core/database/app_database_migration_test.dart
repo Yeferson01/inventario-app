@@ -223,6 +223,37 @@ void main() {
     expect(legacyMovement.read<String>('id'), 'legacy-movement');
     expect(legacyMovement.read<int>('quantity_change'), 4);
   });
+  test('migrates historical schema 13 to 17 preserving report snapshots',
+      () async {
+    final database = AppDatabase.executor(NativeDatabase.memory(
+      setup: (rawDatabase) {
+        for (final statement in _schema10CostSetupStatements.where(
+          (statement) => statement != 'pragma user_version = 10',
+        )) {
+          rawDatabase.execute(statement);
+        }
+        for (final statement in _schema12UpgradeStatements.where(
+          (statement) => statement != 'pragma user_version = 12',
+        )) {
+          rawDatabase.execute(statement);
+        }
+        for (final statement in _schema13UpgradeStatements) {
+          rawDatabase.execute(statement);
+        }
+      },
+    ));
+    addTearDown(database.close);
+
+    expect(database.schemaVersion, 17);
+    final report = await database.customSelect('''
+      select payload_json from local_report_snapshots where id = 'legacy-report'
+    ''').getSingle();
+    expect(report.read<String>('payload_json'), '{}');
+    expect(await database.select(database.localCashMovements).get(), isEmpty);
+    final version =
+        await database.customSelect('pragma user_version').getSingle();
+    expect(version.read<int>('user_version'), 17);
+  });
   test('migrates schema 9 to 17 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -398,6 +429,50 @@ const _schema12UpgradeStatements = <String>[
   )
   ''',
   'pragma user_version = 12',
+];
+const _schema13UpgradeStatements = <String>[
+  '''
+  create table local_report_snapshots (
+    id text primary key not null,
+    profile_id text not null,
+    business_id text not null,
+    branch_id text not null,
+    report_type text not null,
+    filter_key text not null,
+    payload_json text not null,
+    fetched_at integer not null,
+    authoritative_as_of integer not null,
+    authorization_validated_at integer not null,
+    capability_fingerprint text not null,
+    includes_sensitive_data integer not null default 0,
+    includes_costs integer not null default 0,
+    created_at integer not null,
+    updated_at integer not null
+  )
+  ''',
+  '''
+  create unique index ux_local_report_snapshots_scope
+  on local_report_snapshots (
+    profile_id, business_id, branch_id, report_type, filter_key
+  )
+  ''',
+  '''
+  create index idx_local_report_snapshots_authorization
+  on local_report_snapshots (
+    profile_id, business_id, branch_id, authorization_validated_at
+  )
+  ''',
+  '''
+  insert into local_report_snapshots (
+    id, profile_id, business_id, branch_id, report_type, filter_key,
+    payload_json, fetched_at, authoritative_as_of,
+    authorization_validated_at, capability_fingerprint, created_at, updated_at
+  ) values (
+    'legacy-report', 'profile-p', 'business-a', 'branch-x', 'sales_summary',
+    'period-day', '{}', 1, 1, 1, 'reports.sales', 1, 1
+  )
+  ''',
+  'pragma user_version = 13',
 ];
 const _schema8SetupStatements = <String>[
   'pragma user_version = 8',
