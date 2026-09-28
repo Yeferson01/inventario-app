@@ -98,7 +98,7 @@ class _ProductiveLoginScreenState extends ConsumerState<ProductiveLoginScreen> {
                       Text(
                         _isRecoveryMode
                             ? 'Te enviaremos un enlace seguro a la app.'
-                            : 'Acceso privado a CronosManagement.',
+                            : 'Accede a Cronos POS.',
                       ),
                       const SizedBox(height: 24),
                       TextField(

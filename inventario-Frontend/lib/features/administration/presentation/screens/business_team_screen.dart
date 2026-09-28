@@ -55,7 +55,8 @@ class BusinessTeamScreen extends ConsumerWidget {
           body: invitations.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => _TeamStatusBody(
-              message: error.toString(),
+              message:
+                  'No pudimos cargar las invitaciones. Inténtalo nuevamente.',
               onRetry: () => ref.invalidate(
                 adminBusinessInvitationsProvider(appContext.businessId),
               ),
@@ -143,7 +144,9 @@ class BusinessTeamScreen extends ConsumerWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
+          const SnackBar(
+              content: Text(
+                  'No pudimos revocar la invitación. Inténtalo nuevamente.')),
         );
       }
     }
@@ -221,7 +224,10 @@ class _IssueInvitationDialogState
       );
       if (mounted) Navigator.of(context).pop(result);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error =
+            'No pudimos enviar la invitación. Revisa los datos e inténtalo nuevamente.');
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -238,7 +244,7 @@ class _IssueInvitationDialogState
         child: optionsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => _TeamStatusBody(
-            message: error.toString(),
+            message: 'No pudimos cargar las opciones. Inténtalo nuevamente.',
             onRetry: () => ref.invalidate(
               businessInvitationOptionsProvider(widget.businessId),
             ),

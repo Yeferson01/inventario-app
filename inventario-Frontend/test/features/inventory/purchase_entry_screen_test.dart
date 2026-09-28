@@ -134,7 +134,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Compra registrada'), findsOneWidget);
+      expect(find.textContaining('Compra de'), findsOneWidget);
+      expect(find.text('Compra registrada'), findsNothing);
 
       final item = await database
           .customSelect(
@@ -164,9 +165,6 @@ void main() {
       expect(balance.read<int>('quantity_available'), 1);
       expect(balance.read<double>('average_cost'), 6200);
       expect(product.read<double>('purchase_price'), 6000);
-
-      await tester.tap(find.text('Entendido'));
-      await tester.pumpAndSettle();
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 1));

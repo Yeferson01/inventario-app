@@ -123,10 +123,10 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (appContext == null || !access.canUseCash) {
       _showInfoSheet(
-        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        title: appContext == null ? 'Selecciona una sucursal' : 'Sin acceso',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir el módulo de caja.'
-            : 'El contexto actual no posee permisos efectivos de caja.',
+            : 'No tienes permiso para usar Caja. Pídele acceso al administrador.',
       );
       return;
     }
@@ -176,10 +176,10 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (appContext == null || !access.canPurchaseInventory) {
       _showInfoSheet(
-        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        title: appContext == null ? 'Selecciona una sucursal' : 'Sin acceso',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir compras.'
-            : 'Registrar compras requiere inventory.purchase.',
+            : 'No tienes permiso para registrar compras. Pídele acceso al administrador.',
       );
       return;
     }
@@ -189,9 +189,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (branchId == null || profileId == null) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
-        message:
-            'Compras necesita negocio, sucursal y perfil operativo activo.',
+        title: 'No pudimos abrir Compras',
+        message: 'Selecciona un negocio y una sucursal e inténtalo nuevamente.',
       );
       return;
     }
@@ -226,10 +225,10 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (appContext == null || !access.canReadInventory) {
       _showInfoSheet(
-        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        title: appContext == null ? 'Selecciona una sucursal' : 'Sin acceso',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir inventario.'
-            : 'Consultar inventario requiere inventory.read.',
+            : 'No tienes permiso para consultar Inventario. Pídele acceso al administrador.',
       );
       return;
     }
@@ -244,9 +243,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         profileId == null ||
         profileId.isEmpty) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
-        message:
-            'Inventario necesita un perfil, negocio y sucursal operativos activos.',
+        title: 'No pudimos abrir Inventario',
+        message: 'Selecciona un negocio y una sucursal e inténtalo nuevamente.',
       );
       return;
     }
@@ -256,7 +254,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         builder: (_) => InventoryProductStockListScreen(
           businessId: businessId,
           branchId: branchId,
-          branchName: branchName ?? branchId,
+          branchName: branchName ?? 'Sucursal',
           profileId: profileId,
           appDeviceId: appContext.appDeviceId,
           deviceInstallationId: appContext.installationId,
@@ -271,7 +269,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
               MaterialPageRoute<void>(
                 builder: (_) => InventoryMovementsScreen(
                   appContext: appContext,
-                  branchName: branchName ?? branchId,
+                  branchName: branchName ?? 'Sucursal',
                   productId: productId,
                   productName: productName,
                   productBarcode: productBarcode,
@@ -292,10 +290,10 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (appContext == null || !access.canReadInventory) {
       _showInfoSheet(
-        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        title: appContext == null ? 'Selecciona una sucursal' : 'Sin acceso',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir movimientos.'
-            : 'Consultar movimientos requiere inventory.read.',
+            : 'No tienes permiso para consultar Movimientos. Pídele acceso al administrador.',
       );
       return;
     }
@@ -311,9 +309,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         profileId.isEmpty ||
         !appContext.authorizationContextReady) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
-        message:
-            'Movimientos necesita un perfil, negocio y sucursal operativos activos.',
+        title: 'No pudimos abrir Movimientos',
+        message: 'Selecciona un negocio y una sucursal e inténtalo nuevamente.',
       );
       return;
     }
@@ -322,7 +319,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       MaterialPageRoute<void>(
         builder: (_) => InventoryMovementsScreen(
           appContext: appContext,
-          branchName: branchName ?? branchId,
+          branchName: branchName ?? 'Sucursal',
         ),
       ),
     );
@@ -335,7 +332,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     if (appContext == null ||
         (!access.canViewSalesReports && !access.canViewCashReports)) {
       _showInfoSheet(
-        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        title: appContext == null ? 'Selecciona una sucursal' : 'Sin acceso',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir reportes.'
             : 'No tienes permiso para consultar reportes.',
@@ -353,9 +350,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
         profileId.isEmpty ||
         !appContext.authorizationContextReady) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
-        message:
-            'Reportes necesita un perfil, negocio y sucursal operativos activos.',
+        title: 'No pudimos abrir Reportes',
+        message: 'Selecciona un negocio y una sucursal e inténtalo nuevamente.',
       );
       return;
     }
@@ -366,7 +362,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                     profileId: profileId,
                     businessId: businessId,
                     branchId: branchId,
-                    branchName: branchName ?? branchId,
+                    branchName: branchName ?? 'Sucursal',
                     effectivePermissions: appContext.permissions.values,
                     authorizationContextReady:
                         appContext.authorizationContextReady,
@@ -384,7 +380,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           profileId: profileId,
           businessId: businessId,
           branchId: branchId,
-          branchName: branchName ?? branchId,
+          branchName: branchName ?? 'Sucursal',
           effectivePermissions: appContext.permissions.values,
           authorizationContextReady: appContext.authorizationContextReady,
           authorizationValidatedAt: appContext.authorizationValidatedAt,
@@ -438,9 +434,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     final profileId = current?.profileId;
     if (current == null || profileId == null) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
-        message:
-            'No fue posible identificar el perfil y negocio operativos actuales.',
+        title: 'No pudimos cambiar de sucursal',
+        message: 'Vuelve al inicio y selecciona tu negocio nuevamente.',
       );
       return;
     }
@@ -459,7 +454,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       _showInfoSheet(
         title: 'Sucursal no autorizada',
         message:
-            'La sucursal elegida no pertenece al perfil y negocio operativos actuales.',
+            'No tienes acceso a esa sucursal. Elige otra o pide acceso al administrador.',
       );
     }
   }
@@ -470,9 +465,9 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (appContext == null || !access.canCreateSales) {
       _showInfoSheet(
-        title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
+        title: appContext == null ? 'Selecciona una sucursal' : 'Sin acceso',
         message: appContext == null
-            ? 'Selecciona un negocio y una sucursal antes de abrir el POS.'
+            ? 'Selecciona un negocio y una sucursal antes de iniciar una venta.'
             : 'No tienes permiso para crear ventas en esta sucursal.',
       );
       return;
@@ -483,8 +478,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (branchId == null || profileId == null) {
       _showInfoSheet(
-        title: 'Contexto incompleto',
-        message: 'El POS necesita negocio, sucursal y perfil operativo activo.',
+        title: 'No pudimos iniciar la venta',
+        message: 'Selecciona un negocio y una sucursal e inténtalo nuevamente.',
       );
       return;
     }
@@ -498,9 +493,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
 
     if (activeCashSessionId == null || activeCashRegisterId == null) {
       _showInfoSheet(
-        title: 'POS bloqueado',
-        message:
-            'Para vender primero debes abrir caja. Esto aplica aunque el usuario sea admin; el admin puede usar el dashboard, pero POS requiere caja abierta.',
+        title: 'Abre la caja para vender',
+        message: 'Necesitas una caja abierta antes de registrar ventas.',
         primaryLabel: 'Ir a Caja',
         onPrimary: () {
           Navigator.of(context).pop();
@@ -839,26 +833,22 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    String title = 'Bienvenido a Cronos';
-    String subtitle =
-        'Controla caja, ventas, inventario, compras y sincronización desde un solo lugar.';
+    String title = 'Cronos POS';
+    String subtitle = 'Ventas, compras, inventario y caja en un solo lugar.';
 
     if (isLoading) {
-      subtitle = 'Cargando contexto operativo...';
+      subtitle = 'Preparando tu negocio...';
     } else if (lastError != null) {
-      title = 'No se pudo cargar el dashboard';
-      subtitle =
-          'No fue posible cargar el contexto operativo. Intenta actualizar.';
+      title = 'No pudimos cargar el inicio';
+      subtitle = 'Comprueba tu conexión e inténtalo nuevamente.';
     } else if (appContext == null) {
-      title = 'Selecciona un contexto';
-      subtitle =
-          'Antes de operar debes seleccionar negocio, sucursal y perfil.';
+      title = 'Selecciona tu sucursal';
+      subtitle = 'Elige un negocio y una sucursal para continuar.';
     } else {
-      final role = appContext?.roleName;
       final businessName = operationalContext?.businessName;
       subtitle = businessName == null
-          ? 'Contexto operativo activo. Roles efectivos: ${role ?? 'sin descripción local'}.'
-          : 'Negocio: $businessName. Roles efectivos: ${role ?? 'sin descripción local'}.';
+          ? 'Tu sucursal está lista para trabajar.'
+          : 'Negocio: $businessName';
     }
 
     return AppGlassCard(
@@ -965,7 +955,7 @@ class _QuickStatusRow extends StatelessWidget {
       runSpacing: CronosSpacing.sm,
       children: [
         AppStatusChip(
-          label: appContext == null ? 'Sin contexto' : 'Contexto activo',
+          label: appContext == null ? 'Sin sucursal' : 'Sucursal lista',
           tone: appContext == null ? AppStatusTone.warning : AppStatusTone.info,
           icon: appContext == null
               ? Icons.warning_amber_outlined
@@ -987,7 +977,8 @@ class _QuickStatusRow extends StatelessWidget {
           ),
         if (moduleAccess.canCreateSales)
           AppStatusChip(
-            label: blockedReason == null ? 'POS habilitado' : 'POS bloqueado',
+            label:
+                blockedReason == null ? 'Ventas disponibles' : 'Revisa la caja',
             tone: blockedReason == null
                 ? AppStatusTone.success
                 : AppStatusTone.danger,
@@ -1062,42 +1053,22 @@ class _ModulesGrid extends StatelessWidget {
     final syncCopy = _productiveSyncCopy(productiveSyncStatus);
 
     final modules = [
-      if (moduleAccess.canUseCash)
-        _DashboardModule(
-          title: 'Caja',
-          subtitle: 'Abrir, cerrar, sincronizar y revisar efectivo.',
-          icon: Icons.point_of_sale_outlined,
-          gradient: CronosColors.successGradient,
-          statusLabel: cashLabel,
-          statusTone: cashTone,
-          onTap: onOpenCash,
-        ),
       if (moduleAccess.canCreateSales)
         _DashboardModule(
-          title: 'POS',
+          title: 'Venta',
           subtitle: blockedReason == null
-              ? 'Caja lista. Puedes iniciar ventas.'
-              : 'Primero debes dejar caja lista para vender.',
+              ? 'Registra una venta y cobra al cliente.'
+              : 'Abre la caja para empezar a vender.',
           icon: Icons.shopping_cart_checkout_outlined,
           gradient: CronosColors.primaryGradient,
           statusLabel: posLabel,
           statusTone: posTone,
           onTap: onOpenPos,
         ),
-      if (moduleAccess.canReadInventory)
-        _DashboardModule(
-          title: 'Inventario',
-          subtitle: 'Consultar stock operativo de la sucursal actual.',
-          icon: Icons.inventory_2_outlined,
-          gradient: CronosColors.warningGradient,
-          statusLabel: 'Operativo local',
-          statusTone: AppStatusTone.success,
-          onTap: onOpenInventory,
-        ),
       if (moduleAccess.canPurchaseInventory)
         _DashboardModule(
           title: 'Compras',
-          subtitle: 'Registrar compras y aumentar stock.',
+          subtitle: 'Registra compras y actualiza el inventario.',
           icon: Icons.local_shipping_outlined,
           gradient: const LinearGradient(
             colors: [
@@ -1105,14 +1076,34 @@ class _ModulesGrid extends StatelessWidget {
               CronosColors.accent,
             ],
           ),
-          statusLabel: 'Operativo local',
+          statusLabel: 'Disponible',
           statusTone: AppStatusTone.success,
           onTap: onOpenPurchases,
         ),
       if (moduleAccess.canReadInventory)
         _DashboardModule(
+          title: 'Inventario',
+          subtitle: 'Consulta el stock de esta sucursal.',
+          icon: Icons.inventory_2_outlined,
+          gradient: CronosColors.warningGradient,
+          statusLabel: 'Disponible',
+          statusTone: AppStatusTone.success,
+          onTap: onOpenInventory,
+        ),
+      if (moduleAccess.canUseCash)
+        _DashboardModule(
+          title: 'Caja',
+          subtitle: 'Abre, cierra y revisa el efectivo.',
+          icon: Icons.point_of_sale_outlined,
+          gradient: CronosColors.successGradient,
+          statusLabel: cashLabel,
+          statusTone: cashTone,
+          onTap: onOpenCash,
+        ),
+      if (moduleAccess.canReadInventory)
+        _DashboardModule(
           title: 'Movimientos',
-          subtitle: 'Trazabilidad de entradas y salidas.',
+          subtitle: 'Consulta las entradas y salidas de productos.',
           icon: Icons.timeline_outlined,
           gradient: const LinearGradient(
             colors: [
@@ -1127,7 +1118,7 @@ class _ModulesGrid extends StatelessWidget {
       if (moduleAccess.canViewSalesReports || moduleAccess.canViewCashReports)
         _DashboardModule(
           title: 'Reportes',
-          subtitle: 'Resumen autoritativo por período.',
+          subtitle: 'Consulta ventas, rentabilidad y flujo de caja.',
           icon: Icons.assessment_outlined,
           gradient: const LinearGradient(
             colors: [
@@ -1211,15 +1202,15 @@ _ProductiveSyncCopy _productiveSyncCopy(
 ) {
   if (status == null || status.isLoading) {
     return const _ProductiveSyncCopy(
-      subtitle: 'Consultando el estado local de sincronización.',
-      statusLabel: 'Consultando...',
+      subtitle: 'Revisando tus cambios...',
+      statusLabel: 'Revisando...',
       statusTone: AppStatusTone.neutral,
     );
   }
 
   if (status.hasError) {
     return const _ProductiveSyncCopy(
-      subtitle: 'No fue posible leer el estado local de sincronización.',
+      subtitle: 'No pudimos revisar tus cambios. Inténtalo nuevamente.',
       statusLabel: 'Estado no disponible',
       statusTone: AppStatusTone.danger,
     );
@@ -1228,7 +1219,7 @@ _ProductiveSyncCopy _productiveSyncCopy(
   final value = status.value;
   if (value == null) {
     return const _ProductiveSyncCopy(
-      subtitle: 'No fue posible leer el estado local de sincronización.',
+      subtitle: 'No pudimos revisar tus cambios. Inténtalo nuevamente.',
       statusLabel: 'Estado no disponible',
       statusTone: AppStatusTone.danger,
     );
@@ -1236,7 +1227,7 @@ _ProductiveSyncCopy _productiveSyncCopy(
 
   if (value.isSyncing) {
     return const _ProductiveSyncCopy(
-      subtitle: 'Publicando operaciones del contexto actual.',
+      subtitle: 'Enviando tus cambios.',
       statusLabel: 'Sincronizando...',
       statusTone: AppStatusTone.warning,
     );
@@ -1244,8 +1235,8 @@ _ProductiveSyncCopy _productiveSyncCopy(
 
   if (value.requiresAttention) {
     return const _ProductiveSyncCopy(
-      subtitle: 'Hay operaciones que necesitan revisión.',
-      statusLabel: 'Requiere atención',
+      subtitle: 'Algunos cambios necesitan revisión.',
+      statusLabel: 'Necesita atención',
       statusTone: AppStatusTone.danger,
     );
   }
@@ -1254,9 +1245,9 @@ _ProductiveSyncCopy _productiveSyncCopy(
     final pending = value.totalPending;
     return _ProductiveSyncCopy(
       subtitle: pending == 0
-          ? 'Tus operaciones guardadas permanecen en este dispositivo.'
-          : 'Tus operaciones guardadas permanecen en este dispositivo. '
-              '$pending ${pending == 1 ? 'pendiente' : 'pendientes'} de sincronización.',
+          ? 'No hay conexión. Tus cambios están guardados en este dispositivo.'
+          : 'No hay conexión. Tus cambios están guardados en este dispositivo. '
+              '$pending ${pending == 1 ? 'cambio pendiente' : 'cambios pendientes'}.',
       statusLabel: 'Sin conexión',
       statusTone: AppStatusTone.warning,
     );
@@ -1264,7 +1255,7 @@ _ProductiveSyncCopy _productiveSyncCopy(
 
   if (value.allUpToDate) {
     return const _ProductiveSyncCopy(
-      subtitle: 'No hay operaciones locales pendientes.',
+      subtitle: 'Todos tus cambios están al día.',
       statusLabel: 'Todo al día',
       statusTone: AppStatusTone.success,
     );

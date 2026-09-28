@@ -210,7 +210,7 @@ void main() {
 
     expect(find.text('Sincronizar ahora'), findsOneWidget);
     expect(find.text('Todo al día'), findsOneWidget);
-    expect(find.text('No hay operaciones locales pendientes.'), findsOneWidget);
+    expect(find.text('Todos tus cambios están al día.'), findsOneWidget);
   });
 
   testWidgets(
@@ -245,7 +245,7 @@ void main() {
     expect(find.text('Sin conexión'), findsOneWidget);
     expect(
       find.textContaining(
-        'Tus operaciones guardadas permanecen en este dispositivo.',
+        'Tus cambios están guardados en este dispositivo.',
       ),
       findsOneWidget,
     );
@@ -258,9 +258,9 @@ void main() {
       productiveSyncStatus: _status(openIssueCount: 1),
     );
 
-    expect(find.text('Requiere atención'), findsOneWidget);
+    expect(find.text('Necesita atención'), findsOneWidget);
     expect(
-      find.text('Hay operaciones que necesitan revisión.'),
+      find.text('Algunos cambios necesitan revisión.'),
       findsOneWidget,
     );
   });
@@ -340,7 +340,7 @@ void main() {
     expect(screen.appContext.businessId, 'business-1');
     expect(screen.appContext.branchId, 'branch-1');
     expect(screen.appContext.profileId, 'profile-1');
-    expect(screen.branchName, 'branch-1');
+    expect(screen.branchName, 'Sucursal');
     expect(screen.productId, isNull);
 
     expect(find.text('Historial no disponible sin conexión'), findsNothing);
@@ -402,7 +402,7 @@ void main() {
       expect(screen.productId, 'product-1');
       expect(screen.productName, 'Arroz premium');
       expect(screen.productBarcode, '7700000000001');
-      expect(screen.branchName, 'branch-1');
+      expect(screen.branchName, 'Sucursal');
 
       expect(find.text('Movimientos del producto'), findsOneWidget);
       expect(

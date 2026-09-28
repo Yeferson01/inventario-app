@@ -1157,7 +1157,7 @@ class _OperationalEntryLoading extends StatelessWidget {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Preparando contexto operacional...'),
+              Text('Preparando tu negocio...'),
             ],
           ),
         ),

@@ -1,5 +1,5 @@
 {
-  "APP_NAME": "CronosManagement",
+  "APP_NAME": "Cronos POS",
   "ENVIRONMENT": "prod",
   "API_URL": "https://api.tu-dominio.com",
   "SUPABASE_URL": "https://mtisfzthiyusmqfuhydp.supabase.co",

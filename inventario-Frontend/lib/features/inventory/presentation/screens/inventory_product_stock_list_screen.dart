@@ -557,11 +557,12 @@ class _InventoryProductStockListScreenState
                     key: Key('inventory-loading'),
                     child: CircularProgressIndicator(),
                   ),
-                  error: (error, _) => _InventoryStateMessage(
-                    key: const Key('inventory-error'),
+                  error: (error, _) => const _InventoryStateMessage(
+                    key: Key('inventory-error'),
                     icon: Icons.error_outline,
                     title: 'No se pudo cargar el inventario',
-                    message: error.toString(),
+                    message:
+                        'Vuelve a intentarlo. Tus productos guardados no se perderán.',
                   ),
                   data: (products) {
                     if (products.isEmpty) {

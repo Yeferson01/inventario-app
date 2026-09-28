@@ -118,6 +118,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('session-s1'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Cerrar caja'));
     await tester.pumpAndSettle();
@@ -126,14 +127,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Cierre sincronizado'), findsOneWidget);
-    expect(find.text('La información de caja y ventas quedó actualizada.'),
-        findsOneWidget);
+    expect(find.text('Caja cerrada.'), findsOneWidget);
+    expect(find.text('Cierre sincronizado'), findsNothing);
     expect(find.textContaining('Batches'), findsNothing);
     expect(find.textContaining('Mutaciones'), findsNothing);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Aceptar'));
-    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
@@ -147,9 +145,9 @@ void main() {
       closeSyncService: closeSyncService,
       permissions: const {'cash.receive'},
     );
-    expect(find.text('Entrada de efectivo'), findsOneWidget);
+    expect(find.text('Registrar entrada'), findsOneWidget);
     expect(find.text('Gastos y salidas'), findsNothing);
-    await tester.tap(find.text('Entrada de efectivo'));
+    await tester.tap(find.text('Registrar entrada'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
@@ -201,7 +199,7 @@ void main() {
       permissions: const {'cash.disburse'},
     );
     expect(find.text('Gastos y salidas'), findsOneWidget);
-    expect(find.text('Entrada de efectivo'), findsNothing);
+    expect(find.text('Registrar entrada'), findsNothing);
     await tester.tap(find.text('Gastos y salidas'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -231,7 +229,7 @@ void main() {
       closeSyncService: closeSyncService,
       permissions: const {'cash.receive', 'cash.disburse'},
     );
-    expect(find.text('Entrada de efectivo'), findsOneWidget);
+    expect(find.text('Registrar entrada'), findsOneWidget);
     expect(find.text('Gastos y salidas'), findsOneWidget);
   });
 
@@ -243,7 +241,7 @@ void main() {
       closeSyncService: closeSyncService,
       permissions: const {},
     );
-    expect(find.text('Entrada de efectivo'), findsNothing);
+    expect(find.text('Registrar entrada'), findsNothing);
     expect(find.text('Gastos y salidas'), findsNothing);
   });
 
@@ -258,7 +256,7 @@ void main() {
       closeSyncService: closeSyncService,
       permissions: const {'cash.receive', 'cash.disburse'},
     );
-    expect(find.text('Entrada de efectivo'), findsNothing);
+    expect(find.text('Registrar entrada'), findsNothing);
     expect(find.text('Gastos y salidas'), findsNothing);
   });
 

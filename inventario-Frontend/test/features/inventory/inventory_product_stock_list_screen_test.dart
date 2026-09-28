@@ -39,7 +39,8 @@ void main() {
 
     expect(find.byKey(const Key('inventory-error')), findsOneWidget);
     expect(find.text('No se pudo cargar el inventario'), findsOneWidget);
-    expect(find.textContaining('fallo local'), findsOneWidget);
+    expect(find.textContaining('fallo local'), findsNothing);
+    expect(find.textContaining('Vuelve a intentarlo'), findsOneWidget);
   });
 
   testWidgets('shows empty state only when there are no visible products', (

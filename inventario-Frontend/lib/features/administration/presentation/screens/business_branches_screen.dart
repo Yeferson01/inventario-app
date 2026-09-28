@@ -207,7 +207,10 @@ class _CreateBranchDialogState extends ConsumerState<_CreateBranchDialog> {
       );
       if (mounted) Navigator.of(context).pop(result);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error =
+            'No pudimos crear la sucursal. Revisa los datos e inténtalo nuevamente.');
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

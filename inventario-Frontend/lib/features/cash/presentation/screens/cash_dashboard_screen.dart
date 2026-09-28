@@ -189,7 +189,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
     await _runAction(
       actionCode: 'sync',
-      successMessage: 'Sincronización de caja completada.',
       action: () async {
         final cashBeforePosSummary = await _prepareAndUploadCashForCashClose();
         final posSummary = await _prepareAndUploadPosForCashClose();
@@ -214,15 +213,11 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
       return;
     }
 
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            syncSummary!.hasIssues
-                ? 'Hay operaciones pendientes'
-                : 'Sincronización completada',
-          ),
+    if (syncSummary!.hasIssues) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Hay operaciones pendientes'),
           content: Text(syncSummary!.message),
           actions: [
             FilledButton(
@@ -230,9 +225,13 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
               child: const Text('Aceptar'),
             ),
           ],
-        );
-      },
-    );
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La caja está al día.')),
+      );
+    }
     if (mounted) await _openPendingStaleSales();
   }
 
@@ -257,7 +256,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
     await _runAction(
       actionCode: 'close',
-      successMessage: 'Caja cerrada y sincronización completada.',
+      successMessage: 'Caja cerrada.',
       action: () async {
         closeResult = await ref
             .read(cashCloseSyncTriggerServiceProvider)
@@ -282,17 +281,15 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
     final hasNonCriticalPending =
         closeResult!.nonCriticalPendingDomains.isNotEmpty;
 
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Cierre sincronizado'),
-          content: Text(
-            hasNonCriticalPending
-                ? 'La caja se cerró correctamente. Algunas operaciones no '
-                    'relacionadas con el cierre siguen pendientes y podrán '
-                    'reintentarse después.'
-                : 'La información de caja y ventas quedó actualizada.',
+    if (hasNonCriticalPending) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Hay operaciones pendientes'),
+          content: const Text(
+            'La caja se cerró correctamente. Algunas operaciones no '
+            'relacionadas con el cierre siguen pendientes y podrán '
+            'reintentarse después.',
           ),
           actions: [
             FilledButton(
@@ -300,9 +297,9 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
               child: const Text('Aceptar'),
             ),
           ],
-        );
-      },
-    );
+        ),
+      );
+    }
     if (mounted) await _openPendingStaleSales();
   }
 
@@ -491,7 +488,7 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 
   Future<void> _runAction({
     required String actionCode,
-    required String successMessage,
+    String? successMessage,
     required Future<void> Function() action,
   }) async {
     if (!mounted) {
@@ -512,9 +509,11 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage)),
-      );
+      if (successMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(successMessage)),
+        );
+      }
     } on CashCloseSyncBlockedException catch (error, stackTrace) {
       AppLogger.warning(
         'Productive cash close was blocked safely',
@@ -786,7 +785,7 @@ class _CashActionsSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: isBusy ? null : onReceive,
                 icon: const Icon(Icons.add_circle_outline),
-                label: const Text('Entrada de efectivo'),
+                label: const Text('Registrar entrada'),
               ),
             if (canMove && allowDisburse)
               FilledButton.icon(
@@ -833,15 +832,17 @@ class _CashIdentitySection extends StatelessWidget {
         ),
         CashMetricTile(
           label: 'Sesión',
-          value: _text(summary!['cash_session_id'], fallback: 'Sin ID'),
-          helper:
-              'Estado: ${_text(summary!['status'], fallback: 'desconocido')}',
+          value: switch (summary!['status']) {
+            'open' => 'Abierta',
+            'closed' => 'Cerrada',
+            _ => 'Estado no disponible',
+          },
         ),
         CashMetricTile(
           label: 'Apertura / cierre',
-          value: _text(summary!['opened_at'], fallback: 'Sin apertura'),
+          value: _cashDate(context, summary!['opened_at'], 'Sin apertura'),
           helper:
-              'Cierre: ${_text(summary!['closed_at'], fallback: 'sin cierre')}',
+              'Cierre: ${_cashDate(context, summary!['closed_at'], 'sin cierre')}',
         ),
       ],
     );
@@ -913,15 +914,17 @@ class _CashSyncSection extends StatelessWidget {
       children: [
         CashMetricTile(
           label: 'Estado para POS',
-          value: canUploadPos ? 'POS habilitado' : 'POS bloqueado',
-          helper: readiness!['pos_upload_blocked_reason']?.toString(),
+          value: canUploadPos ? 'Listo para vender' : 'Ventas no disponibles',
+          helper: canUploadPos
+              ? null
+              : 'Revisa la caja y los cambios pendientes antes de vender.',
         ),
         CashMetricTile(
-          label: 'Caja pendiente',
+          label: 'Cambios de caja pendientes',
           value:
-              'Registros: ${_text(readiness!['dirty_cash_register_count'], fallback: '0')} / Sesiones: ${_text(readiness!['dirty_cash_session_count'], fallback: '0')}',
+              '${_int(readiness!['dirty_cash_register_count']) + _int(readiness!['dirty_cash_session_count'])}',
           helper:
-              'Ventas sin cash: ${_text(readiness!['pending_sales_without_cash_count'], fallback: '0')}',
+              'Ventas pendientes de revisar: ${_text(readiness!['pending_sales_without_cash_count'], fallback: '0')}',
         ),
       ],
     );
@@ -963,7 +966,7 @@ class _PaymentsByMethodSection extends StatelessWidget {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    _text(row['payment_method'], fallback: 'unknown'),
+                    _text(row['payment_method'], fallback: 'Otro medio'),
                   ),
                   subtitle: Text(
                     'Pagos: ${_text(row['payment_count'], fallback: '0')}',
@@ -1006,7 +1009,6 @@ class _NextActionsSection extends StatelessWidget {
     return CashMetricTile(
       label: 'Siguiente acción sugerida',
       value: nextAction,
-      helper: 'La navegación a POS se conecta en la siguiente subfase.',
     );
   }
 }
@@ -1223,6 +1225,20 @@ String _text(Object? value, {required String? fallback}) {
   }
 
   return text;
+}
+
+String _cashDate(BuildContext context, Object? value, String fallback) {
+  final date =
+      value is DateTime ? value : DateTime.tryParse(value?.toString() ?? '');
+  if (date == null) return fallback;
+  final local = date.toLocal();
+  final localization = MaterialLocalizations.of(context);
+  final day = localization.formatMediumDate(local);
+  final time = localization.formatTimeOfDay(
+    TimeOfDay.fromDateTime(local),
+    alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+  );
+  return '$day · $time';
 }
 
 double _num(Object? value) {

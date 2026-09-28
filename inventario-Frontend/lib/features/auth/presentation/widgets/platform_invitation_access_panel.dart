@@ -35,10 +35,11 @@ class _PlatformInvitationAccessPanelState
     });
     try {
       await widget.onAccept(invitation.invitationId);
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
         setState(() {
-          _message = error.toString();
+          _message =
+              'No pudimos aceptar la invitación. Inténtalo nuevamente; si continúa, pide ayuda al administrador.';
         });
       }
     } finally {
@@ -58,7 +59,7 @@ class _PlatformInvitationAccessPanelState
         ),
         const SizedBox(height: 8),
         const Text(
-          'Estas invitaciones son privadas y se validan nuevamente en el servidor al aceptarlas.',
+          'Elige la invitación del negocio al que deseas entrar.',
         ),
         const SizedBox(height: 12),
         for (final invitation in widget.invitations) ...[

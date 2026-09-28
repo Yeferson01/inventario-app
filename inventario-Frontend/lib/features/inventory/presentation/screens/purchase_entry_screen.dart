@@ -589,32 +589,8 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
       _addBusinessProductToCart(result);
 
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text(
-              result.outcome == BusinessProductCreationOutcome.existing
-                  ? 'Producto existente agregado'
-                  : 'Producto creado y agregado',
-            ),
-            content: Text(
-              '${result.message}\n\n'
-              'Nombre: $productName\n'
-              'Código: ${result.barcode ?? 'sin código'}\n'
-              'Costo: ${_money(_double(result.product?['purchase_price']))}\n'
-              'Estado catálogo: ${result.masterProductId == null ? 'manual sin vincular' : 'vinculado a master'}\n'
-              'Sync catálogo: ${result.created ? 'en cola local' : 'sin cambios'}\n\n'
-              'Cuando registres la compra, el stock local subirá con la cantidad recibida.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          );
-        },
+      _showMessage(
+        '$productName se agregó a la compra. El stock se actualizará al registrarla.',
       );
     } catch (_) {
       _showMessage(
@@ -662,7 +638,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                         packageUnit
                       ].whereType<String>().join(' ')}',
                   ].isEmpty
-                      ? 'Se encontró metadata maestra para este código.'
+                      ? 'Encontramos información de este producto para el código.'
                       : [
                           if (brand != null) 'Marca: $brand',
                           if (packageSize != null || packageUnit != null)
@@ -720,7 +696,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
     try {
       final repairService = ref.read(purchaseSyncRepairServiceProvider);
-      final repairResult = await repairService.repairPartialOrFailedPurchases(
+      await repairService.repairPartialOrFailedPurchases(
         businessId: widget.businessId,
         branchId: widget.branchId,
       );
@@ -731,7 +707,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       final outboxService = ref.read(purchaseSyncOutboxServiceProvider);
       final uploadService = ref.read(purchasesSyncUploadServiceProvider);
 
-      final catalogBackfillCount = await productSyncService
+      await productSyncService
           .enqueueManualProductsUsedByUnsyncedPurchasesForCatalogSync(
         businessId: widget.businessId,
         branchId: widget.branchId,
@@ -746,7 +722,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         batchLimit: 250,
       );
 
-      final enqueueResult = await outboxService.enqueuePendingPurchases(
+      await outboxService.enqueuePendingPurchases(
         businessId: widget.businessId,
         branchId: widget.branchId,
         profileId: widget.profileId,
@@ -775,60 +751,18 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         ),
       );
 
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          final hasIssues = catalogUploadResult.batchesPartial > 0 ||
-              catalogUploadResult.batchesFailed > 0 ||
-              uploadResult.batchesPartial > 0 ||
-              uploadResult.batchesFailed > 0 ||
-              uploadResult.batchesWaitingForDependencies > 0 ||
-              uploadResult.batchesBlockedByDependencies > 0;
-
-          return AlertDialog(
-            title: Text(
-              hasIssues
-                  ? 'Sync de compras con observaciones'
-                  : 'Sync de compras completado',
-            ),
-            content: Text(
-              'Reparación local\n'
-              'Compras reparadas: ${repairResult.purchaseCount}\n'
-              'Batches reemplazados: ${repairResult.supersededBatches}\n\n'
-              'Catálogo\n'
-              'Productos manuales encolados: $catalogBackfillCount\n'
-              'Batches revisados: ${catalogUploadResult.batchesChecked}\n'
-              'Batches subidos: ${catalogUploadResult.batchesUploaded}\n'
-              'Completados: ${catalogUploadResult.batchesCompleted}\n'
-              'Parciales: ${catalogUploadResult.batchesPartial}\n'
-              'Fallidos: ${catalogUploadResult.batchesFailed}\n'
-              'Mutaciones subidas: ${catalogUploadResult.mutationsUploaded}\n\n'
-              'Preparación local\n'
-              'Compras revisadas: ${enqueueResult.purchasesChecked}\n'
-              'Compras preparadas: ${enqueueResult.purchasesEnqueued}\n'
-              'Batches creados: ${enqueueResult.batchesCreated}\n'
-              'Mutaciones preparadas: ${enqueueResult.mutationsEnqueued}\n\n'
-              'Subida remota\n'
-              'Batches revisados: ${uploadResult.batchesChecked}\n'
-              'Batches subidos: ${uploadResult.batchesUploaded}\n'
-              'Completados: ${uploadResult.batchesCompleted}\n'
-              'Parciales: ${uploadResult.batchesPartial}\n'
-              'Fallidos: ${uploadResult.batchesFailed}\n'
-              'Esperando Products: ${uploadResult.batchesWaitingForDependencies}\n'
-              'Bloqueados por Product: ${uploadResult.batchesBlockedByDependencies}\n'
-              'Mutaciones subidas: ${uploadResult.mutationsUploaded}',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (error) {
-      _showMessage('No se pudo sincronizar compras: $error');
+      final hasIssues = catalogUploadResult.batchesPartial > 0 ||
+          catalogUploadResult.batchesFailed > 0 ||
+          uploadResult.batchesPartial > 0 ||
+          uploadResult.batchesFailed > 0 ||
+          uploadResult.batchesWaitingForDependencies > 0 ||
+          uploadResult.batchesBlockedByDependencies > 0;
+      _showMessage(hasIssues
+          ? 'Algunas compras siguen pendientes. Revisa la sincronización e inténtalo nuevamente.'
+          : 'Las compras pendientes están al día.');
+    } catch (_) {
+      _showMessage(
+          'No pudimos sincronizar las compras. Tus cambios siguen guardados; inténtalo nuevamente.');
     } finally {
       if (mounted) {
         setState(() {
@@ -855,7 +789,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
     if (invalidCost) {
       _showMessage(
-          'Confirma un costo unitario exacto mayor que cero para cada producto.');
+          'Ingresa un costo unitario mayor que cero para cada producto.');
       return;
     }
 
@@ -903,28 +837,11 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         _query = '';
       });
 
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Compra registrada'),
-            content: Text(
-              'Se registró la compra localmente.\n\n'
-              'Productos: ${result.itemCount}\n'
-              'Total: ${_money(result.total)}\n\n'
-              'El stock local ya fue actualizado. La compra queda pendiente de sincronización.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (error) {
-      _showMessage('No se pudo registrar la compra: $error');
+      _showMessage(
+          'Compra de ${_money(result.total)} guardada. El stock ya se actualizó.');
+    } catch (_) {
+      _showMessage(
+          'No pudimos registrar la compra. Revisa los datos e inténtalo nuevamente.');
     } finally {
       if (mounted) {
         setState(() {
@@ -1215,10 +1132,11 @@ class _ProductsPanel extends StatelessWidget {
                   child: CircularProgressIndicator(),
                 ),
               ),
-              error: (error, _) => AppEmptyState(
+              error: (error, _) => const AppEmptyState(
                 icon: Icons.error_outline,
                 title: 'No se pudieron cargar productos',
-                message: error.toString(),
+                message:
+                    'No pudimos cargar los productos. Vuelve a intentarlo.',
               ),
               data: (products) {
                 final filtered = filterProducts(products);

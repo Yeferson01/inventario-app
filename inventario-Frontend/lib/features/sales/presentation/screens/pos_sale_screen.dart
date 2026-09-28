@@ -697,13 +697,12 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
       _showMessage(
         result.salesEnqueued == 0
-            ? 'No hay ventas POS pendientes por preparar.'
-            : 'POS preparado: ${result.salesEnqueued} venta(s), '
-                '${result.mutationsEnqueued} mutación(es). '
-                'Se subirán en el horario programado.',
+            ? 'No hay ventas pendientes.'
+            : 'Las ventas pendientes están listas para sincronizarse.',
       );
-    } catch (error) {
-      _showMessage('No se pudo preparar POS para sync: $error');
+    } catch (_) {
+      _showMessage(
+          'No pudimos preparar las ventas. Tus cambios siguen guardados; inténtalo nuevamente.');
     }
   }
 
@@ -847,46 +846,41 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     try {
       final payments = _buildPaymentInputsForSale(total);
 
-      final result =
-          await ref.read(posLocalSaleServiceProvider).createLocalSale(
-                CreatePosLocalSaleInput(
-                  businessId: widget.businessId,
-                  branchId: widget.branchId,
-                  profileId: widget.profileId,
-                  appDeviceId: widget.appDeviceId,
-                  deviceInstallationId: widget.deviceInstallationId,
-                  cashRegisterId: widget.cashRegisterId,
-                  cashSessionId: widget.cashSessionId,
-                  items: _cartItems
-                      .map(
-                        (item) => PosLocalSaleItemInput(
-                          productId: item.productId,
-                          quantity: item.quantity,
-                          unitPrice: item.unitPrice,
-                        ),
-                      )
-                      .toList(),
-                  payments: payments,
-                  metadata: {
-                    'source': 'pos_sale_screen',
-                    'ui': 'professional_pos',
-                    'received_total': paid,
-                    'change_amount': change,
-                    'cart_item_count': _cartItems.length,
-                  },
-                ),
-              );
+      await ref.read(posLocalSaleServiceProvider).createLocalSale(
+            CreatePosLocalSaleInput(
+              businessId: widget.businessId,
+              branchId: widget.branchId,
+              profileId: widget.profileId,
+              appDeviceId: widget.appDeviceId,
+              deviceInstallationId: widget.deviceInstallationId,
+              cashRegisterId: widget.cashRegisterId,
+              cashSessionId: widget.cashSessionId,
+              items: _cartItems
+                  .map(
+                    (item) => PosLocalSaleItemInput(
+                      productId: item.productId,
+                      quantity: item.quantity,
+                      unitPrice: item.unitPrice,
+                    ),
+                  )
+                  .toList(),
+              payments: payments,
+              metadata: {
+                'source': 'pos_sale_screen',
+                'ui': 'professional_pos',
+                'received_total': paid,
+                'change_amount': change,
+                'cart_item_count': _cartItems.length,
+              },
+            ),
+          );
 
-      dynamic enqueueResult;
+      var prepareFailed = false;
 
       try {
-        enqueueResult = await _enqueuePendingPosSales(limit: 25);
-      } catch (error) {
-        if (mounted) {
-          _showMessage(
-            'Venta local creada, pero no se pudo preparar sync POS: $error',
-          );
-        }
+        await _enqueuePendingPosSales(limit: 25);
+      } catch (_) {
+        prepareFailed = true;
       }
 
       if (!mounted) {
@@ -908,37 +902,18 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
         _resetSaleDraft();
       }
 
-      final enqueuedSales = enqueueResult?.salesEnqueued ?? 0;
-      final enqueuedMutations = enqueueResult?.mutationsEnqueued ?? 0;
-
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Venta registrada'),
-            content: Text(
-              'La venta se guardó localmente y el stock local fue actualizado.\n\n'
-              'Total: ${_money(result.total)}\n'
-              'Cambio: ${_money(change)}\n\n'
-              'Preparación sync POS: $enqueuedSales venta(s), '
-              '$enqueuedMutations mutación(es).\n\n'
-              'Las operaciones pendientes se intentan sincronizar '
-              'automáticamente cuando la aplicación puede hacerlo.'
-              '${quickSaleRestoreMessage != null ? '\n\n$quickSaleRestoreMessage' : ''}',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Aceptar'),
-              ),
-            ],
-          );
-        },
-      );
+      if (prepareFailed) {
+        _showMessage(
+            'Venta guardada en este dispositivo. No pudimos preparar el envío; sincroniza más tarde.');
+      } else if (quickSaleRestoreMessage != null) {
+        _showMessage(quickSaleRestoreMessage);
+      } else if (change > 0) {
+        _showMessage('Venta guardada. Devuelve ${_money(change)} de cambio.');
+      }
 
       _searchFocusNode.requestFocus();
     } catch (error) {
-      _showMessage(error.toString());
+      _showMessage(_chargeErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() {
@@ -1008,8 +983,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                 loading: () => const Center(
                   child: CircularProgressIndicator(),
                 ),
-                error: (error, _) => _PosErrorState(
-                  message: error.toString(),
+                error: (error, _) => const _PosErrorState(
+                  message:
+                      'No pudimos cargar los productos. Vuelve a intentarlo.',
                 ),
                 data: (products) {
                   return LayoutBuilder(
@@ -1064,7 +1040,6 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                                   onStartQuickSale: _startQuickSale,
                                   onRestoreParkedSale: _restoreParkedSale,
                                   cashRegisterName: widget.cashRegisterName,
-                                  cashSessionId: widget.cashSessionId,
                                 ),
                               ),
                             ],
@@ -1112,7 +1087,6 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                             onStartQuickSale: _startQuickSale,
                             onRestoreParkedSale: _restoreParkedSale,
                             cashRegisterName: widget.cashRegisterName,
-                            cashSessionId: widget.cashSessionId,
                           ),
                         ],
                       );
@@ -1495,7 +1469,6 @@ class _CartSection extends StatelessWidget {
     required this.onStartQuickSale,
     required this.onRestoreParkedSale,
     required this.cashRegisterName,
-    required this.cashSessionId,
   });
 
   final List<_PosCartItem> cartItems;
@@ -1520,7 +1493,6 @@ class _CartSection extends StatelessWidget {
   final VoidCallback onStartQuickSale;
   final VoidCallback onRestoreParkedSale;
   final String? cashRegisterName;
-  final String? cashSessionId;
 
   @override
   Widget build(BuildContext context) {
@@ -1660,7 +1632,7 @@ class _CartSection extends StatelessWidget {
                   )
                 : const Icon(Icons.playlist_add_check_outlined),
             label: Text(
-              isEnqueueing ? 'Preparando...' : 'Preparar sync programado',
+              isEnqueueing ? 'Preparando...' : 'Preparar ventas pendientes',
             ),
           ),
           const SizedBox(height: CronosSpacing.xs),
@@ -1670,16 +1642,6 @@ class _CartSection extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
-          if (cashSessionId != null && cashSessionId!.trim().isNotEmpty) ...[
-            const SizedBox(height: CronosSpacing.sm),
-            Text(
-              'Sesión: $cashSessionId',
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ],
         ],
       ),
     );
@@ -2348,6 +2310,30 @@ String _paymentLabel(String method) {
     'card' => 'Tarjeta',
     _ => method,
   };
+}
+
+String _chargeErrorMessage(Object error) {
+  if (error is StateError) {
+    final message = error.message.toString();
+    if (message.startsWith('Stock insuficiente')) {
+      return 'No hay suficiente stock para completar esta venta.';
+    }
+    if (message.startsWith('Precio de venta inválido')) {
+      return 'Revisa el precio del producto e inténtalo nuevamente.';
+    }
+    if (message.startsWith('El total pagado no coincide') ||
+        message.startsWith('Los pagos no coinciden')) {
+      return 'Revisa los pagos: deben coincidir con el total de la venta.';
+    }
+    if (message == 'Registra al menos un pago.' ||
+        message == 'El pago está incompleto.' ||
+        message ==
+            'El cambio solo se permite cuando existe un pago en efectivo.' ||
+        message == 'El efectivo recibido no alcanza para cubrir el cambio.') {
+      return message;
+    }
+  }
+  return 'No pudimos registrar la venta. Revisa los datos e inténtalo nuevamente.';
 }
 
 String _money(Object? value) {

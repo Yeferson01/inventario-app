@@ -150,8 +150,8 @@ class _HistoryBody extends StatelessWidget {
             ? 'No tienes acceso a movimientos'
             : 'No se pudo cargar el historial',
         message: denied
-            ? 'Se requiere inventory.read para consultar este historial.'
-            : 'Ocurrió un problema al consultar los movimientos guardados.',
+            ? 'Pídele acceso al administrador del negocio.'
+            : 'Vuelve a intentarlo. Tus movimientos guardados no se perderán.',
         actionLabel: denied ? null : 'Reintentar',
         onAction: denied ? null : controller.refresh,
       );
@@ -413,7 +413,7 @@ class _MovementCard extends StatelessWidget {
                     ),
                     Text(
                       _formatDateTime(context, entry.occurredAt),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
                 ),
@@ -422,7 +422,7 @@ class _MovementCard extends StatelessWidget {
                   Text(
                     summary,
                     key: Key('inventory-history-stock-${entry.id}'),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
                 if (canViewCosts) ...[
@@ -576,7 +576,7 @@ class _HistoryNotice extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
           ],

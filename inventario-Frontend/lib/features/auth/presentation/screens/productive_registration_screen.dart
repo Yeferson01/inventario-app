@@ -104,7 +104,7 @@ class _ProductiveRegistrationScreenState
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Crea tu acceso a CronosManagement. Los negocios y permisos se asignan después.',
+                              'Crea tu acceso a Cronos POS. Podrás crear un negocio o aceptar una invitación.',
                             ),
                             const SizedBox(height: 24),
                             TextField(
@@ -211,7 +211,7 @@ class _EmailConfirmationPending extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Te enviamos un enlace para confirmar tu cuenta. Después vuelve a CronosManagement para iniciar sesión.',
+          'Te enviamos un enlace para confirmar tu cuenta. Después vuelve a Cronos POS para iniciar sesión.',
         ),
         const SizedBox(height: 20),
         FilledButton(

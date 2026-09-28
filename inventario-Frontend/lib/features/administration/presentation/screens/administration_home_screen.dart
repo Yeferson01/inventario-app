@@ -16,13 +16,13 @@ class AdministrationHomeScreen extends ConsumerWidget {
       body: currentContext.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _Status(
-          message: 'No fue posible cargar el contexto administrativo.',
+          message: 'No pudimos cargar la administración. Inténtalo nuevamente.',
           onRetry: () => ref.invalidate(administrationCurrentContextProvider),
         ),
         data: (appContext) {
           if (appContext == null || !appContext.authorizationContextReady) {
             return const _Status(
-              message: 'No existe un contexto operacional autorizado.',
+              message: 'Selecciona un negocio y una sucursal para continuar.',
             );
           }
           final hasLocalBranchPermission =

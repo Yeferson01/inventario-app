@@ -125,7 +125,7 @@ class _AppBusinessContextSelectorState
               ? null
               : () => widget.onSelected(selectedContext),
           child: Text(
-            widget.isSubmitting ? 'Preparando contexto...' : 'Continuar',
+            widget.isSubmitting ? 'Preparando tu negocio...' : 'Continuar',
           ),
         ),
       ],

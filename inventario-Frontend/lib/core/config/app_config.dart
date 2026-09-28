@@ -1,7 +1,7 @@
 class AppConfig {
   static const String appName = String.fromEnvironment(
     'APP_NAME',
-    defaultValue: 'Inventario Base',
+    defaultValue: 'Cronos POS',
   );
 
   static const String environment = String.fromEnvironment(

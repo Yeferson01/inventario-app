@@ -35,8 +35,11 @@ class _BusinessInvitationAccessPanelState
     });
     try {
       await widget.onAccept(invitation.id);
-    } catch (error) {
-      if (mounted) setState(() => _message = error.toString());
+    } catch (_) {
+      if (mounted) {
+        setState(() => _message =
+            'No pudimos aceptar la invitación. Inténtalo nuevamente; si continúa, pide ayuda al administrador.');
+      }
     } finally {
       if (mounted) setState(() => _acceptingId = null);
     }
@@ -54,7 +57,7 @@ class _BusinessInvitationAccessPanelState
         ),
         const SizedBox(height: 8),
         const Text(
-          'El servidor volverá a validar la invitación y tus permisos al aceptarla.',
+          'Elige la invitación del negocio al que deseas entrar.',
         ),
         const SizedBox(height: 12),
         for (final invitation in widget.invitations) ...[
