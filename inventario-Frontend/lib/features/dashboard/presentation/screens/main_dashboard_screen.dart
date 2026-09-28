@@ -1053,6 +1053,16 @@ class _ModulesGrid extends StatelessWidget {
     final syncCopy = _productiveSyncCopy(productiveSyncStatus);
 
     final modules = [
+      if (moduleAccess.canUseCash)
+        _DashboardModule(
+          title: 'Caja',
+          subtitle: 'Abre, cierra y revisa el efectivo.',
+          icon: Icons.point_of_sale_outlined,
+          gradient: CronosColors.successGradient,
+          statusLabel: cashLabel,
+          statusTone: cashTone,
+          onTap: onOpenCash,
+        ),
       if (moduleAccess.canCreateSales)
         _DashboardModule(
           title: 'Venta',
@@ -1064,6 +1074,16 @@ class _ModulesGrid extends StatelessWidget {
           statusLabel: posLabel,
           statusTone: posTone,
           onTap: onOpenPos,
+        ),
+      if (moduleAccess.canReadInventory)
+        _DashboardModule(
+          title: 'Inventario',
+          subtitle: 'Consulta el stock de esta sucursal.',
+          icon: Icons.inventory_2_outlined,
+          gradient: CronosColors.warningGradient,
+          statusLabel: 'Disponible',
+          statusTone: AppStatusTone.success,
+          onTap: onOpenInventory,
         ),
       if (moduleAccess.canPurchaseInventory)
         _DashboardModule(
@@ -1079,26 +1099,6 @@ class _ModulesGrid extends StatelessWidget {
           statusLabel: 'Disponible',
           statusTone: AppStatusTone.success,
           onTap: onOpenPurchases,
-        ),
-      if (moduleAccess.canReadInventory)
-        _DashboardModule(
-          title: 'Inventario',
-          subtitle: 'Consulta el stock de esta sucursal.',
-          icon: Icons.inventory_2_outlined,
-          gradient: CronosColors.warningGradient,
-          statusLabel: 'Disponible',
-          statusTone: AppStatusTone.success,
-          onTap: onOpenInventory,
-        ),
-      if (moduleAccess.canUseCash)
-        _DashboardModule(
-          title: 'Caja',
-          subtitle: 'Abre, cierra y revisa el efectivo.',
-          icon: Icons.point_of_sale_outlined,
-          gradient: CronosColors.successGradient,
-          statusLabel: cashLabel,
-          statusTone: cashTone,
-          onTap: onOpenCash,
         ),
       if (moduleAccess.canReadInventory)
         _DashboardModule(

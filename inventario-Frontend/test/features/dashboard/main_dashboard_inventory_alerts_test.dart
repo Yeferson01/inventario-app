@@ -32,8 +32,37 @@ import 'package:inventario_frontend/features/sync/application/app_router_sync_bo
 import 'package:inventario_frontend/features/sync/application/productive_manual_sync_service.dart';
 import 'package:inventario_frontend/features/sync/application/productive_sync_status.dart';
 import 'package:inventario_frontend/features/sync/application/productive_sync_status_provider.dart';
+import 'package:inventario_frontend/shared/presentation/widgets/app_module_card.dart';
 
 void main() {
+  testWidgets('orders primary modules with Caja first', (tester) async {
+    await _pumpDashboard(
+      tester,
+      permissions: const {
+        'cash.read',
+        'sales.create',
+        'inventory.read',
+        'inventory.purchase',
+        'reports.sales',
+      },
+    );
+
+    final titles = tester
+        .widgetList<AppModuleCard>(find.byType(AppModuleCard))
+        .map((module) => module.title)
+        .toList();
+
+    expect(titles, [
+      'Caja',
+      'Venta',
+      'Inventario',
+      'Compras',
+      'Movimientos',
+      'Reportes',
+      'Sincronizar ahora',
+    ]);
+  });
+
   testWidgets('shows Reports only with reports.sales', (tester) async {
     await _pumpDashboard(
       tester,
