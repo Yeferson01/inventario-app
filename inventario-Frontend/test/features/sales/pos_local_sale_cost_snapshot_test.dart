@@ -114,6 +114,59 @@ void main() {
     }
   });
 
+  test('payment event time is durable across midnight and outbox retry',
+      () async {
+    final fixture = await _SaleFixture.create(averageCost: 6000);
+    addTearDown(fixture.close);
+    final sale = await fixture.sell(quantity: 1);
+    final event = DateTime.utc(2026, 11, 1, 4, 58); // Oct 31, 23:58 Bogotá.
+    await fixture.database.customStatement(
+      'update sale_payments set created_at = ? where sale_id = ?',
+      [event.millisecondsSinceEpoch ~/ 1000, sale.saleId],
+    );
+    final dao = PosLocalSaleDao(fixture.database);
+    final outbox = PosSyncOutboxService(
+      dao: dao,
+      outboxService: LocalSyncOutboxService(
+        LocalSyncOutboxDao(fixture.database),
+      ),
+    );
+    Future<Map<String, dynamic>> paymentPayload() async {
+      final row = await fixture.database
+          .customSelect(
+            "select payload_json from local_sync_mutations where entity_table = 'sale_payments'",
+          )
+          .getSingle();
+      return jsonDecode(row.read<String>('payload_json'))
+          as Map<String, dynamic>;
+    }
+
+    await outbox.enqueuePendingPosSales(
+      businessId: _businessId,
+      branchId: _branchId,
+      profileId: _profileId,
+      deviceInstallationId: 'installation-1',
+    );
+    final first = await paymentPayload();
+    expect(first['payment_event_time_contract'], 'v1');
+    expect(first['paid_at'], event.toIso8601String());
+    expect(first['created_at'], first['paid_at']);
+
+    await outbox.enqueuePendingPosSales(
+      businessId: _businessId,
+      branchId: _branchId,
+      profileId: _profileId,
+      deviceInstallationId: 'installation-1',
+    );
+    expect(await paymentPayload(), first);
+    final count = await fixture.database
+        .customSelect(
+          "select count(*) as count from local_sync_mutations where entity_table = 'sale_payments'",
+        )
+        .getSingle();
+    expect(count.read<int>('count'), 1);
+  });
+
   test('missing required branch balance remains rejected', () async {
     final fixture = await _SaleFixture.create(
       averageCost: 6000,

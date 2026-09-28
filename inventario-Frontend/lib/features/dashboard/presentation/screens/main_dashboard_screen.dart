@@ -16,6 +16,7 @@ import '../../../inventory/presentation/screens/inventory_product_stock_list_scr
 import '../../../inventory/presentation/screens/inventory_movements_screen.dart';
 import '../../../inventory/presentation/screens/purchase_entry_screen.dart';
 import '../../../reports/presentation/screens/sales_report_screen.dart';
+import '../../../reports/presentation/screens/cash_flow_report_screen.dart';
 import '../../../sync/application/app_context_models.dart';
 import '../../../sync/application/app_current_context_provider.dart';
 import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
@@ -331,12 +332,13 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     final appContext = _appContext;
     final access = DashboardModuleAccess.fromContext(appContext);
 
-    if (appContext == null || !access.canViewSalesReports) {
+    if (appContext == null ||
+        (!access.canViewSalesReports && !access.canViewCashReports)) {
       _showInfoSheet(
         title: appContext == null ? 'Falta contexto' : 'Acceso no autorizado',
         message: appContext == null
             ? 'Selecciona un negocio y una sucursal antes de abrir reportes.'
-            : 'Consultar reportes de ventas requiere reports.sales.',
+            : 'No tienes permiso para consultar reportes.',
       );
       return;
     }
@@ -358,6 +360,24 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
       return;
     }
 
+    Future<void> openCashFlow() => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+              builder: (_) => CashFlowReportScreen(
+                    profileId: profileId,
+                    businessId: businessId,
+                    branchId: branchId,
+                    branchName: branchName ?? branchId,
+                    effectivePermissions: appContext.permissions.values,
+                    authorizationContextReady:
+                        appContext.authorizationContextReady,
+                    authorizationValidatedAt:
+                        appContext.authorizationValidatedAt,
+                  )),
+        );
+    if (!access.canViewSalesReports) {
+      await openCashFlow();
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SalesReportScreen(
@@ -368,6 +388,7 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
           effectivePermissions: appContext.permissions.values,
           authorizationContextReady: appContext.authorizationContextReady,
           authorizationValidatedAt: appContext.authorizationValidatedAt,
+          onOpenCashFlow: access.canViewCashReports ? openCashFlow : null,
         ),
       ),
     );
@@ -1103,10 +1124,10 @@ class _ModulesGrid extends StatelessWidget {
           statusTone: AppStatusTone.success,
           onTap: onOpenMovements,
         ),
-      if (moduleAccess.canViewSalesReports)
+      if (moduleAccess.canViewSalesReports || moduleAccess.canViewCashReports)
         _DashboardModule(
           title: 'Reportes',
-          subtitle: 'Resumen autoritativo de ventas por periodo.',
+          subtitle: 'Resumen autoritativo por período.',
           icon: Icons.assessment_outlined,
           gradient: const LinearGradient(
             colors: [
@@ -1114,7 +1135,7 @@ class _ModulesGrid extends StatelessWidget {
               Color(0xFF7C3AED),
             ],
           ),
-          statusLabel: 'Ventas',
+          statusLabel: moduleAccess.canViewSalesReports ? 'Ventas' : 'Caja',
           statusTone: AppStatusTone.info,
           onTap: onOpenSalesReports,
         ),

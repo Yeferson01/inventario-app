@@ -17,6 +17,7 @@ class SalesReportScreen extends ConsumerStatefulWidget {
     required this.effectivePermissions,
     required this.authorizationContextReady,
     this.authorizationValidatedAt,
+    this.onOpenCashFlow,
   });
 
   final String profileId;
@@ -26,6 +27,7 @@ class SalesReportScreen extends ConsumerStatefulWidget {
   final Set<String> effectivePermissions;
   final bool authorizationContextReady;
   final DateTime? authorizationValidatedAt;
+  final Future<void> Function()? onOpenCashFlow;
 
   @override
   ConsumerState<SalesReportScreen> createState() => _SalesReportScreenState();
@@ -111,6 +113,15 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: CronosSpacing.md),
+              if (widget.onOpenCashFlow != null) ...[
+                OutlinedButton.icon(
+                  key: const Key('open-cash-flow-report'),
+                  onPressed: widget.onOpenCashFlow,
+                  icon: const Icon(Icons.account_balance_wallet_outlined),
+                  label: const Text('Flujo de caja y gastos'),
+                ),
+                const SizedBox(height: CronosSpacing.md),
+              ],
               if (request.canViewProfitability) ...[
                 SegmentedButton<bool>(
                   key: const Key('report-view-selector'),

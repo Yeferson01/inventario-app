@@ -21,8 +21,11 @@ import 'package:inventario_frontend/features/inventory/presentation/screens/inve
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import 'package:inventario_frontend/features/reports/application/sales_report_providers.dart';
 import 'package:inventario_frontend/features/reports/application/sales_report_service.dart';
+import 'package:inventario_frontend/features/reports/application/cash_flow_report_providers.dart';
+import 'package:inventario_frontend/features/reports/application/cash_flow_report_service.dart';
 import 'package:inventario_frontend/features/reports/data/models/sales_report_models.dart';
 import 'package:inventario_frontend/features/reports/presentation/screens/sales_report_screen.dart';
+import 'package:inventario_frontend/features/reports/presentation/screens/cash_flow_report_screen.dart';
 import 'package:inventario_frontend/features/sync/application/app_context_models.dart';
 import 'package:inventario_frontend/features/sync/application/app_current_context_provider.dart';
 import 'package:inventario_frontend/features/sync/application/app_router_sync_bootstrap_provider.dart';
@@ -62,6 +65,17 @@ void main() {
 
     expect(find.byType(SalesReportScreen), findsOneWidget);
     expect(find.text('Reporte no disponible sin conexión'), findsOneWidget);
+  });
+
+  testWidgets('reports.cash alone opens cash-flow report, not sales',
+      (tester) async {
+    await _pumpDashboard(tester, permissions: const {'reports.cash'});
+    final reports = find.text('Reportes');
+    await tester.ensureVisible(reports);
+    await tester.tap(reports);
+    await tester.pumpAndSettle();
+    expect(find.byType(CashFlowReportScreen), findsOneWidget);
+    expect(find.byType(SalesReportScreen), findsNothing);
   });
 
   testWidgets(
@@ -493,6 +507,9 @@ Future<void> _pumpDashboard(
         salesReportServiceProvider.overrideWithValue(
           const _DashboardSalesReportService(),
         ),
+        cashFlowReportServiceProvider.overrideWithValue(
+          const _DashboardCashFlowReportService(),
+        ),
         salesReportOnlineCheckProvider.overrideWithValue(() async => false),
       ],
       child: const MaterialApp(home: MainDashboardScreen()),
@@ -520,6 +537,18 @@ class _DashboardSalesReportService implements SalesReportService {
       outcome: SalesReportRefreshOutcome.remoteFailure,
     );
   }
+}
+
+class _DashboardCashFlowReportService implements CashFlowReportService {
+  const _DashboardCashFlowReportService();
+
+  @override
+  Future<CashFlowCacheResult> readCached(SalesReportScope scope) async =>
+      const CashFlowCacheResult(CashFlowCacheOutcome.noCache);
+
+  @override
+  Future<CashFlowRefreshResult> refresh(SalesReportScope scope) async =>
+      const CashFlowRefreshResult(CashFlowRefreshOutcome.remoteFailure);
 }
 
 ProductiveSyncStatus _status({

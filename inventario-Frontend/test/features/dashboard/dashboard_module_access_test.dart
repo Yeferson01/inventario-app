@@ -115,6 +115,22 @@ void main() {
     expect(access.canViewSalesReports, isFalse);
   });
 
+  test('reports.cash grants cash reporting without sales-report permission', () {
+    final access = DashboardModuleAccess.fromContext(
+      _context(roles: const ['custom_analyst'],
+          permissions: const ['reports.cash']),
+    );
+    expect(access.canViewCashReports, isTrue);
+    expect(access.canViewSalesReports, isFalse);
+  });
+
+  test('cash.read alone does not grant cash reporting', () {
+    final access = DashboardModuleAccess.fromContext(
+      _context(permissions: const ['cash.read']),
+    );
+    expect(access.canViewCashReports, isFalse);
+  });
+
   test('legacy permissions without active projection grant no module', () {
     final access = DashboardModuleAccess.fromContext(
       _context(

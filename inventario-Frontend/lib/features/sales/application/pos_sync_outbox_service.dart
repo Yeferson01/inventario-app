@@ -302,6 +302,9 @@ class PosSyncOutboxService {
   }
 
   Map<String, dynamic> _salePaymentPayload(Map<String, dynamic> payment) {
+    // Drift's payment.created_at is the durable UTC payment event time. Keep
+    // the same value for every retry and never substitute upload time.
+    final paidAt = _paymentEventTimeIso(payment['created_at']);
     return {
       'id': _requiredString(payment, 'id'),
       'business_id': _requiredString(payment, 'business_id'),
@@ -315,8 +318,10 @@ class PosSyncOutboxService {
       'idempotency_key':
           'sale_payments:${_requiredString(payment, 'id')}:insert',
       'sync_status': 'pending',
+      'payment_event_time_contract': 'v1',
+      'paid_at': paidAt,
       'metadata': _metadata(payment['metadata_json']),
-      'created_at': _iso(payment['created_at']),
+      'created_at': paidAt,
       'updated_at': _iso(payment['updated_at']),
       'deleted_at': _nullableIso(payment['deleted_at']),
     };
@@ -444,6 +449,32 @@ class PosSyncOutboxService {
       return DateTime.now().toUtc().toIso8601String();
     }
 
+    return parsed.toUtc().toIso8601String();
+  }
+
+  String _paymentEventTimeIso(Object? value) {
+    DateTime? parsed;
+    if (value is DateTime) {
+      parsed = value;
+    } else if (value is int) {
+      // Drift stores DateTime columns as Unix seconds. Older rows may use
+      // milliseconds; 100 billion separates realistic seconds from millis.
+      final milliseconds = value.abs() < 100000000000 ? value * 1000 : value;
+      try {
+        parsed = DateTime.fromMillisecondsSinceEpoch(
+          milliseconds,
+          isUtc: true,
+        );
+      } on ArgumentError {
+        throw StateError('Payment event timestamp is invalid.');
+      }
+    } else if (value is String &&
+        RegExp(r'(Z|[+-]\d{2}:\d{2})$').hasMatch(value)) {
+      parsed = DateTime.tryParse(value);
+    }
+    if (parsed == null) {
+      throw StateError('Payment event timestamp is required.');
+    }
     return parsed.toUtc().toIso8601String();
   }
 
