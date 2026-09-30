@@ -182,7 +182,7 @@ select is((select count(*) from public.cash_movements
 select is((select sum(case when direction = 'inflow' then amount else -amount end)
   from public.cash_movements where cash_session_id=md5('c2-session')::uuid),
   (-14.75)::numeric, 'net cash movement is exact');
-select is(public.process_cash_sync_batch(md5('c2-batch')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-batch')::uuid, 'apply_cash')->>'status',
   'completed', 'batch retry succeeds idempotently');
 select is((select count(*) from public.cash_movements
   where cash_session_id=md5('c2-session')::uuid), 4::bigint,
@@ -227,7 +227,7 @@ update public.sync_mutations set
   status = 'pending'
 where id = md5('c2-out-mut')::uuid;
 set local role authenticated;
-select is(public.process_cash_sync_batch(md5('c2-batch')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-batch')::uuid, 'apply_cash')->>'status',
   'partial', 'same key with changed amount cannot replay as a new intent');
 select is((select error_code from public.sync_mutations
   where id=md5('c2-out-mut')::uuid), 'idempotency_conflict',
@@ -235,7 +235,7 @@ select is((select error_code from public.sync_mutations
 select is((select amount from public.cash_movements
   where id=md5('c2-out')::uuid), 20.00::numeric,
   'conflicting retry leaves original ledger amount intact');
-select is(public.process_cash_sync_batch(md5('c2-invalid-batch')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-invalid-batch')::uuid, 'apply_cash')->>'status',
   'partial', 'invalid movement batch remains partial');
 select is((select error_code from public.sync_mutations where id =
   md5('c2-zero-mutation')::uuid), 'invalid_payload', 'zero rejected by applicator');
@@ -267,9 +267,9 @@ reset role;
 update public.business_members set role_id = md5('c2-receive-role')::uuid
 where profile_id = md5('c2-owner')::uuid;
 set local role authenticated;
-select is(public.process_cash_sync_batch(md5('c2-receive-in')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-receive-in')::uuid, 'apply_cash')->>'status',
   'completed', 'receive-only role may apply inflow');
-select is(public.process_cash_sync_batch(md5('c2-receive-out')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-receive-out')::uuid, 'apply_cash')->>'status',
   'partial', 'receive-only role cannot apply outflow');
 select is((select error_code from public.sync_mutations
   where id = md5('c2-receive-out-mutation')::uuid), 'permission_denied',
@@ -278,9 +278,9 @@ reset role;
 update public.business_members set role_id = md5('c2-disburse-role')::uuid
 where profile_id = md5('c2-owner')::uuid;
 set local role authenticated;
-select is(public.process_cash_sync_batch(md5('c2-disburse-out')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-disburse-out')::uuid, 'apply_cash')->>'status',
   'completed', 'disburse-only role may apply outflow');
-select is(public.process_cash_sync_batch(md5('c2-disburse-in')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-disburse-in')::uuid, 'apply_cash')->>'status',
   'partial', 'disburse-only role cannot apply inflow');
 select is((select error_code from public.sync_mutations
   where id = md5('c2-disburse-in-mutation')::uuid), 'permission_denied',
@@ -291,7 +291,7 @@ update public.business_members set role_id = (
     and deleted_at is null limit 1)
 where profile_id = md5('c2-owner')::uuid;
 set local role authenticated;
-select is(public.process_cash_sync_batch(md5('c2-cashier-out')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-cashier-out')::uuid, 'apply_cash')->>'status',
   'partial', 'cashier default cannot apply ordinary outflow');
 reset role;
 update public.business_members set role_id = (
@@ -313,7 +313,7 @@ select is((public.close_cash_session_authoritatively(
 select is((select difference_amount from public.cash_sessions
   where id=md5('c2-session')::uuid), 0::numeric,
   'difference is zero for exact actual');
-select is(public.process_cash_sync_batch(md5('c2-late-batch')::uuid)->>'status',
+select is(public.process_sync_batch(md5('c2-late-batch')::uuid, 'apply_cash')->>'status',
   'partial', 'other-device-like late movement is rejected after close');
 select is((select error_code from public.sync_mutations
   where id=md5('c2-late-mut')::uuid), 'cash_session_closed',
