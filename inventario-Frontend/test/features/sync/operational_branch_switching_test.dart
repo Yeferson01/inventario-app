@@ -228,7 +228,12 @@ void main() {
     expect(dashboard, isNot(contains('.rpc(')));
     expect(dashboard, isNot(contains('deleteAll')));
     expect(dashboard, contains('cashRegisterId: cashRegisterId'));
-    expect(dashboard, contains("title: 'Recuperación requerida'"));
+    expect(
+      gate,
+      contains(
+          'case OperationalBootstrapEntryOutcome.bootstrapRecoveryBlocked:'),
+    );
+    expect(gate, contains('final blocked = _RecoveryBlockedOperationalEntry('));
     expect(MainDashboardScreen, isNotNull);
   });
 }

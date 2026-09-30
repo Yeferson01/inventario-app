@@ -93,7 +93,7 @@ void main() {
     expect(find.text('Revisa tu correo'), findsOneWidget);
     expect(
       find.text(
-        'Te enviamos un enlace para confirmar tu cuenta. Después vuelve a CronosManagement para iniciar sesión.',
+        'Te enviamos un enlace para confirmar tu cuenta. Después vuelve a Cronos POS para iniciar sesión.',
       ),
       findsOneWidget,
     );

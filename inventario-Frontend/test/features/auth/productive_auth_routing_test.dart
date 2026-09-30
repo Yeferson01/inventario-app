@@ -85,7 +85,7 @@ void main() {
 
     expect(
         find.text(
-            'Crea tu acceso a CronosManagement. Los negocios y permisos se asignan después.'),
+            'Crea tu acceso a Cronos POS. Podrás crear un negocio o aceptar una invitación.'),
         findsOneWidget);
     expect(
         router.routeInformationProvider.value.uri.path, AppRoutes.registerPath);
