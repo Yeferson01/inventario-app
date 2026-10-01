@@ -5,6 +5,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/features/inventory/application/purchase_local_models.dart';
+import 'package:inventario_frontend/core/models/product_sale_mode.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_product_creation_service.dart';
+import 'package:inventario_frontend/features/inventory/application/inventory_product_from_master_sync_service.dart';
 import 'package:inventario_frontend/features/inventory/application/purchase_local_service.dart';
 import 'package:inventario_frontend/features/inventory/data/datasources/purchase_local_dao.dart';
 import 'package:inventario_frontend/features/sales/application/pos_local_sale_models.dart';
@@ -15,6 +18,68 @@ import 'package:inventario_frontend/features/sync/application/local_sync_outbox_
 import 'package:inventario_frontend/features/sync/data/datasources/local_sync_outbox_dao.dart';
 
 void main() {
+  test('price-only edit preserves old sale, COGS and retry payload', () async {
+    final fixture = await _SaleFixture.create(averageCost: 600);
+    addTearDown(fixture.close);
+    await fixture.database.customStatement(
+        'update products set sale_price = 1000, sale_price_cents = 100000 where id = ?',
+        const [_productId]);
+    final saleA = await fixture.sell(quantity: 1);
+    final before = await fixture.database.customSelect(
+        'select average_cost, cost_basis_cents from local_product_stock_balances where id = ?',
+        variables: const [Variable<String>(_balanceId)]).getSingle();
+    final priceUpdate = await InventoryProductFromMasterSyncService(
+      database: fixture.database,
+      productCreationService: InventoryProductCreationService(fixture.database),
+      outboxService:
+          LocalSyncOutboxService(LocalSyncOutboxDao(fixture.database)),
+    ).updateSaleConfigurationAndQueueSync(
+      businessId: _businessId,
+      branchId: _branchId,
+      profileId: _profileId,
+      productId: _productId,
+      deviceInstallationId: 'installation-1',
+      saleMode: ProductSaleMode.unit,
+      salePriceCents: 120000,
+    );
+    expect(priceUpdate?.changed, isTrue);
+    final productCost = await fixture.database.customSelect(
+        'select purchase_price from products where id = ?',
+        variables: const [Variable<String>(_productId)]).getSingle();
+    expect(productCost.read<double>('purchase_price'), 9999);
+    final after = await fixture.database.customSelect(
+        'select average_cost, cost_basis_cents from local_product_stock_balances where id = ?',
+        variables: const [Variable<String>(_balanceId)]).getSingle();
+    expect(after.data, before.data);
+    final saleB = await fixture.sell(quantity: 1);
+    Future<Map<String, dynamic>> item(String id) async =>
+        (await fixture.database.customSelect(
+          'select unit_price, subtotal, unit_cost_snapshot from sale_items where id = ?',
+          variables: [Variable<String>(id)],
+        ).getSingle())
+            .data;
+    expect((await item(saleA.lines.single.itemId))['unit_price'], 1000);
+    expect((await item(saleA.lines.single.itemId))['subtotal'], 1000);
+    expect((await item(saleB.lines.single.itemId))['unit_price'], 1200);
+    expect((await item(saleA.lines.single.itemId))['unit_cost_snapshot'], 600);
+    await PosSyncOutboxService(
+      dao: PosLocalSaleDao(fixture.database),
+      outboxService:
+          LocalSyncOutboxService(LocalSyncOutboxDao(fixture.database)),
+    ).enqueuePendingPosSales(
+      businessId: _businessId,
+      branchId: _branchId,
+      profileId: _profileId,
+      deviceInstallationId: 'installation-1',
+    );
+    final oldPayload = (await fixture.database.customSelect(
+      "select payload_json from local_sync_mutations where entity_table='sale_items' and entity_id = ?",
+      variables: [Variable<String>(saleA.lines.single.itemId)],
+    ).getSingle())
+        .read<String>('payload_json');
+    expect(jsonDecode(oldPayload)['unit_price'], 1000);
+  });
+
   test('FC-01/02 captures known cost and preserves it after cost changes',
       () async {
     final fixture = await _SaleFixture.create(averageCost: 6000);

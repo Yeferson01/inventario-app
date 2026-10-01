@@ -8,11 +8,11 @@ insert into public.branches (id, business_id, name, status) values
    'a6000000-0000-0000-0000-000000000001', 'W1A', 'active');
 insert into public.products (id, business_id, name, sale_price, unit) values
   ('a6000000-0000-0000-0000-000000000003',
-   'a6000000-0000-0000-0000-000000000001', 'Legacy UNIT with kg label', 120.01, 'kg'),
-  ('a6000000-0000-0000-0000-000000000004',
-   'a6000000-0000-0000-0000-000000000001', 'Explicit WEIGHT', 12000.00, 'unidad');
-update public.products set sale_mode = 'weight'
-where id = 'a6000000-0000-0000-0000-000000000004';
+   'a6000000-0000-0000-0000-000000000001', 'Legacy UNIT with kg label', 120.01, 'kg');
+insert into public.products (id, business_id, name, sale_price, unit,
+  sale_mode) values ('a6000000-0000-0000-0000-000000000004',
+   'a6000000-0000-0000-0000-000000000001', 'Explicit WEIGHT', 12000.00,
+   'unidad', 'weight');
 
 select is((select sale_mode from public.products
   where id = 'a6000000-0000-0000-0000-000000000003'), 'unit',
@@ -20,11 +20,15 @@ select is((select sale_mode from public.products
 select is((select sale_mode from public.products
   where id = 'a6000000-0000-0000-0000-000000000004'), 'weight',
   'WEIGHT is explicit and independent of unit label');
-select throws_ok($$update public.products set sale_mode = 'volume'
-  where id = 'a6000000-0000-0000-0000-000000000003'$$,
+select throws_ok($$insert into public.products
+  (id, business_id, name, sale_price, sale_mode) values
+  ('a6000000-0000-0000-0000-000000000018',
+   'a6000000-0000-0000-0000-000000000001', 'Invalid mode', 100, 'volume')$$,
   '23514', null, 'unsupported mode is rejected');
-select throws_ok($$update public.products set sale_mode = null
-  where id = 'a6000000-0000-0000-0000-000000000003'$$,
+select throws_ok($$insert into public.products
+  (id, business_id, name, sale_price, sale_mode) values
+  ('a6000000-0000-0000-0000-000000000019',
+   'a6000000-0000-0000-0000-000000000001', 'Null mode', 100, null)$$,
   '23502', null, 'sale mode is required');
 select is((select sale_price_cents from public.products
   where id = 'a6000000-0000-0000-0000-000000000003'), 12001::bigint,

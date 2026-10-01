@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/models/product_sale_mode.dart';
 import '../../../../core/money/cop_price_input.dart';
+import '../../../../core/quantity/weight_quantity_input.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../catalog/application/catalog_local_providers.dart';
@@ -18,6 +19,7 @@ import '../../application/inventory_valuation_models.dart';
 import '../../application/inventory_product_providers.dart';
 import '../../application/product_stock_balance_providers.dart';
 import '../widgets/inventory_transfer_dialog.dart';
+import '../widgets/product_creation_commercial_fields.dart';
 import '../../application/inventory_adjustment_provider.dart';
 import '../widgets/inventory_adjustment_dialog.dart';
 
@@ -186,7 +188,10 @@ class _InventoryProductStockListScreenState
     }
 
     final formKey = GlobalKey<FormState>();
-    var value = _minimumStock(product['minimum_stock']).toString();
+    final isWeight = product['sale_mode'] == 'weight';
+    var value = isWeight
+        ? _formatKilograms(_minimumStock(product['minimum_stock']))
+        : _minimumStock(product['minimum_stock']).toString();
     final minimumStock = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -197,16 +202,26 @@ class _InventoryProductStockListScreenState
             key: const Key('inventory-minimum-stock-field'),
             initialValue: value,
             autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
+            keyboardType: TextInputType.numberWithOptions(decimal: isWeight),
+            decoration: InputDecoration(
               labelText: 'Stock mínimo',
-              helperText: 'Nivel deseado para este producto.',
-              border: OutlineInputBorder(),
+              helperText: isWeight
+                  ? 'Kilogramos; hasta 3 decimales.'
+                  : 'Nivel deseado para este producto.',
+              suffixText: isWeight ? 'kg' : null,
+              border: const OutlineInputBorder(),
             ),
             validator: (raw) {
-              final parsed = int.tryParse((raw ?? '').trim());
+              final text = (raw ?? '').trim();
+              final parsed = isWeight
+                  ? (text == '0'
+                      ? 0
+                      : parseWeightQuantity(text, WeightInputUnit.kilogram))
+                  : int.tryParse(text);
               return parsed == null || parsed < 0
-                  ? 'Usa un entero igual o mayor a cero.'
+                  ? (isWeight
+                      ? 'Ingresa kilogramos con hasta 3 decimales.'
+                      : 'Usa un entero igual o mayor a cero.')
                   : null;
             },
             onChanged: (raw) => value = raw,
@@ -221,7 +236,11 @@ class _InventoryProductStockListScreenState
             key: const Key('inventory-minimum-stock-save'),
             onPressed: () {
               if (!(formKey.currentState?.validate() ?? false)) return;
-              Navigator.of(dialogContext).pop(int.parse(value.trim()));
+              Navigator.of(dialogContext).pop(isWeight
+                  ? (value.trim() == '0'
+                      ? 0
+                      : parseWeightQuantity(value, WeightInputUnit.kilogram)!)
+                  : int.parse(value.trim()));
             },
             child: const Text('Guardar'),
           ),
@@ -275,7 +294,7 @@ class _InventoryProductStockListScreenState
       return;
     }
 
-    final draft = await showDialog<({ProductSaleMode mode, int cents})>(
+    final draft = await showDialog<int>(
       context: context,
       builder: (_) => _InventorySaleConfigurationDialog(product: product),
     );
@@ -293,8 +312,8 @@ class _InventoryProductStockListScreenState
           effectivePermissions: widget.effectivePermissions,
         ),
         productId: productId,
-        saleMode: draft.mode,
-        salePriceCents: draft.cents,
+        saleMode: ProductSaleMode.parse(product['sale_mode'] ?? 'unit'),
+        salePriceCents: draft,
       ),
     );
     if (!mounted) return;
@@ -511,78 +530,38 @@ class _InventoryProductStockListScreenState
           ),
         ),
         body: AppGradientBackground(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  CronosSpacing.md,
-                  CronosSpacing.md,
-                  CronosSpacing.md,
-                  0,
-                ),
-                child: TextField(
-                  key: const Key('inventory-search-field'),
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por nombre o código',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: hasSearch
-                        ? IconButton(
-                            key: const Key('inventory-search-clear'),
-                            tooltip: 'Limpiar búsqueda',
-                            onPressed: _clearSearch,
-                            icon: const Icon(Icons.clear),
-                          )
-                        : null,
+          child: CustomScrollView(
+            key: const Key('inventory-content-scroll'),
+            scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+            slivers: [
+              SliverToBoxAdapter(
+                  child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    CronosSpacing.md,
+                    CronosSpacing.md,
+                    CronosSpacing.md,
+                    0,
+                  ),
+                  child: TextField(
+                    key: const Key('inventory-search-field'),
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por nombre o código',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: hasSearch
+                          ? IconButton(
+                              key: const Key('inventory-search-clear'),
+                              tooltip: 'Limpiar búsqueda',
+                              onPressed: _clearSearch,
+                              icon: const Icon(Icons.clear),
+                            )
+                          : null,
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  CronosSpacing.md,
-                  CronosSpacing.sm,
-                  CronosSpacing.md,
-                  0,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: CronosSpacing.sm,
-                    children: [
-                      ChoiceChip(
-                        key: const Key('inventory-filter-all'),
-                        label: const Text('Todos'),
-                        selected:
-                            _stockFilter == InventoryProductStockFilter.all,
-                        onSelected: (_) => _setStockFilter(
-                          InventoryProductStockFilter.all,
-                        ),
-                      ),
-                      ChoiceChip(
-                        key: const Key('inventory-filter-out-of-stock'),
-                        label: const Text('Agotados'),
-                        selected: _stockFilter ==
-                            InventoryProductStockFilter.outOfStock,
-                        onSelected: (_) => _setStockFilter(
-                          InventoryProductStockFilter.outOfStock,
-                        ),
-                      ),
-                      ChoiceChip(
-                        key: const Key('inventory-filter-low-stock'),
-                        label: const Text('Bajo stock'),
-                        selected: _stockFilter ==
-                            InventoryProductStockFilter.lowStock,
-                        onSelected: (_) => _setStockFilter(
-                          InventoryProductStockFilter.lowStock,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (canViewCosts)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     CronosSpacing.md,
@@ -590,127 +569,192 @@ class _InventoryProductStockListScreenState
                     CronosSpacing.md,
                     0,
                   ),
-                  child: valuationSummaryAsync!.when(
-                    loading: () => const _InventoryValuationLoading(),
-                    error: (_, __) => const _InventoryValuationUnavailable(),
-                    data: (summary) => _InventoryValuationSummaryCard(
-                      summary: summary,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: CronosSpacing.sm,
+                      children: [
+                        ChoiceChip(
+                          key: const Key('inventory-filter-all'),
+                          label: const Text('Todos'),
+                          selected:
+                              _stockFilter == InventoryProductStockFilter.all,
+                          onSelected: (_) => _setStockFilter(
+                            InventoryProductStockFilter.all,
+                          ),
+                        ),
+                        ChoiceChip(
+                          key: const Key('inventory-filter-out-of-stock'),
+                          label: const Text('Agotados'),
+                          selected: _stockFilter ==
+                              InventoryProductStockFilter.outOfStock,
+                          onSelected: (_) => _setStockFilter(
+                            InventoryProductStockFilter.outOfStock,
+                          ),
+                        ),
+                        ChoiceChip(
+                          key: const Key('inventory-filter-low-stock'),
+                          label: const Text('Bajo stock'),
+                          selected: _stockFilter ==
+                              InventoryProductStockFilter.lowStock,
+                          onSelected: (_) => _setStockFilter(
+                            InventoryProductStockFilter.lowStock,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              Expanded(
-                child: productsAsync.when(
-                  loading: () => const Center(
-                    key: Key('inventory-loading'),
-                    child: CircularProgressIndicator(),
+                if (canViewCosts)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      CronosSpacing.md,
+                      CronosSpacing.sm,
+                      CronosSpacing.md,
+                      0,
+                    ),
+                    child: valuationSummaryAsync!.when(
+                      loading: () => const _InventoryValuationLoading(),
+                      error: (_, __) => const _InventoryValuationUnavailable(),
+                      data: (summary) => _InventoryValuationSummaryCard(
+                        summary: summary,
+                      ),
+                    ),
                   ),
-                  error: (error, _) => const _InventoryStateMessage(
-                    key: Key('inventory-error'),
-                    icon: Icons.error_outline,
-                    title: 'No se pudo cargar el inventario',
-                    message:
-                        'Vuelve a intentarlo. Tus productos guardados no se perderán.',
-                  ),
-                  data: (products) {
-                    if (products.isEmpty) {
-                      if (hasSearch) {
-                        return const _InventoryStateMessage(
-                          key: Key('inventory-search-empty'),
-                          icon: Icons.search_off,
-                          title: 'No se encontraron productos',
+              ])),
+              productsAsync.when<Widget>(
+                loading: () => const SliverToBoxAdapter(
+                    child: SizedBox(
+                        height: 320,
+                        child: Center(
+                          key: Key('inventory-loading'),
+                          child: CircularProgressIndicator(),
+                        ))),
+                error: (error, _) => const SliverToBoxAdapter(
+                    child: SizedBox(
+                        height: 320,
+                        child: _InventoryStateMessage(
+                          key: Key('inventory-error'),
+                          icon: Icons.error_outline,
+                          title: 'No se pudo cargar el inventario',
                           message:
-                              'Prueba con otro nombre o código del producto.',
-                        );
-                      }
-
-                      if (_stockFilter ==
-                          InventoryProductStockFilter.outOfStock) {
-                        return const _InventoryStateMessage(
-                          key: Key('inventory-out-of-stock-empty'),
-                          icon: Icons.inventory_2_outlined,
-                          title: 'Sin productos agotados',
-                          message:
-                              'La sucursal seleccionada no tiene existencias agotadas.',
-                        );
-                      }
-
-                      if (_stockFilter ==
-                          InventoryProductStockFilter.lowStock) {
-                        return const _InventoryStateMessage(
-                          key: Key('inventory-low-stock-empty'),
-                          icon: Icons.inventory_2_outlined,
-                          title: 'Sin productos con bajo stock',
-                          message:
-                              'La sucursal seleccionada no tiene existencias bajo el mínimo.',
-                        );
-                      }
-
-                      return const _InventoryStateMessage(
-                        key: Key('inventory-empty'),
-                        icon: Icons.inventory_2_outlined,
-                        title: 'Sin productos',
-                        message:
-                            'No hay productos visibles para el negocio seleccionado.',
-                      );
+                              'Vuelve a intentarlo. Tus productos guardados no se perderán.',
+                        ))),
+                data: (products) {
+                  if (products.isEmpty) {
+                    if (hasSearch) {
+                      return const SliverToBoxAdapter(
+                          child: SizedBox(
+                              height: 320,
+                              child: _InventoryStateMessage(
+                                key: Key('inventory-search-empty'),
+                                icon: Icons.search_off,
+                                title: 'No se encontraron productos',
+                                message:
+                                    'Prueba con otro nombre o código del producto.',
+                              )));
                     }
 
-                    return ListView.separated(
-                      key: const Key('inventory-product-list'),
-                      scrollCacheExtent: const ScrollCacheExtent.pixels(0),
-                      padding: const EdgeInsets.all(CronosSpacing.md),
-                      itemCount: products.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: CronosSpacing.sm),
-                      itemBuilder: (context, index) {
-                        final product = products[index];
-                        final actualProductId = _string(product['product_id']);
-                        final productKey = actualProductId ?? '$index';
+                    if (_stockFilter ==
+                        InventoryProductStockFilter.outOfStock) {
+                      return const SliverToBoxAdapter(
+                          child: SizedBox(
+                              height: 320,
+                              child: _InventoryStateMessage(
+                                key: Key('inventory-out-of-stock-empty'),
+                                icon: Icons.inventory_2_outlined,
+                                title: 'Sin productos agotados',
+                                message:
+                                    'La sucursal seleccionada no tiene existencias agotadas.',
+                              )));
+                    }
 
-                        return _InventoryProductCard(
-                          key: Key('inventory-product-$productKey'),
-                          product: product,
-                          canViewCosts: canViewCosts,
-                          isUpdatingMinimumStock:
-                              _minimumStockUpdates.contains(productKey),
-                          onOpenMovements: actualProductId != null &&
-                                  widget.onOpenProductMovements != null
-                              ? () async {
-                                  await widget.onOpenProductMovements!(
-                                    productId: actualProductId,
-                                    productName:
-                                        _string(product['product_name']) ??
-                                            'Producto sin nombre',
-                                    productBarcode: _string(product['barcode']),
-                                  );
-                                }
-                              : null,
-                          onEditMinimumStock: canEditMinimumStock &&
-                                  product['sale_mode'] != 'weight'
-                              ? () => _editMinimumStock(product)
-                              : null,
-                          onEditSaleConfiguration: canEditMinimumStock
-                              ? () => _editSaleConfiguration(product)
-                              : null,
-                          onAdjust: canAdjust &&
-                                  actualProductId != null &&
-                                  product['sale_mode'] != 'weight'
-                              ? () => _openAdjustment(product)
-                              : null,
-                          onTransfer: product['sale_mode'] != 'weight' &&
-                                  sourceContext != null &&
-                                  destinationContexts.isNotEmpty &&
-                                  _int(product['quantity_available']) > 0
-                              ? () => _openTransfer(
-                                    product: product,
-                                    sourceContext: sourceContext,
-                                    destinationContexts: destinationContexts,
-                                  )
-                              : null,
-                        );
-                      },
-                    );
-                  },
-                ),
+                    if (_stockFilter == InventoryProductStockFilter.lowStock) {
+                      return const SliverToBoxAdapter(
+                          child: SizedBox(
+                              height: 320,
+                              child: _InventoryStateMessage(
+                                key: Key('inventory-low-stock-empty'),
+                                icon: Icons.inventory_2_outlined,
+                                title: 'Sin productos con bajo stock',
+                                message:
+                                    'La sucursal seleccionada no tiene existencias bajo el mínimo.',
+                              )));
+                    }
+
+                    return const SliverToBoxAdapter(
+                        child: SizedBox(
+                            height: 320,
+                            child: _InventoryStateMessage(
+                              key: Key('inventory-empty'),
+                              icon: Icons.inventory_2_outlined,
+                              title: 'Sin productos',
+                              message:
+                                  'No hay productos visibles para el negocio seleccionado.',
+                            )));
+                  }
+
+                  return SliverList.builder(
+                    key: const Key('inventory-product-list'),
+                    itemCount: products.length * 2 + 1,
+                    itemBuilder: (context, index) {
+                      if (index.isEven) {
+                        return SizedBox(
+                            height: index == 0 || index == products.length * 2
+                                ? CronosSpacing.md
+                                : CronosSpacing.sm);
+                      }
+                      final product = products[index ~/ 2];
+                      final actualProductId = _string(product['product_id']);
+                      final productKey = actualProductId ?? '$index';
+
+                      return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: CronosSpacing.md),
+                          child: _InventoryProductCard(
+                            key: Key('inventory-product-$productKey'),
+                            product: product,
+                            canViewCosts: canViewCosts,
+                            isUpdatingMinimumStock:
+                                _minimumStockUpdates.contains(productKey),
+                            onOpenMovements: actualProductId != null &&
+                                    widget.onOpenProductMovements != null
+                                ? () async {
+                                    await widget.onOpenProductMovements!(
+                                      productId: actualProductId,
+                                      productName:
+                                          _string(product['product_name']) ??
+                                              'Producto sin nombre',
+                                      productBarcode:
+                                          _string(product['barcode']),
+                                    );
+                                  }
+                                : null,
+                            onEditMinimumStock: canEditMinimumStock
+                                ? () => _editMinimumStock(product)
+                                : null,
+                            onEditSaleConfiguration: canEditMinimumStock
+                                ? () => _editSaleConfiguration(product)
+                                : null,
+                            onAdjust: canAdjust &&
+                                    actualProductId != null &&
+                                    product['sale_mode'] != 'weight'
+                                ? () => _openAdjustment(product)
+                                : null,
+                            onTransfer: product['sale_mode'] != 'weight' &&
+                                    sourceContext != null &&
+                                    destinationContexts.isNotEmpty &&
+                                    _int(product['quantity_available']) > 0
+                                ? () => _openTransfer(
+                                      product: product,
+                                      sourceContext: sourceContext,
+                                      destinationContexts: destinationContexts,
+                                    )
+                                : null,
+                          ));
+                    },
+                  );
+                },
               ),
             ],
           ),
@@ -1046,32 +1090,21 @@ class _InventorySaleConfigurationDialogState
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Forma de venta y precio'),
+        title: const Text('Cambiar precio'),
         content: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Forma de venta'),
-              SegmentedButton<ProductSaleMode>(
-                key: const Key('inventory-edit-sale-mode'),
-                segments: ProductSaleMode.values
-                    .map((mode) => ButtonSegment(
-                        value: mode, label: Text(mode.displayLabel)))
-                    .toList(),
-                selected: {_mode},
-                onSelectionChanged: (selection) =>
-                    setState(() => _mode = selection.single),
-              ),
-              const SizedBox(height: CronosSpacing.sm),
               TextFormField(
                 key: const Key('inventory-edit-sale-price'),
                 initialValue: _price,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Precio de venta',
-                  helperText: _mode.priceBasisLabel,
+                  labelText: _mode == ProductSaleMode.weight
+                      ? 'Precio por libra (500 g)'
+                      : 'Precio por unidad',
                   border: const OutlineInputBorder(),
                 ),
                 validator: (value) => parseCopPriceCents(value ?? '') == null
@@ -1091,10 +1124,7 @@ class _InventorySaleConfigurationDialogState
             key: const Key('inventory-edit-sale-save'),
             onPressed: () {
               if (!(_formKey.currentState?.validate() ?? false)) return;
-              Navigator.of(context).pop((
-                mode: _mode,
-                cents: parseCopPriceCents(_price)!,
-              ));
+              Navigator.of(context).pop(parseCopPriceCents(_price)!);
             },
             child: const Text('Guardar'),
           ),
@@ -1143,13 +1173,9 @@ class _InventoryProductDraftDialog extends StatefulWidget {
 class _InventoryProductDraftDialogState
     extends State<_InventoryProductDraftDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _commercial = ProductCreationCommercialController();
   late String _name;
   String? _barcode;
-  String _purchasePrice = '0';
-  String _salePrice = '0';
-  ProductSaleMode _saleMode = ProductSaleMode.unit;
-  String _minimumStock = '0';
-  String _unit = 'unidad';
 
   @override
   void initState() {
@@ -1164,9 +1190,15 @@ class _InventoryProductDraftDialogState
         ) ??
         (queryLooksLikeCode ? '' : query);
     _barcode = widget.initialBarcode ?? (queryLooksLikeCode ? query : null);
-    _unit = _string(master?['master_package_unit']) ??
+    _commercial.unit = _string(master?['master_package_unit']) ??
         _string(master?['master_unit_type']) ??
         'unidad';
+  }
+
+  @override
+  void dispose() {
+    _commercial.dispose();
+    super.dispose();
   }
 
   @override
@@ -1218,90 +1250,9 @@ class _InventoryProductDraftDialogState
                   onChanged: (value) => _barcode = value.trim(),
                 ),
                 const SizedBox(height: CronosSpacing.sm),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Forma de venta',
-                      style: Theme.of(context).textTheme.titleSmall),
-                ),
-                SegmentedButton<ProductSaleMode>(
-                  key: const Key('inventory-product-sale-mode'),
-                  segments: ProductSaleMode.values
-                      .map((mode) => ButtonSegment(
-                          value: mode, label: Text(mode.displayLabel)))
-                      .toList(),
-                  selected: {_saleMode},
-                  onSelectionChanged: (selection) =>
-                      setState(() => _saleMode = selection.single),
-                ),
-                const SizedBox(height: CronosSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DecimalField(
-                        fieldKey: const Key('inventory-purchase-price-field'),
-                        label: 'Costo',
-                        initialValue: _purchasePrice,
-                        enabled: _saleMode == ProductSaleMode.unit,
-                        onChanged: (value) => _purchasePrice = value,
-                      ),
-                    ),
-                    const SizedBox(width: CronosSpacing.sm),
-                    Expanded(
-                      child: TextFormField(
-                        key: const Key('inventory-sale-price-field'),
-                        initialValue: _salePrice,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        decoration: InputDecoration(
-                          labelText: 'Precio de venta',
-                          helperText: _saleMode.priceBasisLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) =>
-                            parseCopPriceCents(value ?? '') == null
-                                ? 'Ingresa un precio válido en pesos.'
-                                : null,
-                        onChanged: (value) => _salePrice = value,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: CronosSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        key: const Key('inventory-minimum-stock-create-field'),
-                        initialValue: _minimumStock,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Stock mínimo',
-                          border: OutlineInputBorder(),
-                        ),
-                        enabled: _saleMode == ProductSaleMode.unit,
-                        validator: (value) {
-                          if (_saleMode == ProductSaleMode.weight) return null;
-                          final parsed = int.tryParse((value ?? '').trim());
-                          return parsed == null || parsed < 0
-                              ? 'Usa un entero >= 0.'
-                              : null;
-                        },
-                        onChanged: (value) => _minimumStock = value,
-                      ),
-                    ),
-                    const SizedBox(width: CronosSpacing.sm),
-                    Expanded(
-                      child: TextFormField(
-                        key: const Key('inventory-product-unit-field'),
-                        initialValue: _unit,
-                        decoration: const InputDecoration(
-                          labelText: 'Unidad',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (value) => _unit = value,
-                      ),
-                    ),
-                  ],
+                ProductCreationCommercialFields(
+                  controller: _commercial,
+                  keyPrefix: 'inventory-product',
                 ),
               ],
             ),
@@ -1321,57 +1272,18 @@ class _InventoryProductDraftDialogState
               _InventoryProductDraft(
                 name: _name.trim(),
                 barcode: _string(_barcode),
-                purchasePrice: _saleMode == ProductSaleMode.weight
-                    ? 0
-                    : _parseDecimal(_purchasePrice)!,
-                salePrice: parseCopPriceCents(_salePrice)! / 100,
-                saleMode: _saleMode,
-                salePriceCents: parseCopPriceCents(_salePrice)!,
-                minimumStock: _saleMode == ProductSaleMode.weight
-                    ? 0
-                    : int.parse(_minimumStock.trim()),
-                unit: _string(_unit),
+                purchasePrice: 0,
+                salePrice: _commercial.salePriceCents! / 100,
+                saleMode: _commercial.saleMode,
+                salePriceCents: _commercial.salePriceCents!,
+                minimumStock: _commercial.minimumStock!,
+                unit: _string(_commercial.unitForPersistence),
               ),
             );
           },
           child: const Text('Guardar producto'),
         ),
       ],
-    );
-  }
-}
-
-class _DecimalField extends StatelessWidget {
-  const _DecimalField({
-    required this.fieldKey,
-    required this.label,
-    required this.initialValue,
-    required this.onChanged,
-    this.enabled = true,
-  });
-
-  final Key fieldKey;
-  final String label;
-  final String initialValue;
-  final ValueChanged<String> onChanged;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      key: fieldKey,
-      initialValue: initialValue,
-      enabled: enabled,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      validator: (value) {
-        final parsed = _parseDecimal(value);
-        return parsed == null || parsed < 0 ? 'Usa un valor >= 0.' : null;
-      },
-      onChanged: onChanged,
     );
   }
 }
@@ -1402,8 +1314,10 @@ class _InventoryProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = _string(product['product_name']) ?? 'Producto sin nombre';
     final barcode = _string(product['barcode']);
-    final stock = _formatQuantity(product['quantity_on_hand']);
     final saleMode = ProductSaleMode.parse(product['sale_mode'] ?? 'unit');
+    final stock = saleMode == ProductSaleMode.weight
+        ? '${_formatKilograms(_int(product['quantity_on_hand']))} kg'
+        : _formatQuantity(product['quantity_on_hand']);
     final exactPrice = product['sale_price_cents'];
     final minimumStock = _minimumStock(product['minimum_stock']);
     final productId = _string(product['product_id']) ?? '';
@@ -1416,38 +1330,42 @@ class _InventoryProductCard extends StatelessWidget {
         : 'no disponible';
 
     return AppGlassCard(
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ProductImage(
-            key: Key('inventory-product-image-$productId'),
-            barcode: barcode,
-            semanticLabel: 'Imagen de $name',
-          ),
-          const SizedBox(width: CronosSpacing.md),
-          Expanded(
-            child: Column(
+          Row(children: [
+            ProductImage(
+              key: Key('inventory-product-image-$productId'),
+              barcode: barcode,
+              semanticLabel: 'Imagen de $name',
+            ),
+            const SizedBox(width: CronosSpacing.md),
+            Expanded(
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 if (barcode != null) ...[
                   const SizedBox(height: CronosSpacing.xs),
                   Text(
                     barcode,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
-                if (saleMode == ProductSaleMode.weight) ...[
-                  const SizedBox(height: CronosSpacing.xs),
-                  Text(
-                    exactPrice is int
-                        ? '${formatCopPriceCents(exactPrice)} / libra'
-                        : 'Precio por libra no disponible',
-                    key: Key('inventory-weight-price-$productId'),
-                  ),
-                ],
+                const SizedBox(height: CronosSpacing.xs),
+                Text(
+                  exactPrice is int
+                      ? '${formatCopPriceCents(exactPrice)} / ${saleMode == ProductSaleMode.weight ? "libra" : "unidad"}'
+                      : 'Precio no disponible',
+                  key: Key('inventory-weight-price-$productId'),
+                ),
                 if (isOutOfStock) ...[
                   const SizedBox(height: CronosSpacing.xs),
                   Chip(
@@ -1468,23 +1386,21 @@ class _InventoryProductCard extends StatelessWidget {
                   ),
                 ],
               ],
-            ),
-          ),
-          const SizedBox(width: CronosSpacing.md),
+            )),
+          ]),
+          const SizedBox(height: CronosSpacing.sm),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                saleMode == ProductSaleMode.weight
-                    ? 'Stock: $stock g'
-                    : 'Stock: $stock',
+                'Stock: $stock',
                 key: Key('inventory-stock-$productId'),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: CronosColors.primaryDark,
                       fontWeight: FontWeight.w800,
                     ),
               ),
-              if (canViewCosts) ...[
+              if (canViewCosts && saleMode == ProductSaleMode.unit) ...[
                 const SizedBox(height: CronosSpacing.xs),
                 Text(
                   'Costo prom.: ${_formatAverageCost(product['stock_average_cost'])}',
@@ -1501,7 +1417,7 @@ class _InventoryProductCard extends StatelessWidget {
               const SizedBox(height: CronosSpacing.xs),
               Text(
                 saleMode == ProductSaleMode.weight
-                    ? 'Mínimo: $minimumStock g'
+                    ? 'Mínimo: ${_formatKilograms(minimumStock)} kg'
                     : 'Mínimo: $minimumStock',
                 key: Key('inventory-minimum-stock-$productId'),
                 style: Theme.of(context).textTheme.bodySmall,
@@ -1532,7 +1448,7 @@ class _InventoryProductCard extends StatelessWidget {
                   key: Key('inventory-edit-sale-config-$productId'),
                   onPressed: onEditSaleConfiguration,
                   icon: const Icon(Icons.sell_outlined),
-                  label: const Text('Forma de venta y precio'),
+                  label: const Text('Cambiar precio'),
                 ),
               if (onAdjust != null)
                 TextButton.icon(
@@ -1712,11 +1628,11 @@ String? _string(Object? value) {
   return text.isEmpty ? null : text;
 }
 
-double? _parseDecimal(Object? value) {
-  final normalized = value?.toString().trim().replaceAll(',', '.');
-  if (normalized == null || normalized.isEmpty) return null;
-  final parsed = double.tryParse(normalized);
-  return parsed != null && parsed.isFinite ? parsed : null;
+String _formatKilograms(int grams) {
+  final whole = grams ~/ 1000;
+  final fraction = (grams % 1000).toString().padLeft(3, '0');
+  if (fraction == '000') return '$whole';
+  return '$whole,${fraction.replaceFirst(RegExp(r'0+$'), '')}';
 }
 
 String _formatQuantity(Object? value) {

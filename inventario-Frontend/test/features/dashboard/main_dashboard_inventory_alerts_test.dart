@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
+import 'package:inventario_frontend/core/database/database_provider.dart';
 import 'package:inventario_frontend/core/providers/device_provider.dart';
 import 'package:inventario_frontend/features/auth/application/authenticated_access_models.dart';
 import 'package:inventario_frontend/features/auth/application/authenticated_access_providers.dart';
@@ -61,6 +62,33 @@ void main() {
       'Reportes',
       'Sincronizar ahora',
     ]);
+  });
+
+  testWidgets('shows cached user and translated informational role',
+      (tester) async {
+    await _pumpDashboard(tester,
+        permissions: const {'inventory.read'}, roles: const ['warehouse']);
+    expect(find.text('Ana Prueba · Almacenista'), findsOneWidget);
+    expect(find.text('Venta'), findsNothing);
+  });
+
+  testWidgets('long offline user identity stays compact in landscape',
+      (tester) async {
+    tester.view.physicalSize = const Size(640, 320);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const longName = 'Ana Maria del Carmen de los Angeles Prueba Extensa';
+    await _pumpDashboard(tester,
+        permissions: const {'inventory.read'},
+        roles: const ['warehouse'],
+        userName: longName);
+    final identity =
+        tester.widget<Text>(find.byKey(const Key('dashboard-current-user')));
+    expect(identity.data, '$longName · Almacenista');
+    expect(identity.maxLines, 1);
+    expect(identity.overflow, TextOverflow.ellipsis);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows Reports only with reports.sales', (tester) async {
@@ -453,9 +481,14 @@ Future<void> _pumpDashboard(
   ProductiveManualSyncRunner? manualSyncRunner,
   ProductiveSyncStatus? productiveSyncStatus,
   List<Map<String, dynamic>> inventoryProducts = const [],
+  List<String> roles = const ['owner'],
+  String userName = 'Ana Prueba',
 }) async {
   final database = AppDatabase.executor(NativeDatabase.memory());
   addTearDown(database.close);
+  await database.customStatement(
+      "insert into profiles (id, full_name) values ('profile-1', ?)",
+      [userName]);
   final cashService = CashSessionLocalService(
     dao: CashSessionLocalDao(database),
   );
@@ -463,6 +496,7 @@ Future<void> _pumpDashboard(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        appDatabaseProvider.overrideWithValue(database),
         installationIdProvider.overrideWith((ref) async => 'installation-1'),
         appCurrentContextProvider.overrideWith((ref, request) async {
           return AppCurrentContext(
@@ -473,6 +507,7 @@ Future<void> _pumpDashboard(
             appDeviceId: 'device-1',
             isOnline: false,
             permissions: AppPermissionSet.fromIterable(permissions),
+            effectiveRoles: roles,
             authorizationContextReady: true,
           );
         }),

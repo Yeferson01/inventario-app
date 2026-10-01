@@ -11,6 +11,7 @@ import '../../../cash/presentation/screens/cash_dashboard_screen.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../auth/application/productive_auth_providers.dart';
 import '../../application/dashboard_module_access.dart';
+import '../../application/dashboard_user_identity_provider.dart';
 import '../../../inventory/application/product_stock_balance_providers.dart';
 import '../../../inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import '../../../inventory/presentation/screens/inventory_movements_screen.dart';
@@ -580,6 +581,9 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
   Widget build(BuildContext context) {
     final moduleAccess = DashboardModuleAccess.fromContext(_appContext);
     final profileId = _appContext?.profileId;
+    final userName = profileId == null
+        ? 'Usuario'
+        : ref.watch(dashboardUserNameProvider(profileId)).value ?? 'Usuario';
     final businessId = _appContext?.businessId;
     final branchId = _appContext?.branchId;
     final authorizedContexts = profileId == null
@@ -599,6 +603,11 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
     final operationalContext = _findOperationalContext(
       branchContexts,
       branchId,
+    );
+    final roleLabel = dashboardRoleLabel(
+      operationalContext?.effectiveRoles.map((role) => role.roleName) ??
+          _appContext?.effectiveRoles ??
+          const <String>[],
     );
     AsyncValue<InventoryAlertSummary>? inventoryAlerts;
     AsyncValue<ProductiveSyncStatus>? productiveSyncStatus;
@@ -664,6 +673,8 @@ class _MainDashboardScreenState extends ConsumerState<MainDashboardScreen> {
                     AppAnimatedEntrance(
                       child: _DashboardHeader(
                         appContext: _appContext,
+                        userName: userName,
+                        roleLabel: roleLabel,
                         operationalContext: operationalContext,
                         branchContexts: branchContexts,
                         isSwitchingBranch: _isSwitchingBranch,
@@ -813,6 +824,8 @@ class _InventoryAlertsCard extends StatelessWidget {
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.appContext,
+    required this.userName,
+    required this.roleLabel,
     required this.operationalContext,
     required this.branchContexts,
     required this.isSwitchingBranch,
@@ -822,6 +835,8 @@ class _DashboardHeader extends StatelessWidget {
   });
 
   final AppCurrentContext? appContext;
+  final String userName;
+  final String roleLabel;
   final AuthorizedOperationalContext? operationalContext;
   final List<AuthorizedOperationalContext> branchContexts;
   final bool isSwitchingBranch;
@@ -895,6 +910,18 @@ class _DashboardHeader extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.88),
                     ),
                   ),
+                  if (appContext != null) ...[
+                    const SizedBox(height: CronosSpacing.xs),
+                    Text(
+                      '$userName · $roleLabel',
+                      key: const Key('dashboard-current-user'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                   if (operationalContext != null) ...[
                     const SizedBox(height: CronosSpacing.xs),
                     OperationalBranchSwitcher(

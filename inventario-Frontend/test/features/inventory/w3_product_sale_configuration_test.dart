@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,7 +101,7 @@ void main() {
         isTrue);
   });
 
-  test('price edit and mode switch are transactional; no-op adds no outbox',
+  test('mode is immutable; price-only edit is transactional and idempotent',
       () async {
     final created = await service.createOrUse(
       context: context,
@@ -118,14 +120,31 @@ void main() {
           saleMode: ProductSaleMode.weight,
           salePriceCents: 90000),
     );
-    expect(update.succeeded, isTrue);
-    expect(update.changed, isTrue);
+    expect(update.succeeded, isFalse);
+    expect(update.message, contains('No puedes cambiar'));
+    final priceUpdate = await service.updateSaleConfiguration(
+      BusinessProductSaleConfigurationUpdateInput(
+          context: context,
+          productId: productId,
+          saleMode: ProductSaleMode.unit,
+          salePriceCents: 90000),
+    );
+    expect(priceUpdate.succeeded, isTrue);
+    expect(priceUpdate.changed, isTrue);
     final row = await database.customSelect(
       'select sale_mode, sale_price_cents from products where id = ?',
       variables: [Variable<String>(productId)],
     ).getSingle();
-    expect(row.read<String>('sale_mode'), 'weight');
+    expect(row.read<String>('sale_mode'), 'unit');
     expect(row.read<int>('sale_price_cents'), 90000);
+    final priceMutation = await database.customSelect('''
+      select payload_json, changed_fields_json from local_sync_mutations
+      where entity_table = 'products' and operation = 'update'
+    ''').getSingle();
+    expect(jsonDecode(priceMutation.read<String>('payload_json')),
+        isNot(contains('sale_mode')));
+    expect(jsonDecode(priceMutation.read<String>('changed_fields_json')),
+        isNot(contains('sale_mode')));
     final before = await database
         .customSelect('select count(*) as n from local_sync_mutations')
         .getSingle();
@@ -133,7 +152,7 @@ void main() {
       BusinessProductSaleConfigurationUpdateInput(
           context: context,
           productId: productId,
-          saleMode: ProductSaleMode.weight,
+          saleMode: ProductSaleMode.unit,
           salePriceCents: 90000),
     );
     final after = await database

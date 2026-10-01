@@ -57,15 +57,14 @@ class BusinessProductCreationService {
         succeeded: true,
         changed: result.changed,
         message: result.changed
-            ? 'Forma de venta y precio guardados localmente.'
-            : 'La configuración ya tenía esos valores.',
+            ? 'Precio guardado localmente.'
+            : 'El precio ya tenía ese valor.',
       );
     } on ProductSaleModeChangeBlockedException {
       return const BusinessProductSaleConfigurationUpdateResult(
         succeeded: false,
-        message: 'No puedes cambiar la forma de venta porque el producto ya '
-            'tiene stock, movimientos, ventas o compras. Crea un producto '
-            'nuevo si necesitas otra forma de venta.',
+        message: 'No puedes cambiar la forma de venta después de crear el '
+            'producto. Crea uno nuevo si necesitas otra forma de venta.',
       );
     } catch (_) {
       return const BusinessProductSaleConfigurationUpdateResult(

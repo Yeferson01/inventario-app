@@ -1,5 +1,5 @@
 begin;
-select plan(21);
+select plan(23);
 
 insert into auth.users (id, aud, role, email, encrypted_password,
   email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -35,25 +35,30 @@ select ('a7300000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid,
 select is((select sale_mode from public.products where id =
   'a7300000-0000-0000-0000-000000000201'), 'unit',
   'legacy kg label never selects WEIGHT');
-select lives_ok($$update public.products set sale_mode = 'weight'
+select throws_ok($$update public.products set sale_mode = 'weight'
   where id = 'a7300000-0000-0000-0000-000000000201'$$,
-  'mode can change without stock or history');
+  'P0001', 'product_sale_mode_immutable_after_creation',
+  'mode cannot change even without stock or history');
+insert into public.products (id, business_id, name, sale_price,
+  sale_mode) values ('a7300000-0000-0000-0000-000000000208',
+  'a7300000-0000-0000-0000-000000000001', 'W3 weighted', 800, 'weight');
 select is((select sale_price_cents from public.products where id =
-  'a7300000-0000-0000-0000-000000000201'), 80000::bigint,
+  'a7300000-0000-0000-0000-000000000208'), 80000::bigint,
   '500 g commercial price has exact cents');
 select throws_ok($$update public.products set sale_price = 900
-  where id = 'a7300000-0000-0000-0000-000000000201'$$,
+  where id = 'a7300000-0000-0000-0000-000000000208'$$,
   'P0001', 'weight_product_price_requires_versioned_sync',
   'old direct price edit cannot reinterpret weighted price');
-select lives_ok($$update public.products set sale_mode = 'unit'
-  where id = 'a7300000-0000-0000-0000-000000000201'$$,
-  'WEIGHT to UNIT is permitted before history');
+select throws_ok($$update public.products set sale_mode = 'unit'
+  where id = 'a7300000-0000-0000-0000-000000000208'$$,
+  'P0001', 'product_sale_mode_immutable_after_creation',
+  'WEIGHT to UNIT is forbidden before history');
 
 update public.products set stock_quantity = 1 where id =
   'a7300000-0000-0000-0000-000000000202';
 select throws_ok($$update public.products set sale_mode = 'weight'
   where id = 'a7300000-0000-0000-0000-000000000202'$$,
-  'P0001', 'product_sale_mode_has_operational_history',
+  'P0001', 'product_sale_mode_immutable_after_creation',
   'nonzero stock blocks reinterpretation');
 insert into public.inventory_movements (id, business_id, branch_id, product_id,
   movement_type, quantity_change)
@@ -63,7 +68,7 @@ values ('a7300000-0000-0000-0000-000000000301',
   'a7300000-0000-0000-0000-000000000203', 'manual_adjustment', 1);
 select throws_ok($$update public.products set sale_mode = 'weight'
   where id = 'a7300000-0000-0000-0000-000000000203'$$,
-  'P0001', 'product_sale_mode_has_operational_history',
+  'P0001', 'product_sale_mode_immutable_after_creation',
   'movement blocks reinterpretation');
 insert into public.sales (id, business_id, branch_id, total, status)
 values ('a7300000-0000-0000-0000-000000000401',
@@ -77,7 +82,7 @@ values ('a7300000-0000-0000-0000-000000000402',
   'a7300000-0000-0000-0000-000000000204', 1, 800, 800);
 select throws_ok($$update public.products set sale_mode = 'weight'
   where id = 'a7300000-0000-0000-0000-000000000204'$$,
-  'P0001', 'product_sale_mode_has_operational_history',
+  'P0001', 'product_sale_mode_immutable_after_creation',
   'sale history blocks reinterpretation');
 insert into public.purchases (id, business_id, branch_id, total, status)
 values ('a7300000-0000-0000-0000-000000000501',
@@ -92,7 +97,7 @@ values ('a7300000-0000-0000-0000-000000000502',
   'a7300000-0000-0000-0000-000000000205', 1, 100, 100);
 select throws_ok($$update public.products set sale_mode = 'weight'
   where id = 'a7300000-0000-0000-0000-000000000205'$$,
-  'P0001', 'product_sale_mode_has_operational_history',
+  'P0001', 'product_sale_mode_immutable_after_creation',
   'purchase history blocks reinterpretation');
 
 insert into public.sync_batches (id, business_id, app_device_id, profile_id,
@@ -137,6 +142,27 @@ values
    'a7300000-0000-0000-0000-000000000206', 'update',
    '{"sale_mode":"weight","sale_price":"1000.00","sale_price_cents":90000}'::jsonb,
    'pending', 'w3-mismatch-key');
+
+insert into public.sync_mutations (id, business_id, sync_batch_id,
+  app_device_id, profile_id, branch_id, client_mutation_id, client_sequence,
+  entity_table, entity_id, operation, payload, status, idempotency_key)
+values ('a7300000-0000-0000-0000-000000000615',
+  'a7300000-0000-0000-0000-000000000001',
+  'a7300000-0000-0000-0000-000000000601',
+  'a7300000-0000-0000-0000-000000000051',
+  'a7300000-0000-0000-0000-000000000101',
+  'a7300000-0000-0000-0000-000000000011',
+  'w4d-forbidden-transition', 4, 'products',
+  'a7300000-0000-0000-0000-000000000201', 'update',
+  '{"sale_mode":"weight","sale_price":"800.00","sale_price_cents":80000}'::jsonb,
+  'pending', 'w4d-forbidden-transition-key');
+select throws_ok($$select private.apply_sync_catalog_mutation(
+  'a7300000-0000-0000-0000-000000000615')$$,
+  'P0001', 'product_sale_mode_immutable_after_creation',
+  'catalog sync cannot bypass immutable sale mode');
+select is((select sale_mode from public.products where id =
+  'a7300000-0000-0000-0000-000000000201'), 'unit',
+  'rejected catalog mutation preserves product mode');
 
 select is(private.apply_sync_catalog_mutation(
   'a7300000-0000-0000-0000-000000000611')->>'status', 'applied',

@@ -355,11 +355,30 @@ void main() {
       barcodes: const ['7704000000002'],
     );
 
+    final catalogDao = CatalogLocalDao(database);
+    final bothLookupsStarted = Completer<void>();
+    var lookupCount = 0;
     final bothCreatesStarted = Completer<void>();
     final releaseCreates = Completer<void>();
     var createCount = 0;
     final concurrentService = _buildCreationService(
       database,
+      lookupByBarcode: ({
+        required businessId,
+        required barcode,
+        required allowMasterMatch,
+      }) async {
+        lookupCount++;
+        if (lookupCount == 2) {
+          bothLookupsStarted.complete();
+        }
+        await bothLookupsStarted.future;
+        return catalogDao.lookupByBarcode(
+          businessId: businessId,
+          barcode: barcode,
+          allowMasterMatch: allowMasterMatch,
+        );
+      },
       beforeCreate: (_) async {
         createCount++;
         if (createCount == 2) {
@@ -372,6 +391,7 @@ void main() {
     final first = concurrentService.createOrUse(
       context: context,
       code: '7704000000001',
+      clientSequenceStart: 12345,
       fields: const BusinessProductOwnedFields(
         name: 'Master paralelo A',
         purchasePrice: 1,
@@ -381,6 +401,7 @@ void main() {
     final second = concurrentService.createOrUse(
       context: context,
       code: '7704000000002',
+      clientSequenceStart: 12345,
       fields: const BusinessProductOwnedFields(
         name: 'Master paralelo B',
         purchasePrice: 1,
@@ -402,6 +423,15 @@ void main() {
       ),
       isTrue,
     );
+    final mutationIds = await database
+        .customSelect('select client_mutation_id from local_sync_mutations')
+        .get();
+    expect(mutationIds, hasLength(4));
+    expect(
+        mutationIds
+            .map((row) => row.read<String>('client_mutation_id'))
+            .toSet(),
+        hasLength(4));
   });
 
   test('the same master in different businesses uses independent locks',

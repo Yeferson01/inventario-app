@@ -123,17 +123,14 @@ class InventoryProductFromMasterSyncService {
       if (product == null) return null;
 
       final previousMode = ProductSaleMode.parse(product.saleMode);
+      if (previousMode != saleMode) {
+        throw const ProductSaleModeChangeBlockedException();
+      }
       if (previousMode == saleMode &&
           product.salePriceCents == salePriceCents) {
         return const InventoryProductSaleConfigurationSyncResult(
             changed: false);
       }
-      if (previousMode != saleMode &&
-          await _productCreationService.hasProductOperationalHistory(
-              businessId: businessId, productId: productId)) {
-        throw const ProductSaleModeChangeBlockedException();
-      }
-
       final now = DateTime.now().toUtc();
       await (_database.update(_database.products)
             ..where((row) =>
@@ -141,7 +138,6 @@ class InventoryProductFromMasterSyncService {
                 row.businessId.equals(businessId) &
                 row.deletedAt.isNull()))
           .write(ProductsCompanion(
-        saleMode: Value(saleMode.wireValue),
         salePriceCents: Value(salePriceCents),
         salePrice: Value(salePriceCents / 100),
         syncStatus: const Value(SyncStatus.pendingUpdate),
@@ -157,23 +153,16 @@ class InventoryProductFromMasterSyncService {
         entityId: productId,
         operation: 'update',
         payload: {
-          'sale_mode': saleMode.wireValue,
           'sale_price_cents': salePriceCents,
           'sale_price': exactPrice,
           'updated_at': now.toIso8601String(),
         },
         beforePayload: {
-          'sale_mode': previousMode.wireValue,
           'sale_price_cents': product.salePriceCents,
           'sale_price': product.salePrice,
           'updated_at': product.updatedAt.toUtc().toIso8601String(),
         },
-        changedFields: const [
-          'sale_mode',
-          'sale_price_cents',
-          'sale_price',
-          'updated_at'
-        ],
+        changedFields: const ['sale_price_cents', 'sale_price', 'updated_at'],
         idempotencyKey:
             '$deviceInstallationId:products:$productId:sale-config:$operationId',
         businessId: businessId,

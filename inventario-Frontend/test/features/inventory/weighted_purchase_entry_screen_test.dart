@@ -11,6 +11,65 @@ import 'package:inventario_frontend/core/quantity/weight_quantity_input.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/purchase_entry_screen.dart';
 
 void main() {
+  testWidgets('Purchases creates UNIT with integer minimum and unit label',
+      (tester) async {
+    final db = await _pumpFixture(tester, allowProductCreation: true);
+    final create = find.text('Crear producto rápido');
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nombre del producto'), 'Agua');
+    expect(find.text('Unidad'), findsOneWidget);
+    await tester.enterText(
+        find.byKey(const Key('purchase-product-sale-price-field')), '3500');
+    await tester.enterText(
+        find.byKey(const Key('purchase-product-minimum-stock-field')), '3');
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+    final row = await db
+        .customSelect(
+            "select sale_mode, sale_price_cents, minimum_stock from products where name='Agua'")
+        .getSingle();
+    expect(row.read<String>('sale_mode'), 'unit');
+    expect(row.read<int>('sale_price_cents'), 350000);
+    expect(row.read<int>('minimum_stock'), 3);
+    await _dispose(tester);
+  });
+
+  testWidgets('Purchases creates WEIGHT with the same exact commercial fields',
+      (tester) async {
+    final db = await _pumpFixture(tester, allowProductCreation: true);
+    final create = find.text('Crear producto rápido');
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nombre del producto'), 'Tomate');
+    await tester.tap(find.text('Por peso'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unidad'), findsNothing);
+    expect(find.text('Precio de venta por libra (500 g)'), findsOneWidget);
+    await tester.enterText(
+        find.byKey(const Key('purchase-product-sale-price-field')), '800');
+    await tester.enterText(
+        find.byKey(const Key('purchase-product-minimum-stock-field')), '1,5');
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+    final row = await db
+        .customSelect(
+            "select sale_mode, sale_price_cents, minimum_stock from products where name='Tomate'")
+        .getSingle();
+    expect(row.read<String>('sale_mode'), 'weight');
+    expect(row.read<int>('sale_price_cents'), 80000);
+    expect(row.read<int>('minimum_stock'), 1500);
+    expect(
+        find.byKey(ValueKey(
+            'purchase-weight-quantity-${(await db.customSelect("select id from products where name='Tomate'").getSingle()).read<String>('id')}')),
+        findsOneWidget);
+    await _dispose(tester);
+  });
+
   testWidgets('WEIGHT defaults and exact live totals for kg, pound and grams',
       (tester) async {
     final db = await _pumpFixture(tester);
@@ -205,7 +264,8 @@ void main() {
   });
 }
 
-Future<AppDatabase> _pumpFixture(WidgetTester tester) async {
+Future<AppDatabase> _pumpFixture(WidgetTester tester,
+    {bool allowProductCreation = false}) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -237,14 +297,17 @@ Future<AppDatabase> _pumpFixture(WidgetTester tester) async {
   ''');
   await tester.pumpWidget(ProviderScope(
       overrides: [appDatabaseProvider.overrideWithValue(db)],
-      child: const MaterialApp(
+      child: MaterialApp(
           home: PurchaseEntryScreen(
         businessId: 'business',
         branchId: 'branch',
         profileId: 'profile',
         appDeviceId: 'device',
         deviceInstallationId: 'installation',
-        effectivePermissions: {'inventory.purchase'},
+        effectivePermissions: {
+          'inventory.purchase',
+          if (allowProductCreation) 'products.create',
+        },
       ))));
   await tester.pumpAndSettle();
   return db;

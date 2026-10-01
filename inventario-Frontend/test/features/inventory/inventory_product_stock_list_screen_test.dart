@@ -18,6 +18,53 @@ import 'package:inventario_frontend/features/sync/data/datasources/authorized_op
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
+  testWidgets('landscape uses one scroll and preserves name and barcode width',
+      (tester) async {
+    tester.view.physicalSize = const Size(640, 320);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const name = 'Papa criolla seleccionada de cosecha local';
+    const code = '77012345678901234567890';
+    await _pumpScreen(
+        tester,
+        Stream.value([
+          {
+            'product_id': 'long-product',
+            'product_name': name,
+            'barcode': code,
+            'quantity_on_hand': 13000,
+            'sale_mode': 'weight',
+            'sale_price_cents': 80000,
+            'minimum_stock': 1500,
+          },
+        ]),
+        effectivePermissions: const {});
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('inventory-content-scroll')), findsOneWidget);
+    expect(
+        tester
+            .widget<CustomScrollView>(
+                find.byKey(const Key('inventory-content-scroll')))
+            .scrollCacheExtent,
+        const ScrollCacheExtent.pixels(0));
+    await tester.drag(
+        find.byKey(const Key('inventory-filter-all')), const Offset(0, -240));
+    await tester.pumpAndSettle();
+    final scroll = tester.state<ScrollableState>(find
+        .descendant(
+            of: find.byKey(const Key('inventory-content-scroll')),
+            matching: find.byType(Scrollable))
+        .first);
+    expect(scroll.position.pixels, greaterThan(0));
+    final nameWidget = tester.widget<Text>(find.text(name));
+    expect(nameWidget.maxLines, 2);
+    expect(tester.getSize(find.text(name)).width, greaterThan(150));
+    expect(tester.getSize(find.text(code)).width, greaterThan(150));
+    expect(find.text('Stock: 13 kg'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('shows loading while the local stock stream has not emitted', (
     tester,
   ) async {
@@ -84,14 +131,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('inventory-product-list')), findsOneWidget);
-    expect(
-      tester
-          .widget<ListView>(
-            find.byKey(const Key('inventory-product-list')),
-          )
-          .scrollCacheExtent,
-      const ScrollCacheExtent.pixels(0),
-    );
+    expect(find.byKey(const Key('inventory-content-scroll')), findsOneWidget);
     expect(
       find.byKey(const Key('inventory-product-image-product-1')),
       findsOneWidget,
@@ -191,7 +231,7 @@ void main() {
     expect(find.text(r'Valor: $50.00'), findsOneWidget);
     expect(find.text('Valor: sin costo conocido'), findsOneWidget);
     await tester.drag(
-      find.byKey(const Key('inventory-product-list')),
+      find.byKey(const Key('inventory-content-scroll')),
       const Offset(0, -400),
     );
     await tester.pump();
@@ -393,9 +433,20 @@ void main() {
     await tester.tap(find.text('Por peso'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.byKey(const Key('inventory-sale-price-field')), '800');
+        find.byKey(const Key('inventory-product-sale-price-field')), '800');
     await tester.pumpAndSettle();
-    expect(find.text('por libra (500 g)'), findsOneWidget);
+    expect(find.text('Precio de venta por libra (500 g)'), findsOneWidget);
+    expect(find.byKey(const Key('inventory-product-product-unit-field')),
+        findsNothing);
+    await tester.enterText(
+        find.byKey(const Key('inventory-product-minimum-stock-field')),
+        '1,2345');
+    await tester.tap(find.byKey(const Key('inventory-product-create-confirm')));
+    await tester.pumpAndSettle();
+    expect(
+        find.text('Ingresa kilogramos con hasta 3 decimales.'), findsOneWidget);
+    await tester.enterText(
+        find.byKey(const Key('inventory-product-minimum-stock-field')), '1,5');
     await tester.tap(
       find.byKey(const Key('inventory-product-create-confirm')),
     );
@@ -408,16 +459,16 @@ void main() {
     expect(receivedCode, '7701234567890');
     expect(receivedFields?.saleMode, ProductSaleMode.weight);
     expect(receivedFields?.salePriceCents, 80000);
-    expect(receivedFields?.minimumStock, 0);
+    expect(receivedFields?.minimumStock, 1500);
     expect(
       find.byKey(const Key('inventory-product-product-cafe')),
       findsOneWidget,
     );
-    expect(find.text('Stock: 0 g'), findsOneWidget);
+    expect(find.text('Stock: 0 kg'), findsOneWidget);
     expect(find.text(r'$800 / libra'), findsOneWidget);
   });
 
-  testWidgets('edits sale mode and exact price through application provider',
+  testWidgets('edits exact price without offering a mode change',
       (tester) async {
     final controller = StreamController<List<Map<String, dynamic>>>();
     addTearDown(controller.close);
@@ -471,16 +522,16 @@ void main() {
     await tester
         .tap(find.byKey(const Key('inventory-edit-sale-config-product-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Por peso'));
-    await tester.pumpAndSettle();
+    expect(find.text('Cambiar precio'), findsWidgets);
+    expect(find.byKey(const Key('inventory-edit-sale-mode')), findsNothing);
     await tester.enterText(
         find.byKey(const Key('inventory-edit-sale-price')), '12.000,50');
     await tester.tap(find.byKey(const Key('inventory-edit-sale-save')));
     await tester.pumpAndSettle();
-    expect(received?.saleMode, ProductSaleMode.weight);
+    expect(received?.saleMode, ProductSaleMode.unit);
     expect(received?.salePriceCents, 1200050);
     expect(received?.context.businessId, 'business-1');
-    expect(find.text(r'$12.000,50 / libra'), findsOneWidget);
+    expect(find.text(r'$12.000,50 / unidad'), findsOneWidget);
   });
 
   testWidgets('marks exhausted products and combines stock filter with search',

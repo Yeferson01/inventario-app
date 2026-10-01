@@ -13,6 +13,7 @@ import '../../application/purchase_local_models.dart';
 import '../../application/purchase_money.dart';
 import '../../application/purchase_local_provider.dart';
 import '../../application/purchase_sync_repair_provider.dart';
+import '../widgets/product_creation_commercial_fields.dart';
 import '../../../sync/application/local_sync_outbox_providers.dart';
 import '../../../sync/application/purchases_sync_upload_provider.dart';
 
@@ -351,6 +352,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       'quantity_available': 0,
       'purchase_price': _double(product['purchase_price']),
       'stock_average_cost': 0,
+      'sale_mode': product['sale_mode'] ?? 'unit',
     });
   }
 
@@ -359,6 +361,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
       return;
     }
 
+    final commercial = ProductCreationCommercialController();
     final draft = await showDialog<_QuickProductDraft>(
       context: context,
       builder: (dialogContext) {
@@ -366,10 +369,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
         var name = '';
         var barcode = '';
-        var purchaseCostText = '';
-        var salePriceText = '';
-        var minimumStockText = '0';
-        var unit = 'unidad';
 
         return AlertDialog(
           title: const Text('Crear producto rápido'),
@@ -414,91 +413,9 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                     },
                   ),
                   const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Costo de compra',
-                      prefixIcon: Icon(Icons.sell_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      final parsed = _parseNumber(value ?? '');
-
-                      if (parsed == null || parsed <= 0) {
-                        return 'El costo debe ser mayor a cero.';
-                      }
-
-                      return null;
-                    },
-                    onChanged: (value) {
-                      purchaseCostText = value;
-                    },
-                  ),
-                  const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Precio de venta opcional',
-                      prefixIcon: Icon(Icons.point_of_sale_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      final raw = (value ?? '').trim();
-
-                      if (raw.isEmpty) {
-                        return null;
-                      }
-
-                      final parsed = _parseNumber(raw);
-
-                      if (parsed == null || parsed < 0) {
-                        return 'El precio de venta no puede ser negativo.';
-                      }
-
-                      return null;
-                    },
-                    onChanged: (value) {
-                      salePriceText = value;
-                    },
-                  ),
-                  const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    initialValue: '0',
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Stock mínimo',
-                      prefixIcon: Icon(Icons.notification_important_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      final parsed = int.tryParse((value ?? '').trim());
-                      if (parsed == null || parsed < 0) {
-                        return 'Usa un entero igual o mayor a cero.';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      minimumStockText = value;
-                    },
-                  ),
-                  const SizedBox(height: CronosSpacing.md),
-                  TextFormField(
-                    initialValue: 'unidad',
-                    decoration: const InputDecoration(
-                      labelText: 'Unidad',
-                      prefixIcon: Icon(Icons.straighten_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) => (value ?? '').trim().isEmpty
-                        ? 'La unidad es requerida.'
-                        : null,
-                    onChanged: (value) {
-                      unit = value;
-                    },
+                  ProductCreationCommercialFields(
+                    controller: commercial,
+                    keyPrefix: 'purchase-product',
                   ),
                 ],
               ),
@@ -517,17 +434,14 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                   return;
                 }
 
-                final purchaseCost = _parseNumber(purchaseCostText) ?? 0;
-                final salePrice = _parseNumber(salePriceText);
-
                 Navigator.of(dialogContext).pop(
                   _QuickProductDraft(
                     name: name.trim(),
                     barcode: barcode.trim().isEmpty ? null : barcode.trim(),
-                    purchaseCost: purchaseCost,
-                    salePrice: salePrice,
-                    minimumStock: int.parse(minimumStockText.trim()),
-                    unit: unit.trim(),
+                    saleMode: commercial.saleMode,
+                    salePriceCents: commercial.salePriceCents!,
+                    minimumStock: commercial.minimumStock!,
+                    unit: commercial.unitForPersistence,
                   ),
                 );
               },
@@ -538,6 +452,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         );
       },
     );
+    commercial.dispose();
 
     if (!mounted || draft == null) {
       return;
@@ -587,8 +502,10 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         code: confirmedDraft.barcode,
         fields: BusinessProductOwnedFields(
           name: confirmedDraft.name,
-          purchasePrice: confirmedDraft.purchaseCost,
-          salePrice: confirmedDraft.salePrice ?? 0,
+          purchasePrice: 0,
+          salePrice: confirmedDraft.salePriceCents / 100,
+          saleMode: confirmedDraft.saleMode,
+          salePriceCents: confirmedDraft.salePriceCents,
           minimumStock: confirmedDraft.minimumStock,
           unit: confirmedDraft.unit,
         ),
@@ -1705,28 +1622,28 @@ class _WeightPurchaseInputs extends StatelessWidget {
 class _QuickProductDraft {
   const _QuickProductDraft({
     required this.name,
-    required this.purchaseCost,
+    required this.saleMode,
+    required this.salePriceCents,
     required this.minimumStock,
     required this.unit,
     this.barcode,
-    this.salePrice,
   });
 
   final String name;
   final String? barcode;
-  final double purchaseCost;
-  final double? salePrice;
+  final ProductSaleMode saleMode;
+  final int salePriceCents;
   final int minimumStock;
-  final String unit;
+  final String? unit;
 
   _QuickProductDraft copyWith({String? name}) {
     return _QuickProductDraft(
       name: name ?? this.name,
-      purchaseCost: purchaseCost,
+      saleMode: saleMode,
+      salePriceCents: salePriceCents,
       minimumStock: minimumStock,
       unit: unit,
       barcode: barcode,
-      salePrice: salePrice,
     );
   }
 }

@@ -605,7 +605,8 @@ class InventoryProductCreationService {
     final productSequence = input.clientSequenceStart;
     final mutations = <PendingCatalogSyncMutationDraft>[
       PendingCatalogSyncMutationDraft(
-        clientMutationId: '$installationId:mutation:$productSequence',
+        clientMutationId:
+            '$installationId:mutation:products:$productId:$productSequence',
         clientSequence: productSequence,
         entityTable: 'products',
         entityId: productId,
@@ -626,7 +627,8 @@ class InventoryProductCreationService {
 
       mutations.add(
         PendingCatalogSyncMutationDraft(
-          clientMutationId: '$installationId:mutation:$barcodeSequence',
+          clientMutationId:
+              '$installationId:mutation:product-barcodes:$businessBarcodeId:$barcodeSequence',
           clientSequence: barcodeSequence,
           entityTable: 'product_barcodes',
           entityId: businessBarcodeId,
@@ -1074,7 +1076,8 @@ class InventoryProductCreationService {
 
     return [
       PendingCatalogSyncMutationDraft(
-        clientMutationId: '$installationId:mutation:$productSequence',
+        clientMutationId:
+            '$installationId:mutation:products:$productId:$productSequence',
         clientSequence: productSequence,
         entityTable: 'products',
         entityId: productId,
@@ -1089,7 +1092,8 @@ class InventoryProductCreationService {
         appDeviceId: input.appDeviceId,
       ),
       PendingCatalogSyncMutationDraft(
-        clientMutationId: '$installationId:mutation:$barcodeSequence',
+        clientMutationId:
+            '$installationId:mutation:product-barcodes:$businessBarcodeId:$barcodeSequence',
         clientSequence: barcodeSequence,
         entityTable: 'product_barcodes',
         entityId: businessBarcodeId,
