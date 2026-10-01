@@ -1,5 +1,5 @@
 begin;
-select plan(34);
+select plan(37);
 
 insert into auth.users (id, aud, role, email, encrypted_password,
   email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -273,6 +273,52 @@ select pg_temp.seed_w4b_case('unit',
 select is((public.process_sync_batch((select batch_id from w4b_cases
   where name='unit'),'apply_purchases')->>'status'),'completed',
   'legacy UNIT purchase path remains operational');
+
+select pg_temp.seed_w4b_case('mixed',
+  'b4000000-0000-0000-0000-000000000202',500,90000,500,90000);
+do $$
+declare
+  v_batch uuid;
+  v_purchase uuid;
+  v_item uuid := extensions.gen_random_uuid();
+  v_business uuid := 'b4000000-0000-0000-0000-000000000001';
+  v_branch uuid := 'b4000000-0000-0000-0000-000000000011';
+  v_profile uuid := 'b4000000-0000-0000-0000-000000000101';
+  v_device uuid := 'b4000000-0000-0000-0000-000000000051';
+begin
+  select batch_id,purchase_id into v_batch,v_purchase
+    from w4b_cases where name='mixed';
+  update public.sync_batches set mutation_count=3 where id=v_batch;
+  update public.sync_mutations set payload =
+    jsonb_set(jsonb_set(payload,'{total}','1900'::jsonb),
+      '{metadata}',jsonb_build_object('monetary_contract_version',
+        'exact_weight_basis_v1','item_count',2,'total_cents','190000'))
+    where sync_batch_id=v_batch and entity_table='purchases';
+  insert into public.sync_mutations (id,business_id,sync_batch_id,
+    app_device_id,profile_id,branch_id,client_mutation_id,client_sequence,
+    entity_table,entity_id,operation,payload,idempotency_key,status)
+  values (extensions.gen_random_uuid(),v_business,v_batch,v_device,v_profile,
+    v_branch,'mixed-unit-item',3,'purchase_items',v_item,'insert',
+    jsonb_build_object('id',v_item,'purchase_id',v_purchase,
+      'business_id',v_business,'branch_id',v_branch,
+      'product_id','b4000000-0000-0000-0000-000000000204',
+      'quantity',1,'unit_cost',1000,'subtotal',1000,
+      'idempotency_key','mixed-unit-item-key',
+      'metadata',jsonb_build_object('unit_cost_cents','100000',
+        'subtotal_cents','100000','sale_mode_snapshot','unit',
+        'cost_basis_quantity_snapshot',1)),
+    'mixed-unit-item-key','pending');
+end;
+$$;
+select is((public.process_sync_batch((select batch_id from w4b_cases
+  where name='mixed'),'apply_purchases')->>'status'),'completed',
+  'mixed UNIT and WEIGHT purchase completes in one batch');
+select is((select count(*) from public.purchase_items where purchase_id=
+  (select purchase_id from w4b_cases where name='mixed')),2::bigint,
+  'mixed purchase persists both item contracts');
+select is((select count(*) from public.inventory_movements where source_id=
+  (select purchase_id from w4b_cases where name='mixed')),2::bigint,
+  'mixed purchase applies one movement per item');
 
 select pg_temp.seed_w4b_case('wrong-branch',
   'b4000000-0000-0000-0000-000000000201',500,90000,500,90000,

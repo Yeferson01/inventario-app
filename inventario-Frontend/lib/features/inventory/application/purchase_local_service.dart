@@ -17,7 +17,7 @@ class PurchaseLocalService {
 
   final PurchaseLocalDao _dao;
   final void Function()? _onCommitted;
-  // W4A is domain-only. The productive provider stays UNIT until W4B/W4C.
+  // The productive provider enables WEIGHT at W4C; other callers remain gated.
   final bool _enableWeightedDomain;
 
   Future<PurchasePaymentBasis?> getPaymentBasis({

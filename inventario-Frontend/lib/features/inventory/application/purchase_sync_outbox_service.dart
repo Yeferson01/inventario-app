@@ -94,6 +94,32 @@ class PurchaseSyncOutboxService {
     );
   }
 
+  /// Materializes one committed local purchase into the existing outbox.
+  /// It performs no network request and remains safe to retry through the
+  /// normal pending-purchase sync path.
+  Future<PurchaseSyncOutboxResult> enqueueCreatedPurchase({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String purchaseId,
+    String? appDeviceId,
+    String? deviceInstallationId,
+  }) async {
+    final purchase = await _dao.getPendingDirtyPurchase(
+      businessId: businessId,
+      branchId: branchId,
+      purchaseId: purchaseId,
+    );
+    return _enqueuePurchases(
+      businessId: businessId,
+      branchId: branchId,
+      profileId: profileId,
+      appDeviceId: appDeviceId,
+      deviceInstallationId: deviceInstallationId,
+      purchases: purchase == null ? const [] : [purchase],
+    );
+  }
+
   Future<PurchaseSyncOutboxResult> _enqueuePurchases({
     required String businessId,
     required String branchId,

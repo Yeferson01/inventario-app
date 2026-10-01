@@ -16,6 +16,7 @@ final purchaseLocalDaoProvider = Provider<PurchaseLocalDao>((ref) {
 final purchaseLocalServiceProvider = Provider<PurchaseLocalService>((ref) {
   return PurchaseLocalService(
     dao: ref.watch(purchaseLocalDaoProvider),
+    enableWeightedDomain: true,
     onCommitted: ref
         .read(productiveSyncStatusRevisionProvider.notifier)
         .markLocalStateChanged,
