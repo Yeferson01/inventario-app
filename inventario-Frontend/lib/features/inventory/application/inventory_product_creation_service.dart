@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/models/product_sale_mode.dart';
+import '../../../core/money/cop_price_input.dart';
 import '../../../core/utils/app_uuid.dart';
 import '../../../core/utils/barcode_normalizer.dart';
 import 'inventory_product_creation_models.dart';
@@ -9,6 +11,47 @@ class InventoryProductCreationService {
   InventoryProductCreationService(this._db);
 
   final AppDatabase _db;
+
+  /// A mode switch reinterprets every historical quantity; even tombstoned
+  /// rows remain evidence. Zero-only balances are safe to switch.
+  Future<bool> hasProductOperationalHistory({
+    required String businessId,
+    required String productId,
+  }) async {
+    final row = await _db.customSelect(
+      '''
+      select
+        exists(select 1 from products where id = ? and business_id = ?
+          and stock_quantity <> 0) as legacy_stock,
+        exists(select 1 from local_product_stock_balances
+          where product_id = ? and business_id = ?
+          and (quantity_on_hand <> 0 or quantity_reserved <> 0
+            or quantity_available <> 0)) as stock,
+        exists(select 1 from local_inventory_movements where product_id = ?
+          and business_id = ?) as movement,
+        exists(select 1 from sale_items where product_id = ?) as sale,
+        exists(select 1 from purchase_items where product_id = ?) as purchase
+      ''',
+      variables: [
+        Variable<String>(productId),
+        Variable<String>(businessId),
+        Variable<String>(productId),
+        Variable<String>(businessId),
+        Variable<String>(productId),
+        Variable<String>(businessId),
+        Variable<String>(productId),
+        Variable<String>(productId),
+      ],
+      readsFrom: {
+        _db.products,
+        _db.localProductStockBalances,
+        _db.localInventoryMovements,
+        _db.saleItems,
+        _db.purchaseItems,
+      },
+    ).getSingle();
+    return row.data.values.any((value) => value == 1 || value == true);
+  }
 
   Future<Map<String, dynamic>?> findActiveBusinessProductByMaster({
     required String businessId,
@@ -86,6 +129,8 @@ class InventoryProductCreationService {
       throw ArgumentError(
           'Los precios y el stock mínimo no pueden ser negativos.');
     }
+    _validateSaleConfiguration(
+        input.saleMode, input.salePriceCents, input.salePrice);
 
     final draft = buildDraftFromMaster(
       businessId: input.businessId,
@@ -126,6 +171,8 @@ class InventoryProductCreationService {
       'description': input.description,
       'purchase_price': input.purchasePrice,
       'sale_price': input.salePrice,
+      'sale_mode': input.saleMode.wireValue,
+      'sale_price_cents': input.salePriceCents,
       'stock_quantity': 0,
       'minimum_stock': input.minimumStock,
       'unit': input.unit ?? draft.packageUnit ?? draft.unitType ?? 'unidad',
@@ -231,6 +278,8 @@ class InventoryProductCreationService {
       throw ArgumentError(
           'Los precios y el stock mínimo no pueden ser negativos.');
     }
+    _validateSaleConfiguration(
+        input.saleMode, input.salePriceCents, input.salePrice);
 
     final now = DateTime.now().toUtc();
     final productId = AppUuid.v7();
@@ -268,6 +317,8 @@ class InventoryProductCreationService {
       'description': input.description,
       'purchase_price': input.purchasePrice,
       'sale_price': input.salePrice,
+      'sale_mode': input.saleMode.wireValue,
+      'sale_price_cents': input.salePriceCents,
       'stock_quantity': 0,
       'minimum_stock': input.minimumStock,
       'unit': input.unit ?? 'unidad',
@@ -891,7 +942,11 @@ class InventoryProductCreationService {
       'name': name,
       'description': _string(product['description']),
       'purchase_price': _double(product['purchase_price']) ?? 0,
-      'sale_price': _double(product['sale_price']) ?? 0,
+      'sale_price': product['sale_price_cents'] is int
+          ? exactPesosFromCents(product['sale_price_cents'] as int)
+          : _double(product['sale_price']) ?? 0,
+      'sale_mode': ProductSaleMode.parse(product['sale_mode']).wireValue,
+      'sale_price_cents': product['sale_price_cents'],
       'stock_quantity': _intOrDefault(product['stock_quantity'], 0),
       'minimum_stock': _intOrDefault(product['minimum_stock'], 0),
       'unit': _string(product['unit']) ?? 'unidad',
@@ -1150,7 +1205,11 @@ class InventoryProductCreationService {
       'name': _requiredString(product, 'name'),
       'description': _string(product['description']),
       'purchase_price': _double(product['purchase_price']) ?? 0,
-      'sale_price': _double(product['sale_price']) ?? 0,
+      'sale_price': product['sale_price_cents'] is int
+          ? exactPesosFromCents(product['sale_price_cents'] as int)
+          : _double(product['sale_price']) ?? 0,
+      'sale_mode': ProductSaleMode.parse(product['sale_mode']).wireValue,
+      'sale_price_cents': product['sale_price_cents'],
       'stock_quantity': _intOrDefault(product['stock_quantity'], 0),
       'minimum_stock': _intOrDefault(product['minimum_stock'], 0),
       'unit': _string(product['unit']) ?? 'unidad',
@@ -1377,5 +1436,19 @@ class InventoryProductCreationService {
     }
 
     return double.tryParse(value.toString());
+  }
+}
+
+void _validateSaleConfiguration(
+  ProductSaleMode mode,
+  int? cents,
+  double legacyProjection,
+) {
+  if (mode == ProductSaleMode.weight && cents == null) {
+    throw ArgumentError('El precio por libra requiere centavos exactos.');
+  }
+  if (cents != null &&
+      (cents < 0 || cents > 999999999999 || legacyProjection != cents / 100)) {
+    throw ArgumentError('El precio exacto y su proyección no coinciden.');
   }
 }

@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/models/product_sale_mode.dart';
+import '../../../core/money/cop_price_input.dart';
 import '../../../core/utils/app_uuid.dart';
 import '../../sync/application/local_sync_outbox_service.dart';
 import '../../sync/data/models/local_sync_outbox_models.dart';
@@ -72,6 +74,20 @@ class InventoryProductMinimumStockSyncResult {
   bool get changed => previousMinimumStock != minimumStock;
 }
 
+class ProductSaleModeChangeBlockedException implements Exception {
+  const ProductSaleModeChangeBlockedException();
+}
+
+class InventoryProductSaleConfigurationSyncResult {
+  const InventoryProductSaleConfigurationSyncResult({
+    required this.changed,
+    this.outboxResult,
+  });
+
+  final bool changed;
+  final LocalSyncEnqueueResult? outboxResult;
+}
+
 class InventoryProductFromMasterSyncService {
   InventoryProductFromMasterSyncService({
     required AppDatabase database,
@@ -84,6 +100,102 @@ class InventoryProductFromMasterSyncService {
   final AppDatabase _database;
   final InventoryProductCreationService _productCreationService;
   final LocalSyncOutboxService _outboxService;
+
+  Future<InventoryProductSaleConfigurationSyncResult?>
+      updateSaleConfigurationAndQueueSync({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String productId,
+    required String deviceInstallationId,
+    required ProductSaleMode saleMode,
+    required int salePriceCents,
+    String? appDeviceId,
+  }) {
+    final exactPrice = exactPesosFromCents(salePriceCents);
+    return _database.transaction(() async {
+      final product = await (_database.select(_database.products)
+            ..where((row) =>
+                row.id.equals(productId) &
+                row.businessId.equals(businessId) &
+                row.deletedAt.isNull()))
+          .getSingleOrNull();
+      if (product == null) return null;
+
+      final previousMode = ProductSaleMode.parse(product.saleMode);
+      if (previousMode == saleMode &&
+          product.salePriceCents == salePriceCents) {
+        return const InventoryProductSaleConfigurationSyncResult(
+            changed: false);
+      }
+      if (previousMode != saleMode &&
+          await _productCreationService.hasProductOperationalHistory(
+              businessId: businessId, productId: productId)) {
+        throw const ProductSaleModeChangeBlockedException();
+      }
+
+      final now = DateTime.now().toUtc();
+      await (_database.update(_database.products)
+            ..where((row) =>
+                row.id.equals(productId) &
+                row.businessId.equals(businessId) &
+                row.deletedAt.isNull()))
+          .write(ProductsCompanion(
+        saleMode: Value(saleMode.wireValue),
+        salePriceCents: Value(salePriceCents),
+        salePrice: Value(salePriceCents / 100),
+        syncStatus: const Value(SyncStatus.pendingUpdate),
+        updatedAt: Value(now),
+      ));
+
+      final operationId = AppUuid.v7();
+      final mutation = LocalSyncMutationDraft(
+        clientMutationId:
+            '$deviceInstallationId:sale-config:$productId:$operationId',
+        clientSequence: now.microsecondsSinceEpoch.remainder(2000000000),
+        entityTable: 'products',
+        entityId: productId,
+        operation: 'update',
+        payload: {
+          'sale_mode': saleMode.wireValue,
+          'sale_price_cents': salePriceCents,
+          'sale_price': exactPrice,
+          'updated_at': now.toIso8601String(),
+        },
+        beforePayload: {
+          'sale_mode': previousMode.wireValue,
+          'sale_price_cents': product.salePriceCents,
+          'sale_price': product.salePrice,
+          'updated_at': product.updatedAt.toUtc().toIso8601String(),
+        },
+        changedFields: const [
+          'sale_mode',
+          'sale_price_cents',
+          'sale_price',
+          'updated_at'
+        ],
+        idempotencyKey:
+            '$deviceInstallationId:products:$productId:sale-config:$operationId',
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        appDeviceId: appDeviceId,
+        baseUpdatedAt: product.updatedAt,
+        metadata: const {'source': 'inventory_product_sale_configuration'},
+      );
+      final outboxResult = await _outboxService.enqueueCatalogMutations(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        appDeviceId: appDeviceId,
+        deviceInstallationId: deviceInstallationId,
+        mutations: [mutation],
+        metadata: const {'source': 'inventory_product_sale_configuration'},
+      );
+      return InventoryProductSaleConfigurationSyncResult(
+          changed: true, outboxResult: outboxResult);
+    });
+  }
 
   Future<Map<String, dynamic>?> findActiveBusinessProductByMaster({
     required String businessId,

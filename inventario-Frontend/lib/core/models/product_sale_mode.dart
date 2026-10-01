@@ -8,6 +8,16 @@ enum ProductSaleMode {
   // UNIT count or grams for WEIGHT. One commercial pound is exactly 500 g.
   final int salePriceBasisQuantity;
 
+  String get displayLabel => switch (this) {
+        ProductSaleMode.unit => 'Por unidad',
+        ProductSaleMode.weight => 'Por peso',
+      };
+
+  String get priceBasisLabel => switch (this) {
+        ProductSaleMode.unit => 'por unidad',
+        ProductSaleMode.weight => 'por libra (500 g)',
+      };
+
   static ProductSaleMode parse(Object? value) => switch (value) {
         'unit' => ProductSaleMode.unit,
         'weight' => ProductSaleMode.weight,

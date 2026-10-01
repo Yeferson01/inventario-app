@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../../core/utils/barcode_normalizer.dart';
+import '../../../core/models/product_sale_mode.dart';
 import '../../catalog/application/catalog_barcode_lookup_service.dart';
 import '../../catalog/domain/entities/barcode_scan_result.dart';
 import 'business_product_creation_models.dart';
@@ -18,6 +19,61 @@ class BusinessProductCreationService {
   final InventoryProductFromMasterSyncService _productSyncService;
   final Map<({String businessId, String masterProductId}), Future<void>>
       _masterCreationTails = {};
+
+  Future<BusinessProductSaleConfigurationUpdateResult> updateSaleConfiguration(
+    BusinessProductSaleConfigurationUpdateInput input,
+  ) async {
+    if (_validateContext(input.context) != null ||
+        input.productId.trim().isEmpty ||
+        input.salePriceCents < 0 ||
+        input.salePriceCents > 999999999999) {
+      return const BusinessProductSaleConfigurationUpdateResult(
+          succeeded: false, message: 'El producto o el precio no es válido.');
+    }
+    if (!input.context.hasPermission('products.update')) {
+      return const BusinessProductSaleConfigurationUpdateResult(
+        succeeded: false,
+        message: 'Editar el producto requiere products.update.',
+      );
+    }
+    try {
+      final result =
+          await _productSyncService.updateSaleConfigurationAndQueueSync(
+        businessId: input.context.businessId,
+        branchId: input.context.branchId,
+        profileId: input.context.profileId,
+        appDeviceId: input.context.appDeviceId,
+        deviceInstallationId: input.context.deviceInstallationId,
+        productId: input.productId.trim(),
+        saleMode: input.saleMode,
+        salePriceCents: input.salePriceCents,
+      );
+      if (result == null) {
+        return const BusinessProductSaleConfigurationUpdateResult(
+            succeeded: false,
+            message: 'El producto no existe en este negocio.');
+      }
+      return BusinessProductSaleConfigurationUpdateResult(
+        succeeded: true,
+        changed: result.changed,
+        message: result.changed
+            ? 'Forma de venta y precio guardados localmente.'
+            : 'La configuración ya tenía esos valores.',
+      );
+    } on ProductSaleModeChangeBlockedException {
+      return const BusinessProductSaleConfigurationUpdateResult(
+        succeeded: false,
+        message: 'No puedes cambiar la forma de venta porque el producto ya '
+            'tiene stock, movimientos, ventas o compras. Crea un producto '
+            'nuevo si necesitas otra forma de venta.',
+      );
+    } catch (_) {
+      return const BusinessProductSaleConfigurationUpdateResult(
+        succeeded: false,
+        message: 'No fue posible guardar la configuración localmente.',
+      );
+    }
+  }
 
   Future<BusinessProductMinimumStockUpdateResult> updateMinimumStock(
     BusinessProductMinimumStockUpdateInput input,
@@ -199,6 +255,8 @@ class BusinessProductCreationService {
             barcodeRecord: barcodeRecord,
             purchasePrice: fields.purchasePrice,
             salePrice: fields.salePrice,
+            saleMode: fields.saleMode,
+            salePriceCents: fields.salePriceCents,
             categoryId: fields.categoryId,
             nameOverride: fields.name,
             description: fields.description,
@@ -231,6 +289,8 @@ class BusinessProductCreationService {
           barcode: resolution.rawCode,
           purchasePrice: fields.purchasePrice,
           salePrice: fields.salePrice,
+          saleMode: fields.saleMode,
+          salePriceCents: fields.salePriceCents,
           categoryId: fields.categoryId,
           description: fields.description,
           minimumStock: fields.minimumStock,
@@ -464,6 +524,22 @@ class BusinessProductCreationService {
       return const BusinessProductCreationResult(
         outcome: BusinessProductCreationOutcome.validationFailure,
         message: 'Los precios no pueden ser negativos.',
+      );
+    }
+    if (fields.saleMode == ProductSaleMode.weight &&
+        fields.salePriceCents == null) {
+      return const BusinessProductCreationResult(
+        outcome: BusinessProductCreationOutcome.validationFailure,
+        message: 'El precio por libra debe ser exacto.',
+      );
+    }
+    if (fields.salePriceCents != null &&
+        (fields.salePriceCents! < 0 ||
+            fields.salePriceCents! > 999999999999 ||
+            fields.salePrice != fields.salePriceCents! / 100)) {
+      return const BusinessProductCreationResult(
+        outcome: BusinessProductCreationOutcome.validationFailure,
+        message: 'El precio exacto no coincide con el valor ingresado.',
       );
     }
     if (fields.minimumStock < 0) {

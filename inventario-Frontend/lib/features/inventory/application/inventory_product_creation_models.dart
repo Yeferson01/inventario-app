@@ -1,3 +1,5 @@
+import '../../../core/models/product_sale_mode.dart';
+
 class ProductFromMasterDraft {
   const ProductFromMasterDraft({
     required this.businessId,
@@ -63,6 +65,8 @@ class CreateProductFromMasterInput {
     required this.masterProduct,
     required this.barcodeRecord,
     required this.salePrice,
+    this.saleMode = ProductSaleMode.unit,
+    this.salePriceCents,
     this.purchasePrice = 0,
     this.branchId,
     this.profileId,
@@ -86,6 +90,8 @@ class CreateProductFromMasterInput {
   final Map<String, dynamic> barcodeRecord;
 
   final double salePrice;
+  final ProductSaleMode saleMode;
+  final int? salePriceCents;
   final double purchasePrice;
   final String? categoryId;
   final String? nameOverride;
@@ -150,6 +156,8 @@ class CreateManualLocalProductInput {
     required this.name,
     required this.purchasePrice,
     required this.salePrice,
+    this.saleMode = ProductSaleMode.unit,
+    this.salePriceCents,
     this.branchId,
     this.profileId,
     this.appDeviceId,
@@ -172,6 +180,8 @@ class CreateManualLocalProductInput {
   final String? barcode;
   final double purchasePrice;
   final double salePrice;
+  final ProductSaleMode saleMode;
+  final int? salePriceCents;
   final String? categoryId;
   final String? description;
   final int minimumStock;

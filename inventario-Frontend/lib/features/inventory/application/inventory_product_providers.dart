@@ -68,3 +68,12 @@ final businessProductMinimumStockUpdaterProvider = Provider<
   final service = ref.watch(businessProductCreationServiceProvider);
   return service.updateMinimumStock;
 });
+
+final businessProductSaleConfigurationUpdaterProvider = Provider<
+    Future<BusinessProductSaleConfigurationUpdateResult> Function(
+      BusinessProductSaleConfigurationUpdateInput input,
+    )>((ref) {
+  return ref
+      .watch(businessProductCreationServiceProvider)
+      .updateSaleConfiguration;
+});

@@ -3,6 +3,8 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/models/product_sale_mode.dart';
+import '../../../../core/money/cop_price_input.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../auth/application/authenticated_access_providers.dart';
 import '../../../catalog/application/catalog_local_providers.dart';
@@ -58,6 +60,7 @@ class _InventoryProductStockListScreenState
     extends ConsumerState<InventoryProductStockListScreen> {
   final _searchController = TextEditingController();
   final _minimumStockUpdates = <String>{};
+  final _saleConfigurationUpdates = <String>{};
   bool _isCreatingProduct = false;
   bool _adjustmentOpen = false;
   String _searchTerm = '';
@@ -259,6 +262,48 @@ class _InventoryProductStockListScreenState
     );
   }
 
+  Future<void> _editSaleConfiguration(Map<String, dynamic> product) async {
+    final productId = _string(product['product_id']);
+    final profileId = widget.profileId?.trim();
+    final installationId = widget.deviceInstallationId?.trim();
+    if (productId == null ||
+        profileId == null ||
+        profileId.isEmpty ||
+        installationId == null ||
+        installationId.isEmpty ||
+        _saleConfigurationUpdates.contains(productId)) {
+      return;
+    }
+
+    final draft = await showDialog<({ProductSaleMode mode, int cents})>(
+      context: context,
+      builder: (_) => _InventorySaleConfigurationDialog(product: product),
+    );
+    if (!mounted || draft == null) return;
+    setState(() => _saleConfigurationUpdates.add(productId));
+    final result =
+        await ref.read(businessProductSaleConfigurationUpdaterProvider)(
+      BusinessProductSaleConfigurationUpdateInput(
+        context: BusinessProductCreationContext(
+          businessId: widget.businessId,
+          branchId: widget.branchId,
+          profileId: profileId,
+          appDeviceId: widget.appDeviceId,
+          deviceInstallationId: installationId,
+          effectivePermissions: widget.effectivePermissions,
+        ),
+        productId: productId,
+        saleMode: draft.mode,
+        salePriceCents: draft.cents,
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _saleConfigurationUpdates.remove(productId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.message)),
+    );
+  }
+
   Future<void> _openAddProduct() async {
     final profileId = widget.profileId?.trim();
     final installationId = widget.deviceInstallationId?.trim();
@@ -322,6 +367,8 @@ class _InventoryProductStockListScreenState
           name: draft.name,
           purchasePrice: draft.purchasePrice,
           salePrice: draft.salePrice,
+          saleMode: draft.saleMode,
+          salePriceCents: draft.salePriceCents,
           minimumStock: draft.minimumStock,
           unit: draft.unit,
         ),
@@ -637,13 +684,20 @@ class _InventoryProductStockListScreenState
                                   );
                                 }
                               : null,
-                          onEditMinimumStock: canEditMinimumStock
+                          onEditMinimumStock: canEditMinimumStock &&
+                                  product['sale_mode'] != 'weight'
                               ? () => _editMinimumStock(product)
                               : null,
-                          onAdjust: canAdjust && actualProductId != null
+                          onEditSaleConfiguration: canEditMinimumStock
+                              ? () => _editSaleConfiguration(product)
+                              : null,
+                          onAdjust: canAdjust &&
+                                  actualProductId != null &&
+                                  product['sale_mode'] != 'weight'
                               ? () => _openAdjustment(product)
                               : null,
-                          onTransfer: sourceContext != null &&
+                          onTransfer: product['sale_mode'] != 'weight' &&
+                                  sourceContext != null &&
                                   destinationContexts.isNotEmpty &&
                                   _int(product['quantity_available']) > 0
                               ? () => _openTransfer(
@@ -961,11 +1015,100 @@ class _MasterProductSearchTile extends StatelessWidget {
   }
 }
 
+class _InventorySaleConfigurationDialog extends StatefulWidget {
+  const _InventorySaleConfigurationDialog({required this.product});
+
+  final Map<String, dynamic> product;
+
+  @override
+  State<_InventorySaleConfigurationDialog> createState() =>
+      _InventorySaleConfigurationDialogState();
+}
+
+class _InventorySaleConfigurationDialogState
+    extends State<_InventorySaleConfigurationDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late ProductSaleMode _mode;
+  late String _price;
+
+  @override
+  void initState() {
+    super.initState();
+    _mode = ProductSaleMode.parse(widget.product['sale_mode'] ?? 'unit');
+    final cents = widget.product['sale_price_cents'];
+    final legacy = widget.product['sale_price'];
+    _price = cents is int
+        ? exactPesosFromCents(cents).replaceAll('.', ',')
+        : legacy is num
+            ? legacy.toStringAsFixed(2).replaceAll('.', ',')
+            : '0';
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Forma de venta y precio'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Forma de venta'),
+              SegmentedButton<ProductSaleMode>(
+                key: const Key('inventory-edit-sale-mode'),
+                segments: ProductSaleMode.values
+                    .map((mode) => ButtonSegment(
+                        value: mode, label: Text(mode.displayLabel)))
+                    .toList(),
+                selected: {_mode},
+                onSelectionChanged: (selection) =>
+                    setState(() => _mode = selection.single),
+              ),
+              const SizedBox(height: CronosSpacing.sm),
+              TextFormField(
+                key: const Key('inventory-edit-sale-price'),
+                initialValue: _price,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Precio de venta',
+                  helperText: _mode.priceBasisLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (value) => parseCopPriceCents(value ?? '') == null
+                    ? 'Ingresa un precio válido en pesos.'
+                    : null,
+                onChanged: (value) => _price = value,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('inventory-edit-sale-save'),
+            onPressed: () {
+              if (!(_formKey.currentState?.validate() ?? false)) return;
+              Navigator.of(context).pop((
+                mode: _mode,
+                cents: parseCopPriceCents(_price)!,
+              ));
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      );
+}
+
 class _InventoryProductDraft {
   const _InventoryProductDraft({
     required this.name,
     required this.purchasePrice,
     required this.salePrice,
+    required this.saleMode,
+    required this.salePriceCents,
     required this.minimumStock,
     required this.unit,
     this.barcode,
@@ -975,6 +1118,8 @@ class _InventoryProductDraft {
   final String? barcode;
   final double purchasePrice;
   final double salePrice;
+  final ProductSaleMode saleMode;
+  final int salePriceCents;
   final int minimumStock;
   final String? unit;
 }
@@ -1002,6 +1147,7 @@ class _InventoryProductDraftDialogState
   String? _barcode;
   String _purchasePrice = '0';
   String _salePrice = '0';
+  ProductSaleMode _saleMode = ProductSaleMode.unit;
   String _minimumStock = '0';
   String _unit = 'unidad';
 
@@ -1072,6 +1218,22 @@ class _InventoryProductDraftDialogState
                   onChanged: (value) => _barcode = value.trim(),
                 ),
                 const SizedBox(height: CronosSpacing.sm),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Forma de venta',
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
+                SegmentedButton<ProductSaleMode>(
+                  key: const Key('inventory-product-sale-mode'),
+                  segments: ProductSaleMode.values
+                      .map((mode) => ButtonSegment(
+                          value: mode, label: Text(mode.displayLabel)))
+                      .toList(),
+                  selected: {_saleMode},
+                  onSelectionChanged: (selection) =>
+                      setState(() => _saleMode = selection.single),
+                ),
+                const SizedBox(height: CronosSpacing.sm),
                 Row(
                   children: [
                     Expanded(
@@ -1079,15 +1241,26 @@ class _InventoryProductDraftDialogState
                         fieldKey: const Key('inventory-purchase-price-field'),
                         label: 'Costo',
                         initialValue: _purchasePrice,
+                        enabled: _saleMode == ProductSaleMode.unit,
                         onChanged: (value) => _purchasePrice = value,
                       ),
                     ),
                     const SizedBox(width: CronosSpacing.sm),
                     Expanded(
-                      child: _DecimalField(
-                        fieldKey: const Key('inventory-sale-price-field'),
-                        label: 'Precio de venta',
+                      child: TextFormField(
+                        key: const Key('inventory-sale-price-field'),
                         initialValue: _salePrice,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Precio de venta',
+                          helperText: _saleMode.priceBasisLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (value) =>
+                            parseCopPriceCents(value ?? '') == null
+                                ? 'Ingresa un precio válido en pesos.'
+                                : null,
                         onChanged: (value) => _salePrice = value,
                       ),
                     ),
@@ -1105,7 +1278,9 @@ class _InventoryProductDraftDialogState
                           labelText: 'Stock mínimo',
                           border: OutlineInputBorder(),
                         ),
+                        enabled: _saleMode == ProductSaleMode.unit,
                         validator: (value) {
+                          if (_saleMode == ProductSaleMode.weight) return null;
                           final parsed = int.tryParse((value ?? '').trim());
                           return parsed == null || parsed < 0
                               ? 'Usa un entero >= 0.'
@@ -1146,9 +1321,15 @@ class _InventoryProductDraftDialogState
               _InventoryProductDraft(
                 name: _name.trim(),
                 barcode: _string(_barcode),
-                purchasePrice: _parseDecimal(_purchasePrice)!,
-                salePrice: _parseDecimal(_salePrice)!,
-                minimumStock: int.parse(_minimumStock.trim()),
+                purchasePrice: _saleMode == ProductSaleMode.weight
+                    ? 0
+                    : _parseDecimal(_purchasePrice)!,
+                salePrice: parseCopPriceCents(_salePrice)! / 100,
+                saleMode: _saleMode,
+                salePriceCents: parseCopPriceCents(_salePrice)!,
+                minimumStock: _saleMode == ProductSaleMode.weight
+                    ? 0
+                    : int.parse(_minimumStock.trim()),
                 unit: _string(_unit),
               ),
             );
@@ -1166,18 +1347,21 @@ class _DecimalField extends StatelessWidget {
     required this.label,
     required this.initialValue,
     required this.onChanged,
+    this.enabled = true,
   });
 
   final Key fieldKey;
   final String label;
   final String initialValue;
   final ValueChanged<String> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       key: fieldKey,
       initialValue: initialValue,
+      enabled: enabled,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: InputDecoration(
         labelText: label,
@@ -1200,6 +1384,7 @@ class _InventoryProductCard extends StatelessWidget {
     required this.isUpdatingMinimumStock,
     this.onOpenMovements,
     this.onEditMinimumStock,
+    this.onEditSaleConfiguration,
     this.onAdjust,
     this.onTransfer,
   });
@@ -1209,6 +1394,7 @@ class _InventoryProductCard extends StatelessWidget {
   final bool isUpdatingMinimumStock;
   final VoidCallback? onOpenMovements;
   final VoidCallback? onEditMinimumStock;
+  final VoidCallback? onEditSaleConfiguration;
   final VoidCallback? onAdjust;
   final VoidCallback? onTransfer;
 
@@ -1217,6 +1403,8 @@ class _InventoryProductCard extends StatelessWidget {
     final name = _string(product['product_name']) ?? 'Producto sin nombre';
     final barcode = _string(product['barcode']);
     final stock = _formatQuantity(product['quantity_on_hand']);
+    final saleMode = ProductSaleMode.parse(product['sale_mode'] ?? 'unit');
+    final exactPrice = product['sale_price_cents'];
     final minimumStock = _minimumStock(product['minimum_stock']);
     final productId = _string(product['product_id']) ?? '';
     final quantityOnHand = _int(product['quantity_on_hand']);
@@ -1251,6 +1439,15 @@ class _InventoryProductCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
+                if (saleMode == ProductSaleMode.weight) ...[
+                  const SizedBox(height: CronosSpacing.xs),
+                  Text(
+                    exactPrice is int
+                        ? '${formatCopPriceCents(exactPrice)} / libra'
+                        : 'Precio por libra no disponible',
+                    key: Key('inventory-weight-price-$productId'),
+                  ),
+                ],
                 if (isOutOfStock) ...[
                   const SizedBox(height: CronosSpacing.xs),
                   Chip(
@@ -1278,7 +1475,9 @@ class _InventoryProductCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Stock: $stock',
+                saleMode == ProductSaleMode.weight
+                    ? 'Stock: $stock g'
+                    : 'Stock: $stock',
                 key: Key('inventory-stock-$productId'),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: CronosColors.primaryDark,
@@ -1301,7 +1500,9 @@ class _InventoryProductCard extends StatelessWidget {
               ],
               const SizedBox(height: CronosSpacing.xs),
               Text(
-                'Mínimo: $minimumStock',
+                saleMode == ProductSaleMode.weight
+                    ? 'Mínimo: $minimumStock g'
+                    : 'Mínimo: $minimumStock',
                 key: Key('inventory-minimum-stock-$productId'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -1325,6 +1526,13 @@ class _InventoryProductCard extends StatelessWidget {
                   label: Text(
                     isUpdatingMinimumStock ? 'Guardando…' : 'Editar mínimo',
                   ),
+                ),
+              if (onEditSaleConfiguration != null)
+                TextButton.icon(
+                  key: Key('inventory-edit-sale-config-$productId'),
+                  onPressed: onEditSaleConfiguration,
+                  icon: const Icon(Icons.sell_outlined),
+                  label: const Text('Forma de venta y precio'),
                 ),
               if (onAdjust != null)
                 TextButton.icon(

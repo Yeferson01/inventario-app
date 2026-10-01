@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventario_frontend/core/database/app_database.dart';
 import 'package:inventario_frontend/core/database/database_provider.dart';
+import 'package:inventario_frontend/core/models/product_sale_mode.dart';
 import 'package:inventario_frontend/features/catalog/application/catalog_local_providers.dart';
 import 'package:inventario_frontend/features/inventory/application/business_product_creation_models.dart';
 import 'package:inventario_frontend/features/inventory/application/inventory_product_providers.dart';
@@ -278,12 +279,12 @@ void main() {
     expect(find.byKey(const Key('inventory-search-clear')), findsNothing);
   });
 
-  testWidgets(
-      'adds a local master through the productive service and shows stock zero',
+  testWidgets('adds a WEIGHT product from master with an exact price per 500 g',
       (tester) async {
     var products = <Map<String, dynamic>>[];
     BusinessProductCreationContext? receivedContext;
     String? receivedCode;
+    BusinessProductOwnedFields? receivedFields;
 
     await tester.pumpWidget(
       ProviderScope(
@@ -328,6 +329,7 @@ void main() {
           }) async {
             receivedContext = context;
             receivedCode = code;
+            receivedFields = fields;
             products = [
               {
                 'product_id': 'product-cafe',
@@ -336,6 +338,8 @@ void main() {
                 'quantity_on_hand': 0,
                 'quantity_available': 0,
                 'minimum_stock': fields.minimumStock,
+                'sale_mode': fields.saleMode.wireValue,
+                'sale_price_cents': fields.salePriceCents,
               },
             ];
             return BusinessProductCreationResult(
@@ -386,6 +390,12 @@ void main() {
       find.byKey(const Key('inventory-add-master-master-cafe')),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Por peso'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-sale-price-field')), '800');
+    await tester.pumpAndSettle();
+    expect(find.text('por libra (500 g)'), findsOneWidget);
     await tester.tap(
       find.byKey(const Key('inventory-product-create-confirm')),
     );
@@ -396,11 +406,81 @@ void main() {
     expect(receivedContext?.profileId, 'profile-1');
     expect(receivedContext?.appDeviceId, 'device-1');
     expect(receivedCode, '7701234567890');
+    expect(receivedFields?.saleMode, ProductSaleMode.weight);
+    expect(receivedFields?.salePriceCents, 80000);
+    expect(receivedFields?.minimumStock, 0);
     expect(
       find.byKey(const Key('inventory-product-product-cafe')),
       findsOneWidget,
     );
-    expect(find.text('Stock: 0'), findsOneWidget);
+    expect(find.text('Stock: 0 g'), findsOneWidget);
+    expect(find.text(r'$800 / libra'), findsOneWidget);
+  });
+
+  testWidgets('edits sale mode and exact price through application provider',
+      (tester) async {
+    final controller = StreamController<List<Map<String, dynamic>>>();
+    addTearDown(controller.close);
+    var product = <String, dynamic>{
+      'product_id': 'product-1',
+      'product_name': 'Papa',
+      'sale_mode': 'unit',
+      'sale_price': 800.0,
+      'sale_price_cents': 80000,
+      'quantity_on_hand': 0,
+      'minimum_stock': 0,
+    };
+    BusinessProductSaleConfigurationUpdateInput? received;
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        inventoryValuationSummaryProvider.overrideWith(
+          (ref, key) => Stream.value(InventoryValuationSummary.empty),
+        ),
+        localProductsWithStockProvider
+            .overrideWith((ref, key) => controller.stream),
+        businessProductSaleConfigurationUpdaterProvider.overrideWithValue(
+          (input) async {
+            received = input;
+            product = {
+              ...product,
+              'sale_mode': input.saleMode.wireValue,
+              'sale_price_cents': input.salePriceCents,
+            };
+            controller.add([product]);
+            return const BusinessProductSaleConfigurationUpdateResult(
+              succeeded: true,
+              changed: true,
+              message: 'Guardado.',
+            );
+          },
+        ),
+      ],
+      child: const MaterialApp(
+          home: InventoryProductStockListScreen(
+        businessId: 'business-1',
+        branchId: 'branch-1',
+        branchName: 'Principal',
+        profileId: 'profile-1',
+        appDeviceId: 'device-1',
+        deviceInstallationId: 'installation-1',
+        effectivePermissions: {'products.update'},
+      )),
+    ));
+    controller.add([product]);
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const Key('inventory-edit-sale-config-product-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Por peso'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-edit-sale-price')), '12.000,50');
+    await tester.tap(find.byKey(const Key('inventory-edit-sale-save')));
+    await tester.pumpAndSettle();
+    expect(received?.saleMode, ProductSaleMode.weight);
+    expect(received?.salePriceCents, 1200050);
+    expect(received?.context.businessId, 'business-1');
+    expect(find.text(r'$12.000,50 / libra'), findsOneWidget);
   });
 
   testWidgets('marks exhausted products and combines stock filter with search',

@@ -1,3 +1,5 @@
+import '../../../core/models/product_sale_mode.dart';
+
 enum BusinessProductCodeResolutionType {
   noCode,
   invalid,
@@ -58,6 +60,8 @@ class BusinessProductOwnedFields {
   const BusinessProductOwnedFields({
     required this.purchasePrice,
     required this.salePrice,
+    this.saleMode = ProductSaleMode.unit,
+    this.salePriceCents,
     this.name,
     this.categoryId,
     this.description,
@@ -68,10 +72,38 @@ class BusinessProductOwnedFields {
   final String? name;
   final double purchasePrice;
   final double salePrice;
+  final ProductSaleMode saleMode;
+  final int? salePriceCents;
   final String? categoryId;
   final String? description;
   final int minimumStock;
   final String? unit;
+}
+
+class BusinessProductSaleConfigurationUpdateInput {
+  const BusinessProductSaleConfigurationUpdateInput({
+    required this.context,
+    required this.productId,
+    required this.saleMode,
+    required this.salePriceCents,
+  });
+
+  final BusinessProductCreationContext context;
+  final String productId;
+  final ProductSaleMode saleMode;
+  final int salePriceCents;
+}
+
+class BusinessProductSaleConfigurationUpdateResult {
+  const BusinessProductSaleConfigurationUpdateResult({
+    required this.message,
+    required this.succeeded,
+    this.changed = false,
+  });
+
+  final String message;
+  final bool succeeded;
+  final bool changed;
 }
 
 class BusinessProductMinimumStockUpdateInput {
