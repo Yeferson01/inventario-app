@@ -9,11 +9,12 @@ import 'package:inventario_frontend/features/sync/data/datasources/reconciliatio
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
 
 void main() {
-  test('migrates 16 to 17 preserving existing data and enabling graph FK',
+  test('migrates 16 to 18 preserving existing data and enabling graph FK',
       () async {
     final source = AppDatabase.executor(NativeDatabase.memory());
     await source.customStatement(
         "insert into businesses (id, name) values ('prior-business', 'Prior')");
+    await _removeW1BColumns(source);
     final schemaRows = await source.customSelect('''
       select sql from sqlite_master
       where sql is not null and name not like 'sqlite_%'
@@ -41,13 +42,13 @@ void main() {
         .customSelect("select name from businesses where id = 'prior-business'")
         .getSingle();
     expect(business.read<String>('name'), 'Prior');
-    expect(database.schemaVersion, 17);
+    expect(database.schemaVersion, 18);
     expect(await _columnNames(database, 'local_sync_batch_dependencies'),
         contains('completion_snapshot_id'));
     final fk = await database.customSelect('pragma foreign_keys').getSingle();
     expect(fk.read<int>('foreign_keys'), 1);
   });
-  test('migrates schema 8 to 17 without replacing existing balance IDs',
+  test('migrates schema 8 to 18 without replacing existing balance IDs',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -65,7 +66,7 @@ void main() {
       variables: [const Variable<String>('random-local-uuid')],
     ).getSingle();
 
-    expect(database.schemaVersion, 17);
+    expect(database.schemaVersion, 18);
     expect(
         await _columnNames(database, 'local_sync_batch_dependencies'),
         containsAll([
@@ -190,7 +191,7 @@ void main() {
     );
   });
 
-  test('migrates current schema 12 to 17 additively', () async {
+  test('migrates current schema 12 to 18 additively', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema10CostSetupStatements) {
@@ -204,7 +205,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 17);
+    expect(database.schemaVersion, 18);
     expect(
       await _columnNames(database, 'local_report_snapshots'),
       containsAll(<String>{
@@ -223,7 +224,7 @@ void main() {
     expect(legacyMovement.read<String>('id'), 'legacy-movement');
     expect(legacyMovement.read<int>('quantity_change'), 4);
   });
-  test('migrates historical schema 13 to 17 preserving report snapshots',
+  test('migrates historical schema 13 to 18 preserving report snapshots',
       () async {
     final database = AppDatabase.executor(NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -244,7 +245,7 @@ void main() {
     ));
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 17);
+    expect(database.schemaVersion, 18);
     final report = await database.customSelect('''
       select payload_json from local_report_snapshots where id = 'legacy-report'
     ''').getSingle();
@@ -252,9 +253,9 @@ void main() {
     expect(await database.select(database.localCashMovements).get(), isEmpty);
     final version =
         await database.customSelect('pragma user_version').getSingle();
-    expect(version.read<int>('user_version'), 17);
+    expect(version.read<int>('user_version'), 18);
   });
-  test('migrates schema 9 to 17 preserving Product identity', () async {
+  test('migrates schema 9 to 18 preserving Product identity', () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
         for (final statement in _schema9IdentitySetupStatements) {
@@ -265,7 +266,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 17);
+    expect(database.schemaVersion, 18);
     final product = await database.customSelect(
       'select id, name, master_product_id from products where id = ?',
       variables: [const Variable<String>('legacy-product')],
@@ -288,7 +289,7 @@ void main() {
     expect(indexes, hasLength(3));
   });
 
-  test('HY-28 migrates schema 10 to 17 preserving existing movements',
+  test('HY-28 migrates schema 10 to 18 preserving existing movements',
       () async {
     final executor = NativeDatabase.memory(
       setup: (rawDatabase) {
@@ -300,7 +301,7 @@ void main() {
     final database = AppDatabase.executor(executor);
     addTearDown(database.close);
 
-    expect(database.schemaVersion, 17);
+    expect(database.schemaVersion, 18);
     final legacySaleItem = await database.customSelect(
       'select unit_cost_snapshot from sale_items where id = ?',
       variables: [const Variable<String>('legacy-sale-item')],
@@ -400,6 +401,32 @@ Future<void> _verifyRecoveryDaosAfterMigration(AppDatabase database) async {
     ),
     ['inventory.read'],
   );
+}
+
+Future<void> _removeW1BColumns(AppDatabase database) async {
+  const columns = <String, List<String>>{
+    'products': ['sale_mode', 'sale_price_cents'],
+    'sale_items': [
+      'sale_mode_snapshot',
+      'price_basis_quantity_snapshot',
+      'price_cents_snapshot',
+      'line_total_cents',
+      'cogs_cents',
+    ],
+    'purchase_items': ['sale_mode_snapshot', 'cost_basis_quantity_snapshot'],
+    'local_product_stock_balances': [
+      'cost_basis_cents',
+      'remote_cost_basis_cents',
+    ],
+    'local_inventory_movements': ['cost_effect_cents'],
+  };
+  for (final entry in columns.entries) {
+    for (final column in entry.value) {
+      await database.customStatement(
+        'alter table ${entry.key} drop column $column',
+      );
+    }
+  }
 }
 
 Future<Set<String>> _columnNames(AppDatabase database, String table) async {

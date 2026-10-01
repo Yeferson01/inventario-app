@@ -1,4 +1,5 @@
 import 'operational_bootstrap_models.dart';
+import '../../../../core/models/product_sale_mode.dart';
 
 class InventoryBalanceSnapshotRow {
   const InventoryBalanceSnapshotRow({
@@ -10,6 +11,7 @@ class InventoryBalanceSnapshotRow {
     required this.quantityReserved,
     required this.quantityAvailable,
     required this.averageCost,
+    required this.costBasisCents,
     required this.remoteUpdatedAt,
     required this.remoteDeletedAt,
     required this.state,
@@ -34,6 +36,7 @@ class InventoryBalanceSnapshotRow {
       quantityReserved: _requiredInt(json, 'quantity_reserved'),
       quantityAvailable: _requiredInt(json, 'quantity_available'),
       averageCost: _optionalDouble(json['average_cost']),
+      costBasisCents: _costBasisCents(json['cost_basis_cents']),
       remoteUpdatedAt: _requiredDate(json, 'updated_at'),
       remoteDeletedAt: _optionalDate(json['deleted_at'], 'deleted_at'),
       state: row.state,
@@ -48,6 +51,7 @@ class InventoryBalanceSnapshotRow {
   final int quantityReserved;
   final int quantityAvailable;
   final double? averageCost;
+  final int? costBasisCents;
   final DateTime remoteUpdatedAt;
   final DateTime? remoteDeletedAt;
   final OperationalBootstrapRecordState state;
@@ -125,6 +129,18 @@ double? _optionalDouble(Object? value) {
     return value.toDouble();
   }
   throw _malformed('Expected a numeric value or null.');
+}
+
+int? _costBasisCents(Object? value) {
+  try {
+    final cents = parseNullableExactCents(value, 'cost_basis_cents');
+    if (cents != null && cents < 0) {
+      throw _malformed('cost_basis_cents cannot be negative.');
+    }
+    return cents;
+  } on FormatException {
+    throw _malformed('cost_basis_cents must be exact integer cents or null.');
+  }
 }
 
 DateTime _requiredDate(Map<String, Object?> json, String key) {

@@ -62,6 +62,8 @@ class ProductOperationalReconciliationLocalDao {
             description: Value(remote.description),
             purchasePrice: Value(remote.purchasePrice),
             salePrice: remote.salePrice,
+            saleMode: Value(remote.saleMode.wireValue),
+            salePriceCents: Value(remote.salePriceCents),
             stockQuantity: Value(remote.stockQuantity),
             minimumStock: Value(remote.minimumStock),
             unit: Value(remote.unit),

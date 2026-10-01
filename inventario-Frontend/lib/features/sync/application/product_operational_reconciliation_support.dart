@@ -141,6 +141,8 @@ class ProductOperationalReconciliationSupport {
         _string(local['description']) == remote.description &&
         _double(local['purchase_price']) == remote.purchasePrice &&
         _double(local['sale_price']) == remote.salePrice &&
+        _string(local['sale_mode']) == remote.saleMode.wireValue &&
+        _int(local['sale_price_cents']) == remote.salePriceCents &&
         _int(local['stock_quantity']) == remote.stockQuantity &&
         _int(local['minimum_stock']) == remote.minimumStock &&
         _string(local['unit']) == remote.unit &&

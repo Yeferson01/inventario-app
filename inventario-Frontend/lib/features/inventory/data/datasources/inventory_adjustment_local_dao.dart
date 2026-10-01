@@ -45,11 +45,12 @@ class InventoryAdjustmentLocalDao {
 
   Future<void> validateProduct(String businessId, String productId) async {
     final product = await _db.customSelect(
-        'select business_id, status, deleted_at from products where id = ?',
+        'select business_id, status, deleted_at, sale_mode from products where id = ?',
         variables: [Variable(productId)]).getSingleOrNull();
     if (product == null ||
         product.data['business_id'] != businessId ||
         product.data['status'] != 'active' ||
+        product.data['sale_mode'] != 'unit' ||
         product.data['deleted_at'] != null) {
       throw const InventoryAdjustmentException(
           InventoryAdjustmentFailure.invalidProduct);

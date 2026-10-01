@@ -1,4 +1,5 @@
 import 'operational_bootstrap_models.dart';
+import '../../../../core/models/product_sale_mode.dart';
 
 class ProductOperationalCategorySnapshot {
   const ProductOperationalCategorySnapshot({
@@ -47,6 +48,8 @@ class ProductOperationalProductSnapshot {
     required this.description,
     required this.purchasePrice,
     required this.salePrice,
+    required this.saleMode,
+    required this.salePriceCents,
     required this.stockQuantity,
     required this.minimumStock,
     required this.unit,
@@ -72,6 +75,13 @@ class ProductOperationalProductSnapshot {
       description: _optionalString(json['description']),
       purchasePrice: _optionalDouble(json['purchase_price']) ?? 0,
       salePrice: _requiredDouble(json, 'sale_price'),
+      saleMode: ProductSaleMode.parse(
+        json.containsKey('sale_mode') ? json['sale_mode'] : 'unit',
+      ),
+      salePriceCents: parseNullableExactCents(
+        json['sale_price_cents'],
+        'sale_price_cents',
+      ),
       stockQuantity: _optionalInt(json['stock_quantity']) ?? 0,
       minimumStock: _optionalInt(json['minimum_stock']) ?? 0,
       unit: _optionalString(json['unit']) ?? 'unidad',
@@ -92,6 +102,8 @@ class ProductOperationalProductSnapshot {
   final String? description;
   final double purchasePrice;
   final double salePrice;
+  final ProductSaleMode saleMode;
+  final int? salePriceCents;
   final int stockQuantity;
   final int minimumStock;
   final String unit;

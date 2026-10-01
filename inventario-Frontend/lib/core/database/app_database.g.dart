@@ -10484,6 +10484,12 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
   late final GeneratedColumn<int> quantityChange = GeneratedColumn<int>(
       'quantity_change', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _costEffectCentsMeta =
+      const VerificationMeta('costEffectCents');
+  @override
+  late final GeneratedColumn<int> costEffectCents = GeneratedColumn<int>(
+      'cost_effect_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _unitCostMeta =
       const VerificationMeta('unitCost');
   @override
@@ -10627,6 +10633,7 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
         productId,
         movementType,
         quantityChange,
+        costEffectCents,
         unitCost,
         previousStock,
         newStock,
@@ -10698,6 +10705,12 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
               data['quantity_change']!, _quantityChangeMeta));
     } else if (isInserting) {
       context.missing(_quantityChangeMeta);
+    }
+    if (data.containsKey('cost_effect_cents')) {
+      context.handle(
+          _costEffectCentsMeta,
+          costEffectCents.isAcceptableOrUnknown(
+              data['cost_effect_cents']!, _costEffectCentsMeta));
     }
     if (data.containsKey('unit_cost')) {
       context.handle(_unitCostMeta,
@@ -10830,6 +10843,8 @@ class $LocalInventoryMovementsTable extends LocalInventoryMovements
           .read(DriftSqlType.string, data['${effectivePrefix}movement_type'])!,
       quantityChange: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}quantity_change'])!,
+      costEffectCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}cost_effect_cents']),
       unitCost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit_cost']),
       previousStock: attachedDatabase.typeMapping
@@ -10889,6 +10904,7 @@ class LocalInventoryMovement extends DataClass
   final String productId;
   final String movementType;
   final int quantityChange;
+  final int? costEffectCents;
   final double? unitCost;
   final int? previousStock;
   final int? newStock;
@@ -10917,6 +10933,7 @@ class LocalInventoryMovement extends DataClass
       required this.productId,
       required this.movementType,
       required this.quantityChange,
+      this.costEffectCents,
       this.unitCost,
       this.previousStock,
       this.newStock,
@@ -10949,6 +10966,9 @@ class LocalInventoryMovement extends DataClass
     map['product_id'] = Variable<String>(productId);
     map['movement_type'] = Variable<String>(movementType);
     map['quantity_change'] = Variable<int>(quantityChange);
+    if (!nullToAbsent || costEffectCents != null) {
+      map['cost_effect_cents'] = Variable<int>(costEffectCents);
+    }
     if (!nullToAbsent || unitCost != null) {
       map['unit_cost'] = Variable<double>(unitCost);
     }
@@ -11011,6 +11031,9 @@ class LocalInventoryMovement extends DataClass
       productId: Value(productId),
       movementType: Value(movementType),
       quantityChange: Value(quantityChange),
+      costEffectCents: costEffectCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costEffectCents),
       unitCost: unitCost == null && nullToAbsent
           ? const Value.absent()
           : Value(unitCost),
@@ -11072,6 +11095,7 @@ class LocalInventoryMovement extends DataClass
       productId: serializer.fromJson<String>(json['productId']),
       movementType: serializer.fromJson<String>(json['movementType']),
       quantityChange: serializer.fromJson<int>(json['quantityChange']),
+      costEffectCents: serializer.fromJson<int?>(json['costEffectCents']),
       unitCost: serializer.fromJson<double?>(json['unitCost']),
       previousStock: serializer.fromJson<int?>(json['previousStock']),
       newStock: serializer.fromJson<int?>(json['newStock']),
@@ -11106,6 +11130,7 @@ class LocalInventoryMovement extends DataClass
       'productId': serializer.toJson<String>(productId),
       'movementType': serializer.toJson<String>(movementType),
       'quantityChange': serializer.toJson<int>(quantityChange),
+      'costEffectCents': serializer.toJson<int?>(costEffectCents),
       'unitCost': serializer.toJson<double?>(unitCost),
       'previousStock': serializer.toJson<int?>(previousStock),
       'newStock': serializer.toJson<int?>(newStock),
@@ -11137,6 +11162,7 @@ class LocalInventoryMovement extends DataClass
           String? productId,
           String? movementType,
           int? quantityChange,
+          Value<int?> costEffectCents = const Value.absent(),
           Value<double?> unitCost = const Value.absent(),
           Value<int?> previousStock = const Value.absent(),
           Value<int?> newStock = const Value.absent(),
@@ -11165,6 +11191,9 @@ class LocalInventoryMovement extends DataClass
         productId: productId ?? this.productId,
         movementType: movementType ?? this.movementType,
         quantityChange: quantityChange ?? this.quantityChange,
+        costEffectCents: costEffectCents.present
+            ? costEffectCents.value
+            : this.costEffectCents,
         unitCost: unitCost.present ? unitCost.value : this.unitCost,
         previousStock:
             previousStock.present ? previousStock.value : this.previousStock,
@@ -11207,6 +11236,9 @@ class LocalInventoryMovement extends DataClass
       quantityChange: data.quantityChange.present
           ? data.quantityChange.value
           : this.quantityChange,
+      costEffectCents: data.costEffectCents.present
+          ? data.costEffectCents.value
+          : this.costEffectCents,
       unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
       previousStock: data.previousStock.present
           ? data.previousStock.value
@@ -11257,6 +11289,7 @@ class LocalInventoryMovement extends DataClass
           ..write('productId: $productId, ')
           ..write('movementType: $movementType, ')
           ..write('quantityChange: $quantityChange, ')
+          ..write('costEffectCents: $costEffectCents, ')
           ..write('unitCost: $unitCost, ')
           ..write('previousStock: $previousStock, ')
           ..write('newStock: $newStock, ')
@@ -11290,6 +11323,7 @@ class LocalInventoryMovement extends DataClass
         productId,
         movementType,
         quantityChange,
+        costEffectCents,
         unitCost,
         previousStock,
         newStock,
@@ -11322,6 +11356,7 @@ class LocalInventoryMovement extends DataClass
           other.productId == this.productId &&
           other.movementType == this.movementType &&
           other.quantityChange == this.quantityChange &&
+          other.costEffectCents == this.costEffectCents &&
           other.unitCost == this.unitCost &&
           other.previousStock == this.previousStock &&
           other.newStock == this.newStock &&
@@ -11353,6 +11388,7 @@ class LocalInventoryMovementsCompanion
   final Value<String> productId;
   final Value<String> movementType;
   final Value<int> quantityChange;
+  final Value<int?> costEffectCents;
   final Value<double?> unitCost;
   final Value<int?> previousStock;
   final Value<int?> newStock;
@@ -11382,6 +11418,7 @@ class LocalInventoryMovementsCompanion
     this.productId = const Value.absent(),
     this.movementType = const Value.absent(),
     this.quantityChange = const Value.absent(),
+    this.costEffectCents = const Value.absent(),
     this.unitCost = const Value.absent(),
     this.previousStock = const Value.absent(),
     this.newStock = const Value.absent(),
@@ -11412,6 +11449,7 @@ class LocalInventoryMovementsCompanion
     required String productId,
     required String movementType,
     required int quantityChange,
+    this.costEffectCents = const Value.absent(),
     this.unitCost = const Value.absent(),
     this.previousStock = const Value.absent(),
     this.newStock = const Value.absent(),
@@ -11448,6 +11486,7 @@ class LocalInventoryMovementsCompanion
     Expression<String>? productId,
     Expression<String>? movementType,
     Expression<int>? quantityChange,
+    Expression<int>? costEffectCents,
     Expression<double>? unitCost,
     Expression<int>? previousStock,
     Expression<int>? newStock,
@@ -11478,6 +11517,7 @@ class LocalInventoryMovementsCompanion
       if (productId != null) 'product_id': productId,
       if (movementType != null) 'movement_type': movementType,
       if (quantityChange != null) 'quantity_change': quantityChange,
+      if (costEffectCents != null) 'cost_effect_cents': costEffectCents,
       if (unitCost != null) 'unit_cost': unitCost,
       if (previousStock != null) 'previous_stock': previousStock,
       if (newStock != null) 'new_stock': newStock,
@@ -11511,6 +11551,7 @@ class LocalInventoryMovementsCompanion
       Value<String>? productId,
       Value<String>? movementType,
       Value<int>? quantityChange,
+      Value<int?>? costEffectCents,
       Value<double?>? unitCost,
       Value<int?>? previousStock,
       Value<int?>? newStock,
@@ -11540,6 +11581,7 @@ class LocalInventoryMovementsCompanion
       productId: productId ?? this.productId,
       movementType: movementType ?? this.movementType,
       quantityChange: quantityChange ?? this.quantityChange,
+      costEffectCents: costEffectCents ?? this.costEffectCents,
       unitCost: unitCost ?? this.unitCost,
       previousStock: previousStock ?? this.previousStock,
       newStock: newStock ?? this.newStock,
@@ -11585,6 +11627,9 @@ class LocalInventoryMovementsCompanion
     }
     if (quantityChange.present) {
       map['quantity_change'] = Variable<int>(quantityChange.value);
+    }
+    if (costEffectCents.present) {
+      map['cost_effect_cents'] = Variable<int>(costEffectCents.value);
     }
     if (unitCost.present) {
       map['unit_cost'] = Variable<double>(unitCost.value);
@@ -11664,6 +11709,7 @@ class LocalInventoryMovementsCompanion
           ..write('productId: $productId, ')
           ..write('movementType: $movementType, ')
           ..write('quantityChange: $quantityChange, ')
+          ..write('costEffectCents: $costEffectCents, ')
           ..write('unitCost: $unitCost, ')
           ..write('previousStock: $previousStock, ')
           ..write('newStock: $newStock, ')
@@ -12262,6 +12308,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
   late final GeneratedColumn<double> averageCost = GeneratedColumn<double>(
       'average_cost', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _costBasisCentsMeta =
+      const VerificationMeta('costBasisCents');
+  @override
+  late final GeneratedColumn<int> costBasisCents = GeneratedColumn<int>(
+      'cost_basis_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _remoteBalanceIdMeta =
       const VerificationMeta('remoteBalanceId');
   @override
@@ -12292,6 +12344,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
   late final GeneratedColumn<double> remoteAverageCost =
       GeneratedColumn<double>('remote_average_cost', aliasedName, true,
           type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _remoteCostBasisCentsMeta =
+      const VerificationMeta('remoteCostBasisCents');
+  @override
+  late final GeneratedColumn<int> remoteCostBasisCents = GeneratedColumn<int>(
+      'remote_cost_basis_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _lastMovementAtMeta =
       const VerificationMeta('lastMovementAt');
   @override
@@ -12362,11 +12420,13 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
         quantityReserved,
         quantityAvailable,
         averageCost,
+        costBasisCents,
         remoteBalanceId,
         remoteQuantityOnHand,
         remoteQuantityReserved,
         remoteQuantityAvailable,
         remoteAverageCost,
+        remoteCostBasisCents,
         lastMovementAt,
         remoteUpdatedAt,
         remoteSnapshotId,
@@ -12437,6 +12497,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           averageCost.isAcceptableOrUnknown(
               data['average_cost']!, _averageCostMeta));
     }
+    if (data.containsKey('cost_basis_cents')) {
+      context.handle(
+          _costBasisCentsMeta,
+          costBasisCents.isAcceptableOrUnknown(
+              data['cost_basis_cents']!, _costBasisCentsMeta));
+    }
     if (data.containsKey('remote_balance_id')) {
       context.handle(
           _remoteBalanceIdMeta,
@@ -12467,6 +12533,12 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           _remoteAverageCostMeta,
           remoteAverageCost.isAcceptableOrUnknown(
               data['remote_average_cost']!, _remoteAverageCostMeta));
+    }
+    if (data.containsKey('remote_cost_basis_cents')) {
+      context.handle(
+          _remoteCostBasisCentsMeta,
+          remoteCostBasisCents.isAcceptableOrUnknown(
+              data['remote_cost_basis_cents']!, _remoteCostBasisCentsMeta));
     }
     if (data.containsKey('last_movement_at')) {
       context.handle(
@@ -12542,6 +12614,8 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           DriftSqlType.int, data['${effectivePrefix}quantity_available'])!,
       averageCost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}average_cost']),
+      costBasisCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}cost_basis_cents']),
       remoteBalanceId: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}remote_balance_id']),
       remoteQuantityOnHand: attachedDatabase.typeMapping.read(
@@ -12553,6 +12627,8 @@ class $LocalProductStockBalancesTable extends LocalProductStockBalances
           data['${effectivePrefix}remote_quantity_available']),
       remoteAverageCost: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}remote_average_cost']),
+      remoteCostBasisCents: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}remote_cost_basis_cents']),
       lastMovementAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}last_movement_at']),
       remoteUpdatedAt: attachedDatabase.typeMapping.read(
@@ -12590,11 +12666,13 @@ class LocalProductStockBalance extends DataClass
   final int quantityReserved;
   final int quantityAvailable;
   final double? averageCost;
+  final int? costBasisCents;
   final String? remoteBalanceId;
   final int? remoteQuantityOnHand;
   final int? remoteQuantityReserved;
   final int? remoteQuantityAvailable;
   final double? remoteAverageCost;
+  final int? remoteCostBasisCents;
   final DateTime? lastMovementAt;
   final DateTime? remoteUpdatedAt;
   final String? remoteSnapshotId;
@@ -12613,11 +12691,13 @@ class LocalProductStockBalance extends DataClass
       required this.quantityReserved,
       required this.quantityAvailable,
       this.averageCost,
+      this.costBasisCents,
       this.remoteBalanceId,
       this.remoteQuantityOnHand,
       this.remoteQuantityReserved,
       this.remoteQuantityAvailable,
       this.remoteAverageCost,
+      this.remoteCostBasisCents,
       this.lastMovementAt,
       this.remoteUpdatedAt,
       this.remoteSnapshotId,
@@ -12640,6 +12720,9 @@ class LocalProductStockBalance extends DataClass
     if (!nullToAbsent || averageCost != null) {
       map['average_cost'] = Variable<double>(averageCost);
     }
+    if (!nullToAbsent || costBasisCents != null) {
+      map['cost_basis_cents'] = Variable<int>(costBasisCents);
+    }
     if (!nullToAbsent || remoteBalanceId != null) {
       map['remote_balance_id'] = Variable<String>(remoteBalanceId);
     }
@@ -12654,6 +12737,9 @@ class LocalProductStockBalance extends DataClass
     }
     if (!nullToAbsent || remoteAverageCost != null) {
       map['remote_average_cost'] = Variable<double>(remoteAverageCost);
+    }
+    if (!nullToAbsent || remoteCostBasisCents != null) {
+      map['remote_cost_basis_cents'] = Variable<int>(remoteCostBasisCents);
     }
     if (!nullToAbsent || lastMovementAt != null) {
       map['last_movement_at'] = Variable<DateTime>(lastMovementAt);
@@ -12691,6 +12777,9 @@ class LocalProductStockBalance extends DataClass
       averageCost: averageCost == null && nullToAbsent
           ? const Value.absent()
           : Value(averageCost),
+      costBasisCents: costBasisCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costBasisCents),
       remoteBalanceId: remoteBalanceId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteBalanceId),
@@ -12706,6 +12795,9 @@ class LocalProductStockBalance extends DataClass
       remoteAverageCost: remoteAverageCost == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteAverageCost),
+      remoteCostBasisCents: remoteCostBasisCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteCostBasisCents),
       lastMovementAt: lastMovementAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastMovementAt),
@@ -12742,6 +12834,7 @@ class LocalProductStockBalance extends DataClass
       quantityReserved: serializer.fromJson<int>(json['quantityReserved']),
       quantityAvailable: serializer.fromJson<int>(json['quantityAvailable']),
       averageCost: serializer.fromJson<double?>(json['averageCost']),
+      costBasisCents: serializer.fromJson<int?>(json['costBasisCents']),
       remoteBalanceId: serializer.fromJson<String?>(json['remoteBalanceId']),
       remoteQuantityOnHand:
           serializer.fromJson<int?>(json['remoteQuantityOnHand']),
@@ -12751,6 +12844,8 @@ class LocalProductStockBalance extends DataClass
           serializer.fromJson<int?>(json['remoteQuantityAvailable']),
       remoteAverageCost:
           serializer.fromJson<double?>(json['remoteAverageCost']),
+      remoteCostBasisCents:
+          serializer.fromJson<int?>(json['remoteCostBasisCents']),
       lastMovementAt: serializer.fromJson<DateTime?>(json['lastMovementAt']),
       remoteUpdatedAt: serializer.fromJson<DateTime?>(json['remoteUpdatedAt']),
       remoteSnapshotId: serializer.fromJson<String?>(json['remoteSnapshotId']),
@@ -12774,12 +12869,14 @@ class LocalProductStockBalance extends DataClass
       'quantityReserved': serializer.toJson<int>(quantityReserved),
       'quantityAvailable': serializer.toJson<int>(quantityAvailable),
       'averageCost': serializer.toJson<double?>(averageCost),
+      'costBasisCents': serializer.toJson<int?>(costBasisCents),
       'remoteBalanceId': serializer.toJson<String?>(remoteBalanceId),
       'remoteQuantityOnHand': serializer.toJson<int?>(remoteQuantityOnHand),
       'remoteQuantityReserved': serializer.toJson<int?>(remoteQuantityReserved),
       'remoteQuantityAvailable':
           serializer.toJson<int?>(remoteQuantityAvailable),
       'remoteAverageCost': serializer.toJson<double?>(remoteAverageCost),
+      'remoteCostBasisCents': serializer.toJson<int?>(remoteCostBasisCents),
       'lastMovementAt': serializer.toJson<DateTime?>(lastMovementAt),
       'remoteUpdatedAt': serializer.toJson<DateTime?>(remoteUpdatedAt),
       'remoteSnapshotId': serializer.toJson<String?>(remoteSnapshotId),
@@ -12801,11 +12898,13 @@ class LocalProductStockBalance extends DataClass
           int? quantityReserved,
           int? quantityAvailable,
           Value<double?> averageCost = const Value.absent(),
+          Value<int?> costBasisCents = const Value.absent(),
           Value<String?> remoteBalanceId = const Value.absent(),
           Value<int?> remoteQuantityOnHand = const Value.absent(),
           Value<int?> remoteQuantityReserved = const Value.absent(),
           Value<int?> remoteQuantityAvailable = const Value.absent(),
           Value<double?> remoteAverageCost = const Value.absent(),
+          Value<int?> remoteCostBasisCents = const Value.absent(),
           Value<DateTime?> lastMovementAt = const Value.absent(),
           Value<DateTime?> remoteUpdatedAt = const Value.absent(),
           Value<String?> remoteSnapshotId = const Value.absent(),
@@ -12824,6 +12923,8 @@ class LocalProductStockBalance extends DataClass
         quantityReserved: quantityReserved ?? this.quantityReserved,
         quantityAvailable: quantityAvailable ?? this.quantityAvailable,
         averageCost: averageCost.present ? averageCost.value : this.averageCost,
+        costBasisCents:
+            costBasisCents.present ? costBasisCents.value : this.costBasisCents,
         remoteBalanceId: remoteBalanceId.present
             ? remoteBalanceId.value
             : this.remoteBalanceId,
@@ -12839,6 +12940,9 @@ class LocalProductStockBalance extends DataClass
         remoteAverageCost: remoteAverageCost.present
             ? remoteAverageCost.value
             : this.remoteAverageCost,
+        remoteCostBasisCents: remoteCostBasisCents.present
+            ? remoteCostBasisCents.value
+            : this.remoteCostBasisCents,
         lastMovementAt:
             lastMovementAt.present ? lastMovementAt.value : this.lastMovementAt,
         remoteUpdatedAt: remoteUpdatedAt.present
@@ -12875,6 +12979,9 @@ class LocalProductStockBalance extends DataClass
           : this.quantityAvailable,
       averageCost:
           data.averageCost.present ? data.averageCost.value : this.averageCost,
+      costBasisCents: data.costBasisCents.present
+          ? data.costBasisCents.value
+          : this.costBasisCents,
       remoteBalanceId: data.remoteBalanceId.present
           ? data.remoteBalanceId.value
           : this.remoteBalanceId,
@@ -12890,6 +12997,9 @@ class LocalProductStockBalance extends DataClass
       remoteAverageCost: data.remoteAverageCost.present
           ? data.remoteAverageCost.value
           : this.remoteAverageCost,
+      remoteCostBasisCents: data.remoteCostBasisCents.present
+          ? data.remoteCostBasisCents.value
+          : this.remoteCostBasisCents,
       lastMovementAt: data.lastMovementAt.present
           ? data.lastMovementAt.value
           : this.lastMovementAt,
@@ -12924,11 +13034,13 @@ class LocalProductStockBalance extends DataClass
           ..write('quantityReserved: $quantityReserved, ')
           ..write('quantityAvailable: $quantityAvailable, ')
           ..write('averageCost: $averageCost, ')
+          ..write('costBasisCents: $costBasisCents, ')
           ..write('remoteBalanceId: $remoteBalanceId, ')
           ..write('remoteQuantityOnHand: $remoteQuantityOnHand, ')
           ..write('remoteQuantityReserved: $remoteQuantityReserved, ')
           ..write('remoteQuantityAvailable: $remoteQuantityAvailable, ')
           ..write('remoteAverageCost: $remoteAverageCost, ')
+          ..write('remoteCostBasisCents: $remoteCostBasisCents, ')
           ..write('lastMovementAt: $lastMovementAt, ')
           ..write('remoteUpdatedAt: $remoteUpdatedAt, ')
           ..write('remoteSnapshotId: $remoteSnapshotId, ')
@@ -12952,11 +13064,13 @@ class LocalProductStockBalance extends DataClass
         quantityReserved,
         quantityAvailable,
         averageCost,
+        costBasisCents,
         remoteBalanceId,
         remoteQuantityOnHand,
         remoteQuantityReserved,
         remoteQuantityAvailable,
         remoteAverageCost,
+        remoteCostBasisCents,
         lastMovementAt,
         remoteUpdatedAt,
         remoteSnapshotId,
@@ -12979,11 +13093,13 @@ class LocalProductStockBalance extends DataClass
           other.quantityReserved == this.quantityReserved &&
           other.quantityAvailable == this.quantityAvailable &&
           other.averageCost == this.averageCost &&
+          other.costBasisCents == this.costBasisCents &&
           other.remoteBalanceId == this.remoteBalanceId &&
           other.remoteQuantityOnHand == this.remoteQuantityOnHand &&
           other.remoteQuantityReserved == this.remoteQuantityReserved &&
           other.remoteQuantityAvailable == this.remoteQuantityAvailable &&
           other.remoteAverageCost == this.remoteAverageCost &&
+          other.remoteCostBasisCents == this.remoteCostBasisCents &&
           other.lastMovementAt == this.lastMovementAt &&
           other.remoteUpdatedAt == this.remoteUpdatedAt &&
           other.remoteSnapshotId == this.remoteSnapshotId &&
@@ -13005,11 +13121,13 @@ class LocalProductStockBalancesCompanion
   final Value<int> quantityReserved;
   final Value<int> quantityAvailable;
   final Value<double?> averageCost;
+  final Value<int?> costBasisCents;
   final Value<String?> remoteBalanceId;
   final Value<int?> remoteQuantityOnHand;
   final Value<int?> remoteQuantityReserved;
   final Value<int?> remoteQuantityAvailable;
   final Value<double?> remoteAverageCost;
+  final Value<int?> remoteCostBasisCents;
   final Value<DateTime?> lastMovementAt;
   final Value<DateTime?> remoteUpdatedAt;
   final Value<String?> remoteSnapshotId;
@@ -13029,11 +13147,13 @@ class LocalProductStockBalancesCompanion
     this.quantityReserved = const Value.absent(),
     this.quantityAvailable = const Value.absent(),
     this.averageCost = const Value.absent(),
+    this.costBasisCents = const Value.absent(),
     this.remoteBalanceId = const Value.absent(),
     this.remoteQuantityOnHand = const Value.absent(),
     this.remoteQuantityReserved = const Value.absent(),
     this.remoteQuantityAvailable = const Value.absent(),
     this.remoteAverageCost = const Value.absent(),
+    this.remoteCostBasisCents = const Value.absent(),
     this.lastMovementAt = const Value.absent(),
     this.remoteUpdatedAt = const Value.absent(),
     this.remoteSnapshotId = const Value.absent(),
@@ -13054,11 +13174,13 @@ class LocalProductStockBalancesCompanion
     this.quantityReserved = const Value.absent(),
     this.quantityAvailable = const Value.absent(),
     this.averageCost = const Value.absent(),
+    this.costBasisCents = const Value.absent(),
     this.remoteBalanceId = const Value.absent(),
     this.remoteQuantityOnHand = const Value.absent(),
     this.remoteQuantityReserved = const Value.absent(),
     this.remoteQuantityAvailable = const Value.absent(),
     this.remoteAverageCost = const Value.absent(),
+    this.remoteCostBasisCents = const Value.absent(),
     this.lastMovementAt = const Value.absent(),
     this.remoteUpdatedAt = const Value.absent(),
     this.remoteSnapshotId = const Value.absent(),
@@ -13082,11 +13204,13 @@ class LocalProductStockBalancesCompanion
     Expression<int>? quantityReserved,
     Expression<int>? quantityAvailable,
     Expression<double>? averageCost,
+    Expression<int>? costBasisCents,
     Expression<String>? remoteBalanceId,
     Expression<int>? remoteQuantityOnHand,
     Expression<int>? remoteQuantityReserved,
     Expression<int>? remoteQuantityAvailable,
     Expression<double>? remoteAverageCost,
+    Expression<int>? remoteCostBasisCents,
     Expression<DateTime>? lastMovementAt,
     Expression<DateTime>? remoteUpdatedAt,
     Expression<String>? remoteSnapshotId,
@@ -13107,6 +13231,7 @@ class LocalProductStockBalancesCompanion
       if (quantityReserved != null) 'quantity_reserved': quantityReserved,
       if (quantityAvailable != null) 'quantity_available': quantityAvailable,
       if (averageCost != null) 'average_cost': averageCost,
+      if (costBasisCents != null) 'cost_basis_cents': costBasisCents,
       if (remoteBalanceId != null) 'remote_balance_id': remoteBalanceId,
       if (remoteQuantityOnHand != null)
         'remote_quantity_on_hand': remoteQuantityOnHand,
@@ -13115,6 +13240,8 @@ class LocalProductStockBalancesCompanion
       if (remoteQuantityAvailable != null)
         'remote_quantity_available': remoteQuantityAvailable,
       if (remoteAverageCost != null) 'remote_average_cost': remoteAverageCost,
+      if (remoteCostBasisCents != null)
+        'remote_cost_basis_cents': remoteCostBasisCents,
       if (lastMovementAt != null) 'last_movement_at': lastMovementAt,
       if (remoteUpdatedAt != null) 'remote_updated_at': remoteUpdatedAt,
       if (remoteSnapshotId != null) 'remote_snapshot_id': remoteSnapshotId,
@@ -13137,11 +13264,13 @@ class LocalProductStockBalancesCompanion
       Value<int>? quantityReserved,
       Value<int>? quantityAvailable,
       Value<double?>? averageCost,
+      Value<int?>? costBasisCents,
       Value<String?>? remoteBalanceId,
       Value<int?>? remoteQuantityOnHand,
       Value<int?>? remoteQuantityReserved,
       Value<int?>? remoteQuantityAvailable,
       Value<double?>? remoteAverageCost,
+      Value<int?>? remoteCostBasisCents,
       Value<DateTime?>? lastMovementAt,
       Value<DateTime?>? remoteUpdatedAt,
       Value<String?>? remoteSnapshotId,
@@ -13161,6 +13290,7 @@ class LocalProductStockBalancesCompanion
       quantityReserved: quantityReserved ?? this.quantityReserved,
       quantityAvailable: quantityAvailable ?? this.quantityAvailable,
       averageCost: averageCost ?? this.averageCost,
+      costBasisCents: costBasisCents ?? this.costBasisCents,
       remoteBalanceId: remoteBalanceId ?? this.remoteBalanceId,
       remoteQuantityOnHand: remoteQuantityOnHand ?? this.remoteQuantityOnHand,
       remoteQuantityReserved:
@@ -13168,6 +13298,7 @@ class LocalProductStockBalancesCompanion
       remoteQuantityAvailable:
           remoteQuantityAvailable ?? this.remoteQuantityAvailable,
       remoteAverageCost: remoteAverageCost ?? this.remoteAverageCost,
+      remoteCostBasisCents: remoteCostBasisCents ?? this.remoteCostBasisCents,
       lastMovementAt: lastMovementAt ?? this.lastMovementAt,
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,
       remoteSnapshotId: remoteSnapshotId ?? this.remoteSnapshotId,
@@ -13208,6 +13339,9 @@ class LocalProductStockBalancesCompanion
     if (averageCost.present) {
       map['average_cost'] = Variable<double>(averageCost.value);
     }
+    if (costBasisCents.present) {
+      map['cost_basis_cents'] = Variable<int>(costBasisCents.value);
+    }
     if (remoteBalanceId.present) {
       map['remote_balance_id'] = Variable<String>(remoteBalanceId.value);
     }
@@ -13225,6 +13359,10 @@ class LocalProductStockBalancesCompanion
     }
     if (remoteAverageCost.present) {
       map['remote_average_cost'] = Variable<double>(remoteAverageCost.value);
+    }
+    if (remoteCostBasisCents.present) {
+      map['remote_cost_basis_cents'] =
+          Variable<int>(remoteCostBasisCents.value);
     }
     if (lastMovementAt.present) {
       map['last_movement_at'] = Variable<DateTime>(lastMovementAt.value);
@@ -13270,11 +13408,13 @@ class LocalProductStockBalancesCompanion
           ..write('quantityReserved: $quantityReserved, ')
           ..write('quantityAvailable: $quantityAvailable, ')
           ..write('averageCost: $averageCost, ')
+          ..write('costBasisCents: $costBasisCents, ')
           ..write('remoteBalanceId: $remoteBalanceId, ')
           ..write('remoteQuantityOnHand: $remoteQuantityOnHand, ')
           ..write('remoteQuantityReserved: $remoteQuantityReserved, ')
           ..write('remoteQuantityAvailable: $remoteQuantityAvailable, ')
           ..write('remoteAverageCost: $remoteAverageCost, ')
+          ..write('remoteCostBasisCents: $remoteCostBasisCents, ')
           ..write('lastMovementAt: $lastMovementAt, ')
           ..write('remoteUpdatedAt: $remoteUpdatedAt, ')
           ..write('remoteSnapshotId: $remoteSnapshotId, ')
@@ -18205,6 +18345,20 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   late final GeneratedColumn<double> salePrice = GeneratedColumn<double>(
       'sale_price', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _saleModeMeta =
+      const VerificationMeta('saleMode');
+  @override
+  late final GeneratedColumn<String> saleMode = GeneratedColumn<String>(
+      'sale_mode', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('unit'));
+  static const VerificationMeta _salePriceCentsMeta =
+      const VerificationMeta('salePriceCents');
+  @override
+  late final GeneratedColumn<int> salePriceCents = GeneratedColumn<int>(
+      'sale_price_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _stockQuantityMeta =
       const VerificationMeta('stockQuantity');
   @override
@@ -18281,6 +18435,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         description,
         purchasePrice,
         salePrice,
+        saleMode,
+        salePriceCents,
         stockQuantity,
         minimumStock,
         unit,
@@ -18352,6 +18508,16 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     } else if (isInserting) {
       context.missing(_salePriceMeta);
     }
+    if (data.containsKey('sale_mode')) {
+      context.handle(_saleModeMeta,
+          saleMode.isAcceptableOrUnknown(data['sale_mode']!, _saleModeMeta));
+    }
+    if (data.containsKey('sale_price_cents')) {
+      context.handle(
+          _salePriceCentsMeta,
+          salePriceCents.isAcceptableOrUnknown(
+              data['sale_price_cents']!, _salePriceCentsMeta));
+    }
     if (data.containsKey('stock_quantity')) {
       context.handle(
           _stockQuantityMeta,
@@ -18417,6 +18583,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.double, data['${effectivePrefix}purchase_price'])!,
       salePrice: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}sale_price'])!,
+      saleMode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sale_mode'])!,
+      salePriceCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sale_price_cents']),
       stockQuantity: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}stock_quantity'])!,
       minimumStock: attachedDatabase.typeMapping
@@ -18458,6 +18628,8 @@ class Product extends DataClass implements Insertable<Product> {
   final String? description;
   final double purchasePrice;
   final double salePrice;
+  final String saleMode;
+  final int? salePriceCents;
   final int stockQuantity;
   final int minimumStock;
   final String unit;
@@ -18477,6 +18649,8 @@ class Product extends DataClass implements Insertable<Product> {
       this.description,
       required this.purchasePrice,
       required this.salePrice,
+      required this.saleMode,
+      this.salePriceCents,
       required this.stockQuantity,
       required this.minimumStock,
       required this.unit,
@@ -18508,6 +18682,10 @@ class Product extends DataClass implements Insertable<Product> {
     }
     map['purchase_price'] = Variable<double>(purchasePrice);
     map['sale_price'] = Variable<double>(salePrice);
+    map['sale_mode'] = Variable<String>(saleMode);
+    if (!nullToAbsent || salePriceCents != null) {
+      map['sale_price_cents'] = Variable<int>(salePriceCents);
+    }
     map['stock_quantity'] = Variable<int>(stockQuantity);
     map['minimum_stock'] = Variable<int>(minimumStock);
     map['unit'] = Variable<String>(unit);
@@ -18548,6 +18726,10 @@ class Product extends DataClass implements Insertable<Product> {
           : Value(description),
       purchasePrice: Value(purchasePrice),
       salePrice: Value(salePrice),
+      saleMode: Value(saleMode),
+      salePriceCents: salePriceCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(salePriceCents),
       stockQuantity: Value(stockQuantity),
       minimumStock: Value(minimumStock),
       unit: Value(unit),
@@ -18577,6 +18759,8 @@ class Product extends DataClass implements Insertable<Product> {
       description: serializer.fromJson<String?>(json['description']),
       purchasePrice: serializer.fromJson<double>(json['purchasePrice']),
       salePrice: serializer.fromJson<double>(json['salePrice']),
+      saleMode: serializer.fromJson<String>(json['saleMode']),
+      salePriceCents: serializer.fromJson<int?>(json['salePriceCents']),
       stockQuantity: serializer.fromJson<int>(json['stockQuantity']),
       minimumStock: serializer.fromJson<int>(json['minimumStock']),
       unit: serializer.fromJson<String>(json['unit']),
@@ -18602,6 +18786,8 @@ class Product extends DataClass implements Insertable<Product> {
       'description': serializer.toJson<String?>(description),
       'purchasePrice': serializer.toJson<double>(purchasePrice),
       'salePrice': serializer.toJson<double>(salePrice),
+      'saleMode': serializer.toJson<String>(saleMode),
+      'salePriceCents': serializer.toJson<int?>(salePriceCents),
       'stockQuantity': serializer.toJson<int>(stockQuantity),
       'minimumStock': serializer.toJson<int>(minimumStock),
       'unit': serializer.toJson<String>(unit),
@@ -18625,6 +18811,8 @@ class Product extends DataClass implements Insertable<Product> {
           Value<String?> description = const Value.absent(),
           double? purchasePrice,
           double? salePrice,
+          String? saleMode,
+          Value<int?> salePriceCents = const Value.absent(),
           int? stockQuantity,
           int? minimumStock,
           String? unit,
@@ -18646,6 +18834,9 @@ class Product extends DataClass implements Insertable<Product> {
         description: description.present ? description.value : this.description,
         purchasePrice: purchasePrice ?? this.purchasePrice,
         salePrice: salePrice ?? this.salePrice,
+        saleMode: saleMode ?? this.saleMode,
+        salePriceCents:
+            salePriceCents.present ? salePriceCents.value : this.salePriceCents,
         stockQuantity: stockQuantity ?? this.stockQuantity,
         minimumStock: minimumStock ?? this.minimumStock,
         unit: unit ?? this.unit,
@@ -18675,6 +18866,10 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.purchasePrice.value
           : this.purchasePrice,
       salePrice: data.salePrice.present ? data.salePrice.value : this.salePrice,
+      saleMode: data.saleMode.present ? data.saleMode.value : this.saleMode,
+      salePriceCents: data.salePriceCents.present
+          ? data.salePriceCents.value
+          : this.salePriceCents,
       stockQuantity: data.stockQuantity.present
           ? data.stockQuantity.value
           : this.stockQuantity,
@@ -18706,6 +18901,8 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('description: $description, ')
           ..write('purchasePrice: $purchasePrice, ')
           ..write('salePrice: $salePrice, ')
+          ..write('saleMode: $saleMode, ')
+          ..write('salePriceCents: $salePriceCents, ')
           ..write('stockQuantity: $stockQuantity, ')
           ..write('minimumStock: $minimumStock, ')
           ..write('unit: $unit, ')
@@ -18730,6 +18927,8 @@ class Product extends DataClass implements Insertable<Product> {
       description,
       purchasePrice,
       salePrice,
+      saleMode,
+      salePriceCents,
       stockQuantity,
       minimumStock,
       unit,
@@ -18752,6 +18951,8 @@ class Product extends DataClass implements Insertable<Product> {
           other.description == this.description &&
           other.purchasePrice == this.purchasePrice &&
           other.salePrice == this.salePrice &&
+          other.saleMode == this.saleMode &&
+          other.salePriceCents == this.salePriceCents &&
           other.stockQuantity == this.stockQuantity &&
           other.minimumStock == this.minimumStock &&
           other.unit == this.unit &&
@@ -18773,6 +18974,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String?> description;
   final Value<double> purchasePrice;
   final Value<double> salePrice;
+  final Value<String> saleMode;
+  final Value<int?> salePriceCents;
   final Value<int> stockQuantity;
   final Value<int> minimumStock;
   final Value<String> unit;
@@ -18793,6 +18996,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.description = const Value.absent(),
     this.purchasePrice = const Value.absent(),
     this.salePrice = const Value.absent(),
+    this.saleMode = const Value.absent(),
+    this.salePriceCents = const Value.absent(),
     this.stockQuantity = const Value.absent(),
     this.minimumStock = const Value.absent(),
     this.unit = const Value.absent(),
@@ -18814,6 +19019,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.description = const Value.absent(),
     this.purchasePrice = const Value.absent(),
     required double salePrice,
+    this.saleMode = const Value.absent(),
+    this.salePriceCents = const Value.absent(),
     this.stockQuantity = const Value.absent(),
     this.minimumStock = const Value.absent(),
     this.unit = const Value.absent(),
@@ -18837,6 +19044,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? description,
     Expression<double>? purchasePrice,
     Expression<double>? salePrice,
+    Expression<String>? saleMode,
+    Expression<int>? salePriceCents,
     Expression<int>? stockQuantity,
     Expression<int>? minimumStock,
     Expression<String>? unit,
@@ -18858,6 +19067,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (description != null) 'description': description,
       if (purchasePrice != null) 'purchase_price': purchasePrice,
       if (salePrice != null) 'sale_price': salePrice,
+      if (saleMode != null) 'sale_mode': saleMode,
+      if (salePriceCents != null) 'sale_price_cents': salePriceCents,
       if (stockQuantity != null) 'stock_quantity': stockQuantity,
       if (minimumStock != null) 'minimum_stock': minimumStock,
       if (unit != null) 'unit': unit,
@@ -18881,6 +19092,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       Value<String?>? description,
       Value<double>? purchasePrice,
       Value<double>? salePrice,
+      Value<String>? saleMode,
+      Value<int?>? salePriceCents,
       Value<int>? stockQuantity,
       Value<int>? minimumStock,
       Value<String>? unit,
@@ -18901,6 +19114,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       description: description ?? this.description,
       purchasePrice: purchasePrice ?? this.purchasePrice,
       salePrice: salePrice ?? this.salePrice,
+      saleMode: saleMode ?? this.saleMode,
+      salePriceCents: salePriceCents ?? this.salePriceCents,
       stockQuantity: stockQuantity ?? this.stockQuantity,
       minimumStock: minimumStock ?? this.minimumStock,
       unit: unit ?? this.unit,
@@ -18943,6 +19158,12 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (salePrice.present) {
       map['sale_price'] = Variable<double>(salePrice.value);
+    }
+    if (saleMode.present) {
+      map['sale_mode'] = Variable<String>(saleMode.value);
+    }
+    if (salePriceCents.present) {
+      map['sale_price_cents'] = Variable<int>(salePriceCents.value);
     }
     if (stockQuantity.present) {
       map['stock_quantity'] = Variable<int>(stockQuantity.value);
@@ -18990,6 +19211,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('description: $description, ')
           ..write('purchasePrice: $purchasePrice, ')
           ..write('salePrice: $salePrice, ')
+          ..write('saleMode: $saleMode, ')
+          ..write('salePriceCents: $salePriceCents, ')
           ..write('stockQuantity: $stockQuantity, ')
           ..write('minimumStock: $minimumStock, ')
           ..write('unit: $unit, ')
@@ -20051,6 +20274,40 @@ class $SaleItemsTable extends SaleItems
   late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
       'quantity', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _saleModeSnapshotMeta =
+      const VerificationMeta('saleModeSnapshot');
+  @override
+  late final GeneratedColumn<String> saleModeSnapshot = GeneratedColumn<String>(
+      'sale_mode_snapshot', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('unit'));
+  static const VerificationMeta _priceBasisQuantitySnapshotMeta =
+      const VerificationMeta('priceBasisQuantitySnapshot');
+  @override
+  late final GeneratedColumn<int> priceBasisQuantitySnapshot =
+      GeneratedColumn<int>('price_basis_quantity_snapshot', aliasedName, false,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultValue: const Constant(1));
+  static const VerificationMeta _priceCentsSnapshotMeta =
+      const VerificationMeta('priceCentsSnapshot');
+  @override
+  late final GeneratedColumn<int> priceCentsSnapshot = GeneratedColumn<int>(
+      'price_cents_snapshot', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _lineTotalCentsMeta =
+      const VerificationMeta('lineTotalCents');
+  @override
+  late final GeneratedColumn<int> lineTotalCents = GeneratedColumn<int>(
+      'line_total_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _cogsCentsMeta =
+      const VerificationMeta('cogsCents');
+  @override
+  late final GeneratedColumn<int> cogsCents = GeneratedColumn<int>(
+      'cogs_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _unitPriceMeta =
       const VerificationMeta('unitPrice');
   @override
@@ -20136,6 +20393,11 @@ class $SaleItemsTable extends SaleItems
         productNameSnapshot,
         barcodeSnapshot,
         quantity,
+        saleModeSnapshot,
+        priceBasisQuantitySnapshot,
+        priceCentsSnapshot,
+        lineTotalCents,
+        cogsCents,
         unitPrice,
         unitCostSnapshot,
         discountTotal,
@@ -20188,6 +20450,35 @@ class $SaleItemsTable extends SaleItems
           quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta));
     } else if (isInserting) {
       context.missing(_quantityMeta);
+    }
+    if (data.containsKey('sale_mode_snapshot')) {
+      context.handle(
+          _saleModeSnapshotMeta,
+          saleModeSnapshot.isAcceptableOrUnknown(
+              data['sale_mode_snapshot']!, _saleModeSnapshotMeta));
+    }
+    if (data.containsKey('price_basis_quantity_snapshot')) {
+      context.handle(
+          _priceBasisQuantitySnapshotMeta,
+          priceBasisQuantitySnapshot.isAcceptableOrUnknown(
+              data['price_basis_quantity_snapshot']!,
+              _priceBasisQuantitySnapshotMeta));
+    }
+    if (data.containsKey('price_cents_snapshot')) {
+      context.handle(
+          _priceCentsSnapshotMeta,
+          priceCentsSnapshot.isAcceptableOrUnknown(
+              data['price_cents_snapshot']!, _priceCentsSnapshotMeta));
+    }
+    if (data.containsKey('line_total_cents')) {
+      context.handle(
+          _lineTotalCentsMeta,
+          lineTotalCents.isAcceptableOrUnknown(
+              data['line_total_cents']!, _lineTotalCentsMeta));
+    }
+    if (data.containsKey('cogs_cents')) {
+      context.handle(_cogsCentsMeta,
+          cogsCents.isAcceptableOrUnknown(data['cogs_cents']!, _cogsCentsMeta));
     }
     if (data.containsKey('unit_price')) {
       context.handle(_unitPriceMeta,
@@ -20260,6 +20551,17 @@ class $SaleItemsTable extends SaleItems
           DriftSqlType.string, data['${effectivePrefix}barcode_snapshot']),
       quantity: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}quantity'])!,
+      saleModeSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}sale_mode_snapshot'])!,
+      priceBasisQuantitySnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}price_basis_quantity_snapshot'])!,
+      priceCentsSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}price_cents_snapshot']),
+      lineTotalCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}line_total_cents']),
+      cogsCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}cogs_cents']),
       unitPrice: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit_price'])!,
       unitCostSnapshot: attachedDatabase.typeMapping.read(
@@ -20302,6 +20604,11 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
   final String? productNameSnapshot;
   final String? barcodeSnapshot;
   final int quantity;
+  final String saleModeSnapshot;
+  final int priceBasisQuantitySnapshot;
+  final int? priceCentsSnapshot;
+  final int? lineTotalCents;
+  final int? cogsCents;
   final double unitPrice;
   final double? unitCostSnapshot;
   final double discountTotal;
@@ -20320,6 +20627,11 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       this.productNameSnapshot,
       this.barcodeSnapshot,
       required this.quantity,
+      required this.saleModeSnapshot,
+      required this.priceBasisQuantitySnapshot,
+      this.priceCentsSnapshot,
+      this.lineTotalCents,
+      this.cogsCents,
       required this.unitPrice,
       this.unitCostSnapshot,
       required this.discountTotal,
@@ -20348,6 +20660,18 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       map['barcode_snapshot'] = Variable<String>(barcodeSnapshot);
     }
     map['quantity'] = Variable<int>(quantity);
+    map['sale_mode_snapshot'] = Variable<String>(saleModeSnapshot);
+    map['price_basis_quantity_snapshot'] =
+        Variable<int>(priceBasisQuantitySnapshot);
+    if (!nullToAbsent || priceCentsSnapshot != null) {
+      map['price_cents_snapshot'] = Variable<int>(priceCentsSnapshot);
+    }
+    if (!nullToAbsent || lineTotalCents != null) {
+      map['line_total_cents'] = Variable<int>(lineTotalCents);
+    }
+    if (!nullToAbsent || cogsCents != null) {
+      map['cogs_cents'] = Variable<int>(cogsCents);
+    }
     map['unit_price'] = Variable<double>(unitPrice);
     if (!nullToAbsent || unitCostSnapshot != null) {
       map['unit_cost_snapshot'] = Variable<double>(unitCostSnapshot);
@@ -20386,6 +20710,17 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ? const Value.absent()
           : Value(barcodeSnapshot),
       quantity: Value(quantity),
+      saleModeSnapshot: Value(saleModeSnapshot),
+      priceBasisQuantitySnapshot: Value(priceBasisQuantitySnapshot),
+      priceCentsSnapshot: priceCentsSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceCentsSnapshot),
+      lineTotalCents: lineTotalCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineTotalCents),
+      cogsCents: cogsCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cogsCents),
       unitPrice: Value(unitPrice),
       unitCostSnapshot: unitCostSnapshot == null && nullToAbsent
           ? const Value.absent()
@@ -20417,6 +20752,12 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           serializer.fromJson<String?>(json['productNameSnapshot']),
       barcodeSnapshot: serializer.fromJson<String?>(json['barcodeSnapshot']),
       quantity: serializer.fromJson<int>(json['quantity']),
+      saleModeSnapshot: serializer.fromJson<String>(json['saleModeSnapshot']),
+      priceBasisQuantitySnapshot:
+          serializer.fromJson<int>(json['priceBasisQuantitySnapshot']),
+      priceCentsSnapshot: serializer.fromJson<int?>(json['priceCentsSnapshot']),
+      lineTotalCents: serializer.fromJson<int?>(json['lineTotalCents']),
+      cogsCents: serializer.fromJson<int?>(json['cogsCents']),
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
       unitCostSnapshot: serializer.fromJson<double?>(json['unitCostSnapshot']),
       discountTotal: serializer.fromJson<double>(json['discountTotal']),
@@ -20441,6 +20782,12 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
       'productNameSnapshot': serializer.toJson<String?>(productNameSnapshot),
       'barcodeSnapshot': serializer.toJson<String?>(barcodeSnapshot),
       'quantity': serializer.toJson<int>(quantity),
+      'saleModeSnapshot': serializer.toJson<String>(saleModeSnapshot),
+      'priceBasisQuantitySnapshot':
+          serializer.toJson<int>(priceBasisQuantitySnapshot),
+      'priceCentsSnapshot': serializer.toJson<int?>(priceCentsSnapshot),
+      'lineTotalCents': serializer.toJson<int?>(lineTotalCents),
+      'cogsCents': serializer.toJson<int?>(cogsCents),
       'unitPrice': serializer.toJson<double>(unitPrice),
       'unitCostSnapshot': serializer.toJson<double?>(unitCostSnapshot),
       'discountTotal': serializer.toJson<double>(discountTotal),
@@ -20463,6 +20810,11 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           Value<String?> productNameSnapshot = const Value.absent(),
           Value<String?> barcodeSnapshot = const Value.absent(),
           int? quantity,
+          String? saleModeSnapshot,
+          int? priceBasisQuantitySnapshot,
+          Value<int?> priceCentsSnapshot = const Value.absent(),
+          Value<int?> lineTotalCents = const Value.absent(),
+          Value<int?> cogsCents = const Value.absent(),
           double? unitPrice,
           Value<double?> unitCostSnapshot = const Value.absent(),
           double? discountTotal,
@@ -20485,6 +20837,15 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
             ? barcodeSnapshot.value
             : this.barcodeSnapshot,
         quantity: quantity ?? this.quantity,
+        saleModeSnapshot: saleModeSnapshot ?? this.saleModeSnapshot,
+        priceBasisQuantitySnapshot:
+            priceBasisQuantitySnapshot ?? this.priceBasisQuantitySnapshot,
+        priceCentsSnapshot: priceCentsSnapshot.present
+            ? priceCentsSnapshot.value
+            : this.priceCentsSnapshot,
+        lineTotalCents:
+            lineTotalCents.present ? lineTotalCents.value : this.lineTotalCents,
+        cogsCents: cogsCents.present ? cogsCents.value : this.cogsCents,
         unitPrice: unitPrice ?? this.unitPrice,
         unitCostSnapshot: unitCostSnapshot.present
             ? unitCostSnapshot.value
@@ -20512,6 +20873,19 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ? data.barcodeSnapshot.value
           : this.barcodeSnapshot,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      saleModeSnapshot: data.saleModeSnapshot.present
+          ? data.saleModeSnapshot.value
+          : this.saleModeSnapshot,
+      priceBasisQuantitySnapshot: data.priceBasisQuantitySnapshot.present
+          ? data.priceBasisQuantitySnapshot.value
+          : this.priceBasisQuantitySnapshot,
+      priceCentsSnapshot: data.priceCentsSnapshot.present
+          ? data.priceCentsSnapshot.value
+          : this.priceCentsSnapshot,
+      lineTotalCents: data.lineTotalCents.present
+          ? data.lineTotalCents.value
+          : this.lineTotalCents,
+      cogsCents: data.cogsCents.present ? data.cogsCents.value : this.cogsCents,
       unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
       unitCostSnapshot: data.unitCostSnapshot.present
           ? data.unitCostSnapshot.value
@@ -20542,6 +20916,11 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           ..write('productNameSnapshot: $productNameSnapshot, ')
           ..write('barcodeSnapshot: $barcodeSnapshot, ')
           ..write('quantity: $quantity, ')
+          ..write('saleModeSnapshot: $saleModeSnapshot, ')
+          ..write('priceBasisQuantitySnapshot: $priceBasisQuantitySnapshot, ')
+          ..write('priceCentsSnapshot: $priceCentsSnapshot, ')
+          ..write('lineTotalCents: $lineTotalCents, ')
+          ..write('cogsCents: $cogsCents, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('unitCostSnapshot: $unitCostSnapshot, ')
           ..write('discountTotal: $discountTotal, ')
@@ -20558,24 +20937,30 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      saleId,
-      productId,
-      productNameSnapshot,
-      barcodeSnapshot,
-      quantity,
-      unitPrice,
-      unitCostSnapshot,
-      discountTotal,
-      taxTotal,
-      subtotal,
-      lineTotal,
-      metadataJson,
-      createdAt,
-      updatedAt,
-      deletedAt,
-      syncStatus);
+  int get hashCode => Object.hashAll([
+        id,
+        saleId,
+        productId,
+        productNameSnapshot,
+        barcodeSnapshot,
+        quantity,
+        saleModeSnapshot,
+        priceBasisQuantitySnapshot,
+        priceCentsSnapshot,
+        lineTotalCents,
+        cogsCents,
+        unitPrice,
+        unitCostSnapshot,
+        discountTotal,
+        taxTotal,
+        subtotal,
+        lineTotal,
+        metadataJson,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        syncStatus
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -20586,6 +20971,11 @@ class SaleItem extends DataClass implements Insertable<SaleItem> {
           other.productNameSnapshot == this.productNameSnapshot &&
           other.barcodeSnapshot == this.barcodeSnapshot &&
           other.quantity == this.quantity &&
+          other.saleModeSnapshot == this.saleModeSnapshot &&
+          other.priceBasisQuantitySnapshot == this.priceBasisQuantitySnapshot &&
+          other.priceCentsSnapshot == this.priceCentsSnapshot &&
+          other.lineTotalCents == this.lineTotalCents &&
+          other.cogsCents == this.cogsCents &&
           other.unitPrice == this.unitPrice &&
           other.unitCostSnapshot == this.unitCostSnapshot &&
           other.discountTotal == this.discountTotal &&
@@ -20606,6 +20996,11 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
   final Value<String?> productNameSnapshot;
   final Value<String?> barcodeSnapshot;
   final Value<int> quantity;
+  final Value<String> saleModeSnapshot;
+  final Value<int> priceBasisQuantitySnapshot;
+  final Value<int?> priceCentsSnapshot;
+  final Value<int?> lineTotalCents;
+  final Value<int?> cogsCents;
   final Value<double> unitPrice;
   final Value<double?> unitCostSnapshot;
   final Value<double> discountTotal;
@@ -20625,6 +21020,11 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.productNameSnapshot = const Value.absent(),
     this.barcodeSnapshot = const Value.absent(),
     this.quantity = const Value.absent(),
+    this.saleModeSnapshot = const Value.absent(),
+    this.priceBasisQuantitySnapshot = const Value.absent(),
+    this.priceCentsSnapshot = const Value.absent(),
+    this.lineTotalCents = const Value.absent(),
+    this.cogsCents = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.unitCostSnapshot = const Value.absent(),
     this.discountTotal = const Value.absent(),
@@ -20645,6 +21045,11 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     this.productNameSnapshot = const Value.absent(),
     this.barcodeSnapshot = const Value.absent(),
     required int quantity,
+    this.saleModeSnapshot = const Value.absent(),
+    this.priceBasisQuantitySnapshot = const Value.absent(),
+    this.priceCentsSnapshot = const Value.absent(),
+    this.lineTotalCents = const Value.absent(),
+    this.cogsCents = const Value.absent(),
     required double unitPrice,
     this.unitCostSnapshot = const Value.absent(),
     this.discountTotal = const Value.absent(),
@@ -20668,6 +21073,11 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     Expression<String>? productNameSnapshot,
     Expression<String>? barcodeSnapshot,
     Expression<int>? quantity,
+    Expression<String>? saleModeSnapshot,
+    Expression<int>? priceBasisQuantitySnapshot,
+    Expression<int>? priceCentsSnapshot,
+    Expression<int>? lineTotalCents,
+    Expression<int>? cogsCents,
     Expression<double>? unitPrice,
     Expression<double>? unitCostSnapshot,
     Expression<double>? discountTotal,
@@ -20689,6 +21099,13 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
         'product_name_snapshot': productNameSnapshot,
       if (barcodeSnapshot != null) 'barcode_snapshot': barcodeSnapshot,
       if (quantity != null) 'quantity': quantity,
+      if (saleModeSnapshot != null) 'sale_mode_snapshot': saleModeSnapshot,
+      if (priceBasisQuantitySnapshot != null)
+        'price_basis_quantity_snapshot': priceBasisQuantitySnapshot,
+      if (priceCentsSnapshot != null)
+        'price_cents_snapshot': priceCentsSnapshot,
+      if (lineTotalCents != null) 'line_total_cents': lineTotalCents,
+      if (cogsCents != null) 'cogs_cents': cogsCents,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (unitCostSnapshot != null) 'unit_cost_snapshot': unitCostSnapshot,
       if (discountTotal != null) 'discount_total': discountTotal,
@@ -20711,6 +21128,11 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       Value<String?>? productNameSnapshot,
       Value<String?>? barcodeSnapshot,
       Value<int>? quantity,
+      Value<String>? saleModeSnapshot,
+      Value<int>? priceBasisQuantitySnapshot,
+      Value<int?>? priceCentsSnapshot,
+      Value<int?>? lineTotalCents,
+      Value<int?>? cogsCents,
       Value<double>? unitPrice,
       Value<double?>? unitCostSnapshot,
       Value<double>? discountTotal,
@@ -20730,6 +21152,12 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
       productNameSnapshot: productNameSnapshot ?? this.productNameSnapshot,
       barcodeSnapshot: barcodeSnapshot ?? this.barcodeSnapshot,
       quantity: quantity ?? this.quantity,
+      saleModeSnapshot: saleModeSnapshot ?? this.saleModeSnapshot,
+      priceBasisQuantitySnapshot:
+          priceBasisQuantitySnapshot ?? this.priceBasisQuantitySnapshot,
+      priceCentsSnapshot: priceCentsSnapshot ?? this.priceCentsSnapshot,
+      lineTotalCents: lineTotalCents ?? this.lineTotalCents,
+      cogsCents: cogsCents ?? this.cogsCents,
       unitPrice: unitPrice ?? this.unitPrice,
       unitCostSnapshot: unitCostSnapshot ?? this.unitCostSnapshot,
       discountTotal: discountTotal ?? this.discountTotal,
@@ -20766,6 +21194,22 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
     }
     if (quantity.present) {
       map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (saleModeSnapshot.present) {
+      map['sale_mode_snapshot'] = Variable<String>(saleModeSnapshot.value);
+    }
+    if (priceBasisQuantitySnapshot.present) {
+      map['price_basis_quantity_snapshot'] =
+          Variable<int>(priceBasisQuantitySnapshot.value);
+    }
+    if (priceCentsSnapshot.present) {
+      map['price_cents_snapshot'] = Variable<int>(priceCentsSnapshot.value);
+    }
+    if (lineTotalCents.present) {
+      map['line_total_cents'] = Variable<int>(lineTotalCents.value);
+    }
+    if (cogsCents.present) {
+      map['cogs_cents'] = Variable<int>(cogsCents.value);
     }
     if (unitPrice.present) {
       map['unit_price'] = Variable<double>(unitPrice.value);
@@ -20816,6 +21260,11 @@ class SaleItemsCompanion extends UpdateCompanion<SaleItem> {
           ..write('productNameSnapshot: $productNameSnapshot, ')
           ..write('barcodeSnapshot: $barcodeSnapshot, ')
           ..write('quantity: $quantity, ')
+          ..write('saleModeSnapshot: $saleModeSnapshot, ')
+          ..write('priceBasisQuantitySnapshot: $priceBasisQuantitySnapshot, ')
+          ..write('priceCentsSnapshot: $priceCentsSnapshot, ')
+          ..write('lineTotalCents: $lineTotalCents, ')
+          ..write('cogsCents: $cogsCents, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('unitCostSnapshot: $unitCostSnapshot, ')
           ..write('discountTotal: $discountTotal, ')
@@ -24491,6 +24940,22 @@ class $PurchaseItemsTable extends PurchaseItems
   late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
       'quantity', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _saleModeSnapshotMeta =
+      const VerificationMeta('saleModeSnapshot');
+  @override
+  late final GeneratedColumn<String> saleModeSnapshot = GeneratedColumn<String>(
+      'sale_mode_snapshot', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('unit'));
+  static const VerificationMeta _costBasisQuantitySnapshotMeta =
+      const VerificationMeta('costBasisQuantitySnapshot');
+  @override
+  late final GeneratedColumn<int> costBasisQuantitySnapshot =
+      GeneratedColumn<int>('cost_basis_quantity_snapshot', aliasedName, false,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultValue: const Constant(1));
   static const VerificationMeta _unitCostMeta =
       const VerificationMeta('unitCost');
   @override
@@ -24586,6 +25051,8 @@ class $PurchaseItemsTable extends PurchaseItems
         branchId,
         productId,
         quantity,
+        saleModeSnapshot,
+        costBasisQuantitySnapshot,
         unitCost,
         subtotal,
         unitCostCents,
@@ -24640,6 +25107,19 @@ class $PurchaseItemsTable extends PurchaseItems
           quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta));
     } else if (isInserting) {
       context.missing(_quantityMeta);
+    }
+    if (data.containsKey('sale_mode_snapshot')) {
+      context.handle(
+          _saleModeSnapshotMeta,
+          saleModeSnapshot.isAcceptableOrUnknown(
+              data['sale_mode_snapshot']!, _saleModeSnapshotMeta));
+    }
+    if (data.containsKey('cost_basis_quantity_snapshot')) {
+      context.handle(
+          _costBasisQuantitySnapshotMeta,
+          costBasisQuantitySnapshot.isAcceptableOrUnknown(
+              data['cost_basis_quantity_snapshot']!,
+              _costBasisQuantitySnapshotMeta));
     }
     if (data.containsKey('unit_cost')) {
       context.handle(_unitCostMeta,
@@ -24726,6 +25206,11 @@ class $PurchaseItemsTable extends PurchaseItems
           .read(DriftSqlType.string, data['${effectivePrefix}product_id']),
       quantity: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}quantity'])!,
+      saleModeSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}sale_mode_snapshot'])!,
+      costBasisQuantitySnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}cost_basis_quantity_snapshot'])!,
       unitCost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit_cost'])!,
       subtotal: attachedDatabase.typeMapping
@@ -24772,6 +25257,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
   final String? branchId;
   final String? productId;
   final int quantity;
+  final String saleModeSnapshot;
+  final int costBasisQuantitySnapshot;
   final double unitCost;
   final double subtotal;
   final int? unitCostCents;
@@ -24792,6 +25279,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       this.branchId,
       this.productId,
       required this.quantity,
+      required this.saleModeSnapshot,
+      required this.costBasisQuantitySnapshot,
       required this.unitCost,
       required this.subtotal,
       this.unitCostCents,
@@ -24822,6 +25311,9 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       map['product_id'] = Variable<String>(productId);
     }
     map['quantity'] = Variable<int>(quantity);
+    map['sale_mode_snapshot'] = Variable<String>(saleModeSnapshot);
+    map['cost_basis_quantity_snapshot'] =
+        Variable<int>(costBasisQuantitySnapshot);
     map['unit_cost'] = Variable<double>(unitCost);
     map['subtotal'] = Variable<double>(subtotal);
     if (!nullToAbsent || unitCostCents != null) {
@@ -24869,6 +25361,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           ? const Value.absent()
           : Value(productId),
       quantity: Value(quantity),
+      saleModeSnapshot: Value(saleModeSnapshot),
+      costBasisQuantitySnapshot: Value(costBasisQuantitySnapshot),
       unitCost: Value(unitCost),
       subtotal: Value(subtotal),
       unitCostCents: unitCostCents == null && nullToAbsent
@@ -24907,6 +25401,9 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       branchId: serializer.fromJson<String?>(json['branchId']),
       productId: serializer.fromJson<String?>(json['productId']),
       quantity: serializer.fromJson<int>(json['quantity']),
+      saleModeSnapshot: serializer.fromJson<String>(json['saleModeSnapshot']),
+      costBasisQuantitySnapshot:
+          serializer.fromJson<int>(json['costBasisQuantitySnapshot']),
       unitCost: serializer.fromJson<double>(json['unitCost']),
       subtotal: serializer.fromJson<double>(json['subtotal']),
       unitCostCents: serializer.fromJson<int?>(json['unitCostCents']),
@@ -24933,6 +25430,9 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       'branchId': serializer.toJson<String?>(branchId),
       'productId': serializer.toJson<String?>(productId),
       'quantity': serializer.toJson<int>(quantity),
+      'saleModeSnapshot': serializer.toJson<String>(saleModeSnapshot),
+      'costBasisQuantitySnapshot':
+          serializer.toJson<int>(costBasisQuantitySnapshot),
       'unitCost': serializer.toJson<double>(unitCost),
       'subtotal': serializer.toJson<double>(subtotal),
       'unitCostCents': serializer.toJson<int?>(unitCostCents),
@@ -24957,6 +25457,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           Value<String?> branchId = const Value.absent(),
           Value<String?> productId = const Value.absent(),
           int? quantity,
+          String? saleModeSnapshot,
+          int? costBasisQuantitySnapshot,
           double? unitCost,
           double? subtotal,
           Value<int?> unitCostCents = const Value.absent(),
@@ -24977,6 +25479,9 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
         branchId: branchId.present ? branchId.value : this.branchId,
         productId: productId.present ? productId.value : this.productId,
         quantity: quantity ?? this.quantity,
+        saleModeSnapshot: saleModeSnapshot ?? this.saleModeSnapshot,
+        costBasisQuantitySnapshot:
+            costBasisQuantitySnapshot ?? this.costBasisQuantitySnapshot,
         unitCost: unitCost ?? this.unitCost,
         subtotal: subtotal ?? this.subtotal,
         unitCostCents:
@@ -25006,6 +25511,12 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
       branchId: data.branchId.present ? data.branchId.value : this.branchId,
       productId: data.productId.present ? data.productId.value : this.productId,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      saleModeSnapshot: data.saleModeSnapshot.present
+          ? data.saleModeSnapshot.value
+          : this.saleModeSnapshot,
+      costBasisQuantitySnapshot: data.costBasisQuantitySnapshot.present
+          ? data.costBasisQuantitySnapshot.value
+          : this.costBasisQuantitySnapshot,
       unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
       subtotal: data.subtotal.present ? data.subtotal.value : this.subtotal,
       unitCostCents: data.unitCostCents.present
@@ -25043,6 +25554,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           ..write('branchId: $branchId, ')
           ..write('productId: $productId, ')
           ..write('quantity: $quantity, ')
+          ..write('saleModeSnapshot: $saleModeSnapshot, ')
+          ..write('costBasisQuantitySnapshot: $costBasisQuantitySnapshot, ')
           ..write('unitCost: $unitCost, ')
           ..write('subtotal: $subtotal, ')
           ..write('unitCostCents: $unitCostCents, ')
@@ -25061,26 +25574,29 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      purchaseId,
-      businessId,
-      branchId,
-      productId,
-      quantity,
-      unitCost,
-      subtotal,
-      unitCostCents,
-      subtotalCents,
-      idempotencyKey,
-      localStatus,
-      metadataJson,
-      version,
-      createdAt,
-      updatedAt,
-      deletedAt,
-      lastSyncedAt,
-      syncStatus);
+  int get hashCode => Object.hashAll([
+        id,
+        purchaseId,
+        businessId,
+        branchId,
+        productId,
+        quantity,
+        saleModeSnapshot,
+        costBasisQuantitySnapshot,
+        unitCost,
+        subtotal,
+        unitCostCents,
+        subtotalCents,
+        idempotencyKey,
+        localStatus,
+        metadataJson,
+        version,
+        createdAt,
+        updatedAt,
+        deletedAt,
+        lastSyncedAt,
+        syncStatus
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -25091,6 +25607,8 @@ class PurchaseItem extends DataClass implements Insertable<PurchaseItem> {
           other.branchId == this.branchId &&
           other.productId == this.productId &&
           other.quantity == this.quantity &&
+          other.saleModeSnapshot == this.saleModeSnapshot &&
+          other.costBasisQuantitySnapshot == this.costBasisQuantitySnapshot &&
           other.unitCost == this.unitCost &&
           other.subtotal == this.subtotal &&
           other.unitCostCents == this.unitCostCents &&
@@ -25113,6 +25631,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
   final Value<String?> branchId;
   final Value<String?> productId;
   final Value<int> quantity;
+  final Value<String> saleModeSnapshot;
+  final Value<int> costBasisQuantitySnapshot;
   final Value<double> unitCost;
   final Value<double> subtotal;
   final Value<int?> unitCostCents;
@@ -25134,6 +25654,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     this.branchId = const Value.absent(),
     this.productId = const Value.absent(),
     this.quantity = const Value.absent(),
+    this.saleModeSnapshot = const Value.absent(),
+    this.costBasisQuantitySnapshot = const Value.absent(),
     this.unitCost = const Value.absent(),
     this.subtotal = const Value.absent(),
     this.unitCostCents = const Value.absent(),
@@ -25156,6 +25678,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     this.branchId = const Value.absent(),
     this.productId = const Value.absent(),
     required int quantity,
+    this.saleModeSnapshot = const Value.absent(),
+    this.costBasisQuantitySnapshot = const Value.absent(),
     required double unitCost,
     required double subtotal,
     this.unitCostCents = const Value.absent(),
@@ -25181,6 +25705,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     Expression<String>? branchId,
     Expression<String>? productId,
     Expression<int>? quantity,
+    Expression<String>? saleModeSnapshot,
+    Expression<int>? costBasisQuantitySnapshot,
     Expression<double>? unitCost,
     Expression<double>? subtotal,
     Expression<int>? unitCostCents,
@@ -25203,6 +25729,9 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
       if (branchId != null) 'branch_id': branchId,
       if (productId != null) 'product_id': productId,
       if (quantity != null) 'quantity': quantity,
+      if (saleModeSnapshot != null) 'sale_mode_snapshot': saleModeSnapshot,
+      if (costBasisQuantitySnapshot != null)
+        'cost_basis_quantity_snapshot': costBasisQuantitySnapshot,
       if (unitCost != null) 'unit_cost': unitCost,
       if (subtotal != null) 'subtotal': subtotal,
       if (unitCostCents != null) 'unit_cost_cents': unitCostCents,
@@ -25227,6 +25756,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
       Value<String?>? branchId,
       Value<String?>? productId,
       Value<int>? quantity,
+      Value<String>? saleModeSnapshot,
+      Value<int>? costBasisQuantitySnapshot,
       Value<double>? unitCost,
       Value<double>? subtotal,
       Value<int?>? unitCostCents,
@@ -25248,6 +25779,9 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
       branchId: branchId ?? this.branchId,
       productId: productId ?? this.productId,
       quantity: quantity ?? this.quantity,
+      saleModeSnapshot: saleModeSnapshot ?? this.saleModeSnapshot,
+      costBasisQuantitySnapshot:
+          costBasisQuantitySnapshot ?? this.costBasisQuantitySnapshot,
       unitCost: unitCost ?? this.unitCost,
       subtotal: subtotal ?? this.subtotal,
       unitCostCents: unitCostCents ?? this.unitCostCents,
@@ -25285,6 +25819,13 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
     }
     if (quantity.present) {
       map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (saleModeSnapshot.present) {
+      map['sale_mode_snapshot'] = Variable<String>(saleModeSnapshot.value);
+    }
+    if (costBasisQuantitySnapshot.present) {
+      map['cost_basis_quantity_snapshot'] =
+          Variable<int>(costBasisQuantitySnapshot.value);
     }
     if (unitCost.present) {
       map['unit_cost'] = Variable<double>(unitCost.value);
@@ -25341,6 +25882,8 @@ class PurchaseItemsCompanion extends UpdateCompanion<PurchaseItem> {
           ..write('branchId: $branchId, ')
           ..write('productId: $productId, ')
           ..write('quantity: $quantity, ')
+          ..write('saleModeSnapshot: $saleModeSnapshot, ')
+          ..write('costBasisQuantitySnapshot: $costBasisQuantitySnapshot, ')
           ..write('unitCost: $unitCost, ')
           ..write('subtotal: $subtotal, ')
           ..write('unitCostCents: $unitCostCents, ')
@@ -34202,6 +34745,7 @@ typedef $$LocalInventoryMovementsTableCreateCompanionBuilder
   required String productId,
   required String movementType,
   required int quantityChange,
+  Value<int?> costEffectCents,
   Value<double?> unitCost,
   Value<int?> previousStock,
   Value<int?> newStock,
@@ -34233,6 +34777,7 @@ typedef $$LocalInventoryMovementsTableUpdateCompanionBuilder
   Value<String> productId,
   Value<String> movementType,
   Value<int> quantityChange,
+  Value<int?> costEffectCents,
   Value<double?> unitCost,
   Value<int?> previousStock,
   Value<int?> newStock,
@@ -34283,6 +34828,10 @@ class $$LocalInventoryMovementsTableFilterComposer
 
   ColumnFilters<int> get quantityChange => $composableBuilder(
       column: $table.quantityChange,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get costEffectCents => $composableBuilder(
+      column: $table.costEffectCents,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get unitCost => $composableBuilder(
@@ -34378,6 +34927,10 @@ class $$LocalInventoryMovementsTableOrderingComposer
 
   ColumnOrderings<int> get quantityChange => $composableBuilder(
       column: $table.quantityChange,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get costEffectCents => $composableBuilder(
+      column: $table.costEffectCents,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get unitCost => $composableBuilder(
@@ -34476,6 +35029,9 @@ class $$LocalInventoryMovementsTableAnnotationComposer
 
   GeneratedColumn<int> get quantityChange => $composableBuilder(
       column: $table.quantityChange, builder: (column) => column);
+
+  GeneratedColumn<int> get costEffectCents => $composableBuilder(
+      column: $table.costEffectCents, builder: (column) => column);
 
   GeneratedColumn<double> get unitCost =>
       $composableBuilder(column: $table.unitCost, builder: (column) => column);
@@ -34578,6 +35134,7 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             Value<String> productId = const Value.absent(),
             Value<String> movementType = const Value.absent(),
             Value<int> quantityChange = const Value.absent(),
+            Value<int?> costEffectCents = const Value.absent(),
             Value<double?> unitCost = const Value.absent(),
             Value<int?> previousStock = const Value.absent(),
             Value<int?> newStock = const Value.absent(),
@@ -34608,6 +35165,7 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             productId: productId,
             movementType: movementType,
             quantityChange: quantityChange,
+            costEffectCents: costEffectCents,
             unitCost: unitCost,
             previousStock: previousStock,
             newStock: newStock,
@@ -34638,6 +35196,7 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             required String productId,
             required String movementType,
             required int quantityChange,
+            Value<int?> costEffectCents = const Value.absent(),
             Value<double?> unitCost = const Value.absent(),
             Value<int?> previousStock = const Value.absent(),
             Value<int?> newStock = const Value.absent(),
@@ -34668,6 +35227,7 @@ class $$LocalInventoryMovementsTableTableManager extends RootTableManager<
             productId: productId,
             movementType: movementType,
             quantityChange: quantityChange,
+            costEffectCents: costEffectCents,
             unitCost: unitCost,
             previousStock: previousStock,
             newStock: newStock,
@@ -34971,11 +35531,13 @@ typedef $$LocalProductStockBalancesTableCreateCompanionBuilder
   Value<int> quantityReserved,
   Value<int> quantityAvailable,
   Value<double?> averageCost,
+  Value<int?> costBasisCents,
   Value<String?> remoteBalanceId,
   Value<int?> remoteQuantityOnHand,
   Value<int?> remoteQuantityReserved,
   Value<int?> remoteQuantityAvailable,
   Value<double?> remoteAverageCost,
+  Value<int?> remoteCostBasisCents,
   Value<DateTime?> lastMovementAt,
   Value<DateTime?> remoteUpdatedAt,
   Value<String?> remoteSnapshotId,
@@ -34997,11 +35559,13 @@ typedef $$LocalProductStockBalancesTableUpdateCompanionBuilder
   Value<int> quantityReserved,
   Value<int> quantityAvailable,
   Value<double?> averageCost,
+  Value<int?> costBasisCents,
   Value<String?> remoteBalanceId,
   Value<int?> remoteQuantityOnHand,
   Value<int?> remoteQuantityReserved,
   Value<int?> remoteQuantityAvailable,
   Value<double?> remoteAverageCost,
+  Value<int?> remoteCostBasisCents,
   Value<DateTime?> lastMovementAt,
   Value<DateTime?> remoteUpdatedAt,
   Value<String?> remoteSnapshotId,
@@ -35050,6 +35614,10 @@ class $$LocalProductStockBalancesTableFilterComposer
   ColumnFilters<double> get averageCost => $composableBuilder(
       column: $table.averageCost, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<int> get costBasisCents => $composableBuilder(
+      column: $table.costBasisCents,
+      builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get remoteBalanceId => $composableBuilder(
       column: $table.remoteBalanceId,
       builder: (column) => ColumnFilters(column));
@@ -35068,6 +35636,10 @@ class $$LocalProductStockBalancesTableFilterComposer
 
   ColumnFilters<double> get remoteAverageCost => $composableBuilder(
       column: $table.remoteAverageCost,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get remoteCostBasisCents => $composableBuilder(
+      column: $table.remoteCostBasisCents,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get lastMovementAt => $composableBuilder(
@@ -35137,6 +35709,10 @@ class $$LocalProductStockBalancesTableOrderingComposer
   ColumnOrderings<double> get averageCost => $composableBuilder(
       column: $table.averageCost, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get costBasisCents => $composableBuilder(
+      column: $table.costBasisCents,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get remoteBalanceId => $composableBuilder(
       column: $table.remoteBalanceId,
       builder: (column) => ColumnOrderings(column));
@@ -35155,6 +35731,10 @@ class $$LocalProductStockBalancesTableOrderingComposer
 
   ColumnOrderings<double> get remoteAverageCost => $composableBuilder(
       column: $table.remoteAverageCost,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get remoteCostBasisCents => $composableBuilder(
+      column: $table.remoteCostBasisCents,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get lastMovementAt => $composableBuilder(
@@ -35223,6 +35803,9 @@ class $$LocalProductStockBalancesTableAnnotationComposer
   GeneratedColumn<double> get averageCost => $composableBuilder(
       column: $table.averageCost, builder: (column) => column);
 
+  GeneratedColumn<int> get costBasisCents => $composableBuilder(
+      column: $table.costBasisCents, builder: (column) => column);
+
   GeneratedColumn<String> get remoteBalanceId => $composableBuilder(
       column: $table.remoteBalanceId, builder: (column) => column);
 
@@ -35237,6 +35820,9 @@ class $$LocalProductStockBalancesTableAnnotationComposer
 
   GeneratedColumn<double> get remoteAverageCost => $composableBuilder(
       column: $table.remoteAverageCost, builder: (column) => column);
+
+  GeneratedColumn<int> get remoteCostBasisCents => $composableBuilder(
+      column: $table.remoteCostBasisCents, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastMovementAt => $composableBuilder(
       column: $table.lastMovementAt, builder: (column) => column);
@@ -35305,11 +35891,13 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             Value<int> quantityReserved = const Value.absent(),
             Value<int> quantityAvailable = const Value.absent(),
             Value<double?> averageCost = const Value.absent(),
+            Value<int?> costBasisCents = const Value.absent(),
             Value<String?> remoteBalanceId = const Value.absent(),
             Value<int?> remoteQuantityOnHand = const Value.absent(),
             Value<int?> remoteQuantityReserved = const Value.absent(),
             Value<int?> remoteQuantityAvailable = const Value.absent(),
             Value<double?> remoteAverageCost = const Value.absent(),
+            Value<int?> remoteCostBasisCents = const Value.absent(),
             Value<DateTime?> lastMovementAt = const Value.absent(),
             Value<DateTime?> remoteUpdatedAt = const Value.absent(),
             Value<String?> remoteSnapshotId = const Value.absent(),
@@ -35330,11 +35918,13 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             quantityReserved: quantityReserved,
             quantityAvailable: quantityAvailable,
             averageCost: averageCost,
+            costBasisCents: costBasisCents,
             remoteBalanceId: remoteBalanceId,
             remoteQuantityOnHand: remoteQuantityOnHand,
             remoteQuantityReserved: remoteQuantityReserved,
             remoteQuantityAvailable: remoteQuantityAvailable,
             remoteAverageCost: remoteAverageCost,
+            remoteCostBasisCents: remoteCostBasisCents,
             lastMovementAt: lastMovementAt,
             remoteUpdatedAt: remoteUpdatedAt,
             remoteSnapshotId: remoteSnapshotId,
@@ -35355,11 +35945,13 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             Value<int> quantityReserved = const Value.absent(),
             Value<int> quantityAvailable = const Value.absent(),
             Value<double?> averageCost = const Value.absent(),
+            Value<int?> costBasisCents = const Value.absent(),
             Value<String?> remoteBalanceId = const Value.absent(),
             Value<int?> remoteQuantityOnHand = const Value.absent(),
             Value<int?> remoteQuantityReserved = const Value.absent(),
             Value<int?> remoteQuantityAvailable = const Value.absent(),
             Value<double?> remoteAverageCost = const Value.absent(),
+            Value<int?> remoteCostBasisCents = const Value.absent(),
             Value<DateTime?> lastMovementAt = const Value.absent(),
             Value<DateTime?> remoteUpdatedAt = const Value.absent(),
             Value<String?> remoteSnapshotId = const Value.absent(),
@@ -35380,11 +35972,13 @@ class $$LocalProductStockBalancesTableTableManager extends RootTableManager<
             quantityReserved: quantityReserved,
             quantityAvailable: quantityAvailable,
             averageCost: averageCost,
+            costBasisCents: costBasisCents,
             remoteBalanceId: remoteBalanceId,
             remoteQuantityOnHand: remoteQuantityOnHand,
             remoteQuantityReserved: remoteQuantityReserved,
             remoteQuantityAvailable: remoteQuantityAvailable,
             remoteAverageCost: remoteAverageCost,
+            remoteCostBasisCents: remoteCostBasisCents,
             lastMovementAt: lastMovementAt,
             remoteUpdatedAt: remoteUpdatedAt,
             remoteSnapshotId: remoteSnapshotId,
@@ -37992,6 +38586,8 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String?> description,
   Value<double> purchasePrice,
   required double salePrice,
+  Value<String> saleMode,
+  Value<int?> salePriceCents,
   Value<int> stockQuantity,
   Value<int> minimumStock,
   Value<String> unit,
@@ -38013,6 +38609,8 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String?> description,
   Value<double> purchasePrice,
   Value<double> salePrice,
+  Value<String> saleMode,
+  Value<int?> salePriceCents,
   Value<int> stockQuantity,
   Value<int> minimumStock,
   Value<String> unit,
@@ -38120,6 +38718,13 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<double> get salePrice => $composableBuilder(
       column: $table.salePrice, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleMode => $composableBuilder(
+      column: $table.saleMode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get salePriceCents => $composableBuilder(
+      column: $table.salePriceCents,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get stockQuantity => $composableBuilder(
       column: $table.stockQuantity, builder: (column) => ColumnFilters(column));
@@ -38266,6 +38871,13 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<double> get salePrice => $composableBuilder(
       column: $table.salePrice, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get saleMode => $composableBuilder(
+      column: $table.saleMode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get salePriceCents => $composableBuilder(
+      column: $table.salePriceCents,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get stockQuantity => $composableBuilder(
       column: $table.stockQuantity,
       builder: (column) => ColumnOrderings(column));
@@ -38366,6 +38978,12 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<double> get salePrice =>
       $composableBuilder(column: $table.salePrice, builder: (column) => column);
+
+  GeneratedColumn<String> get saleMode =>
+      $composableBuilder(column: $table.saleMode, builder: (column) => column);
+
+  GeneratedColumn<int> get salePriceCents => $composableBuilder(
+      column: $table.salePriceCents, builder: (column) => column);
 
   GeneratedColumn<int> get stockQuantity => $composableBuilder(
       column: $table.stockQuantity, builder: (column) => column);
@@ -38514,6 +39132,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
             Value<double> purchasePrice = const Value.absent(),
             Value<double> salePrice = const Value.absent(),
+            Value<String> saleMode = const Value.absent(),
+            Value<int?> salePriceCents = const Value.absent(),
             Value<int> stockQuantity = const Value.absent(),
             Value<int> minimumStock = const Value.absent(),
             Value<String> unit = const Value.absent(),
@@ -38535,6 +39155,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             description: description,
             purchasePrice: purchasePrice,
             salePrice: salePrice,
+            saleMode: saleMode,
+            salePriceCents: salePriceCents,
             stockQuantity: stockQuantity,
             minimumStock: minimumStock,
             unit: unit,
@@ -38556,6 +39178,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
             Value<double> purchasePrice = const Value.absent(),
             required double salePrice,
+            Value<String> saleMode = const Value.absent(),
+            Value<int?> salePriceCents = const Value.absent(),
             Value<int> stockQuantity = const Value.absent(),
             Value<int> minimumStock = const Value.absent(),
             Value<String> unit = const Value.absent(),
@@ -38577,6 +39201,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             description: description,
             purchasePrice: purchasePrice,
             salePrice: salePrice,
+            saleMode: saleMode,
+            salePriceCents: salePriceCents,
             stockQuantity: stockQuantity,
             minimumStock: minimumStock,
             unit: unit,
@@ -39598,6 +40224,11 @@ typedef $$SaleItemsTableCreateCompanionBuilder = SaleItemsCompanion Function({
   Value<String?> productNameSnapshot,
   Value<String?> barcodeSnapshot,
   required int quantity,
+  Value<String> saleModeSnapshot,
+  Value<int> priceBasisQuantitySnapshot,
+  Value<int?> priceCentsSnapshot,
+  Value<int?> lineTotalCents,
+  Value<int?> cogsCents,
   required double unitPrice,
   Value<double?> unitCostSnapshot,
   Value<double> discountTotal,
@@ -39618,6 +40249,11 @@ typedef $$SaleItemsTableUpdateCompanionBuilder = SaleItemsCompanion Function({
   Value<String?> productNameSnapshot,
   Value<String?> barcodeSnapshot,
   Value<int> quantity,
+  Value<String> saleModeSnapshot,
+  Value<int> priceBasisQuantitySnapshot,
+  Value<int?> priceCentsSnapshot,
+  Value<int?> lineTotalCents,
+  Value<int?> cogsCents,
   Value<double> unitPrice,
   Value<double?> unitCostSnapshot,
   Value<double> discountTotal,
@@ -39688,6 +40324,25 @@ class $$SaleItemsTableFilterComposer
 
   ColumnFilters<int> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleModeSnapshot => $composableBuilder(
+      column: $table.saleModeSnapshot,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priceBasisQuantitySnapshot => $composableBuilder(
+      column: $table.priceBasisQuantitySnapshot,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priceCentsSnapshot => $composableBuilder(
+      column: $table.priceCentsSnapshot,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get lineTotalCents => $composableBuilder(
+      column: $table.lineTotalCents,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get cogsCents => $composableBuilder(
+      column: $table.cogsCents, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get unitPrice => $composableBuilder(
       column: $table.unitPrice, builder: (column) => ColumnFilters(column));
@@ -39789,6 +40444,25 @@ class $$SaleItemsTableOrderingComposer
   ColumnOrderings<int> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get saleModeSnapshot => $composableBuilder(
+      column: $table.saleModeSnapshot,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priceBasisQuantitySnapshot => $composableBuilder(
+      column: $table.priceBasisQuantitySnapshot,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priceCentsSnapshot => $composableBuilder(
+      column: $table.priceCentsSnapshot,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get lineTotalCents => $composableBuilder(
+      column: $table.lineTotalCents,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get cogsCents => $composableBuilder(
+      column: $table.cogsCents, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get unitPrice => $composableBuilder(
       column: $table.unitPrice, builder: (column) => ColumnOrderings(column));
 
@@ -39886,6 +40560,21 @@ class $$SaleItemsTableAnnotationComposer
 
   GeneratedColumn<int> get quantity =>
       $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get saleModeSnapshot => $composableBuilder(
+      column: $table.saleModeSnapshot, builder: (column) => column);
+
+  GeneratedColumn<int> get priceBasisQuantitySnapshot => $composableBuilder(
+      column: $table.priceBasisQuantitySnapshot, builder: (column) => column);
+
+  GeneratedColumn<int> get priceCentsSnapshot => $composableBuilder(
+      column: $table.priceCentsSnapshot, builder: (column) => column);
+
+  GeneratedColumn<int> get lineTotalCents => $composableBuilder(
+      column: $table.lineTotalCents, builder: (column) => column);
+
+  GeneratedColumn<int> get cogsCents =>
+      $composableBuilder(column: $table.cogsCents, builder: (column) => column);
 
   GeneratedColumn<double> get unitPrice =>
       $composableBuilder(column: $table.unitPrice, builder: (column) => column);
@@ -39991,6 +40680,11 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             Value<String?> productNameSnapshot = const Value.absent(),
             Value<String?> barcodeSnapshot = const Value.absent(),
             Value<int> quantity = const Value.absent(),
+            Value<String> saleModeSnapshot = const Value.absent(),
+            Value<int> priceBasisQuantitySnapshot = const Value.absent(),
+            Value<int?> priceCentsSnapshot = const Value.absent(),
+            Value<int?> lineTotalCents = const Value.absent(),
+            Value<int?> cogsCents = const Value.absent(),
             Value<double> unitPrice = const Value.absent(),
             Value<double?> unitCostSnapshot = const Value.absent(),
             Value<double> discountTotal = const Value.absent(),
@@ -40011,6 +40705,11 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             productNameSnapshot: productNameSnapshot,
             barcodeSnapshot: barcodeSnapshot,
             quantity: quantity,
+            saleModeSnapshot: saleModeSnapshot,
+            priceBasisQuantitySnapshot: priceBasisQuantitySnapshot,
+            priceCentsSnapshot: priceCentsSnapshot,
+            lineTotalCents: lineTotalCents,
+            cogsCents: cogsCents,
             unitPrice: unitPrice,
             unitCostSnapshot: unitCostSnapshot,
             discountTotal: discountTotal,
@@ -40031,6 +40730,11 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             Value<String?> productNameSnapshot = const Value.absent(),
             Value<String?> barcodeSnapshot = const Value.absent(),
             required int quantity,
+            Value<String> saleModeSnapshot = const Value.absent(),
+            Value<int> priceBasisQuantitySnapshot = const Value.absent(),
+            Value<int?> priceCentsSnapshot = const Value.absent(),
+            Value<int?> lineTotalCents = const Value.absent(),
+            Value<int?> cogsCents = const Value.absent(),
             required double unitPrice,
             Value<double?> unitCostSnapshot = const Value.absent(),
             Value<double> discountTotal = const Value.absent(),
@@ -40051,6 +40755,11 @@ class $$SaleItemsTableTableManager extends RootTableManager<
             productNameSnapshot: productNameSnapshot,
             barcodeSnapshot: barcodeSnapshot,
             quantity: quantity,
+            saleModeSnapshot: saleModeSnapshot,
+            priceBasisQuantitySnapshot: priceBasisQuantitySnapshot,
+            priceCentsSnapshot: priceCentsSnapshot,
+            lineTotalCents: lineTotalCents,
+            cogsCents: cogsCents,
             unitPrice: unitPrice,
             unitCostSnapshot: unitCostSnapshot,
             discountTotal: discountTotal,
@@ -42960,6 +43669,8 @@ typedef $$PurchaseItemsTableCreateCompanionBuilder = PurchaseItemsCompanion
   Value<String?> branchId,
   Value<String?> productId,
   required int quantity,
+  Value<String> saleModeSnapshot,
+  Value<int> costBasisQuantitySnapshot,
   required double unitCost,
   required double subtotal,
   Value<int?> unitCostCents,
@@ -42983,6 +43694,8 @@ typedef $$PurchaseItemsTableUpdateCompanionBuilder = PurchaseItemsCompanion
   Value<String?> branchId,
   Value<String?> productId,
   Value<int> quantity,
+  Value<String> saleModeSnapshot,
+  Value<int> costBasisQuantitySnapshot,
   Value<double> unitCost,
   Value<double> subtotal,
   Value<int?> unitCostCents,
@@ -43079,6 +43792,14 @@ class $$PurchaseItemsTableFilterComposer
 
   ColumnFilters<int> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleModeSnapshot => $composableBuilder(
+      column: $table.saleModeSnapshot,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get costBasisQuantitySnapshot => $composableBuilder(
+      column: $table.costBasisQuantitySnapshot,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get unitCost => $composableBuilder(
       column: $table.unitCost, builder: (column) => ColumnFilters(column));
@@ -43217,6 +43938,14 @@ class $$PurchaseItemsTableOrderingComposer
 
   ColumnOrderings<int> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get saleModeSnapshot => $composableBuilder(
+      column: $table.saleModeSnapshot,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get costBasisQuantitySnapshot => $composableBuilder(
+      column: $table.costBasisQuantitySnapshot,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get unitCost => $composableBuilder(
       column: $table.unitCost, builder: (column) => ColumnOrderings(column));
@@ -43357,6 +44086,12 @@ class $$PurchaseItemsTableAnnotationComposer
 
   GeneratedColumn<int> get quantity =>
       $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get saleModeSnapshot => $composableBuilder(
+      column: $table.saleModeSnapshot, builder: (column) => column);
+
+  GeneratedColumn<int> get costBasisQuantitySnapshot => $composableBuilder(
+      column: $table.costBasisQuantitySnapshot, builder: (column) => column);
 
   GeneratedColumn<double> get unitCost =>
       $composableBuilder(column: $table.unitCost, builder: (column) => column);
@@ -43509,6 +44244,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             Value<String?> branchId = const Value.absent(),
             Value<String?> productId = const Value.absent(),
             Value<int> quantity = const Value.absent(),
+            Value<String> saleModeSnapshot = const Value.absent(),
+            Value<int> costBasisQuantitySnapshot = const Value.absent(),
             Value<double> unitCost = const Value.absent(),
             Value<double> subtotal = const Value.absent(),
             Value<int?> unitCostCents = const Value.absent(),
@@ -43531,6 +44268,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             branchId: branchId,
             productId: productId,
             quantity: quantity,
+            saleModeSnapshot: saleModeSnapshot,
+            costBasisQuantitySnapshot: costBasisQuantitySnapshot,
             unitCost: unitCost,
             subtotal: subtotal,
             unitCostCents: unitCostCents,
@@ -43553,6 +44292,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             Value<String?> branchId = const Value.absent(),
             Value<String?> productId = const Value.absent(),
             required int quantity,
+            Value<String> saleModeSnapshot = const Value.absent(),
+            Value<int> costBasisQuantitySnapshot = const Value.absent(),
             required double unitCost,
             required double subtotal,
             Value<int?> unitCostCents = const Value.absent(),
@@ -43575,6 +44316,8 @@ class $$PurchaseItemsTableTableManager extends RootTableManager<
             branchId: branchId,
             productId: productId,
             quantity: quantity,
+            saleModeSnapshot: saleModeSnapshot,
+            costBasisQuantitySnapshot: costBasisQuantitySnapshot,
             unitCost: unitCost,
             subtotal: subtotal,
             unitCostCents: unitCostCents,

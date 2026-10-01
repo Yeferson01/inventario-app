@@ -1,5 +1,6 @@
 import 'operational_bootstrap_models.dart';
 import 'local_recovery_models.dart';
+import '../../../../core/models/product_sale_mode.dart';
 
 class CashPosParentSaleProvenance {
   CashPosParentSaleProvenance.fromData(Map<String, Object?> data)
@@ -199,6 +200,14 @@ class CashPosSaleItemSnapshotRow {
         barcodeSnapshot = _optionalString(row.data['barcode_snapshot']),
         unitCostSnapshot = _optionalDouble(row.data['unit_cost_snapshot']),
         quantity = _requiredInt(row.data, 'quantity'),
+        saleModeSnapshot = _saleModeSnapshot(row.data),
+        priceBasisQuantitySnapshot = _priceBasisSnapshot(row.data),
+        priceCentsSnapshot = parseNullableExactCents(
+            row.data['price_cents_snapshot'], 'price_cents_snapshot'),
+        lineTotalCents = parseNullableExactCents(
+            row.data['line_total_cents'], 'line_total_cents'),
+        cogsCents =
+            parseNullableExactCents(row.data['cogs_cents'], 'cogs_cents'),
         unitPrice = _requiredDouble(row.data, 'unit_price'),
         discountTotal = _optionalDoubleAny(
               row.data,
@@ -230,6 +239,11 @@ class CashPosSaleItemSnapshotRow {
   final String? barcodeSnapshot;
   final double? unitCostSnapshot;
   final int quantity;
+  final ProductSaleMode saleModeSnapshot;
+  final int priceBasisQuantitySnapshot;
+  final int? priceCentsSnapshot;
+  final int? lineTotalCents;
+  final int? cogsCents;
   final double unitPrice;
   final double discountTotal;
   final double taxTotal;
@@ -317,6 +331,30 @@ int _requiredInt(Map<String, Object?> json, String key) {
   final value = _optionalInt(json[key]);
   if (value == null) throw _malformed('$key must be an integer.');
   return value;
+}
+
+ProductSaleMode _saleModeSnapshot(Map<String, Object?> json) {
+  try {
+    return ProductSaleMode.parse(
+      json.containsKey('sale_mode_snapshot')
+          ? json['sale_mode_snapshot']
+          : 'unit',
+    );
+  } on FormatException {
+    throw _malformed('sale_mode_snapshot is unsupported.');
+  }
+}
+
+int _priceBasisSnapshot(Map<String, Object?> json) {
+  final mode = _saleModeSnapshot(json);
+  final basis = json.containsKey('price_basis_quantity_snapshot')
+      ? _requiredInt(json, 'price_basis_quantity_snapshot')
+      : 1;
+  if (basis != mode.salePriceBasisQuantity) {
+    throw _malformed(
+        'price_basis_quantity_snapshot does not match sale_mode_snapshot.');
+  }
+  return basis;
 }
 
 int? _optionalInt(Object? value) {

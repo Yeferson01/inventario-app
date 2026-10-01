@@ -31,6 +31,7 @@ class PosLocalSaleDao {
       where id = ?
         and business_id = ?
         and deleted_at is null
+        and sale_mode = 'unit'
       limit 1
       ''',
       variables: [

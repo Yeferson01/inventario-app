@@ -43,6 +43,7 @@ class InventoryBalanceSnapshotApplier
         remoteQuantityReserved: balance.quantityReserved,
         remoteQuantityAvailable: balance.quantityAvailable,
         remoteAverageCost: balance.averageCost,
+        remoteCostBasisCents: balance.costBasisCents,
         remoteUpdatedAt: balance.remoteUpdatedAt,
         remoteSnapshotId: snapshot.snapshotId,
         remoteTombstone: balance.isTombstone,

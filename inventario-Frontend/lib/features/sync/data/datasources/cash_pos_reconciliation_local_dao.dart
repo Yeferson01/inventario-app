@@ -613,8 +613,9 @@ class CashPosReconciliationLocalDao {
         id, sale_id, product_id, product_name_snapshot, barcode_snapshot,
         unit_cost_snapshot, quantity, unit_price, discount_total, tax_total,
         subtotal, line_total, metadata_json, created_at, updated_at, deleted_at,
-        sync_status
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_status, sale_mode_snapshot, price_basis_quantity_snapshot,
+        price_cents_snapshot, line_total_cents, cogs_cents
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         sale_id = excluded.sale_id,
         product_id = excluded.product_id,
@@ -631,7 +632,12 @@ class CashPosReconciliationLocalDao {
         created_at = excluded.created_at,
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at,
-        sync_status = excluded.sync_status
+        sync_status = excluded.sync_status,
+        sale_mode_snapshot = excluded.sale_mode_snapshot,
+        price_basis_quantity_snapshot = excluded.price_basis_quantity_snapshot,
+        price_cents_snapshot = excluded.price_cents_snapshot,
+        line_total_cents = excluded.line_total_cents,
+        cogs_cents = excluded.cogs_cents
       ''',
       [
         row.id,
@@ -656,6 +662,11 @@ class CashPosReconciliationLocalDao {
             ? row.deletedAt ?? row.updatedAt
             : row.deletedAt,
         SyncStatus.synced.index,
+        row.saleModeSnapshot.wireValue,
+        row.priceBasisQuantitySnapshot,
+        row.priceCentsSnapshot,
+        row.lineTotalCents,
+        row.cogsCents,
       ],
     );
   }

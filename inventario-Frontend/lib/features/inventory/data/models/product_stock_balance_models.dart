@@ -1,3 +1,5 @@
+import '../../../../core/models/product_sale_mode.dart';
+
 class RemoteProductStockBalance {
   const RemoteProductStockBalance({
     this.remoteBalanceId,
@@ -8,6 +10,7 @@ class RemoteProductStockBalance {
     required this.quantityReserved,
     required this.quantityAvailable,
     required this.averageCost,
+    this.costBasisCents,
     required this.lastMovementAt,
     required this.remoteUpdatedAt,
   });
@@ -20,6 +23,7 @@ class RemoteProductStockBalance {
   final int quantityReserved;
   final int quantityAvailable;
   final double? averageCost;
+  final int? costBasisCents;
   final DateTime? lastMovementAt;
   final DateTime? remoteUpdatedAt;
 
@@ -35,6 +39,7 @@ class RemoteProductStockBalance {
       quantityReserved: _int(json['quantity_reserved']),
       quantityAvailable: _int(json['quantity_available']),
       averageCost: _double(json['average_cost']),
+      costBasisCents: _exactCents(json['cost_basis_cents']),
       lastMovementAt: _date(json['last_movement_at']),
       remoteUpdatedAt: _date(json['updated_at']),
     );
@@ -50,6 +55,7 @@ class RemoteProductStockBalance {
       'quantity_reserved': quantityReserved,
       'quantity_available': quantityAvailable,
       'average_cost': averageCost,
+      'cost_basis_cents': costBasisCents,
       'last_movement_at': lastMovementAt?.toIso8601String(),
       'updated_at': remoteUpdatedAt?.toIso8601String(),
     };
@@ -100,6 +106,14 @@ class RemoteProductStockBalance {
     }
 
     return double.tryParse(value.toString());
+  }
+
+  static int? _exactCents(Object? value) {
+    final cents = parseNullableExactCents(value, 'cost_basis_cents');
+    if (cents != null && cents < 0) {
+      throw const FormatException('cost_basis_cents cannot be negative.');
+    }
+    return cents;
   }
 
   static DateTime? _date(Object? value) {

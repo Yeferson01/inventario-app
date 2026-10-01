@@ -117,6 +117,9 @@ class Products extends Table {
   TextColumn get description => text().nullable()();
   RealColumn get purchasePrice => real().withDefault(const Constant(0.0))();
   RealColumn get salePrice => real()();
+  TextColumn get saleMode => text().withDefault(const Constant('unit'))();
+  // Exact server cents; salePrice remains a legacy projection for UNIT flows.
+  IntColumn get salePriceCents => integer().nullable()();
   IntColumn get stockQuantity => integer().withDefault(const Constant(0))();
   IntColumn get minimumStock => integer().withDefault(const Constant(0))();
   TextColumn get unit => text().withDefault(const Constant('unidad'))();
@@ -195,6 +198,14 @@ class SaleItems extends Table {
       text().nullable().named('barcode_snapshot')();
 
   IntColumn get quantity => integer()();
+
+  TextColumn get saleModeSnapshot =>
+      text().withDefault(const Constant('unit'))();
+  IntColumn get priceBasisQuantitySnapshot =>
+      integer().withDefault(const Constant(1))();
+  IntColumn get priceCentsSnapshot => integer().nullable()();
+  IntColumn get lineTotalCents => integer().nullable()();
+  IntColumn get cogsCents => integer().nullable()();
 
   RealColumn get unitPrice => real()();
 
@@ -334,6 +345,11 @@ class PurchaseItems extends Table {
   TextColumn get productId => text().nullable().references(Products, #id)();
 
   IntColumn get quantity => integer()();
+
+  TextColumn get saleModeSnapshot =>
+      text().withDefault(const Constant('unit'))();
+  IntColumn get costBasisQuantitySnapshot =>
+      integer().withDefault(const Constant(1))();
 
   RealColumn get unitCost => real()();
 
@@ -937,6 +953,8 @@ class LocalInventoryMovements extends Table {
   TextColumn get movementType => text().named('movement_type')();
   IntColumn get quantityChange => integer().named('quantity_change')();
 
+  IntColumn get costEffectCents => integer().nullable()();
+
   RealColumn get unitCost => real().nullable().named('unit_cost')();
 
   IntColumn get previousStock => integer().nullable().named('previous_stock')();
@@ -1024,6 +1042,9 @@ class LocalProductStockBalances extends Table {
 
   RealColumn get averageCost => real().nullable()();
 
+  // Total remaining cost, not a per-unit/gram average.
+  IntColumn get costBasisCents => integer().nullable()();
+
   TextColumn get remoteBalanceId => text().nullable()();
 
   IntColumn get remoteQuantityOnHand => integer().nullable()();
@@ -1033,6 +1054,8 @@ class LocalProductStockBalances extends Table {
   IntColumn get remoteQuantityAvailable => integer().nullable()();
 
   RealColumn get remoteAverageCost => real().nullable()();
+
+  IntColumn get remoteCostBasisCents => integer().nullable()();
 
   DateTimeColumn get lastMovementAt => dateTime().nullable()();
 
@@ -1267,7 +1290,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Incrementa la versión si cambias la estructura de las tablas en el futuro
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   Future<void> _createCashMovementFoundation() async {
     await customStatement('''
@@ -1841,6 +1864,24 @@ class AppDatabase extends _$AppDatabase {
           await ensureLocalSyncOutboxIndexes();
         },
         onUpgrade: (m, from, to) async {
+          if (from < 18) {
+            await m.addColumn(products, products.saleMode);
+            await m.addColumn(products, products.salePriceCents);
+            await m.addColumn(saleItems, saleItems.saleModeSnapshot);
+            await m.addColumn(saleItems, saleItems.priceBasisQuantitySnapshot);
+            await m.addColumn(saleItems, saleItems.priceCentsSnapshot);
+            await m.addColumn(saleItems, saleItems.lineTotalCents);
+            await m.addColumn(saleItems, saleItems.cogsCents);
+            await m.addColumn(purchaseItems, purchaseItems.saleModeSnapshot);
+            await m.addColumn(
+                purchaseItems, purchaseItems.costBasisQuantitySnapshot);
+            await m.addColumn(localProductStockBalances,
+                localProductStockBalances.costBasisCents);
+            await m.addColumn(localProductStockBalances,
+                localProductStockBalances.remoteCostBasisCents);
+            await m.addColumn(localInventoryMovements,
+                localInventoryMovements.costEffectCents);
+          }
           if (from < 17) {
             await m.createTable(localSyncBatchDependencies);
             await _createBatchDependencyIndexes();
