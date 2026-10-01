@@ -31,6 +31,59 @@ void main() {
   setUp(() => database = AppDatabase.executor(NativeDatabase.memory()));
   tearDown(() => database.close());
 
+  test('acknowledged weighted receipt adopts authoritative cost basis',
+      () async {
+    await _insertBalance(database, 'weight-1',
+        operative: 13000, costBasisCents: 2280000);
+    final harness = _Harness(database, rows: [
+      _balanceRow('weight-1', onHand: 13000, costBasisCents: 2280000)
+    ]);
+    expect((await harness.service.reconcile(_request)).converged, isTrue);
+    var balance = await _balance(database, 'weight-1');
+    expect(balance['cost_basis_cents'], 2280000);
+    expect(balance['remote_cost_basis_cents'], 2280000);
+
+    // A later server-authoritative correction is not silently ignored.
+    final corrected = _Harness(database, rows: [
+      _balanceRow('weight-1', onHand: 13000, costBasisCents: 2290000)
+    ]);
+    expect((await corrected.service.reconcile(_request)).converged, isTrue);
+    balance = await _balance(database, 'weight-1');
+    expect(balance['cost_basis_cents'], 2290000);
+  });
+
+  test('pending weighted receipt preserves local cost basis until ACK',
+      () async {
+    await _insertBalance(database, 'weight-pending',
+        operative: 13000, costBasisCents: 2280000, syncStatus: 'dirty');
+    await _insertMovement(database,
+        id: 'weight-pending-movement',
+        productId: 'weight-pending',
+        sourceType: 'purchase',
+        sourceId: 'weight-purchase',
+        sourceItemId: 'weight-purchase-item',
+        quantity: 10000);
+    final pending = _Harness(database, rows: [
+      _balanceRow('weight-pending', onHand: 3000, costBasisCents: 480000)
+    ]);
+    expect((await pending.service.reconcile(_request)).converged, isTrue);
+    var balance = await _balance(database, 'weight-pending');
+    expect(balance['quantity_on_hand'], 13000);
+    expect(balance['cost_basis_cents'], 2280000);
+    expect(balance['remote_cost_basis_cents'], 480000);
+
+    final acknowledged = _Harness(database,
+        rows: [
+          _balanceRow('weight-pending', onHand: 13000, costBasisCents: 2280000)
+        ],
+        statusFor: (_, __) => 'applied');
+    expect((await acknowledged.service.reconcile(_request)).converged, isTrue);
+    balance = await _balance(database, 'weight-pending');
+    expect(balance['quantity_on_hand'], 13000);
+    expect(balance['cost_basis_cents'], 2280000);
+    expect(balance['remote_cost_basis_cents'], 2280000);
+  });
+
   test(
       'loss ACK allowlist preserves identity and rejects unknown/positive loss',
       () async {
@@ -1249,6 +1302,7 @@ Map<String, Object?> _balanceRow(
   required int onHand,
   int reserved = 0,
   double? averageCost,
+  int? costBasisCents,
   bool tombstone = false,
 }) {
   return {
@@ -1260,6 +1314,7 @@ Map<String, Object?> _balanceRow(
     'quantity_reserved': reserved,
     'quantity_available': onHand - reserved,
     'average_cost': averageCost,
+    'cost_basis_cents': costBasisCents,
     'updated_at': '2026-08-15T09:00:00Z',
     'deleted_at': tombstone ? '2026-08-15T09:00:00Z' : null,
     '_bootstrap_record_state': tombstone ? 'tombstone' : 'present',
@@ -1314,6 +1369,7 @@ Future<void> _insertBalance(
   String? id,
   int operative = 0,
   double? averageCost,
+  int? costBasisCents,
   String syncStatus = 'synced',
   String? remoteBalanceId,
   int? remoteQuantityOnHand,
@@ -1328,6 +1384,7 @@ Future<void> _insertBalance(
           quantityOnHand: Value(operative),
           quantityAvailable: Value(operative),
           averageCost: Value(averageCost),
+          costBasisCents: Value(costBasisCents),
           remoteBalanceId: Value(remoteBalanceId),
           remoteQuantityOnHand: Value(remoteQuantityOnHand),
           lastSyncedAt: Value(lastSyncedAt),

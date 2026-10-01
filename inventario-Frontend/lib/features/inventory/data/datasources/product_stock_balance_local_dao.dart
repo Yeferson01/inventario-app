@@ -255,6 +255,8 @@ class ProductStockBalanceLocalDao {
     required int quantityReserved,
     required int quantityAvailable,
     required double? averageCost,
+    int? costBasisCents,
+    bool replaceCostBasis = false,
     required DateTime? lastMovementAt,
     required DateTime? deletedAt,
   }) async {
@@ -263,7 +265,9 @@ class ProductStockBalanceLocalDao {
       '''
       update local_product_stock_balances
       set quantity_on_hand = ?, quantity_reserved = ?, quantity_available = ?,
-          average_cost = ?, last_movement_at = ?, deleted_at = ?,
+          average_cost = ?,
+          cost_basis_cents = case when ? then ? else cost_basis_cents end,
+          last_movement_at = ?, deleted_at = ?,
           sync_status = 'synced', last_synced_at = ?, updated_at = ?
       where business_id = ? and branch_id = ? and product_id = ?
       ''',
@@ -272,6 +276,8 @@ class ProductStockBalanceLocalDao {
         quantityReserved,
         quantityAvailable,
         averageCost,
+        replaceCostBasis ? 1 : 0,
+        costBasisCents,
         lastMovementAt?.millisecondsSinceEpoch,
         deletedAt?.millisecondsSinceEpoch,
         now.millisecondsSinceEpoch,

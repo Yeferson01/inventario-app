@@ -318,6 +318,7 @@ class InventoryBalanceReconciliationService {
           quantityReserved: 0,
           quantityAvailable: 0,
           averageCost: null,
+          replaceCostBasis: true,
           lastMovementAt: _latestMovement(productMovements),
           deletedAt: _remoteDeletedAt(metadata) ?? DateTime.now().toUtc(),
         );
@@ -344,6 +345,11 @@ class InventoryBalanceReconciliationService {
         quantityReserved: operative.quantityReserved,
         quantityAvailable: operative.quantityAvailable,
         averageCost: operative.averageCost,
+        // A fully acknowledged scope takes the server's exact cost pool.
+        // Pending local effects retain their offline-first projection until
+        // the authoritative snapshot includes them.
+        replaceCostBasis: pending.isEmpty,
+        costBasisCents: balance['remote_cost_basis_cents'] as int?,
         lastMovementAt: _latestMovement(productMovements),
         deletedAt: null,
       );
