@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../sync/application/local_sync_outbox_service.dart';
 import '../../sync/data/models/local_sync_outbox_models.dart';
 import '../data/datasources/purchase_local_dao.dart';
+import 'purchase_money.dart';
 
 class PurchaseSyncOutboxResult {
   const PurchaseSyncOutboxResult({
@@ -125,6 +126,16 @@ class PurchaseSyncOutboxService {
           'reason': 'purchase_without_items',
         });
         continue;
+      }
+
+      final contractVersion = _metadata(
+        purchase['metadata_json'],
+      )['monetary_contract_version'];
+      final hasWeightedItem = items.any(
+        (item) => item['sale_mode_snapshot'] == 'weight',
+      );
+      if ((contractVersion == 'exact_weight_basis_v1') != hasWeightedItem) {
+        throw StateError('Weighted purchase contract/item mode mismatch.');
       }
 
       final mutations = <LocalSyncMutationDraft>[];
@@ -278,6 +289,30 @@ class PurchaseSyncOutboxService {
     required String businessId,
     required String branchId,
   }) {
+    final saleMode = item['sale_mode_snapshot']?.toString() ?? 'unit';
+    if (saleMode != 'unit' && saleMode != 'weight') {
+      throw StateError('Unsupported purchase sale mode snapshot.');
+    }
+    final isWeight = saleMode == 'weight';
+    final basis = item['cost_basis_quantity_snapshot'];
+    final quotedCents = item['unit_cost_cents'];
+    final subtotalCents = item['subtotal_cents'];
+    if (isWeight &&
+        (basis != 500 && basis != 1000 ||
+            quotedCents is! int ||
+            subtotalCents is! int)) {
+      throw StateError('Weighted purchase lacks exact immutable snapshots.');
+    }
+    if (isWeight) {
+      final expectedSubtotal = purchaseBasisLineTotalCents(
+        quotedCostCents: BigInt.from(quotedCents as int),
+        quantity: _int(item['quantity']),
+        costBasisQuantity: basis as int,
+      );
+      if (expectedSubtotal != BigInt.from(subtotalCents as int)) {
+        throw StateError('Weighted purchase outbox subtotal mismatch.');
+      }
+    }
     return {
       'id': _requiredString(item, 'id'),
       'purchase_id': _requiredString(item, 'purchase_id'),
@@ -287,6 +322,15 @@ class PurchaseSyncOutboxService {
       'quantity': _int(item['quantity']),
       'unit_cost': _double(item['unit_cost']),
       'subtotal': _double(item['subtotal']),
+      if (isWeight) ...{
+        'contract_version': 'weighted_purchase_v1',
+        'sale_mode': 'weight',
+        'sale_mode_snapshot': 'weight',
+        'cost_basis_quantity': basis,
+        'cost_basis_quantity_snapshot': basis,
+        'unit_cost_cents': quotedCents,
+        'subtotal_cents': subtotalCents,
+      },
       'idempotency_key': _idempotencyKey(
         item,
         fallback: 'purchase_items:${_requiredString(item, 'id')}:insert',

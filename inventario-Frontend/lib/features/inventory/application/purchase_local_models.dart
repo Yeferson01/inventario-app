@@ -1,3 +1,6 @@
+import '../../../core/models/product_sale_mode.dart';
+import '../../../core/money/cop_price_input.dart';
+import '../../../core/quantity/weight_quantity_input.dart';
 import 'purchase_money.dart';
 
 /// Documentary money only. Never fall back to the legacy REAL total.
@@ -22,13 +25,41 @@ class PurchaseLocalItemInput {
     required this.productId,
     required this.quantity,
     required this.unitCostCents,
+    this.saleModeSnapshot = ProductSaleMode.unit,
+    this.costBasisQuantitySnapshot = 1,
   });
+
+  factory PurchaseLocalItemInput.weightedFromText({
+    required String productId,
+    required String quantityText,
+    required WeightInputUnit inputUnit,
+    required String quotedCostText,
+    required int costBasisQuantitySnapshot,
+  }) {
+    final grams = parseWeightQuantity(quantityText, inputUnit);
+    final cents = parseCopPriceCents(quotedCostText);
+    if (grams == null ||
+        cents == null ||
+        costBasisQuantitySnapshot != 500 && costBasisQuantitySnapshot != 1000) {
+      throw ArgumentError('Invalid weighted purchase quantity, cost or basis.');
+    }
+    return PurchaseLocalItemInput(
+      productId: productId,
+      quantity: grams,
+      unitCostCents: BigInt.from(cents),
+      saleModeSnapshot: ProductSaleMode.weight,
+      costBasisQuantitySnapshot: costBasisQuantitySnapshot,
+    );
+  }
 
   final String productId;
   final int quantity;
   final BigInt unitCostCents;
+  final ProductSaleMode saleModeSnapshot;
+  final int costBasisQuantitySnapshot;
 
-  /// Compatibility only: the documentary source of truth is unitCostCents.
+  /// UNIT: cost per unit. WEIGHT: quote per 500/1000 grams, never per gram.
+  /// REAL is compatibility only; exact cents are the documentary source.
   double get unitCost => double.parse(formatPurchaseMoneyCents(unitCostCents));
 }
 
@@ -67,6 +98,8 @@ class PurchaseLocalLineResult {
     required this.subtotal,
     required this.unitCostCents,
     required this.subtotalCents,
+    required this.saleModeSnapshot,
+    required this.costBasisQuantitySnapshot,
     required this.inventoryMovementId,
     required this.stockAfter,
   });
@@ -78,6 +111,8 @@ class PurchaseLocalLineResult {
   final double subtotal;
   final BigInt unitCostCents;
   final BigInt subtotalCents;
+  final ProductSaleMode saleModeSnapshot;
+  final int costBasisQuantitySnapshot;
   final String inventoryMovementId;
   final int stockAfter;
 
@@ -90,6 +125,8 @@ class PurchaseLocalLineResult {
       'subtotal': subtotal,
       'unit_cost_cents': unitCostCents.toString(),
       'subtotal_cents': subtotalCents.toString(),
+      'sale_mode_snapshot': saleModeSnapshot.wireValue,
+      'cost_basis_quantity_snapshot': costBasisQuantitySnapshot,
       'inventory_movement_id': inventoryMovementId,
       'stock_after': stockAfter,
     };

@@ -4,7 +4,10 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
+import '../../../../core/models/product_sale_mode.dart';
 import '../../../../core/utils/app_uuid.dart';
+import '../../application/inventory_cost_basis.dart';
+import '../../application/purchase_money.dart';
 
 class PurchaseLocalDao {
   PurchaseLocalDao(this._db);
@@ -35,6 +38,7 @@ class PurchaseLocalDao {
   Future<Map<String, dynamic>> getRequiredProductSnapshot({
     required String businessId,
     required String productId,
+    ProductSaleMode expectedSaleMode = ProductSaleMode.unit,
   }) async {
     final rows = await _db.customSelect(
       '''
@@ -44,17 +48,19 @@ class PurchaseLocalDao {
         name,
         barcode,
         sale_price,
-        purchase_price
+        purchase_price,
+        sale_mode
       from products
       where id = ?
         and business_id = ?
         and deleted_at is null
-        and sale_mode = 'unit'
+        and sale_mode = ?
       limit 1
       ''',
       variables: [
         Variable<String>(productId),
         Variable<String>(businessId),
+        Variable<String>(expectedSaleMode.wireValue),
       ],
       readsFrom: {_db.products},
     ).get();
@@ -81,6 +87,7 @@ class PurchaseLocalDao {
         quantity_on_hand,
         quantity_reserved,
         quantity_available,
+        cost_basis_cents,
         average_cost,
         last_movement_at,
         remote_updated_at,
@@ -124,7 +131,16 @@ class PurchaseLocalDao {
     await _db.transaction(() async {
       await _insertPurchase(purchase);
 
-      for (final item in items) {
+      for (var index = 0; index < items.length; index++) {
+        final item = items[index];
+        _validateWeightedLine(item, inventoryMovements[index], purchase);
+        await getRequiredProductSnapshot(
+          businessId: item['business_id'] as String,
+          productId: item['product_id'] as String,
+          expectedSaleMode: ProductSaleMode.parse(
+            item['sale_mode_snapshot'] ?? 'unit',
+          ),
+        );
         await _insertPurchaseItem(item);
       }
 
@@ -150,16 +166,51 @@ class PurchaseLocalDao {
         }
         await _db.customUpdate('''
           update purchases set total_cents = ?, financial_finalized_at = ?,
-            monetary_contract_version = 'exact_v1' where id = ?
+            monetary_contract_version = ? where id = ?
         ''', variables: [
           Variable<int>(exactTotal),
           Variable<DateTime>(purchase['updated_at'] as DateTime),
+          Variable<String>(
+              purchase['monetary_contract_version'] as String? ?? 'exact_v1'),
           Variable<String>(purchase['id'] as String),
         ], updates: {
           _db.purchases
         });
       }
     });
+  }
+
+  void _validateWeightedLine(
+    Map<String, dynamic> item,
+    Map<String, dynamic> movement,
+    Map<String, dynamic> purchase,
+  ) {
+    if (item['sale_mode_snapshot'] != ProductSaleMode.weight.wireValue) return;
+    final quantity = item['quantity'];
+    final basis = item['cost_basis_quantity_snapshot'];
+    final quote = item['unit_cost_cents'];
+    final subtotal = item['subtotal_cents'];
+    if (quantity is! int ||
+        quote is! int ||
+        subtotal is! int ||
+        (basis != 500 && basis != 1000) ||
+        movement['product_id'] != item['product_id'] ||
+        movement['reference_id'] != item['id'] ||
+        movement['source_type'] != 'purchase' ||
+        movement['source_id'] != purchase['id'] ||
+        movement['quantity_change'] != quantity ||
+        movement['cost_effect_cents'] != subtotal ||
+        movement['sale_mode_snapshot'] != ProductSaleMode.weight.wireValue) {
+      throw StateError('Weighted purchase item/movement snapshots mismatch.');
+    }
+    final expected = purchaseBasisLineTotalCents(
+      quotedCostCents: BigInt.from(quote),
+      quantity: quantity,
+      costBasisQuantity: basis as int,
+    );
+    if (expected != BigInt.from(subtotal)) {
+      throw StateError('Weighted purchase subtotal does not match W2A.');
+    }
   }
 
   Future<void> _insertPurchase(Map<String, dynamic> purchase) async {
@@ -221,6 +272,8 @@ class PurchaseLocalDao {
         branch_id,
         product_id,
         quantity,
+        sale_mode_snapshot,
+        cost_basis_quantity_snapshot,
         unit_cost,
         subtotal,
         unit_cost_cents,
@@ -234,7 +287,7 @@ class PurchaseLocalDao {
         deleted_at,
         last_synced_at,
         sync_status
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         item['id'],
@@ -243,6 +296,8 @@ class PurchaseLocalDao {
         item['branch_id'],
         item['product_id'],
         item['quantity'],
+        item['sale_mode_snapshot'] ?? 'unit',
+        item['cost_basis_quantity_snapshot'] ?? 1,
         item['unit_cost'],
         item['subtotal'],
         item['unit_cost_cents'],
@@ -272,6 +327,7 @@ class PurchaseLocalDao {
         product_id,
         movement_type,
         quantity_change,
+        cost_effect_cents,
         unit_cost,
         source_type,
         source_id,
@@ -288,7 +344,7 @@ class PurchaseLocalDao {
         updated_at,
         deleted_at,
         last_synced_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         movement['id'],
@@ -297,6 +353,7 @@ class PurchaseLocalDao {
         movement['product_id'],
         movement['movement_type'],
         movement['quantity_change'],
+        movement['cost_effect_cents'],
         movement['unit_cost'],
         movement['source_type'],
         movement['source_id'],
@@ -331,6 +388,73 @@ class PurchaseLocalDao {
       branchId: branchId,
       productId: productId,
     );
+
+    if (movement['sale_mode_snapshot'] == ProductSaleMode.weight.wireValue) {
+      final incomingCost = _requiredInt(movement, 'cost_effect_cents');
+      final before = InventoryCostBasisState(
+        quantity: BigInt.from(
+          currentBalance == null
+              ? 0
+              : _requiredInt(currentBalance, 'quantity_on_hand'),
+        ),
+        costBasisCents: currentBalance?['cost_basis_cents'] is int
+            ? BigInt.from(currentBalance!['cost_basis_cents'] as int)
+            : null,
+      );
+      final receipt = applyCostedReceipt(
+        before: before,
+        incomingQuantity: BigInt.from(quantityChange),
+        incomingCostCents: BigInt.from(incomingCost),
+      );
+      if (currentBalance != null) {
+        final updatedRows = await _db.customUpdate(
+            '''
+          update local_product_stock_balances
+          set quantity_on_hand = ?, quantity_available = quantity_available + ?,
+              cost_basis_cents = ?, sync_status = 'dirty',
+              updated_at = ?, last_movement_at = ?
+          where business_id = ? and branch_id = ? and product_id = ?
+        ''',
+            variables: normalizeSqliteParameters([
+              receipt.after.quantity.toInt(),
+              quantityChange,
+              receipt.after.costBasisCents?.toInt(),
+              now,
+              _requiredDate(movement, 'occurred_at'),
+              businessId,
+              branchId,
+              productId,
+            ])
+                .map<Variable<Object>>((value) => Variable<Object>(value))
+                .toList(),
+            updates: {_db.localProductStockBalances});
+        if (updatedRows != 1) {
+          throw StateError('El balance local cambió durante la recepción.');
+        }
+      } else {
+        await _db.into(_db.localProductStockBalances).insert(
+              LocalProductStockBalancesCompanion.insert(
+                id: AppUuid.v7(),
+                businessId: businessId,
+                branchId: branchId,
+                productId: productId,
+                quantityOnHand: Value(receipt.after.quantity.toInt()),
+                quantityReserved: const Value(0),
+                quantityAvailable: Value(receipt.after.quantity.toInt()),
+                costBasisCents: Value(receipt.after.costBasisCents?.toInt()),
+                lastMovementAt: Value(_requiredDate(movement, 'occurred_at')),
+                syncStatus: const Value('dirty'),
+                metadataJson: Value(jsonEncode({
+                  'source': 'purchase_local_dao',
+                  'created_from_local_purchase_movement': movement['id'],
+                })),
+                createdAt: Value(now),
+                updatedAt: Value(now),
+              ),
+            );
+      }
+      return;
+    }
 
     if (currentBalance != null) {
       final oldQuantity = _requiredInt(currentBalance, 'quantity_on_hand');
@@ -501,8 +625,12 @@ class PurchaseLocalDao {
         branch_id,
         product_id,
         quantity,
+        sale_mode_snapshot,
+        cost_basis_quantity_snapshot,
         unit_cost,
         subtotal,
+        unit_cost_cents,
+        subtotal_cents,
         idempotency_key,
         local_status,
         metadata_json,
