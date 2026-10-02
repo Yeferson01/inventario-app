@@ -4,6 +4,9 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/utils/sqlite_parameter_utils.dart';
+import '../../../../core/models/product_sale_mode.dart';
+import '../../../../core/money/exact_basis_money.dart';
+import '../../../inventory/application/inventory_cost_basis.dart';
 
 class PosLocalSaleDao {
   PosLocalSaleDao(this._db);
@@ -17,6 +20,7 @@ class PosLocalSaleDao {
   Future<Map<String, dynamic>> getRequiredProductSnapshot({
     required String businessId,
     required String productId,
+    ProductSaleMode expectedSaleMode = ProductSaleMode.unit,
   }) async {
     final rows = await _db.customSelect(
       '''
@@ -26,17 +30,20 @@ class PosLocalSaleDao {
         name,
         barcode,
         sale_price,
+        sale_price_cents,
+        sale_mode,
         purchase_price
       from products
       where id = ?
         and business_id = ?
         and deleted_at is null
-        and sale_mode = 'unit'
+        and sale_mode = ?
       limit 1
       ''',
       variables: [
         Variable<String>(productId),
         Variable<String>(businessId),
+        Variable<String>(expectedSaleMode.wireValue),
       ],
       readsFrom: {_db.products},
     ).get();
@@ -63,6 +70,7 @@ class PosLocalSaleDao {
         quantity_on_hand,
         quantity_reserved,
         quantity_available,
+        cost_basis_cents,
         average_cost,
         last_movement_at,
         remote_updated_at,
@@ -107,12 +115,45 @@ class PosLocalSaleDao {
       );
     }
 
+    final hasWeightedItem = items.any(
+      (item) => item['sale_mode_snapshot'] == 'weight',
+    );
+    if (hasWeightedItem) {
+      final metadata = sale['metadata'];
+      if (metadata is! Map ||
+          metadata['monetary_contract_version'] != 'exact_weight_sale_v1' ||
+          metadata['total_cents'] is! int ||
+          items.any((item) => item['line_total_cents'] is! int) ||
+          payments.any((payment) =>
+              payment['metadata'] is! Map ||
+              (payment['metadata'] as Map)['amount_cents'] is! int)) {
+        throw StateError('Weighted sale exact contract is incomplete.');
+      }
+      final itemTotal = items.fold<BigInt>(
+        BigInt.zero,
+        (sum, item) => sum + BigInt.from(item['line_total_cents'] as int),
+      );
+      final paymentTotal = payments.fold<BigInt>(
+        BigInt.zero,
+        (sum, payment) =>
+            sum +
+            BigInt.from((payment['metadata'] as Map)['amount_cents'] as int),
+      );
+      if (itemTotal != BigInt.from(metadata['total_cents'] as int) ||
+          paymentTotal != itemTotal) {
+        throw StateError('Weighted sale exact totals mismatch.');
+      }
+    }
+
     await _db.transaction(() async {
       final saleId = _requiredString(sale, 'id');
       final saleBusinessId = _requiredString(sale, 'business_id');
       final saleBranchId = _requiredString(sale, 'branch_id');
-      final preparedItems = <Map<String, dynamic>>[];
-      final preparedMovements = <Map<String, dynamic>>[];
+      await _insertSale(sale);
+
+      for (final payment in payments) {
+        await _insertSalePayment(payment);
+      }
 
       for (var index = 0; index < items.length; index++) {
         final item = Map<String, dynamic>.from(items[index]);
@@ -138,32 +179,72 @@ class PosLocalSaleDao {
           branchId: saleBranchId,
           productId: itemProductId,
         );
-        final unitCostSnapshot = _nullableDouble(
-          balance,
-          'average_cost',
+        final mode =
+            ProductSaleMode.parse(item['sale_mode_snapshot'] ?? 'unit');
+        await getRequiredProductSnapshot(
+          businessId: saleBusinessId,
+          productId: itemProductId,
+          expectedSaleMode: mode,
         );
-
-        item['unit_cost_snapshot'] = unitCostSnapshot;
-        movement['unit_cost'] = unitCostSnapshot;
-        preparedItems.add(item);
-        preparedMovements.add(movement);
-      }
-
-      await _insertSale(sale);
-
-      for (final item in preparedItems) {
+        if (mode == ProductSaleMode.weight) {
+          _validateWeightedItem(item, movement, saleId);
+          final before = InventoryCostBasisState(
+            quantity: BigInt.from(_requiredInt(balance, 'quantity_on_hand')),
+            costBasisCents: balance['cost_basis_cents'] is int
+                ? BigInt.from(balance['cost_basis_cents'] as int)
+                : null,
+          );
+          final issue = applyCostedIssue(
+            before: before,
+            quantityOut: BigInt.from(_requiredInt(item, 'quantity')),
+          );
+          item['cogs_cents'] = issue.cogsCents?.toInt();
+          item['unit_cost_snapshot'] = null;
+          movement['unit_cost'] = null;
+          movement['cost_effect_cents'] = issue.costEffectCents?.toInt();
+          movement['cost_basis_before_cents'] = before.costBasisCents?.toInt();
+          movement['cost_basis_after_cents'] =
+              issue.after.costBasisCents?.toInt();
+          movement['stock_before_on_hand'] = before.quantity.toInt();
+        } else {
+          final unitCostSnapshot = _nullableDouble(balance, 'average_cost');
+          item['unit_cost_snapshot'] = unitCostSnapshot;
+          movement['unit_cost'] = unitCostSnapshot;
+        }
         await _insertSaleItem(item);
-      }
-
-      for (final payment in payments) {
-        await _insertSalePayment(payment);
-      }
-
-      for (final movement in preparedMovements) {
         await _insertInventoryMovement(movement);
         await _applyLocalStockMovement(movement);
       }
     });
+  }
+
+  void _validateWeightedItem(
+    Map<String, dynamic> item,
+    Map<String, dynamic> movement,
+    String saleId,
+  ) {
+    final quantity = _requiredInt(item, 'quantity');
+    final price = _requiredInt(item, 'price_cents_snapshot');
+    final total = _requiredInt(item, 'line_total_cents');
+    if (quantity <= 0 ||
+        price <= 0 ||
+        item['price_basis_quantity_snapshot'] != 500 ||
+        item['discount_total'] != 0 ||
+        item['tax_total'] != 0 ||
+        movement['sale_mode_snapshot'] != 'weight' ||
+        movement['source_type'] != 'sale' ||
+        movement['source_id'] != saleId ||
+        movement['reference_type'] != 'sale' ||
+        movement['reference_id'] != saleId ||
+        movement['quantity_change'] != -quantity ||
+        checkedSignedInt64(calculateBasisAmountCents(
+              baseAmountCents: BigInt.from(price),
+              quantity: BigInt.from(quantity),
+              basisQuantity: BigInt.from(500),
+            )) !=
+            total) {
+      throw StateError('Weighted sale item/movement snapshots mismatch.');
+    }
   }
 
   Future<void> _insertSale(Map<String, dynamic> sale) async {
@@ -229,6 +310,11 @@ class PosLocalSaleDao {
         product_name_snapshot,
         barcode_snapshot,
         quantity,
+        sale_mode_snapshot,
+        price_basis_quantity_snapshot,
+        price_cents_snapshot,
+        line_total_cents,
+        cogs_cents,
         unit_price,
         unit_cost_snapshot,
         discount_total,
@@ -239,7 +325,7 @@ class PosLocalSaleDao {
         created_at,
         updated_at,
         sync_status
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         item['id'],
@@ -248,6 +334,11 @@ class PosLocalSaleDao {
         item['product_name_snapshot'],
         item['barcode_snapshot'],
         item['quantity'],
+        item['sale_mode_snapshot'] ?? 'unit',
+        item['price_basis_quantity_snapshot'] ?? 1,
+        item['price_cents_snapshot'],
+        item['line_total_cents'],
+        item['cogs_cents'],
         item['unit_price'],
         item['unit_cost_snapshot'],
         item['discount_total'],
@@ -315,6 +406,7 @@ class PosLocalSaleDao {
         product_id,
         movement_type,
         quantity_change,
+        cost_effect_cents,
         unit_cost,
         source_type,
         source_id,
@@ -331,7 +423,7 @@ class PosLocalSaleDao {
         updated_at,
         deleted_at,
         last_synced_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         movement['id'],
@@ -340,6 +432,7 @@ class PosLocalSaleDao {
         movement['product_id'],
         movement['movement_type'],
         movement['quantity_change'],
+        movement['cost_effect_cents'],
         movement['unit_cost'],
         movement['source_type'],
         movement['source_id'],
@@ -364,6 +457,39 @@ class PosLocalSaleDao {
     Map<String, dynamic> movement,
   ) async {
     final quantityChange = _requiredInt(movement, 'quantity_change');
+
+    if (movement['sale_mode_snapshot'] == 'weight') {
+      final updatedRows = await _db.customUpdate(
+        '''
+        update local_product_stock_balances
+        set quantity_on_hand = quantity_on_hand + ?,
+            quantity_available = quantity_available + ?, cost_basis_cents = ?,
+            sync_status = 'dirty', updated_at = ?, last_movement_at = ?
+        where business_id = ? and branch_id = ? and product_id = ?
+          and quantity_on_hand = ? and cost_basis_cents is ?
+          and quantity_on_hand + ? >= 0 and quantity_available + ? >= 0
+        ''',
+        variables: [
+          Variable<int>(quantityChange),
+          Variable<int>(quantityChange),
+          Variable<int>(movement['cost_basis_after_cents'] as int?),
+          Variable<DateTime>(_requiredDate(movement, 'updated_at')),
+          Variable<DateTime>(_requiredDate(movement, 'occurred_at')),
+          Variable<String>(_requiredString(movement, 'business_id')),
+          Variable<String>(_requiredString(movement, 'branch_id')),
+          Variable<String>(_requiredString(movement, 'product_id')),
+          Variable<int>(_requiredInt(movement, 'stock_before_on_hand')),
+          Variable<int>(movement['cost_basis_before_cents'] as int?),
+          Variable<int>(quantityChange),
+          Variable<int>(quantityChange),
+        ],
+        updates: {_db.localProductStockBalances},
+      );
+      if (updatedRows != 1) {
+        throw StateError('No se pudo aplicar la salida WEIGHT local.');
+      }
+      return;
+    }
 
     final updatedRows = await _db.customUpdate(
       '''
@@ -465,6 +591,11 @@ class PosLocalSaleDao {
         product_name_snapshot,
         barcode_snapshot,
         unit_cost_snapshot,
+        sale_mode_snapshot,
+        price_basis_quantity_snapshot,
+        price_cents_snapshot,
+        line_total_cents,
+        cogs_cents,
         quantity,
         unit_price,
         discount_total,

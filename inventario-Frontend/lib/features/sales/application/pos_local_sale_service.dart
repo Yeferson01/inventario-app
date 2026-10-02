@@ -1,5 +1,8 @@
 import '../../../core/database/app_database.dart';
+import '../../../core/models/product_sale_mode.dart';
+import '../../../core/money/exact_basis_money.dart';
 import '../../../core/utils/app_uuid.dart';
+import '../../inventory/application/purchase_money.dart';
 import '../data/datasources/pos_local_sale_dao.dart';
 import 'pos_local_sale_models.dart';
 
@@ -22,6 +25,9 @@ class PosLocalSaleService {
     final now = DateTime.now().toUtc();
     final saleId = AppUuid.v7();
     final sequenceStart = input.clientSequenceStart ?? _safeClientSequence();
+    final exactSale = input.items.any(
+      (item) => item.saleMode == ProductSaleMode.weight,
+    );
 
     final lineDrafts = <Map<String, dynamic>>[];
     final movementDrafts = <Map<String, dynamic>>[];
@@ -31,6 +37,9 @@ class PosLocalSaleService {
     var discountTotal = 0.0;
     var taxTotal = 0.0;
     var sequence = sequenceStart;
+    var subtotalCents = BigInt.zero;
+    var discountCents = BigInt.zero;
+    var taxCents = BigInt.zero;
 
     for (final item in input.items) {
       sequence++;
@@ -38,6 +47,7 @@ class PosLocalSaleService {
       final product = await _dao.getRequiredProductSnapshot(
         businessId: input.businessId,
         productId: item.productId,
+        expectedSaleMode: item.saleMode,
       );
 
       final balance = await _dao.getRequiredStockBalance(
@@ -55,6 +65,20 @@ class PosLocalSaleService {
         );
       }
 
+      final mode = item.saleMode;
+      final basis = item.priceBasisQuantity ?? mode.salePriceBasisQuantity;
+      if (basis != mode.salePriceBasisQuantity) {
+        throw StateError(
+            'La base de precio no coincide con la forma de venta.');
+      }
+      if (mode == ProductSaleMode.weight &&
+          (item.unitPrice != null ||
+              item.discountTotal != 0 ||
+              item.taxTotal != 0)) {
+        throw StateError(
+          'WEIGHT requiere precio canónico y no admite ajustes de línea en W5A.',
+        );
+      }
       final unitPrice = item.unitPrice ?? _double(product['sale_price']);
 
       if (unitPrice <= 0) {
@@ -63,8 +87,46 @@ class PosLocalSaleService {
         );
       }
 
-      final itemSubtotal = unitPrice * item.quantity;
-      final itemLineTotal = itemSubtotal - item.discountTotal + item.taxTotal;
+      final int? priceCents;
+      final int? itemSubtotalCents;
+      final int? itemLineTotalCents;
+      final double itemSubtotal;
+      final double itemLineTotal;
+      if (exactSale) {
+        priceCents = mode == ProductSaleMode.weight
+            ? _requiredExactCents(product['sale_price_cents'])
+            : _moneyCents(unitPrice);
+        if (mode == ProductSaleMode.weight &&
+            _moneyCents(unitPrice) != priceCents) {
+          throw StateError(
+              'El precio WEIGHT local no coincide con su snapshot exacto.');
+        }
+        final base = calculateBasisAmountCents(
+          baseAmountCents: BigInt.from(priceCents),
+          quantity: BigInt.from(item.quantity),
+          basisQuantity: BigInt.from(basis),
+        );
+        final lineDiscount = _moneyCents(item.discountTotal);
+        final lineTax = _moneyCents(item.taxTotal);
+        final lineTotal =
+            base - BigInt.from(lineDiscount) + BigInt.from(lineTax);
+        if (lineTotal < BigInt.zero) {
+          throw StateError('El total de línea no puede ser negativo.');
+        }
+        itemSubtotalCents = checkedSignedInt64(base);
+        itemLineTotalCents = checkedSignedInt64(lineTotal);
+        subtotalCents += base;
+        discountCents += BigInt.from(lineDiscount);
+        taxCents += BigInt.from(lineTax);
+        itemSubtotal = _legacyMoney(base);
+        itemLineTotal = _legacyMoney(lineTotal);
+      } else {
+        priceCents = null;
+        itemSubtotalCents = null;
+        itemLineTotalCents = null;
+        itemSubtotal = unitPrice * item.quantity;
+        itemLineTotal = itemSubtotal - item.discountTotal + item.taxTotal;
+      }
 
       final itemId = AppUuid.v7();
       final movementId = AppUuid.v7();
@@ -82,6 +144,10 @@ class PosLocalSaleService {
         'product_name_snapshot': _nullableString(product['name']),
         'barcode_snapshot': _nullableString(product['barcode']),
         'quantity': item.quantity,
+        'sale_mode_snapshot': mode.wireValue,
+        'price_basis_quantity_snapshot': basis,
+        'price_cents_snapshot': priceCents,
+        'line_total_cents': itemLineTotalCents,
         'unit_price': unitPrice,
         'discount_total': item.discountTotal,
         'tax_total': item.taxTotal,
@@ -91,6 +157,7 @@ class PosLocalSaleService {
           'source': 'pos_local_sale_service',
           'stock_before': quantityAvailable,
           'stock_after': stockAfter,
+          if (itemSubtotalCents != null) 'subtotal_cents': itemSubtotalCents,
         },
         'created_at': now,
         'updated_at': now,
@@ -108,6 +175,7 @@ class PosLocalSaleService {
         'product_id': item.productId,
         'movement_type': 'sale',
         'quantity_change': movementQuantity,
+        'sale_mode_snapshot': mode.wireValue,
         'unit_cost': null,
         'source_type': 'sale',
         'source_id': saleId,
@@ -126,6 +194,7 @@ class PosLocalSaleService {
           'client_sequence': sequence,
           'stock_before': quantityAvailable,
           'stock_after': stockAfter,
+          'sale_mode_snapshot': mode.wireValue,
         },
         'created_at': now,
         'updated_at': now,
@@ -142,11 +211,22 @@ class PosLocalSaleService {
           lineTotal: itemLineTotal,
           inventoryMovementId: movementId,
           stockAfter: stockAfter,
+          lineTotalCents: itemLineTotalCents,
         ),
       );
     }
 
-    final total = subtotal - discountTotal + taxTotal;
+    final totalCents = exactSale
+        ? checkedSignedInt64(subtotalCents - discountCents + taxCents)
+        : null;
+    final total = totalCents == null
+        ? subtotal - discountTotal + taxTotal
+        : _legacyMoney(BigInt.from(totalCents));
+    if (exactSale) {
+      subtotal = _legacyMoney(subtotalCents);
+      discountTotal = _legacyMoney(discountCents);
+      taxTotal = _legacyMoney(taxCents);
+    }
 
     final paymentInputs = input.payments.isEmpty
         ? [
@@ -162,7 +242,15 @@ class PosLocalSaleService {
       (sum, payment) => sum + payment.amount,
     );
 
-    if ((paymentTotal - total).abs() > 0.01) {
+    final paymentTotalCents = exactSale
+        ? paymentInputs.fold<BigInt>(
+            BigInt.zero,
+            (sum, payment) => sum + BigInt.from(_moneyCents(payment.amount)),
+          )
+        : null;
+    if (exactSale
+        ? paymentTotalCents != BigInt.from(totalCents!)
+        : (paymentTotal - total).abs() > 0.01) {
       throw StateError(
         'El total pagado no coincide con el total de la venta. '
         'total=$total paymentTotal=$paymentTotal',
@@ -182,6 +270,7 @@ class PosLocalSaleService {
         'reference': payment.reference,
         'metadata': {
           'source': 'pos_local_sale_service',
+          if (exactSale) 'amount_cents': _moneyCents(payment.amount),
         },
         'sync_status': SyncStatus.pendingInsert.index,
         'local_status': 'dirty',
@@ -216,6 +305,12 @@ class PosLocalSaleService {
         'app_device_id': input.appDeviceId,
         'device_installation_id': input.deviceInstallationId,
         'item_count': input.items.length,
+        if (exactSale) ...{
+          'monetary_contract_version': 'exact_weight_sale_v1',
+          'subtotal_cents': checkedSignedInt64(subtotalCents),
+          'total_cents': totalCents,
+          'payment_total_cents': checkedSignedInt64(paymentTotalCents!),
+        },
       },
       'status': 'completed',
       'created_at': now,
@@ -244,6 +339,7 @@ class PosLocalSaleService {
       itemCount: lineDrafts.length,
       paymentCount: paymentDrafts.length,
       lines: lineResults,
+      totalCents: totalCents,
     );
   }
 
@@ -302,6 +398,27 @@ class PosLocalSaleService {
       }
     }
   }
+
+  int _requiredExactCents(Object? value) {
+    if (value is! int || value <= 0) {
+      throw StateError('WEIGHT requiere sale_price_cents positivo.');
+    }
+    return checkedSignedInt64(BigInt.from(value));
+  }
+
+  int _moneyCents(double value) {
+    if (!value.isFinite || value < 0) {
+      throw StateError('Importe monetario inválido.');
+    }
+    final cents = parsePurchaseMoneyCents(value.toString());
+    if (cents == null) {
+      throw StateError('Importe requiere exactitud de centavos.');
+    }
+    return checkedSignedInt64(cents);
+  }
+
+  double _legacyMoney(BigInt cents) =>
+      double.parse(formatPurchaseMoneyCents(cents));
 
   int _safeClientSequence() {
     final value =

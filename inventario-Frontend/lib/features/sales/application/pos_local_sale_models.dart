@@ -1,3 +1,5 @@
+import '../../../core/models/product_sale_mode.dart';
+
 class PosLocalSaleItemInput {
   const PosLocalSaleItemInput({
     required this.productId,
@@ -5,6 +7,8 @@ class PosLocalSaleItemInput {
     this.unitPrice,
     this.discountTotal = 0,
     this.taxTotal = 0,
+    this.saleMode = ProductSaleMode.unit,
+    this.priceBasisQuantity,
   });
 
   final String productId;
@@ -12,6 +16,8 @@ class PosLocalSaleItemInput {
   final double? unitPrice;
   final double discountTotal;
   final double taxTotal;
+  final ProductSaleMode saleMode;
+  final int? priceBasisQuantity;
 }
 
 class PosLocalPaymentInput {
@@ -65,6 +71,7 @@ class PosLocalSaleLineResult {
     required this.lineTotal,
     required this.inventoryMovementId,
     required this.stockAfter,
+    this.lineTotalCents,
   });
 
   final String itemId;
@@ -74,6 +81,7 @@ class PosLocalSaleLineResult {
   final double lineTotal;
   final String inventoryMovementId;
   final int stockAfter;
+  final int? lineTotalCents;
 
   Map<String, dynamic> toJson() {
     return {
@@ -84,6 +92,7 @@ class PosLocalSaleLineResult {
       'line_total': lineTotal,
       'inventory_movement_id': inventoryMovementId,
       'stock_after': stockAfter,
+      if (lineTotalCents != null) 'line_total_cents': lineTotalCents,
     };
   }
 }
@@ -101,6 +110,7 @@ class PosLocalSaleResult {
     required this.itemCount,
     required this.paymentCount,
     required this.lines,
+    this.totalCents,
   });
 
   final String saleId;
@@ -114,6 +124,7 @@ class PosLocalSaleResult {
   final int itemCount;
   final int paymentCount;
   final List<PosLocalSaleLineResult> lines;
+  final int? totalCents;
 
   Map<String, dynamic> toJson() {
     return {
@@ -128,6 +139,7 @@ class PosLocalSaleResult {
       'item_count': itemCount,
       'payment_count': paymentCount,
       'lines': lines.map((line) => line.toJson()).toList(),
+      if (totalCents != null) 'total_cents': totalCents,
     };
   }
 }

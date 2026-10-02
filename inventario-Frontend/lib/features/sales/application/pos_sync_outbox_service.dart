@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../core/money/exact_basis_money.dart';
 import '../../sync/application/local_sync_outbox_service.dart';
 import '../../sync/data/models/local_sync_outbox_models.dart';
 import '../data/datasources/pos_local_sale_dao.dart';
@@ -91,6 +92,37 @@ class PosSyncOutboxService {
         continue;
       }
 
+      final saleMetadata = _metadata(sale['metadata_json']);
+      final exactSale =
+          saleMetadata['monetary_contract_version'] == 'exact_weight_sale_v1';
+      final hasWeightedItem = items.any(
+        (item) => item['sale_mode_snapshot'] == 'weight',
+      );
+      if (exactSale != hasWeightedItem) {
+        throw StateError('Weighted sale contract/item mode mismatch.');
+      }
+      if (exactSale) {
+        final total = _requiredExactInt(saleMetadata, 'total_cents');
+        final itemTotal = items.fold<BigInt>(
+          BigInt.zero,
+          (sum, item) =>
+              sum + BigInt.from(_requiredExactInt(item, 'line_total_cents')),
+        );
+        final paymentTotal = payments.fold<BigInt>(
+          BigInt.zero,
+          (sum, payment) =>
+              sum +
+              BigInt.from(_requiredExactInt(
+                _metadata(payment['metadata_json']),
+                'amount_cents',
+              )),
+        );
+        if (itemTotal != BigInt.from(total) ||
+            paymentTotal != BigInt.from(total)) {
+          throw StateError('Weighted sale exact totals mismatch.');
+        }
+      }
+
       final mutations = <LocalSyncMutationDraft>[];
       var sequence = _safeClientSequence();
 
@@ -133,6 +165,7 @@ class PosSyncOutboxService {
           item,
           businessId: businessId,
           branchId: branchId,
+          exactSale: exactSale,
         );
 
         mutations.add(
@@ -167,7 +200,7 @@ class PosSyncOutboxService {
 
       for (final payment in payments) {
         final paymentId = _requiredString(payment, 'id');
-        final payload = _salePaymentPayload(payment);
+        final payload = _salePaymentPayload(payment, exactSale: exactSale);
 
         mutations.add(
           LocalSyncMutationDraft(
@@ -211,6 +244,7 @@ class PosSyncOutboxService {
           'source': 'pos_sync_outbox_service',
           'domain': 'pos',
           'sale_id': saleId,
+          if (exactSale) 'monetary_contract_version': 'exact_weight_sale_v1',
           'item_count': items.length,
           'payment_count': payments.length,
           'local_inventory_movement_count': localMovements.length,
@@ -246,6 +280,9 @@ class PosSyncOutboxService {
   }
 
   Map<String, dynamic> _salePayload(Map<String, dynamic> sale) {
+    final metadata = _metadata(sale['metadata_json']);
+    final exactSale =
+        metadata['monetary_contract_version'] == 'exact_weight_sale_v1';
     return {
       'id': _requiredString(sale, 'id'),
       'business_id': _requiredString(sale, 'business_id'),
@@ -266,7 +303,12 @@ class PosSyncOutboxService {
         fallback: 'sales:${_requiredString(sale, 'id')}:insert',
       ),
       'sync_status': 'pending',
-      'metadata': _metadata(sale['metadata_json']),
+      if (exactSale) ...{
+        'monetary_contract_version': 'exact_weight_sale_v1',
+        'total_cents': _requiredExactInt(metadata, 'total_cents'),
+        'subtotal_cents': _requiredExactInt(metadata, 'subtotal_cents'),
+      },
+      'metadata': metadata,
       'created_at': _iso(sale['created_at']),
       'updated_at': _iso(sale['updated_at']),
       'deleted_at': _nullableIso(sale['deleted_at']),
@@ -277,7 +319,33 @@ class PosSyncOutboxService {
     Map<String, dynamic> item, {
     required String businessId,
     required String branchId,
+    required bool exactSale,
   }) {
+    final mode = _nullableString(item['sale_mode_snapshot']) ?? 'unit';
+    if (exactSale) {
+      final quantity = _int(item['quantity']);
+      final basis = _requiredExactInt(item, 'price_basis_quantity_snapshot');
+      final price = _requiredExactInt(item, 'price_cents_snapshot');
+      final total = _requiredExactInt(item, 'line_total_cents');
+      if (quantity <= 0 ||
+          price <= 0 ||
+          (mode == 'weight' && basis != 500) ||
+          (mode == 'unit' && basis != 1) ||
+          (mode != 'weight' && mode != 'unit')) {
+        throw StateError('Invalid weighted sale item snapshot.');
+      }
+      if (mode == 'weight' &&
+          (item['discount_total'] != 0 ||
+              item['tax_total'] != 0 ||
+              checkedSignedInt64(calculateBasisAmountCents(
+                    baseAmountCents: BigInt.from(price),
+                    quantity: BigInt.from(quantity),
+                    basisQuantity: BigInt.from(500),
+                  )) !=
+                  total)) {
+        throw StateError('Corrupt WEIGHT line total.');
+      }
+    }
     return {
       'id': _requiredString(item, 'id'),
       'business_id': businessId,
@@ -287,6 +355,16 @@ class PosSyncOutboxService {
       'product_name_snapshot': _nullableString(item['product_name_snapshot']),
       'barcode_snapshot': _nullableString(item['barcode_snapshot']),
       'unit_cost_snapshot': _nullableDouble(item['unit_cost_snapshot']),
+      if (exactSale) ...{
+        'monetary_contract_version': 'exact_weight_sale_v1',
+        'sale_mode_snapshot': mode,
+        'price_basis_quantity_snapshot':
+            _requiredExactInt(item, 'price_basis_quantity_snapshot'),
+        'price_cents_snapshot': _requiredExactInt(item, 'price_cents_snapshot'),
+        'line_total_cents': _requiredExactInt(item, 'line_total_cents'),
+        'cogs_cents': item['cogs_cents'],
+        'cogs_source': 'local_projection_not_authoritative',
+      },
       'quantity': _int(item['quantity']),
       'unit_price': _double(item['unit_price']),
       'discount_amount': _double(item['discount_total']),
@@ -301,7 +379,10 @@ class PosSyncOutboxService {
     };
   }
 
-  Map<String, dynamic> _salePaymentPayload(Map<String, dynamic> payment) {
+  Map<String, dynamic> _salePaymentPayload(
+    Map<String, dynamic> payment, {
+    required bool exactSale,
+  }) {
     // Drift's payment.created_at is the durable UTC payment event time. Keep
     // the same value for every retry and never substitute upload time.
     final paidAt = _paymentEventTimeIso(payment['created_at']);
@@ -312,6 +393,11 @@ class PosSyncOutboxService {
       'sale_id': _requiredString(payment, 'sale_id'),
       'payment_method': _requiredString(payment, 'payment_method'),
       'amount': _double(payment['amount']),
+      if (exactSale)
+        'amount_cents': _requiredExactInt(
+          _metadata(payment['metadata_json']),
+          'amount_cents',
+        ),
       'currency': _nullableString(payment['currency']) ?? 'COP',
       'status': _nullableString(payment['status']) ?? 'completed',
       'reference': _nullableString(payment['reference']),
@@ -334,6 +420,14 @@ class PosSyncOutboxService {
     required String entityId,
   }) {
     return '${deviceInstallationId ?? profileId}:$entityTable:$entityId:mutation';
+  }
+
+  int _requiredExactInt(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value is! int) {
+      throw StateError('Missing exact $key in weighted sale snapshot.');
+    }
+    return checkedSignedInt64(BigInt.from(value));
   }
 
   String _idempotencyKey(

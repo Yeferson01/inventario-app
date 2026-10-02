@@ -65,6 +65,27 @@ class PosSyncUploadService {
         final mutations =
             await _outboxService.getMutationsForBatch(localBatchId);
 
+        // W5A prepares a durable exact payload, but W5B has not enabled the
+        // authoritative remote apply. Never send or archive a weighted batch
+        // through the legacy POS path, including after a scheduled retry.
+        final batchMetadata = _posUploadPayloadMap(batch['metadata_json']);
+        if (batchMetadata['monetary_contract_version'] ==
+                'exact_weight_sale_v1' ||
+            mutations.any((mutation) {
+              if (mutation['entity_table'] != 'sales' &&
+                  mutation['entity_table'] != 'sale_items') {
+                return false;
+              }
+              final payload = _posUploadPayloadMap(
+                mutation['payload'] ?? mutation['payload_json'],
+              );
+              return payload['monetary_contract_version'] ==
+                      'exact_weight_sale_v1' ||
+                  payload['sale_mode_snapshot'] == 'weight';
+            })) {
+          throw StateError('weighted_sale_remote_apply_not_enabled');
+        }
+
         if (mutations.isEmpty) {
           completed++;
 

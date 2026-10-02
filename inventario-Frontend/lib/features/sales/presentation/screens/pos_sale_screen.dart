@@ -115,6 +115,10 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
   }
 
   void _addProductToCart(Map<String, dynamic> product) {
+    if (product['sale_mode'] != 'unit') {
+      _showMessage('La venta por peso aún no está disponible en POS.');
+      return;
+    }
     final productId = _string(product['product_id']);
 
     if (productId == null) {
