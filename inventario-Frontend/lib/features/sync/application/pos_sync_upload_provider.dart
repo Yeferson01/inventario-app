@@ -24,6 +24,7 @@ final posSyncRemoteDataSourceProvider =
 });
 
 final posSyncUploadServiceProvider = Provider<PosSyncUploadService>((ref) {
+  final inventory = ref.watch(inventoryBalanceReconciliationServiceProvider);
   return PosSyncUploadService(
     outboxService: ref.watch(localSyncOutboxServiceProvider),
     remoteDataSource: ref.watch(posSyncRemoteDataSourceProvider),
@@ -38,6 +39,23 @@ final posSyncUploadServiceProvider = Provider<PosSyncUploadService>((ref) {
       saleDao: ref.watch(posLocalSaleDaoProvider),
       issueDao: ref.watch(reconciliationIssueLocalDaoProvider),
     ),
+    weightedSaleInventoryRefresher: ({
+      required profileId,
+      required businessId,
+      required branchId,
+      required appDeviceId,
+    }) async {
+      final result = await inventory.reconcile(
+        InventoryBalanceReconciliationRequest(
+          profileId: profileId,
+          businessId: businessId,
+          branchId: branchId,
+          appDeviceId: appDeviceId,
+        ),
+        restart: true,
+      );
+      return result.converged;
+    },
   );
 });
 

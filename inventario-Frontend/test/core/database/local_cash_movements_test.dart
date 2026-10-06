@@ -66,8 +66,8 @@ void main() {
   Future<LocalCashMovement> row() =>
       db.select(db.localCashMovements).getSingle();
 
-  test('fresh schema is 17 and contains cash movements table', () async {
-    expect(db.schemaVersion, 17);
+  test('fresh schema is 18 and contains cash movements table', () async {
+    expect(db.schemaVersion, 18);
     expect(await db.select(db.localCashMovements).get(), isEmpty);
   });
   test('exact BigInt cents roundtrip at backend maximum, stored as integer',

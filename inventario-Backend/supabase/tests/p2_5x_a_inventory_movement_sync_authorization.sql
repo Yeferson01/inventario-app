@@ -166,10 +166,10 @@ begin
 
   insert into public.sync_batches (
     id, business_id, app_device_id, profile_id, branch_id,
-    client_batch_id, direction, status
+    client_batch_id, direction, status, mutation_count
   ) values (
     v_batch_id, p_business_id, v_device_id, v_profile_id, p_branch_id,
-    v_batch_id::text, 'upload', 'pending'
+    v_batch_id::text, 'upload', 'pending', 1
   );
 
   v_payload := jsonb_build_object(

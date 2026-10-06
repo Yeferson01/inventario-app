@@ -150,6 +150,7 @@ class InventoryMovementHistoryEntry {
     required this.productId,
     this.productName,
     this.productBarcode,
+    this.isWeight = false,
     required this.movementType,
     required this.effectiveType,
     required this.quantityDelta,
@@ -172,6 +173,7 @@ class InventoryMovementHistoryEntry {
   final String productId;
   final String? productName;
   final String? productBarcode;
+  final bool isWeight;
   final String movementType;
   final String? sourceType;
   final String effectiveType;

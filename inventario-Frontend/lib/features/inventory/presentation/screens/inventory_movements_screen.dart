@@ -438,7 +438,7 @@ class _MovementCard extends StatelessWidget {
           ),
           const SizedBox(width: CronosSpacing.sm),
           Text(
-            _formatDelta(entry.quantityDelta),
+            _formatDelta(entry.quantityDelta, isWeight: entry.isWeight),
             key: Key('inventory-history-delta-${entry.id}'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: _deltaColor(context, entry.quantityDelta),
@@ -676,7 +676,7 @@ Future<void> _showMovementDetails(
                     ),
                   ),
                   Text(
-                    _formatDelta(entry.quantityDelta),
+                    _formatDelta(entry.quantityDelta, isWeight: entry.isWeight),
                     style:
                         Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                               color: _deltaColor(
@@ -704,11 +704,12 @@ Future<void> _showMovementDetails(
               ),
               _DetailRow(
                 label: 'Stock anterior',
-                value: entry.previousStock?.toString() ?? 'No disponible',
+                value:
+                    _formatStock(entry.previousStock, isWeight: entry.isWeight),
               ),
               _DetailRow(
                 label: 'Stock resultante',
-                value: entry.newStock?.toString() ?? 'No disponible',
+                value: _formatStock(entry.newStock, isWeight: entry.isWeight),
               ),
               if (canViewCosts)
                 _DetailRow(
@@ -849,9 +850,14 @@ _MovementPresentation _movementPresentation(String effectiveType) {
   }
 }
 
-String _formatDelta(int value) {
-  if (value > 0) return '+$value';
-  return '$value';
+String _formatDelta(int value, {bool isWeight = false}) {
+  final signed = value > 0 ? '+$value' : '$value';
+  return isWeight ? '$signed g' : signed;
+}
+
+String _formatStock(int? value, {required bool isWeight}) {
+  if (value == null) return 'No disponible';
+  return isWeight ? '$value g' : '$value';
 }
 
 Color _deltaColor(BuildContext context, int value) {
@@ -871,17 +877,18 @@ Color _deltaColor(BuildContext context, int value) {
 String? _stockSummary(InventoryMovementHistoryEntry entry) {
   final previous = entry.previousStock;
   final next = entry.newStock;
+  final suffix = entry.isWeight ? ' g' : '';
 
   if (previous != null && next != null) {
-    return 'Stock: $previous → $next';
+    return 'Stock: $previous$suffix → $next$suffix';
   }
 
   if (previous != null) {
-    return 'Stock anterior: $previous';
+    return 'Stock anterior: $previous$suffix';
   }
 
   if (next != null) {
-    return 'Stock resultante: $next';
+    return 'Stock resultante: $next$suffix';
   }
 
   return null;

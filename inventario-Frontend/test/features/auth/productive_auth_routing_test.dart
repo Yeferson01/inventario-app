@@ -5,8 +5,45 @@ import 'package:go_router/go_router.dart';
 import 'package:inventario_frontend/app/router/app_router.dart';
 import 'package:inventario_frontend/app/router/routes_constants.dart';
 import 'package:inventario_frontend/features/auth/application/productive_auth_providers.dart';
+import 'package:inventario_frontend/features/auth/presentation/screens/productive_login_screen.dart';
 
 void main() {
+  testWidgets('tablet login stays centered and capped at a readable width',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const ProviderScope(
+      child: MaterialApp(home: ProductiveLoginScreen()),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Cronos POS'), findsOneWidget);
+    expect(
+        tester
+            .getSize(find.byKey(const Key('productive-login-form-width')))
+            .width,
+        lessThanOrEqualTo(440));
+    expect(tester.takeException(), null);
+  });
+
+  testWidgets('short login viewport keeps submit reachable by scrolling',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 350);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const ProviderScope(
+      child: MaterialApp(home: ProductiveLoginScreen()),
+    ));
+    await tester.pumpAndSettle();
+    final submit = find.widgetWithText(FilledButton, 'Ingresar');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    expect(submit, findsOneWidget);
+    expect(tester.takeException(), null);
+  });
+
   testWidgets('debug initial route remains available in debug', (tester) async {
     final router = AppRouter.create(
       phase: ProductiveAuthPhase.unauthenticated,

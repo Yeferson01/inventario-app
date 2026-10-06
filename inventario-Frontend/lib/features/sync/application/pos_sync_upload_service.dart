@@ -9,6 +9,13 @@ import 'local_sync_outbox_service.dart';
 import 'pos_cash_session_failure_reconciliation_service.dart';
 import 'pos_inventory_failure_reconciliation_service.dart';
 
+typedef WeightedSaleInventoryRefresher = Future<bool> Function({
+  required String profileId,
+  required String businessId,
+  required String branchId,
+  required String appDeviceId,
+});
+
 class PosSyncUploadService {
   PosSyncUploadService({
     required LocalSyncOutboxService outboxService,
@@ -19,6 +26,7 @@ class PosSyncUploadService {
         cashSessionFailureReconciliationService,
     required PosInventoryFailureReconciliationService
         inventoryFailureReconciliationService,
+    this.weightedSaleInventoryRefresher,
   })  : _outboxService = outboxService,
         _remoteDataSource = remoteDataSource,
         _posLocalSaleDao = posLocalSaleDao,
@@ -36,6 +44,7 @@ class PosSyncUploadService {
       _cashSessionFailureReconciliationService;
   final PosInventoryFailureReconciliationService
       _inventoryFailureReconciliationService;
+  final WeightedSaleInventoryRefresher? weightedSaleInventoryRefresher;
 
   Future<CatalogUploadRunResult> uploadPendingPosBatches({
     required String businessId,
@@ -65,11 +74,8 @@ class PosSyncUploadService {
         final mutations =
             await _outboxService.getMutationsForBatch(localBatchId);
 
-        // W5A prepares a durable exact payload, but W5B has not enabled the
-        // authoritative remote apply. Never send or archive a weighted batch
-        // through the legacy POS path, including after a scheduled retry.
         final batchMetadata = _posUploadPayloadMap(batch['metadata_json']);
-        if (batchMetadata['monetary_contract_version'] ==
+        final weightedBatch = batchMetadata['monetary_contract_version'] ==
                 'exact_weight_sale_v1' ||
             mutations.any((mutation) {
               if (mutation['entity_table'] != 'sales' &&
@@ -82,8 +88,23 @@ class PosSyncUploadService {
               return payload['monetary_contract_version'] ==
                       'exact_weight_sale_v1' ||
                   payload['sale_mode_snapshot'] == 'weight';
-            })) {
-          throw StateError('weighted_sale_remote_apply_not_enabled');
+            });
+        if (weightedBatch) {
+          if (mutations.isEmpty &&
+              await _outboxService.supersedeLegacyEmptyWeightedPosBatch(
+                localBatchId: localBatchId,
+                businessId: businessId,
+                branchId: branchId,
+              )) {
+            AppLogger.info('Legacy empty WEIGHT POS batch superseded: '
+                'local=$localBatchId');
+            continue;
+          }
+          _validateWeightedBatchPayload(batchMetadata, mutations);
+          if (weightedSaleInventoryRefresher == null ||
+              !await _remoteDataSource.supportsWeightedSaleSync()) {
+            throw StateError('weighted_sale_remote_apply_not_enabled');
+          }
         }
 
         if (mutations.isEmpty) {
@@ -105,10 +126,10 @@ class PosSyncUploadService {
           continue;
         }
 
-        final remoteEntitiesAlreadyExist =
+        final remoteEntitiesAlreadyExist = !weightedBatch &&
             await _remoteDataSource.allPosMutationEntitiesAlreadyExist(
-          localMutations: mutations,
-        );
+              localMutations: mutations,
+            );
 
         if (remoteEntitiesAlreadyExist) {
           final inventoryFailures =
@@ -176,15 +197,39 @@ class PosSyncUploadService {
         final duplicateConflictsAreIdempotent =
             await _duplicateConflictsAreIdempotent(result);
 
-        final canTreatAsCompleted = result.completed ||
-            duplicateConflictsAreIdempotent ||
-            (result.errorCount == 0 &&
-                result.conflictCount == 0 &&
-                result.appliedCount + result.skippedCount >=
-                    result.mutationCount);
+        final canTreatAsCompleted = weightedBatch
+            ? result.completed
+            : result.completed ||
+                duplicateConflictsAreIdempotent ||
+                (result.errorCount == 0 &&
+                    result.conflictCount == 0 &&
+                    result.appliedCount + result.skippedCount >=
+                        result.mutationCount);
 
         if (canTreatAsCompleted) {
-          completed++;
+          if (weightedBatch) {
+            final entries = _weightedAckEntries(result, mutations);
+            await _posLocalSaleDao.applyWeightedSaleAck(
+              businessId: _requiredString(batch, 'business_id'),
+              branchId: _requiredString(batch, 'branch_id'),
+              saleId: _requiredString(
+                mutations.firstWhere(
+                    (mutation) => mutation['entity_table'] == 'sales'),
+                'entity_id',
+              ),
+              entries: entries,
+            );
+            await _markLocalPosEntitiesSynced(mutations: mutations);
+            final converged = await weightedSaleInventoryRefresher!(
+              profileId: _requiredString(batch, 'profile_id'),
+              businessId: _requiredString(batch, 'business_id'),
+              branchId: _requiredString(batch, 'branch_id'),
+              appDeviceId: _requiredString(batch, 'app_device_id'),
+            );
+            if (!converged) {
+              throw StateError('weighted_sale_inventory_not_converged');
+            }
+          }
 
           if (!result.completed) {
             AppLogger.info(
@@ -208,7 +253,11 @@ class PosSyncUploadService {
 
           await _markBatchMutationsApplied(mutations: mutations);
 
-          await _markLocalPosEntitiesSynced(mutations: mutations);
+          if (!weightedBatch) {
+            await _markLocalPosEntitiesSynced(mutations: mutations);
+          }
+
+          completed++;
         } else {
           partial++;
 
@@ -428,6 +477,109 @@ class PosSyncUploadService {
     }
 
     return {};
+  }
+
+  void _validateWeightedBatchPayload(
+    Map<String, dynamic> metadata,
+    List<Map<String, dynamic>> mutations,
+  ) {
+    final sales = mutations.where((m) => m['entity_table'] == 'sales').toList();
+    final items =
+        mutations.where((m) => m['entity_table'] == 'sale_items').toList();
+    final payments =
+        mutations.where((m) => m['entity_table'] == 'sale_payments').toList();
+    if (metadata['monetary_contract_version'] != 'exact_weight_sale_v1' ||
+        sales.length != 1 ||
+        items.isEmpty ||
+        payments.isEmpty ||
+        metadata['item_count'] != items.length ||
+        metadata['payment_count'] != payments.length ||
+        mutations.length != 1 + items.length + payments.length) {
+      throw StateError('weighted_sale_payload_invalid');
+    }
+    final salePayload = _posUploadPayloadMap(
+      sales.single['payload'] ?? sales.single['payload_json'],
+    );
+    final saleId = sales.single['entity_id']?.toString();
+    final total = salePayload['total_cents'];
+    if (saleId == null ||
+        saleId.isEmpty ||
+        salePayload['monetary_contract_version'] != 'exact_weight_sale_v1' ||
+        total is! int ||
+        total < 0) {
+      throw StateError('weighted_sale_payload_invalid');
+    }
+    var hasWeight = false;
+    var itemTotal = 0;
+    for (final mutation in items) {
+      final payload = _posUploadPayloadMap(
+        mutation['payload'] ?? mutation['payload_json'],
+      );
+      final mode = payload['sale_mode_snapshot'];
+      final quantity = payload['quantity'];
+      final price = payload['price_cents_snapshot'];
+      final lineTotal = payload['line_total_cents'];
+      final basis = payload['price_basis_quantity_snapshot'];
+      if (payload['monetary_contract_version'] != 'exact_weight_sale_v1' ||
+          payload['sale_id'] != saleId ||
+          (mode != 'weight' && mode != 'unit') ||
+          quantity is! int ||
+          quantity <= 0 ||
+          price is! int ||
+          price < 0 ||
+          lineTotal is! int ||
+          lineTotal < 0 ||
+          (mode == 'weight' &&
+              (basis != 500 ||
+                  payload['discount_amount'] != 0 ||
+                  payload['tax_amount'] != 0)) ||
+          (mode == 'unit' && basis != 1)) {
+        throw StateError('weighted_sale_payload_invalid');
+      }
+      hasWeight |= mode == 'weight';
+      itemTotal += lineTotal;
+    }
+    var paymentTotal = 0;
+    for (final mutation in payments) {
+      final payload = _posUploadPayloadMap(
+        mutation['payload'] ?? mutation['payload_json'],
+      );
+      final amount = payload['amount_cents'];
+      if (payload['sale_id'] != saleId || amount is! int || amount < 0) {
+        throw StateError('weighted_sale_payload_invalid');
+      }
+      paymentTotal += amount;
+    }
+    if (!hasWeight || itemTotal != total || paymentTotal != total) {
+      throw StateError('weighted_sale_payload_invalid');
+    }
+  }
+
+  List<Map<String, dynamic>> _weightedAckEntries(
+    CatalogUploadBatchResult result,
+    List<Map<String, dynamic>> mutations,
+  ) {
+    final raw = result.raw['weighted_sale_ack'];
+    final expected = mutations
+        .where((mutation) {
+          if (mutation['entity_table'] != 'sale_items') return false;
+          final payload = _posUploadPayloadMap(
+            mutation['payload'] ?? mutation['payload_json'],
+          );
+          return payload['sale_mode_snapshot'] == 'weight';
+        })
+        .map((mutation) => mutation['entity_id']?.toString())
+        .toSet();
+    if (raw is! List || raw.length != expected.length) {
+      throw StateError('weighted_sale_ack_missing');
+    }
+    final entries = raw.map((entry) => _posUploadPayloadMap(entry)).toList();
+    final actual =
+        entries.map((entry) => entry['sale_item_id']?.toString()).toSet();
+    if (actual.length != expected.length || !actual.containsAll(expected)) {
+      throw StateError('weighted_sale_ack_invalid');
+    }
+    return entries;
   }
 
   String? _posUploadNullableString(Object? value) {

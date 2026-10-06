@@ -7,6 +7,42 @@ class LocalSyncOutboxService {
 
   final LocalSyncOutboxDao _dao;
 
+  Future<LocalSyncEnqueueResult?> findExistingPosSaleBatch({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String saleId,
+    required List<LocalSyncMutationDraft> mutations,
+    required int itemCount,
+    required int paymentCount,
+  }) =>
+      _dao.findExistingPosSaleBatch(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        saleId: saleId,
+        mutations: mutations,
+        itemCount: itemCount,
+        paymentCount: paymentCount,
+      );
+
+  Future<LocalSyncEnqueueResult?> findExistingPurchaseBatch({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String purchaseId,
+    required List<LocalSyncMutationDraft> mutations,
+    required int itemCount,
+  }) =>
+      _dao.findExistingPurchaseBatch(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        purchaseId: purchaseId,
+        mutations: mutations,
+        itemCount: itemCount,
+      );
+
   Future<LocalSyncEnqueueResult> enqueueCatalogMutations({
     required String businessId,
     required List<LocalSyncMutationDraft> mutations,
@@ -196,6 +232,17 @@ class LocalSyncOutboxService {
   Future<void> markBatchUploading(String localBatchId) {
     return _dao.markBatchUploading(localBatchId);
   }
+
+  Future<bool> supersedeLegacyEmptyWeightedPosBatch({
+    required String localBatchId,
+    required String businessId,
+    String? branchId,
+  }) =>
+      _dao.supersedeLegacyEmptyWeightedPosBatch(
+        localBatchId: localBatchId,
+        businessId: businessId,
+        branchId: branchId,
+      );
 
   Future<void> markBatchCompleted({
     required String localBatchId,

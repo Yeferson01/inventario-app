@@ -11,6 +11,23 @@ import 'package:inventario_frontend/core/quantity/weight_quantity_input.dart';
 import 'package:inventario_frontend/features/inventory/presentation/screens/purchase_entry_screen.dart';
 
 void main() {
+  testWidgets(
+      'tablet panels scroll separately and quick form fits short height',
+      (tester) async {
+    await _pumpFixture(tester,
+        allowProductCreation: true, viewport: const Size(1280, 700));
+    expect(find.byKey(const Key('purchase-products-scroll')), findsOneWidget);
+    expect(find.byKey(const Key('purchase-cart-scroll')), findsOneWidget);
+    await tester.tap(find.text('Crear producto rápido'));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(1280, 400);
+    await tester.pumpAndSettle();
+    expect(find.text('Crear producto rápido'), findsWidgets);
+    expect(find.text('Continuar'), findsOneWidget);
+    expect(tester.takeException(), null);
+    await _dispose(tester);
+  });
+
   testWidgets('Purchases creates UNIT with integer minimum and unit label',
       (tester) async {
     final db = await _pumpFixture(tester, allowProductCreation: true);
@@ -265,8 +282,9 @@ void main() {
 }
 
 Future<AppDatabase> _pumpFixture(WidgetTester tester,
-    {bool allowProductCreation = false}) async {
-  tester.view.physicalSize = const Size(412, 915);
+    {bool allowProductCreation = false,
+    Size viewport = const Size(412, 915)}) async {
+  tester.view.physicalSize = viewport;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);

@@ -342,6 +342,145 @@ class LocalSyncOutboxDao {
     );
   }
 
+  /// Reuse only a complete, scoped POS batch. The sale mutation is the durable
+  /// anchor; an older orphan batch without it cannot claim this sale.
+  Future<LocalSyncEnqueueResult?> findExistingPosSaleBatch({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String saleId,
+    required List<LocalSyncMutationDraft> mutations,
+    required int itemCount,
+    required int paymentCount,
+  }) =>
+      _findExistingEntityBatch(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        domain: 'pos',
+        rootTable: 'sales',
+        rootId: saleId,
+        rootMetadataKey: 'sale_id',
+        mutations: mutations,
+        itemCount: itemCount,
+        paymentCount: paymentCount,
+      );
+
+  Future<LocalSyncEnqueueResult?> findExistingPurchaseBatch({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String purchaseId,
+    required List<LocalSyncMutationDraft> mutations,
+    required int itemCount,
+  }) =>
+      _findExistingEntityBatch(
+        businessId: businessId,
+        branchId: branchId,
+        profileId: profileId,
+        domain: 'purchases',
+        rootTable: 'purchases',
+        rootId: purchaseId,
+        rootMetadataKey: 'purchase_id',
+        mutations: mutations,
+        itemCount: itemCount,
+      );
+
+  /// A root mutation anchors one batch. Reuse only when all expected children
+  /// still belong to that batch; a superseded batch is retried as a new one.
+  Future<LocalSyncEnqueueResult?> _findExistingEntityBatch({
+    required String businessId,
+    required String branchId,
+    required String profileId,
+    required String domain,
+    required String rootTable,
+    required String rootId,
+    required String rootMetadataKey,
+    required List<LocalSyncMutationDraft> mutations,
+    required int itemCount,
+    int? paymentCount,
+  }) async {
+    final rootMutation = mutations.singleWhere(
+      (mutation) =>
+          mutation.entityTable == rootTable && mutation.entityId == rootId,
+    );
+    final match = await _db.customSelect('''
+      select b.id, b.client_batch_id, b.business_id, b.branch_id,
+             b.profile_id, b.domain, b.direction, b.status,
+             b.mutation_count, b.metadata_json
+      from local_sync_mutations m
+      join local_sync_batches b on b.id = m.local_sync_batch_id
+      where m.idempotency_key = ?
+      limit 1
+    ''', variables: [
+      Variable<String>(rootMutation.idempotencyKey)
+    ]).getSingleOrNull();
+    if (match == null) return null;
+
+    final batch = match.data;
+    final batchId = batch['id'] as String;
+    final clientBatchId = batch['client_batch_id'] as String;
+    if (batch['status'] == 'superseded') return null;
+    final conflict = '${domain}_batch_structure_conflict';
+    Map<String, dynamic> metadata;
+    try {
+      metadata = Map<String, dynamic>.from(
+        jsonDecode(batch['metadata_json'] as String) as Map,
+      );
+    } catch (_) {
+      throw StateError(conflict);
+    }
+    if (batch['business_id'] != businessId ||
+        batch['branch_id'] != branchId ||
+        batch['profile_id'] != profileId ||
+        batch['domain'] != domain ||
+        batch['direction'] != 'upload' ||
+        !const {
+          'pending',
+          'uploading',
+          'error',
+          'partial',
+          'conflict',
+          'completed'
+        }.contains(batch['status']) ||
+        batch['mutation_count'] != mutations.length ||
+        metadata[rootMetadataKey] != rootId ||
+        metadata['item_count'] != itemCount ||
+        (paymentCount != null && metadata['payment_count'] != paymentCount)) {
+      throw StateError(conflict);
+    }
+
+    final existingRows = await _db.customSelect('''
+      select idempotency_key, entity_table, entity_id, operation,
+             client_batch_id, business_id, branch_id
+      from local_sync_mutations where local_sync_batch_id = ?
+    ''', variables: [Variable<String>(batchId)]).get();
+    final expected = {
+      for (final mutation in mutations) mutation.idempotencyKey: mutation
+    };
+    if (expected.length != mutations.length ||
+        existingRows.length != mutations.length ||
+        existingRows.any((row) {
+          final data = row.data;
+          final mutation = expected[data['idempotency_key']];
+          return mutation == null ||
+              data['entity_table'] != mutation.entityTable ||
+              data['entity_id'] != mutation.entityId ||
+              data['operation'] != mutation.operation ||
+              data['client_batch_id'] != clientBatchId ||
+              data['business_id'] != businessId ||
+              data['branch_id'] != branchId;
+        })) {
+      throw StateError(conflict);
+    }
+    return LocalSyncEnqueueResult(
+      localBatchId: batchId,
+      clientBatchId: clientBatchId,
+      domain: domain,
+      mutationCount: mutations.length,
+    );
+  }
+
   Future<void> _ensureOutboxUniqueIndexes() async {
     await _customStatement(
       _db,
@@ -390,6 +529,33 @@ class LocalSyncOutboxDao {
     if (pinned != null &&
         pinned.read<String>('local_sync_batch_id') != localBatchId) {
       throw StateError('prerequisite_mutation_batch_is_pinned');
+    }
+    final existing = await _db.customSelect('''
+      select m.local_sync_batch_id, m.status, m.business_id, m.branch_id,
+             m.entity_table, m.entity_id, m.operation,
+             b.status as batch_status
+      from local_sync_mutations m
+      join local_sync_batches b on b.id = m.local_sync_batch_id
+      where m.idempotency_key = ? limit 1
+    ''', variables: [
+      Variable<String>(mutation.idempotencyKey)
+    ]).getSingleOrNull();
+    if (existing != null) {
+      if (existing.read<String>('local_sync_batch_id') == localBatchId) {
+        // A retry of this batch must preserve its mutation status and payload.
+        return;
+      }
+      final old = existing.data;
+      final explicitlySuperseded = old['batch_status'] == 'superseded' &&
+          old['status'] == 'superseded' &&
+          old['business_id'] == (mutation.businessId ?? fallbackBusinessId) &&
+          old['branch_id'] == (mutation.branchId ?? fallbackBranchId) &&
+          old['entity_table'] == mutation.entityTable &&
+          old['entity_id'] == mutation.entityId &&
+          old['operation'] == mutation.operation;
+      if (!explicitlySuperseded) {
+        throw StateError('mutation_batch_identity_conflict');
+      }
     }
     await _customStatement(
       _db,
@@ -681,6 +847,55 @@ class LocalSyncOutboxDao {
   Future<void> markBatchUploading(String localBatchId) async {
     await _updateBatchStatus(localBatchId, 'uploading');
   }
+
+  /// Retire only a legacy WEIGHT POS batch whose mutations were all moved by
+  /// the old cross-batch upsert. Never infer recovery from a partial payload.
+  Future<bool> supersedeLegacyEmptyWeightedPosBatch({
+    required String localBatchId,
+    required String businessId,
+    String? branchId,
+  }) =>
+      _db.transaction(() async {
+        final row = await _db.customSelect('''
+          select business_id, branch_id, domain, direction, status,
+                 metadata_json
+          from local_sync_batches where id = ?
+        ''', variables: [Variable<String>(localBatchId)]).getSingleOrNull();
+        if (row == null) return false;
+        final batch = row.data;
+        Map<String, dynamic> metadata;
+        try {
+          metadata = Map<String, dynamic>.from(
+            jsonDecode(batch['metadata_json'] as String) as Map,
+          );
+        } catch (_) {
+          return false;
+        }
+        if (batch['business_id'] != businessId ||
+            (branchId != null && batch['branch_id'] != branchId) ||
+            batch['domain'] != 'pos' ||
+            batch['direction'] != 'upload' ||
+            !const {'pending', 'error'}.contains(batch['status']) ||
+            metadata['monetary_contract_version'] != 'exact_weight_sale_v1' ||
+            metadata['sale_id'] is! String ||
+            (metadata['sale_id'] as String).trim().isEmpty) {
+          return false;
+        }
+        final count = await _db.customSelect('''
+          select count(*) as total from local_sync_mutations
+          where local_sync_batch_id = ?
+        ''', variables: [Variable<String>(localBatchId)]).getSingle();
+        if (count.read<int>('total') != 0) return false;
+        final now = DateTime.now().toUtc();
+        await _customStatement(_db, '''
+          update local_sync_batches
+          set status = 'superseded',
+              last_error = 'legacy_empty_pos_batch_orphan',
+              updated_at = ?
+          where id = ? and status in ('pending', 'error')
+        ''', [now, localBatchId]);
+        return true;
+      });
 
   Future<void> markBatchCompleted({
     required String localBatchId,

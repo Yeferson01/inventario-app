@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/models/product_sale_mode.dart';
+import '../../../../core/money/cop_price_input.dart';
+import '../../../../core/money/exact_basis_money.dart';
+import '../../../../core/quantity/weight_quantity_input.dart';
 import '../../../../shared/presentation/widgets/shared_widgets.dart';
 import '../../../inventory/application/product_stock_balance_providers.dart';
+import '../../../inventory/application/purchase_money.dart';
 import '../../application/pos_local_sale_models.dart';
 import '../../application/pos_local_sale_provider.dart';
 
@@ -54,6 +59,7 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
   bool _isCharging = false;
   bool _isEnqueueing = false;
   bool _isQuickSaleMode = false;
+  bool _showCompactRecents = false;
 
   bool get _hasParkedSale {
     return _parkedCartItems != null && _parkedCartItems!.isNotEmpty;
@@ -81,12 +87,12 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     super.dispose();
   }
 
-  double get _subtotal {
-    return _cartItems.fold<double>(
-      0,
-      (sum, item) => sum + item.lineTotal,
-    );
-  }
+  int get _subtotalCents => checkedSignedInt64(_cartItems.fold<BigInt>(
+        BigInt.zero,
+        (sum, item) => sum + BigInt.from(item.lineTotalCents),
+      ));
+
+  double get _subtotal => _subtotalCents / 100;
 
   double get _paidTotal {
     return _paymentDrafts.fold<double>(
@@ -114,9 +120,12 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     );
   }
 
-  void _addProductToCart(Map<String, dynamic> product) {
-    if (product['sale_mode'] != 'unit') {
-      _showMessage('La venta por peso aún no está disponible en POS.');
+  Future<void> _addProductToCart(Map<String, dynamic> product) async {
+    final ProductSaleMode mode;
+    try {
+      mode = ProductSaleMode.parse(product['sale_mode'] ?? 'unit');
+    } on FormatException {
+      _showMessage('Forma de venta no compatible.');
       return;
     }
     final productId = _string(product['product_id']);
@@ -128,13 +137,27 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
     final available = _int(product['quantity_available']);
     final unitPrice = _num(product['sale_price']);
+    int? priceCents;
+    if (mode == ProductSaleMode.weight) {
+      try {
+        priceCents = parseNullableExactCents(
+          product['sale_price_cents'],
+          'sale_price_cents',
+        );
+      } on FormatException {
+        _showMessage('Producto sin precio exacto válido.');
+        return;
+      }
+    }
 
     if (available <= 0) {
       _showMessage('Producto sin stock disponible.');
       return;
     }
 
-    if (unitPrice <= 0) {
+    if (mode == ProductSaleMode.weight
+        ? priceCents == null || priceCents <= 0
+        : unitPrice <= 0) {
       _showMessage('Producto sin precio de venta válido.');
       return;
     }
@@ -142,6 +165,45 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     final existingIndex = _cartItems.indexWhere(
       (item) => item.productId == productId,
     );
+
+    if (mode == ProductSaleMode.weight) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      final grams = await showModalBottomSheet<int>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _WeightQuantitySheet(
+          initialGrams: existingIndex < 0
+              ? math.min(500, available)
+              : _cartItems[existingIndex].quantity,
+          maxGrams: available,
+          priceCents: priceCents!,
+        ),
+      );
+      if (!mounted || grams == null) return;
+      final freshIndex = _cartItems.indexWhere(
+        (item) => item.productId == productId,
+      );
+      setState(() {
+        final entry = _PosCartItem(
+          productId: productId,
+          name: _string(product['product_name']) ?? 'Producto sin nombre',
+          barcode: _string(product['barcode']),
+          unitPrice: unitPrice,
+          priceCents: priceCents,
+          saleMode: ProductSaleMode.weight,
+          quantityAvailable: available,
+          quantity: grams,
+        );
+        if (freshIndex < 0) {
+          _cartItems.add(entry);
+        } else {
+          _cartItems[freshIndex] = entry;
+        }
+        _searchController.clear();
+      });
+      _searchFocusNode.requestFocus();
+      return;
+    }
 
     if (existingIndex >= 0) {
       final existing = _cartItems[existingIndex];
@@ -185,6 +247,11 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
     final item = _cartItems[index];
 
+    if (item.saleMode == ProductSaleMode.weight) {
+      _editCartItemQuantity(productId);
+      return;
+    }
+
     if (item.quantity >= item.quantityAvailable) {
       _showMessage('No hay más stock disponible.');
       return;
@@ -203,6 +270,11 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     }
 
     final item = _cartItems[index];
+
+    if (item.saleMode == ProductSaleMode.weight) {
+      _editCartItemQuantity(productId);
+      return;
+    }
 
     setState(() {
       if (item.quantity <= 1) {
@@ -224,15 +296,23 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
     final item = _cartItems[index];
 
-    final quantity = await showDialog<int>(
-      context: context,
-      builder: (context) {
-        return _QuantityEditDialog(
-          initialQuantity: item.quantity,
-          maxQuantity: item.quantityAvailable,
-        );
-      },
-    );
+    final quantity = item.saleMode == ProductSaleMode.weight
+        ? await showModalBottomSheet<int>(
+            context: context,
+            isScrollControlled: true,
+            builder: (_) => _WeightQuantitySheet(
+              initialGrams: item.quantity,
+              maxGrams: item.quantityAvailable,
+              priceCents: item.priceCents!,
+            ),
+          )
+        : await showDialog<int>(
+            context: context,
+            builder: (context) => _QuantityEditDialog(
+              initialQuantity: item.quantity,
+              maxQuantity: item.quantityAvailable,
+            ),
+          );
 
     if (!mounted || quantity == null) {
       return;
@@ -339,7 +419,15 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
       return;
     }
 
-    final total = _subtotal;
+    final hasWeight = _cartItems.any(
+      (item) => item.saleMode == ProductSaleMode.weight,
+    );
+    final total = hasWeight
+        ? double.parse(formatPurchaseMoneyCents(BigInt.from(_subtotalCents)))
+        : _subtotal;
+    final totalText = hasWeight
+        ? formatPurchaseMoneyCents(BigInt.from(_subtotalCents))
+        : total.toStringAsFixed(2);
     final cashIndex = _paymentDrafts.indexWhere(
       (payment) => payment.method == 'cash',
     );
@@ -348,7 +436,7 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
       if (cashIndex >= 0) {
         final payment = _paymentDrafts[cashIndex];
         _paymentDrafts[cashIndex] = payment.copyWith(amount: total);
-        _paymentControllerFor(payment).text = total.toStringAsFixed(2);
+        _paymentControllerFor(payment).text = totalText;
       } else {
         _paymentSequence++;
         final payment = _PosPaymentDraft(
@@ -357,7 +445,7 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
           amount: total,
         );
         _paymentDrafts.add(payment);
-        _paymentControllerFor(payment).text = total.toStringAsFixed(2);
+        _paymentControllerFor(payment).text = totalText;
       }
     });
   }
@@ -691,25 +779,6 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     }
   }
 
-  Future<void> _preparePendingPosSync() async {
-    try {
-      final result = await _enqueuePendingPosSales(limit: 50);
-
-      if (!mounted || result == null) {
-        return;
-      }
-
-      _showMessage(
-        result.salesEnqueued == 0
-            ? 'No hay ventas pendientes.'
-            : 'Las ventas pendientes están listas para sincronizarse.',
-      );
-    } catch (_) {
-      _showMessage(
-          'No pudimos preparar las ventas. Tus cambios siguen guardados; inténtalo nuevamente.');
-    }
-  }
-
   List<PosLocalPaymentInput> _buildPaymentInputsForSale(double total) {
     final nonZeroPayments = _paymentDrafts
         .where((payment) => payment.amount > 0.01)
@@ -813,6 +882,58 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
         .toList();
   }
 
+  List<PosLocalPaymentInput> _buildExactPaymentInputsForSale(int totalCents) {
+    final payments = <({String method, BigInt cents})>[];
+    for (final draft in _paymentDrafts) {
+      final raw = _paymentControllerFor(draft).text;
+      final cents = parsePurchaseMoneyCents(raw);
+      if (cents == null) {
+        throw StateError('El importe del pago requiere centavos exactos.');
+      }
+      if (cents > BigInt.zero) {
+        payments.add((method: draft.method, cents: cents));
+      }
+    }
+    if (payments.isEmpty) throw StateError('Registra al menos un pago.');
+    final target = BigInt.from(totalCents);
+    final paid = payments.fold<BigInt>(
+      BigInt.zero,
+      (sum, payment) => sum + payment.cents,
+    );
+    if (paid < target) throw StateError('El pago está incompleto.');
+    var change = paid - target;
+    if (change > BigInt.zero &&
+        !payments.any((payment) => payment.method == 'cash')) {
+      throw StateError(
+        'El cambio solo se permite cuando existe un pago en efectivo.',
+      );
+    }
+    for (var index = payments.length - 1;
+        index >= 0 && change > BigInt.zero;
+        index--) {
+      final payment = payments[index];
+      if (payment.method != 'cash') continue;
+      final deducted = payment.cents < change ? payment.cents : change;
+      payments[index] = (
+        method: payment.method,
+        cents: payment.cents - deducted,
+      );
+      change -= deducted;
+    }
+    if (change > BigInt.zero) {
+      throw StateError(
+          'El efectivo recibido no alcanza para cubrir el cambio.');
+    }
+    return payments
+        .where((payment) => payment.cents > BigInt.zero)
+        .map((payment) => PosLocalPaymentInput(
+              method: payment.method,
+              amount: double.parse(formatPurchaseMoneyCents(payment.cents)),
+              amountCents: checkedSignedInt64(payment.cents),
+            ))
+        .toList(growable: false);
+  }
+
   Future<void> _chargeSale() async {
     if (_isCharging) {
       return;
@@ -848,7 +969,11 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
     });
 
     try {
-      final payments = _buildPaymentInputsForSale(total);
+      final payments = _cartItems.any(
+        (item) => item.saleMode == ProductSaleMode.weight,
+      )
+          ? _buildExactPaymentInputsForSale(_subtotalCents)
+          : _buildPaymentInputsForSale(total);
 
       await ref.read(posLocalSaleServiceProvider).createLocalSale(
             CreatePosLocalSaleInput(
@@ -864,7 +989,11 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                     (item) => PosLocalSaleItemInput(
                       productId: item.productId,
                       quantity: item.quantity,
-                      unitPrice: item.unitPrice,
+                      unitPrice: item.saleMode == ProductSaleMode.weight
+                          ? null
+                          : item.unitPrice,
+                      saleMode: item.saleMode,
+                      priceBasisQuantity: item.saleMode.salePriceBasisQuantity,
                     ),
                   )
                   .toList(),
@@ -1000,11 +1129,12 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                         return Padding(
                           padding: const EdgeInsets.all(CronosSpacing.md),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Expanded(
                                 flex: 7,
                                 child: _ProductsSection(
+                                  scrollablePanel: true,
                                   products: products,
                                   searchController: _searchController,
                                   searchFocusNode: _searchFocusNode,
@@ -1020,12 +1150,13 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                               ),
                               const SizedBox(width: CronosSpacing.md),
                               SizedBox(
-                                width: 430,
+                                width:
+                                    math.min(430, constraints.maxWidth * 0.43),
                                 child: _CartSection(
+                                  scrollablePanel: true,
                                   cartItems: _cartItems,
                                   paymentDrafts: _paymentDrafts,
                                   isCharging: _isCharging,
-                                  isEnqueueing: _isEnqueueing,
                                   isQuickSaleMode: _isQuickSaleMode,
                                   hasParkedSale: _hasParkedSale,
                                   paymentControllerFor: _paymentControllerFor,
@@ -1040,7 +1171,6 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                                   onEditQuantity: _editCartItemQuantity,
                                   onRemove: _removeCartItem,
                                   onChargePressed: _chargeSale,
-                                  onPrepareSyncPressed: _preparePendingPosSync,
                                   onStartQuickSale: _startQuickSale,
                                   onRestoreParkedSale: _restoreParkedSale,
                                   cashRegisterName: widget.cashRegisterName,
@@ -1056,6 +1186,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                         children: [
                           _ProductsSection(
                             products: products,
+                            compactRecentsExpanded: _showCompactRecents,
+                            onCompactRecentsToggle: () => setState(() =>
+                                _showCompactRecents = !_showCompactRecents),
                             searchController: _searchController,
                             searchFocusNode: _searchFocusNode,
                             onSearchChanged: (_) {
@@ -1072,7 +1205,6 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                             cartItems: _cartItems,
                             paymentDrafts: _paymentDrafts,
                             isCharging: _isCharging,
-                            isEnqueueing: _isEnqueueing,
                             isQuickSaleMode: _isQuickSaleMode,
                             hasParkedSale: _hasParkedSale,
                             paymentControllerFor: _paymentControllerFor,
@@ -1087,7 +1219,6 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
                             onEditQuantity: _editCartItemQuantity,
                             onRemove: _removeCartItem,
                             onChargePressed: _chargeSale,
-                            onPrepareSyncPressed: _preparePendingPosSync,
                             onStartQuickSale: _startQuickSale,
                             onRestoreParkedSale: _restoreParkedSale,
                             cashRegisterName: widget.cashRegisterName,
@@ -1108,6 +1239,9 @@ class _PosSaleScreenState extends ConsumerState<PosSaleScreen> {
 
 class _ProductsSection extends StatelessWidget {
   const _ProductsSection({
+    this.scrollablePanel = false,
+    this.compactRecentsExpanded = false,
+    this.onCompactRecentsToggle,
     required this.products,
     required this.searchController,
     required this.searchFocusNode,
@@ -1117,6 +1251,9 @@ class _ProductsSection extends StatelessWidget {
     required this.onScannerInfo,
   });
 
+  final bool scrollablePanel;
+  final bool compactRecentsExpanded;
+  final VoidCallback? onCompactRecentsToggle;
   final List<Map<String, dynamic>> products;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
@@ -1130,45 +1267,76 @@ class _ProductsSection extends StatelessWidget {
     final query = searchController.text.trim();
     final filteredProducts = _filterProducts(products, query).take(40).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const AppAnimatedEntrance(
-          child: _PosHeaderCard(),
+    final children = <Widget>[
+      const AppAnimatedEntrance(
+        child: _PosHeaderCard(),
+      ),
+      const SizedBox(height: CronosSpacing.md),
+      AppGlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Buscar productos',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: CronosSpacing.sm),
+            TextField(
+              controller: searchController,
+              focusNode: searchFocusNode,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              onChanged: onSearchChanged,
+              onSubmitted: onSearchSubmitted,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search_outlined),
+                suffixIcon: IconButton(
+                  onPressed: onScannerInfo,
+                  icon: const Icon(Icons.qr_code_2_outlined),
+                  tooltip: 'Usar lector Bluetooth',
+                ),
+                labelText: 'Nombre o código de barras',
+                helperText:
+                    'Para lector Bluetooth: escanea aquí. Enter agrega si hay coincidencia exacta.',
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: CronosSpacing.md),
+      ),
+      const SizedBox(height: CronosSpacing.md),
+      if (!scrollablePanel && query.isEmpty && products.isNotEmpty)
         AppGlassCard(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Buscar productos',
-                style: Theme.of(context).textTheme.titleLarge,
+              TextButton.icon(
+                key: const Key('pos-recent-products-toggle'),
+                onPressed: onCompactRecentsToggle,
+                icon: Icon(compactRecentsExpanded
+                    ? Icons.keyboard_arrow_up
+                    : Icons.keyboard_arrow_down),
+                label: Text(compactRecentsExpanded
+                    ? 'Ocultar recientes'
+                    : 'Mostrar recientes'),
               ),
-              const SizedBox(height: CronosSpacing.sm),
-              TextField(
-                controller: searchController,
-                focusNode: searchFocusNode,
-                autofocus: true,
-                textInputAction: TextInputAction.search,
-                onChanged: onSearchChanged,
-                onSubmitted: onSearchSubmitted,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search_outlined),
-                  suffixIcon: IconButton(
-                    onPressed: onScannerInfo,
-                    icon: const Icon(Icons.qr_code_2_outlined),
-                    tooltip: 'Usar lector Bluetooth',
+              if (compactRecentsExpanded)
+                SizedBox(
+                  height: (MediaQuery.sizeOf(context).height * 0.32)
+                      .clamp(160.0, 280.0),
+                  child: ListView.builder(
+                    key: const Key('pos-recent-products-scroll'),
+                    primary: false,
+                    itemCount: math.min(products.length, 12),
+                    itemBuilder: (context, index) => _ProductResultTile(
+                      product: products[index],
+                      onTap: () => onProductTap(products[index]),
+                    ),
                   ),
-                  labelText: 'Nombre o código de barras',
-                  helperText:
-                      'Para lector Bluetooth: escanea aquí. Enter agrega si hay coincidencia exacta.',
                 ),
-              ),
             ],
           ),
-        ),
-        const SizedBox(height: CronosSpacing.md),
+        )
+      else
         AppGlassCard(
           child: query.isEmpty
               ? _InitialProductsState(
@@ -1181,7 +1349,17 @@ class _ProductsSection extends StatelessWidget {
                   onProductTap: onProductTap,
                 ),
         ),
-      ],
+    ];
+    if (scrollablePanel) {
+      return ListView(
+        key: const ValueKey('pos-products-panel-scroll'),
+        primary: false,
+        children: children,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
   }
 }
@@ -1383,7 +1561,12 @@ class _ProductResultTile extends StatelessWidget {
     final barcode = _string(product['barcode']);
     final price = _num(product['sale_price']);
     final available = _int(product['quantity_available']);
-    final canSell = available > 0 && price > 0;
+    final isWeight = product['sale_mode'] == 'weight';
+    final priceCents = product['sale_price_cents'] is int
+        ? product['sale_price_cents'] as int
+        : null;
+    final canSell = available > 0 &&
+        (isWeight ? priceCents != null && priceCents > 0 : price > 0);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: CronosSpacing.sm),
@@ -1414,32 +1597,40 @@ class _ProductResultTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         barcode == null || barcode.isEmpty
-                            ? 'Sin código · Stock: $available'
-                            : '$barcode · Stock: $available',
+                            ? 'Sin código · Stock: $available${isWeight ? ' g' : ''}'
+                            : '$barcode · Stock: $available${isWeight ? ' g' : ''}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: CronosSpacing.sm),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _money(price),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 4),
-                    AppStatusChip(
-                      label: canSell ? 'Agregar' : 'No vendible',
-                      tone: canSell
-                          ? AppStatusTone.success
-                          : AppStatusTone.danger,
-                      icon: canSell
-                          ? Icons.add_circle_outline
-                          : Icons.block_outlined,
-                    ),
-                  ],
+                SizedBox(
+                  width: isWeight ? 138 : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        isWeight
+                            ? formatCopPriceCents(priceCents ?? 0)
+                            : _money(price),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      if (isWeight)
+                        Text('/libra (500 g)',
+                            style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 4),
+                      AppStatusChip(
+                        label: canSell ? 'Agregar' : 'No vendible',
+                        tone: canSell
+                            ? AppStatusTone.success
+                            : AppStatusTone.danger,
+                        icon: canSell
+                            ? Icons.add_circle_outline
+                            : Icons.block_outlined,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1452,10 +1643,10 @@ class _ProductResultTile extends StatelessWidget {
 
 class _CartSection extends StatelessWidget {
   const _CartSection({
+    this.scrollablePanel = false,
     required this.cartItems,
     required this.paymentDrafts,
     required this.isCharging,
-    required this.isEnqueueing,
     required this.isQuickSaleMode,
     required this.hasParkedSale,
     required this.paymentControllerFor,
@@ -1469,16 +1660,15 @@ class _CartSection extends StatelessWidget {
     required this.onEditQuantity,
     required this.onRemove,
     required this.onChargePressed,
-    required this.onPrepareSyncPressed,
     required this.onStartQuickSale,
     required this.onRestoreParkedSale,
     required this.cashRegisterName,
   });
 
+  final bool scrollablePanel;
   final List<_PosCartItem> cartItems;
   final List<_PosPaymentDraft> paymentDrafts;
   final bool isCharging;
-  final bool isEnqueueing;
   final bool isQuickSaleMode;
   final bool hasParkedSale;
   final TextEditingController Function(_PosPaymentDraft payment)
@@ -1493,17 +1683,22 @@ class _CartSection extends StatelessWidget {
   final ValueChanged<String> onEditQuantity;
   final ValueChanged<String> onRemove;
   final VoidCallback onChargePressed;
-  final VoidCallback onPrepareSyncPressed;
   final VoidCallback onStartQuickSale;
   final VoidCallback onRestoreParkedSale;
   final String? cashRegisterName;
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = cartItems.fold<double>(
+    final subtotalCents = cartItems.fold<int>(
       0,
-      (sum, item) => sum + item.lineTotal,
+      (sum, item) => sum + item.lineTotalCents,
     );
+    final subtotal = subtotalCents / 100;
+    final hasWeight = cartItems.any(
+      (item) => item.saleMode == ProductSaleMode.weight,
+    );
+    final subtotalLabel =
+        hasWeight ? formatCopPriceCents(subtotalCents) : _money(subtotal);
 
     final paidTotal = paymentDrafts.fold<double>(
       0,
@@ -1515,139 +1710,131 @@ class _CartSection extends StatelessWidget {
 
     final itemCount = cartItems.fold<int>(
       0,
-      (sum, item) => sum + item.quantity,
+      (sum, item) =>
+          sum + (item.saleMode == ProductSaleMode.weight ? 1 : item.quantity),
     );
 
     final canCharge =
         cartItems.isNotEmpty && subtotal > 0 && paidTotal >= subtotal;
 
-    return AppGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    final children = <Widget>[
+      Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Carrito',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              AppStatusChip(
-                label: '$itemCount ítem(s)',
-                tone: itemCount > 0
-                    ? AppStatusTone.success
-                    : AppStatusTone.neutral,
-                icon: Icons.shopping_bag_outlined,
-              ),
-            ],
+          Expanded(
+            child: Text(
+              'Carrito',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ),
-          const SizedBox(height: CronosSpacing.sm),
           AppStatusChip(
-            label: cashRegisterName == null || cashRegisterName!.trim().isEmpty
-                ? 'Caja activa'
-                : cashRegisterName!,
-            tone: AppStatusTone.success,
-            icon: Icons.point_of_sale_outlined,
-          ),
-          const SizedBox(height: CronosSpacing.sm),
-          if (isQuickSaleMode)
-            AppStatusChip(
-              label: 'Venta rápida activa',
-              tone: AppStatusTone.info,
-              icon: Icons.flash_on_outlined,
-            ),
-          const SizedBox(height: CronosSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: isQuickSaleMode ? onRestoreParkedSale : onStartQuickSale,
-            icon: Icon(
-              isQuickSaleMode
-                  ? Icons.assignment_return_outlined
-                  : Icons.flash_on_outlined,
-            ),
-            label: Text(
-              isQuickSaleMode ? 'Volver al carrito anterior' : 'Venta rápida',
-            ),
-          ),
-          const SizedBox(height: CronosSpacing.xs),
-          Text(
-            isQuickSaleMode
-                ? 'Cobra esta venta corta para restaurar el carrito anterior.'
-                : 'Pausa el carrito actual para atender una venta corta.',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: CronosSpacing.md),
-          if (cartItems.isEmpty)
-            const _EmptyCartState()
-          else
-            ...cartItems.map(
-              (item) => _CartItemTile(
-                item: item,
-                onIncrease: () => onIncrease(item.productId),
-                onDecrease: () => onDecrease(item.productId),
-                onEditQuantity: () => onEditQuantity(item.productId),
-                onRemove: () => onRemove(item.productId),
-              ),
-            ),
-          const SizedBox(height: CronosSpacing.md),
-          _PaymentPanel(
-            paymentDrafts: paymentDrafts,
-            paymentControllerFor: paymentControllerFor,
-            onPaymentMethodChanged: onPaymentMethodChanged,
-            onPaymentAmountChanged: onPaymentAmountChanged,
-            onAddPaymentLine: onAddPaymentLine,
-            onRemovePaymentLine: onRemovePaymentLine,
-            onFillCashPaymentWithTotal: onFillCashPaymentWithTotal,
-          ),
-          const SizedBox(height: CronosSpacing.md),
-          _TotalRow(label: 'Subtotal', value: _money(subtotal)),
-          const _TotalRow(label: 'Descuentos', value: '\$0.00'),
-          const _TotalRow(label: 'Impuestos', value: '\$0.00'),
-          const Divider(height: CronosSpacing.lg),
-          _TotalRow(
-            label: 'Total',
-            value: _money(subtotal),
-            emphasized: true,
-          ),
-          _TotalRow(label: 'Pagado', value: _money(paidTotal)),
-          _TotalRow(label: 'Pendiente', value: _money(pending)),
-          if (change > 0) _TotalRow(label: 'Cambio', value: _money(change)),
-          const SizedBox(height: CronosSpacing.md),
-          FilledButton.icon(
-            onPressed: canCharge && !isCharging ? onChargePressed : null,
-            icon: isCharging
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check_circle_outline),
-            label: Text(isCharging ? 'Registrando...' : 'Cobrar venta'),
-          ),
-          const SizedBox(height: CronosSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: isEnqueueing ? null : onPrepareSyncPressed,
-            icon: isEnqueueing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.playlist_add_check_outlined),
-            label: Text(
-              isEnqueueing ? 'Preparando...' : 'Preparar ventas pendientes',
-            ),
-          ),
-          const SizedBox(height: CronosSpacing.xs),
-          Text(
-            'Las operaciones pendientes se intentan sincronizar '
-            'automáticamente cuando la aplicación puede hacerlo.',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
+            label: '$itemCount ítem(s)',
+            tone: itemCount > 0 ? AppStatusTone.success : AppStatusTone.neutral,
+            icon: Icons.shopping_bag_outlined,
           ),
         ],
       ),
+      const SizedBox(height: CronosSpacing.sm),
+      AppStatusChip(
+        label: cashRegisterName == null || cashRegisterName!.trim().isEmpty
+            ? 'Caja activa'
+            : cashRegisterName!,
+        tone: AppStatusTone.success,
+        icon: Icons.point_of_sale_outlined,
+      ),
+      const SizedBox(height: CronosSpacing.sm),
+      if (isQuickSaleMode)
+        AppStatusChip(
+          label: 'Venta rápida activa',
+          tone: AppStatusTone.info,
+          icon: Icons.flash_on_outlined,
+        ),
+      const SizedBox(height: CronosSpacing.sm),
+      OutlinedButton.icon(
+        onPressed: isQuickSaleMode ? onRestoreParkedSale : onStartQuickSale,
+        icon: Icon(
+          isQuickSaleMode
+              ? Icons.assignment_return_outlined
+              : Icons.flash_on_outlined,
+        ),
+        label: Text(
+          isQuickSaleMode ? 'Volver al carrito anterior' : 'Venta rápida',
+        ),
+      ),
+      const SizedBox(height: CronosSpacing.xs),
+      Text(
+        isQuickSaleMode
+            ? 'Cobra esta venta corta para restaurar el carrito anterior.'
+            : 'Pausa el carrito actual para atender una venta corta.',
+        style: Theme.of(context).textTheme.bodySmall,
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: CronosSpacing.md),
+      if (cartItems.isEmpty)
+        const _EmptyCartState()
+      else
+        ...cartItems.map(
+          (item) => _CartItemTile(
+            item: item,
+            onIncrease: () => onIncrease(item.productId),
+            onDecrease: () => onDecrease(item.productId),
+            onEditQuantity: () => onEditQuantity(item.productId),
+            onRemove: () => onRemove(item.productId),
+          ),
+        ),
+      const SizedBox(height: CronosSpacing.md),
+      _PaymentPanel(
+        paymentDrafts: paymentDrafts,
+        paymentControllerFor: paymentControllerFor,
+        onPaymentMethodChanged: onPaymentMethodChanged,
+        onPaymentAmountChanged: onPaymentAmountChanged,
+        onAddPaymentLine: onAddPaymentLine,
+        onRemovePaymentLine: onRemovePaymentLine,
+        onFillCashPaymentWithTotal: onFillCashPaymentWithTotal,
+      ),
+      const SizedBox(height: CronosSpacing.md),
+      _TotalRow(label: 'Subtotal', value: subtotalLabel),
+      const _TotalRow(label: 'Descuentos', value: '\$0.00'),
+      const _TotalRow(label: 'Impuestos', value: '\$0.00'),
+      const Divider(height: CronosSpacing.lg),
+      _TotalRow(
+        label: 'Total',
+        value: subtotalLabel,
+        emphasized: true,
+      ),
+      _TotalRow(label: 'Pagado', value: _money(paidTotal)),
+      _TotalRow(label: 'Pendiente', value: _money(pending)),
+      if (change > 0) _TotalRow(label: 'Cambio', value: _money(change)),
+      const SizedBox(height: CronosSpacing.md),
+      FilledButton.icon(
+        onPressed: canCharge && !isCharging ? onChargePressed : null,
+        icon: isCharging
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.check_circle_outline),
+        label: Text(isCharging ? 'Registrando...' : 'Cobrar venta'),
+      ),
+      const SizedBox(height: CronosSpacing.sm),
+      Text(
+        'Las operaciones pendientes se intentan sincronizar '
+        'automáticamente cuando la aplicación puede hacerlo.',
+        style: Theme.of(context).textTheme.bodySmall,
+        textAlign: TextAlign.center,
+      ),
+    ];
+    return AppGlassCard(
+      child: scrollablePanel
+          ? ListView(
+              key: const ValueKey('pos-cart-panel-scroll'),
+              primary: false,
+              children: children,
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
     );
   }
 }
@@ -1924,8 +2111,8 @@ class _CartItemTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         item.barcode == null || item.barcode!.isEmpty
-                            ? 'Stock: ${item.quantityAvailable}'
-                            : '${item.barcode} · Stock: ${item.quantityAvailable}',
+                            ? 'Stock: ${item.quantityAvailable}${item.saleMode == ProductSaleMode.weight ? ' g' : ''}'
+                            : '${item.barcode} · Stock: ${item.quantityAvailable}${item.saleMode == ProductSaleMode.weight ? ' g' : ''}',
                         style: Theme.of(context).textTheme.bodySmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1938,7 +2125,9 @@ class _CartItemTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      _money(item.lineTotal),
+                      item.saleMode == ProductSaleMode.weight
+                          ? formatCopPriceCents(item.lineTotalCents)
+                          : _money(item.lineTotal),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     IconButton(
@@ -1957,12 +2146,13 @@ class _CartItemTile extends StatelessWidget {
               runSpacing: CronosSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                IconButton.filledTonal(
-                  onPressed: onDecrease,
-                  icon: const Icon(Icons.remove),
-                  tooltip: 'Disminuir',
-                  visualDensity: VisualDensity.compact,
-                ),
+                if (item.saleMode == ProductSaleMode.unit)
+                  IconButton.filledTonal(
+                    onPressed: onDecrease,
+                    icon: const Icon(Icons.remove),
+                    tooltip: 'Disminuir',
+                    visualDensity: VisualDensity.compact,
+                  ),
                 InkWell(
                   onTap: onEditQuantity,
                   borderRadius: BorderRadius.circular(CronosRadius.md),
@@ -1980,7 +2170,9 @@ class _CartItemTile extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '${item.quantity}',
+                          item.saleMode == ProductSaleMode.weight
+                              ? '${item.quantity} g'
+                              : '${item.quantity}',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(width: 6),
@@ -1989,19 +2181,178 @@ class _CartItemTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton.filledTonal(
-                  onPressed: onIncrease,
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Aumentar',
-                  visualDensity: VisualDensity.compact,
-                ),
+                if (item.saleMode == ProductSaleMode.weight)
+                  Text(
+                    '${formatCopPriceCents(item.priceCents!)}/libra (500 g)',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                if (item.saleMode == ProductSaleMode.unit)
+                  IconButton.filledTonal(
+                    onPressed: onIncrease,
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Aumentar',
+                    visualDensity: VisualDensity.compact,
+                  ),
                 Chip(
-                  label: Text('Disponible: ${item.quantityAvailable}'),
+                  label: Text(
+                      'Disponible: ${item.quantityAvailable}${item.saleMode == ProductSaleMode.weight ? ' g' : ''}'),
                   visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeightQuantitySheet extends StatefulWidget {
+  const _WeightQuantitySheet({
+    required this.initialGrams,
+    required this.maxGrams,
+    required this.priceCents,
+  });
+
+  final int initialGrams;
+  final int maxGrams;
+  final int priceCents;
+
+  @override
+  State<_WeightQuantitySheet> createState() => _WeightQuantitySheetState();
+}
+
+class _WeightQuantitySheetState extends State<_WeightQuantitySheet> {
+  late final TextEditingController _controller;
+  WeightInputUnit _unit = WeightInputUnit.gram;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.initialGrams}');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int? get _grams => parseWeightQuantity(_controller.text, _unit);
+
+  int? _quoteCents(int? grams) {
+    if (grams == null || grams > widget.maxGrams) return null;
+    try {
+      return checkedSignedInt64(calculateBasisAmountCents(
+        baseAmountCents: BigInt.from(widget.priceCents),
+        quantity: BigInt.from(grams),
+        basisQuantity: BigInt.from(500),
+      ));
+    } on RangeError {
+      return null;
+    }
+  }
+
+  void _submit() {
+    final grams = _grams;
+    if (grams == null) {
+      setState(() => _error = 'Ingresa un peso positivo y exacto.');
+      return;
+    }
+    if (grams > widget.maxGrams) {
+      setState(() => _error = 'Máximo disponible: ${widget.maxGrams} g.');
+      return;
+    }
+    if (_quoteCents(grams) == null) {
+      setState(() => _error = 'El total excede el límite permitido.');
+      return;
+    }
+    Navigator.of(context).pop(grams);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final grams = _grams;
+    final totalCents = _quoteCents(grams);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          CronosSpacing.md,
+          CronosSpacing.md,
+          CronosSpacing.md,
+          MediaQuery.viewInsetsOf(context).bottom + CronosSpacing.md,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Cantidad por peso',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: CronosSpacing.sm),
+              Text(
+                  '${formatCopPriceCents(widget.priceCents)} por libra comercial (500 g)'),
+              Text('Disponible: ${widget.maxGrams} g'),
+              const SizedBox(height: CronosSpacing.md),
+              DropdownButtonFormField<WeightInputUnit>(
+                initialValue: _unit,
+                isExpanded: true,
+                decoration:
+                    const InputDecoration(labelText: 'Unidad de entrada'),
+                items: const [
+                  DropdownMenuItem(
+                      value: WeightInputUnit.gram, child: Text('Gramos (g)')),
+                  DropdownMenuItem(
+                      value: WeightInputUnit.kilogram,
+                      child: Text('Kilogramos (kg)')),
+                  DropdownMenuItem(
+                      value: WeightInputUnit.commercialPound,
+                      child: Text('Libra comercial (500 g)')),
+                ],
+                onChanged: (unit) {
+                  if (unit == null) return;
+                  setState(() {
+                    _unit = unit;
+                    _controller.clear();
+                    _error = null;
+                  });
+                },
+              ),
+              const SizedBox(height: CronosSpacing.sm),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: 'Cantidad',
+                  errorText: _error,
+                  helperText: 'Se guardará en gramos enteros.',
+                ),
+                onChanged: (_) => setState(() => _error = null),
+                onSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: CronosSpacing.md),
+              Text(totalCents == null
+                  ? 'Ingresa la cantidad para calcular el total.'
+                  : '$grams g · ${formatCopPriceCents(widget.priceCents)}/libra (500 g) · ${formatCopPriceCents(totalCents)}'),
+              const SizedBox(height: CronosSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: CronosSpacing.sm),
+                  FilledButton(
+                      onPressed: _submit, child: const Text('Aplicar')),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2187,16 +2538,28 @@ class _PosCartItem {
     required this.quantityAvailable,
     required this.quantity,
     this.barcode,
+    this.priceCents,
+    this.saleMode = ProductSaleMode.unit,
   });
 
   final String productId;
   final String name;
   final String? barcode;
   final double unitPrice;
+  final int? priceCents;
+  final ProductSaleMode saleMode;
   final int quantityAvailable;
   final int quantity;
 
-  double get lineTotal => unitPrice * quantity;
+  int get lineTotalCents => saleMode == ProductSaleMode.weight
+      ? checkedSignedInt64(calculateBasisAmountCents(
+          baseAmountCents: BigInt.from(priceCents!),
+          quantity: BigInt.from(quantity),
+          basisQuantity: BigInt.from(500),
+        ))
+      : (unitPrice * 100).round() * quantity;
+
+  double get lineTotal => lineTotalCents / 100;
 
   _PosCartItem copyWith({
     int? quantity,
@@ -2207,6 +2570,8 @@ class _PosCartItem {
       name: name,
       barcode: barcode,
       unitPrice: unitPrice,
+      priceCents: priceCents,
+      saleMode: saleMode,
       quantityAvailable: quantityAvailable ?? this.quantityAvailable,
       quantity: quantity ?? this.quantity,
     );

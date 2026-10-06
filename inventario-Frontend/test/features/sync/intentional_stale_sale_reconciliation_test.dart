@@ -51,8 +51,12 @@ void main() {
         required reconciliationId,
         required cashTreatment,
         required reason,
+        required weightedSaleResults,
       }) async {
         expect(destinationCashSessionId, 'session-b');
+
+        expect(weightedSaleResults, isEmpty);
+
         return const IntentionalStaleSaleLocalProjectionResult(
           saleId: 'sale-a',
           alreadyProjected: false,
@@ -104,6 +108,7 @@ void main() {
         required reconciliationId,
         required cashTreatment,
         required reason,
+        required weightedSaleResults,
       }) async {
         projected = true;
         throw StateError('must not project');
@@ -124,6 +129,89 @@ void main() {
     );
     expect(projected, isFalse);
     expect(refreshed, isFalse);
+  });
+
+  test('stale WEIGHT result reaches local projection before inventory refresh',
+      () async {
+    var projected = false;
+    final service = IntentionalStaleSaleReconciliationService(
+      remoteExecutor: ({
+        required businessId,
+        required branchId,
+        required appDeviceId,
+        required saleId,
+        required syncConflictId,
+        required destinationCashSessionId,
+        required reconciliationId,
+        required idempotencyKey,
+        required reason,
+        required cashTreatment,
+      }) async {
+        final base = await _successfulRemote(
+          businessId: businessId,
+          branchId: branchId,
+          appDeviceId: appDeviceId,
+          saleId: saleId,
+          syncConflictId: syncConflictId,
+          destinationCashSessionId: destinationCashSessionId,
+          reconciliationId: reconciliationId,
+          idempotencyKey: idempotencyKey,
+          reason: reason,
+          cashTreatment: cashTreatment,
+        );
+        return IntentionalStaleSaleRemoteResult.fromJson({
+          ...base.toJson(),
+          'weighted_sale_reconciliation_results': [
+            {
+              'sale_id': saleId,
+              'sale_item_id': 'item-a',
+              'product_id': 'product-a',
+              'quantity_grams': 735,
+              'inventory_movement_id': 'movement-remote',
+              'stock_quantity_grams': 25,
+              'cost_basis_cents': null,
+              'cogs_cents': null,
+              'cost_effect_cents': null,
+              'original_sync_mutation_id': 'mutation-a',
+              'original_mutation_status': 'skipped',
+              'original_mutation_error_code':
+                  'superseded_by_sale_reconciliation',
+            },
+          ],
+        });
+      },
+      localPreviewLoader: _localPreview,
+      localProjector: ({
+        required profileId,
+        required businessId,
+        required branchId,
+        required saleId,
+        required destinationCashSessionId,
+        required reconciliationId,
+        required cashTreatment,
+        required reason,
+        required weightedSaleResults,
+      }) async {
+        expect(weightedSaleResults, hasLength(1));
+        expect(weightedSaleResults.single.quantityGrams, 735);
+        expect(weightedSaleResults.single.cogsCents, isNull);
+        projected = true;
+        return const IntentionalStaleSaleLocalProjectionResult(
+          saleId: 'sale-a',
+          alreadyProjected: false,
+          movementsAcknowledged: 1,
+          mutationsSuperseded: 3,
+          issuesResolved: 1,
+          stockByProductBefore: {'product-a': 25},
+          stockByProductAfter: {'product-a': 25},
+        );
+      },
+      inventoryRefresher: (_, __) async => expect(projected, isTrue),
+      cashRefresher: (_, __) async {},
+    );
+
+    await service.reconcile(input);
+    expect(projected, isTrue);
   });
 }
 

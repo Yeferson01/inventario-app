@@ -119,8 +119,8 @@ class ProductiveSyncDomainResult {
 const _notAttemptedDomainResults = [
   ProductiveSyncDomainResult.notAttempted(ProductiveSyncDomain.catalog),
   ProductiveSyncDomainResult.notAttempted(ProductiveSyncDomain.cash),
-  ProductiveSyncDomainResult.notAttempted(ProductiveSyncDomain.pos),
   ProductiveSyncDomainResult.notAttempted(ProductiveSyncDomain.purchases),
+  ProductiveSyncDomainResult.notAttempted(ProductiveSyncDomain.pos),
   ProductiveSyncDomainResult.notAttempted(ProductiveSyncDomain.inventory),
 ];
 
@@ -284,9 +284,9 @@ class ProductiveManualSyncService {
           await _attempt(
               ProductiveSyncDomain.catalog, _catalogUploadRunner, context),
           await _attempt(ProductiveSyncDomain.cash, _cashRunner, context),
-          await _attempt(ProductiveSyncDomain.pos, _posRunner, context),
           await _attempt(
               ProductiveSyncDomain.purchases, _purchasesRunner, context),
+          await _attempt(ProductiveSyncDomain.pos, _posRunner, context),
           await _attempt(
               ProductiveSyncDomain.inventory, _inventoryRunner, context),
         ];

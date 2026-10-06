@@ -131,6 +131,19 @@ void main() {
     expect(result.outcome, ProductiveManualSyncOutcome.completed);
   });
 
+  test('pending purchase is uploaded before its dependent POS sale', () async {
+    var purchaseUploaded = false;
+    final fixture = _Fixture(
+      onPurchases: () => purchaseUploaded = true,
+      onPos: () => expect(purchaseUploaded, isTrue),
+    );
+
+    await fixture.service().run();
+
+    expect(fixture.calls.indexOf('purchases'),
+        lessThan(fixture.calls.indexOf('pos')));
+  });
+
   test('SY-07 one retryable failure does not stop other domains', () async {
     final fixture = _Fixture(
       status: () => _status(pendingPurchases: 1),
@@ -204,8 +217,8 @@ void main() {
 const _expectedOrder = [
   'catalog-upload',
   'cash',
-  'pos',
   'purchases',
+  'pos',
   'inventory',
   'catalog-refresh',
   'status',

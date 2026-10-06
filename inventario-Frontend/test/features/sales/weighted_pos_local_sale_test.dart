@@ -79,6 +79,111 @@ void main() {
         7201);
   });
 
+  test('repeated WEIGHT enqueue keeps one complete POS batch and its IDs',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    await fixture.sellWeight(735);
+    final first = await fixture.enqueue();
+    expect(first.batchesCreated, 1);
+
+    Future<List<Map<String, dynamic>>> mutations() async =>
+        (await fixture.database.customSelect('''
+          select m.entity_table, m.local_sync_batch_id, m.client_batch_id,
+                 m.idempotency_key, b.metadata_json
+          from local_sync_mutations m
+          join local_sync_batches b on b.id = m.local_sync_batch_id
+          where b.domain = 'pos' order by m.entity_table
+        ''').get()).map((row) => row.data).toList();
+
+    final before = await mutations();
+    expect(before, hasLength(3));
+    final batchId = before.first['local_sync_batch_id'];
+    expect(
+        before.every((row) => row['local_sync_batch_id'] == batchId), isTrue);
+    final metadata = jsonDecode(before.first['metadata_json'] as String);
+    expect(metadata['item_count'], 1);
+    expect(metadata['payment_count'], 1);
+
+    final second = await fixture.enqueue();
+    expect(second.batchesCreated, 0);
+    expect(second.mutationsEnqueued, 0);
+    expect(second.results.single['status'], 'reused');
+    expect(await mutations(), before);
+    expect(await fixture.count('local_sync_batches'), 1);
+    expect(await fixture.count('local_sync_mutations'), 3);
+  });
+
+  test('corrupt existing POS batch is not silently rebuilt', () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    await fixture.sellWeight(735);
+    await fixture.enqueue();
+    await fixture.database.customStatement('''
+      update local_sync_batches
+      set metadata_json = json_set(metadata_json, '\$.item_count', 2)
+      where domain = 'pos'
+    ''');
+
+    await expectLater(
+      fixture.enqueue(),
+      throwsA(isA<StateError>().having(
+        (error) => error.message,
+        'message',
+        'pos_batch_structure_conflict',
+      )),
+    );
+    expect(await fixture.count('local_sync_batches'), 1);
+    expect(await fixture.count('local_sync_mutations'), 3);
+  });
+
+  test(
+      'WEIGHT payment persists supplied exact cents, not a double-derived source',
+      () async {
+    final fixture = await _Fixture.create(priceCents: 1200100);
+    addTearDown(fixture.close);
+    final sale = await fixture.sell(
+      const [
+        PosLocalSaleItemInput(
+          productId: 'weight-product',
+          quantity: 3,
+          saleMode: ProductSaleMode.weight,
+        ),
+      ],
+      payments: const [
+        PosLocalPaymentInput(method: 'cash', amount: 72.01, amountCents: 7201),
+      ],
+    );
+    final payment = await fixture.database.customSelect(
+      'select metadata_json from sale_payments where sale_id = ?',
+      variables: [Variable<String>(sale.saleId)],
+    ).getSingle();
+    expect(jsonDecode(payment.read<String>('metadata_json'))['amount_cents'],
+        7201);
+  });
+
+  test('inconsistent exact payment shadow aborts without a sale', () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    await expectLater(
+      fixture.sell(
+        const [
+          PosLocalSaleItemInput(
+            productId: 'weight-product',
+            quantity: 500,
+            saleMode: ProductSaleMode.weight,
+          ),
+        ],
+        payments: const [
+          PosLocalPaymentInput(
+              method: 'cash', amount: 12000, amountCents: 1199900),
+        ],
+      ),
+      throwsArgumentError,
+    );
+    expect(await fixture.count('sales'), 0);
+  });
+
   test('full depletion consumes every remaining cost cent', () async {
     final fixture = await _Fixture.create(quantity: 735, costBasis: 228001);
     addTearDown(fixture.close);
@@ -277,6 +382,374 @@ void main() {
     expect(remote.called, isFalse);
     expect(await fixture.count('local_sync_mutations'), 3);
   });
+
+  test(
+      'W5B identical authoritative ACK is idempotent and does not reapply stock',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+
+    final sale = await fixture.sellWeight(735);
+    final dao = PosLocalSaleDao(fixture.database);
+
+    final stockBefore = await fixture.weightBalance();
+    expect(stockBefore['quantity_on_hand'], 12265);
+    expect(stockBefore['cost_basis_cents'], 2151092);
+
+    final ack = <String, dynamic>{
+      'sale_id': sale.saleId,
+      'sale_item_id': sale.lines.single.itemId,
+      'inventory_movement_id': 'remote-movement-1',
+      'mutation_status': 'applied',
+      'stock_quantity_grams': 12265,
+      'cost_basis_cents': 2151092,
+      'cogs_cents': 128908,
+      'cost_effect_cents': -128908,
+    };
+
+    await dao.applyWeightedSaleAck(
+      businessId: 'business',
+      branchId: 'branch',
+      saleId: sale.saleId,
+      entries: [ack],
+    );
+
+    await dao.applyWeightedSaleAck(
+      businessId: 'business',
+      branchId: 'branch',
+      saleId: sale.saleId,
+      entries: [ack],
+    );
+
+    final item = await fixture.item(sale.lines.single.itemId);
+    expect(item['cogs_cents'], 128908);
+
+    final movement = await fixture.row(
+      'local_inventory_movements',
+      sale.lines.single.inventoryMovementId,
+    );
+    expect(movement['cost_effect_cents'], -128908);
+
+    final stockAfter = await fixture.weightBalance();
+    expect(stockAfter['quantity_on_hand'], 12265);
+    expect(stockAfter['quantity_available'], 12265);
+    expect(stockAfter['cost_basis_cents'], 2151092);
+
+    expect(await fixture.count('local_inventory_movements'), 1);
+  });
+
+  test(
+      'W5B conflicting authoritative ACK is rejected without changing projection',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+
+    final sale = await fixture.sellWeight(735);
+    final dao = PosLocalSaleDao(fixture.database);
+
+    final ack = <String, dynamic>{
+      'sale_id': sale.saleId,
+      'sale_item_id': sale.lines.single.itemId,
+      'inventory_movement_id': 'remote-movement-1',
+      'mutation_status': 'applied',
+      'stock_quantity_grams': 12265,
+      'cost_basis_cents': 2151092,
+      'cogs_cents': 128908,
+      'cost_effect_cents': -128908,
+    };
+
+    await dao.applyWeightedSaleAck(
+      businessId: 'business',
+      branchId: 'branch',
+      saleId: sale.saleId,
+      entries: [ack],
+    );
+
+    final conflictingAck = <String, dynamic>{
+      ...ack,
+      'inventory_movement_id': 'remote-movement-conflict',
+    };
+
+    await expectLater(
+      dao.applyWeightedSaleAck(
+        businessId: 'business',
+        branchId: 'branch',
+        saleId: sale.saleId,
+        entries: [conflictingAck],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'weighted_sale_ack_conflict',
+        ),
+      ),
+    );
+
+    final item = await fixture.item(sale.lines.single.itemId);
+    expect(item['cogs_cents'], 128908);
+
+    final movement = await fixture.row(
+      'local_inventory_movements',
+      sale.lines.single.inventoryMovementId,
+    );
+    expect(movement['cost_effect_cents'], -128908);
+
+    final stock = await fixture.weightBalance();
+    expect(stock['quantity_on_hand'], 12265);
+    expect(stock['cost_basis_cents'], 2151092);
+
+    expect(await fixture.count('local_inventory_movements'), 1);
+  });
+
+  test('W5B identical ACK rejects divergent local cost projection', () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sellWeight(735);
+    final dao = PosLocalSaleDao(fixture.database);
+    final ack = <String, dynamic>{
+      'sale_id': sale.saleId,
+      'sale_item_id': sale.lines.single.itemId,
+      'inventory_movement_id': 'remote-movement-1',
+      'mutation_status': 'applied',
+      'stock_quantity_grams': 12265,
+      'cost_basis_cents': 2151092,
+      'cogs_cents': 128908,
+      'cost_effect_cents': -128908,
+    };
+
+    await dao.applyWeightedSaleAck(
+      businessId: 'business',
+      branchId: 'branch',
+      saleId: sale.saleId,
+      entries: [ack],
+    );
+    await fixture.database.customStatement(
+      'update sale_items set cogs_cents = ? where id = ?',
+      [128907, sale.lines.single.itemId],
+    );
+
+    await expectLater(
+      dao.applyWeightedSaleAck(
+        businessId: 'business',
+        branchId: 'branch',
+        saleId: sale.saleId,
+        entries: [ack],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'weighted_sale_ack_conflict',
+        ),
+      ),
+    );
+    expect(
+        (await fixture.item(sale.lines.single.itemId))['cogs_cents'], 128907);
+    expect(
+      (await fixture.row(
+        'local_inventory_movements',
+        sale.lines.single.inventoryMovementId,
+      ))['cost_effect_cents'],
+      -128908,
+    );
+  });
+
+  test('stale WEIGHT projects authoritative cost once without changing stock',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sellWeight(735);
+    await fixture.enqueue();
+    final result = await fixture.staleWeightResult(sale, cogsCents: 120000);
+    final before = await fixture.weightBalance();
+
+    final first = await fixture.projectStale(sale.saleId, [result]);
+    final second = await fixture.projectStale(sale.saleId, [result]);
+
+    expect(first.alreadyProjected, isFalse);
+    expect(second.alreadyProjected, isTrue);
+    final item = await fixture.item(sale.lines.single.itemId);
+    expect(item['cogs_cents'], 120000);
+    expect(
+        jsonDecode(item['metadata_json'] as String)['w5b_stale_remote_result']
+            ['inventory_movement_id'],
+        'remote-stale-movement');
+    final movement = await fixture.row(
+      'local_inventory_movements',
+      sale.lines.single.inventoryMovementId,
+    );
+    expect(movement['cost_effect_cents'], -120000);
+    expect(
+        jsonDecode(movement['metadata_json'] as String)[
+            'w5b_stale_remote_inventory_movement_id'],
+        'remote-stale-movement');
+    expect((await fixture.weightBalance())['quantity_on_hand'],
+        before['quantity_on_hand']);
+    final mutations = await fixture.database
+        .customSelect(
+          'select status, error_code from local_sync_mutations',
+        )
+        .get();
+    expect(mutations, hasLength(3));
+    expect(mutations.every((row) => row.read<String>('status') == 'skipped'),
+        isTrue);
+    expect(
+      mutations.every((row) =>
+          row.read<String>('error_code') ==
+          'superseded_by_sale_reconciliation'),
+      isTrue,
+    );
+    expect(await fixture.count('local_inventory_movements'), 1);
+  });
+
+  test('stale WEIGHT contradictory retry fails without changing projection',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sellWeight(735);
+    await fixture.enqueue();
+    final result = await fixture.staleWeightResult(sale, cogsCents: 120000);
+    await fixture.projectStale(sale.saleId, [result]);
+
+    await expectLater(
+      fixture.projectStale(sale.saleId, [
+        IntentionalStaleWeightedSaleProjection(
+          saleId: result.saleId,
+          saleItemId: result.saleItemId,
+          productId: result.productId,
+          quantityGrams: result.quantityGrams,
+          inventoryMovementId: 'different-remote-movement',
+          stockQuantityGrams: result.stockQuantityGrams,
+          costBasisCents: result.costBasisCents,
+          cogsCents: result.cogsCents,
+          costEffectCents: result.costEffectCents,
+          originalSyncMutationId: result.originalSyncMutationId,
+          originalMutationStatus: result.originalMutationStatus,
+          originalMutationErrorCode: result.originalMutationErrorCode,
+        ),
+      ]),
+      throwsA(isA<StateError>().having(
+        (error) => error.message,
+        'message',
+        'weighted_stale_sale_ack_conflict',
+      )),
+    );
+    expect((await fixture.item(result.saleItemId))['cogs_cents'], 120000);
+    expect((await fixture.weightBalance())['quantity_on_hand'], 12265);
+  });
+
+  test('stale WEIGHT rejects wrong original mutation and rolls back locally',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sellWeight(735);
+    await fixture.enqueue();
+    final result = await fixture.staleWeightResult(sale, cogsCents: 120000);
+
+    await expectLater(
+      fixture.projectStale(sale.saleId, [
+        IntentionalStaleWeightedSaleProjection(
+          saleId: result.saleId,
+          saleItemId: result.saleItemId,
+          productId: result.productId,
+          quantityGrams: result.quantityGrams,
+          inventoryMovementId: result.inventoryMovementId,
+          stockQuantityGrams: result.stockQuantityGrams,
+          costBasisCents: result.costBasisCents,
+          cogsCents: result.cogsCents,
+          costEffectCents: result.costEffectCents,
+          originalSyncMutationId: 'wrong-mutation',
+          originalMutationStatus: result.originalMutationStatus,
+          originalMutationErrorCode: result.originalMutationErrorCode,
+        ),
+      ]),
+      throwsStateError,
+    );
+    expect((await fixture.row('sales', sale.saleId))['local_status'], 'dirty');
+    expect((await fixture.item(result.saleItemId))['cogs_cents'], 128908);
+    expect((await fixture.weightBalance())['quantity_on_hand'], 12265);
+  });
+
+  test('stale WEIGHT requires one authoritative result per WEIGHT item',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sellWeight(735);
+    await fixture.enqueue();
+    await expectLater(
+        fixture.projectStale(sale.saleId, const []), throwsStateError);
+    expect((await fixture.row('sales', sale.saleId))['local_status'], 'dirty');
+  });
+
+  for (final cost in <int?>[null, 0]) {
+    test('stale WEIGHT preserves authoritative ${cost ?? 'unknown'} cost',
+        () async {
+      final fixture = await _Fixture.create(costBasis: cost);
+      addTearDown(fixture.close);
+      final sale = await fixture.sellWeight(735);
+      await fixture.enqueue();
+      final result = await fixture.staleWeightResult(sale, cogsCents: cost);
+      await fixture.projectStale(sale.saleId, [result]);
+      expect((await fixture.item(result.saleItemId))['cogs_cents'], cost);
+      expect(
+          (await fixture.row('local_inventory_movements',
+              sale.lines.single.inventoryMovementId))['cost_effect_cents'],
+          cost == null ? null : -cost);
+      expect((await fixture.weightBalance())['cost_basis_cents'], cost);
+    });
+  }
+
+  test('stale mixed sale leaves UNIT cost and movement unchanged', () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sell([
+      const PosLocalSaleItemInput(productId: 'unit-product', quantity: 2),
+      const PosLocalSaleItemInput(
+        productId: 'weight-product',
+        quantity: 735,
+        saleMode: ProductSaleMode.weight,
+      ),
+    ]);
+    await fixture.enqueue();
+    final weightResult =
+        await fixture.staleWeightResult(sale, cogsCents: 120000);
+    final unitLine = sale.lines
+        .singleWhere((line) => line.itemId != weightResult.saleItemId);
+    final unitItemBefore = await fixture.item(unitLine.itemId);
+    final unitMovementBefore = await fixture.row(
+        'local_inventory_movements', unitLine.inventoryMovementId);
+
+    await fixture.projectStale(sale.saleId, [weightResult]);
+
+    expect((await fixture.item(unitLine.itemId))['cogs_cents'],
+        unitItemBefore['cogs_cents']);
+    expect(
+        (await fixture.row('local_inventory_movements',
+            unitLine.inventoryMovementId))['cost_effect_cents'],
+        unitMovementBefore['cost_effect_cents']);
+    expect((await fixture.weightBalance())['quantity_on_hand'], 12265);
+    expect(
+        (await fixture.row('local_product_stock_balances',
+            'unit-balance'))['quantity_on_hand'],
+        8);
+  });
+
+  test('stale UNIT-only remains compatible with empty WEIGHT results',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.close);
+    final sale = await fixture.sell([
+      const PosLocalSaleItemInput(productId: 'unit-product', quantity: 1),
+    ]);
+    await fixture.enqueue();
+    await fixture.projectStale(sale.saleId, const []);
+    expect((await fixture.row('sales', sale.saleId))['local_status'], 'synced');
+    expect(
+        (await fixture.row('local_product_stock_balances',
+            'unit-balance'))['quantity_on_hand'],
+        9);
+  });
 }
 
 class _NoRemoteApply extends Fake implements PosSyncRemoteDataSource {
@@ -369,7 +842,8 @@ class _Fixture {
         ),
       ]);
 
-  Future<PosLocalSaleResult> sell(List<PosLocalSaleItemInput> items) =>
+  Future<PosLocalSaleResult> sell(List<PosLocalSaleItemInput> items,
+          {List<PosLocalPaymentInput> payments = const []}) =>
       PosLocalSaleService(dao: PosLocalSaleDao(database)).createLocalSale(
         CreatePosLocalSaleInput(
           businessId: 'business',
@@ -379,6 +853,7 @@ class _Fixture {
           cashSessionId: 'cash-session',
           deviceInstallationId: 'installation',
           items: items,
+          payments: payments,
         ),
       );
 
@@ -408,6 +883,49 @@ class _Fixture {
     ).getSingle();
     return jsonDecode(row.read<String>('payload_json')) as Map<String, dynamic>;
   }
+
+  Future<IntentionalStaleWeightedSaleProjection> staleWeightResult(
+    PosLocalSaleResult sale, {
+    required int? cogsCents,
+  }) async {
+    final line = sale.lines
+        .singleWhere((line) => line.itemId != '' && line.quantity == 735);
+    final mutation = await database.customSelect(
+      "select id from local_sync_mutations where entity_table = 'sale_items' "
+      'and entity_id = ?',
+      variables: [Variable<String>(line.itemId)],
+    ).getSingle();
+    return IntentionalStaleWeightedSaleProjection(
+      saleId: sale.saleId,
+      saleItemId: line.itemId,
+      productId: 'weight-product',
+      quantityGrams: 735,
+      inventoryMovementId: 'remote-stale-movement',
+      stockQuantityGrams: 12265,
+      costBasisCents: cogsCents == null ? null : 2000000,
+      cogsCents: cogsCents,
+      costEffectCents: cogsCents == null ? null : -cogsCents,
+      originalSyncMutationId: mutation.read<String>('id'),
+      originalMutationStatus: 'skipped',
+      originalMutationErrorCode: 'superseded_by_sale_reconciliation',
+    );
+  }
+
+  Future<IntentionalStaleSaleLocalProjectionResult> projectStale(
+    String saleId,
+    List<IntentionalStaleWeightedSaleProjection> results,
+  ) =>
+      PosLocalSaleDao(database).projectIntentionalStaleSaleReconciliation(
+        profileId: 'profile',
+        businessId: 'business',
+        branchId: 'branch',
+        saleId: saleId,
+        destinationCashSessionId: 'destination-session',
+        reconciliationId: 'reconciliation-id',
+        cashTreatment: 'not_included_in_destination_opening',
+        reason: 'Sale occurred',
+        weightedSaleResults: results,
+      );
 
   Future<int> count(String table) async => (await database
           .customSelect('select count(*) as count from $table')

@@ -1155,6 +1155,13 @@ class _OperationalEntryLoading extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(Icons.point_of_sale_outlined, size: 40),
+              SizedBox(height: 12),
+              Text(
+                'Cronos POS',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              ),
+              SizedBox(height: 20),
               CircularProgressIndicator(),
               SizedBox(height: 16),
               Text('Preparando tu negocio...'),

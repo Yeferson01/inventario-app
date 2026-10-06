@@ -40,80 +40,101 @@ class CashFlowReportScreen extends ConsumerWidget {
     final state = ref.watch(cashFlowReportControllerProvider(request));
     final controller =
         ref.read(cashFlowReportControllerProvider(request).notifier);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Flujo de caja y gastos'), actions: [
-        IconButton(
-            key: const Key('cash-flow-refresh'),
-            onPressed: state.isRefreshing ? null : controller.refresh,
-            tooltip: 'Actualizar reporte',
-            icon: const Icon(Icons.refresh_outlined)),
-      ]),
-      body: AppGradientBackground(
-          child: RefreshIndicator(
-        onRefresh: controller.refresh,
-        child: ListView(
-            key: const Key('cash-flow-scroll'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(CronosSpacing.md),
-            children: [
-              Text(branchName, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: CronosSpacing.sm),
-              Wrap(
-                  spacing: CronosSpacing.xs,
-                  runSpacing: CronosSpacing.xs,
-                  children: [
-                    for (final preset in CashFlowPreset.values)
-                      ChoiceChip(
-                          key: Key('cash-flow-preset-${preset.name}'),
-                          label: Text(preset.label),
-                          selected: state.preset == preset,
-                          onSelected: state.isRefreshing
-                              ? null
-                              : (selected) async {
-                                  if (preset == CashFlowPreset.custom) {
-                                    final range = await showDateRangePicker(
-                                        context: context,
-                                        initialDateRange: DateTimeRange(
-                                            start: state.startDate,
-                                            end: state.endDate),
-                                        firstDate: DateTime(1),
-                                        lastDate: DateTime(9999, 12, 31),
-                                        helpText:
-                                            'Selecciona un rango de fechas');
-                                    if (!context.mounted || range == null) {
-                                      return;
-                                    }
-                                    await controller.selectCustomRange(
-                                        range.start, range.end);
-                                  } else if (selected) {
-                                    await controller.selectPreset(preset);
-                                  }
-                                }),
-                  ]),
-              const SizedBox(height: CronosSpacing.md),
-              if (state.notice != null) ...[
-                AppGlassCard(
-                    key: const Key('cash-flow-notice'),
-                    child: Text(state.notice == CashFlowNotice.offlineCache
-                        ? 'Sin conexión · mostrando último reporte guardado'
-                        : 'No se pudo actualizar · mostrando datos guardados')),
-                const SizedBox(height: CronosSpacing.sm),
-              ],
-              if (state.phase == CashFlowPhase.loading)
-                const Center(child: CircularProgressIndicator())
-              else if (state.phase == CashFlowPhase.unauthorized)
-                const _Message('No tienes permiso para consultar este reporte.')
-              else if (state.phase == CashFlowPhase.unavailableOffline)
-                const _Message(
-                    'Este período no tiene un reporte guardado para uso sin conexión.')
-              else if (state.phase == CashFlowPhase.error ||
-                  state.snapshot == null)
-                const _Message(
-                    'No fue posible cargar el reporte. Intenta actualizar.')
-              else
-                _CashFlowBody(state: state),
-            ]),
-      )),
+    return Theme(
+      data: CronosTheme.light(),
+      child: Builder(
+          builder: (themedContext) => Scaffold(
+                appBar: AppBar(
+                    title: const Text('Flujo de caja y gastos'),
+                    actions: [
+                      IconButton(
+                          key: const Key('cash-flow-refresh'),
+                          onPressed:
+                              state.isRefreshing ? null : controller.refresh,
+                          tooltip: 'Actualizar reporte',
+                          icon: const Icon(Icons.refresh_outlined)),
+                    ]),
+                body: AppGradientBackground(
+                    child: RefreshIndicator(
+                  onRefresh: controller.refresh,
+                  child: ListView(
+                      key: const Key('cash-flow-scroll'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(CronosSpacing.md),
+                      children: [
+                        Text(branchName,
+                            style:
+                                Theme.of(themedContext).textTheme.titleLarge),
+                        const SizedBox(height: CronosSpacing.sm),
+                        Wrap(
+                            spacing: CronosSpacing.xs,
+                            runSpacing: CronosSpacing.xs,
+                            children: [
+                              for (final preset in CashFlowPreset.values)
+                                ChoiceChip(
+                                    key: Key('cash-flow-preset-${preset.name}'),
+                                    label: Text(preset.label),
+                                    selected: state.preset == preset,
+                                    onSelected: state.isRefreshing
+                                        ? null
+                                        : (selected) async {
+                                            if (preset ==
+                                                CashFlowPreset.custom) {
+                                              final range =
+                                                  await showDateRangePicker(
+                                                      context: themedContext,
+                                                      initialDateRange:
+                                                          DateTimeRange(
+                                                              start: state
+                                                                  .startDate,
+                                                              end: state
+                                                                  .endDate),
+                                                      firstDate: DateTime(1),
+                                                      lastDate: DateTime(
+                                                          9999, 12, 31),
+                                                      helpText:
+                                                          'Selecciona un rango de fechas');
+                                              if (!themedContext.mounted ||
+                                                  range == null) {
+                                                return;
+                                              }
+                                              await controller
+                                                  .selectCustomRange(
+                                                      range.start, range.end);
+                                            } else if (selected) {
+                                              await controller
+                                                  .selectPreset(preset);
+                                            }
+                                          }),
+                            ]),
+                        const SizedBox(height: CronosSpacing.md),
+                        if (state.notice != null) ...[
+                          AppGlassCard(
+                              key: const Key('cash-flow-notice'),
+                              child: Text(state.notice ==
+                                      CashFlowNotice.offlineCache
+                                  ? 'Sin conexión · mostrando último reporte guardado'
+                                  : 'No se pudo actualizar · mostrando datos guardados')),
+                          const SizedBox(height: CronosSpacing.sm),
+                        ],
+                        if (state.phase == CashFlowPhase.loading)
+                          const Center(child: CircularProgressIndicator())
+                        else if (state.phase == CashFlowPhase.unauthorized)
+                          const _Message(
+                              'No tienes permiso para consultar este reporte.')
+                        else if (state.phase ==
+                            CashFlowPhase.unavailableOffline)
+                          const _Message(
+                              'Este período no tiene un reporte guardado para uso sin conexión.')
+                        else if (state.phase == CashFlowPhase.error ||
+                            state.snapshot == null)
+                          const _Message(
+                              'No fue posible cargar el reporte. Intenta actualizar.')
+                        else
+                          _CashFlowBody(state: state),
+                      ]),
+                )),
+              )),
     );
   }
 }

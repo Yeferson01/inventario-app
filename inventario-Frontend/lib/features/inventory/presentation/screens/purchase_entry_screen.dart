@@ -12,10 +12,7 @@ import '../../application/product_stock_balance_providers.dart';
 import '../../application/purchase_local_models.dart';
 import '../../application/purchase_money.dart';
 import '../../application/purchase_local_provider.dart';
-import '../../application/purchase_sync_repair_provider.dart';
 import '../widgets/product_creation_commercial_fields.dart';
-import '../../../sync/application/local_sync_outbox_providers.dart';
-import '../../../sync/application/purchases_sync_upload_provider.dart';
 
 class PurchaseEntryScreen extends ConsumerStatefulWidget {
   const PurchaseEntryScreen({
@@ -48,7 +45,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
   String _query = '';
   bool _isSaving = false;
-  bool _isSyncingPurchases = false;
   bool _isCreatingQuickProduct = false;
 
   bool get _canViewInventoryCosts =>
@@ -357,7 +353,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
   }
 
   Future<void> _openQuickProductDialog() async {
-    if (_isCreatingQuickProduct || _isSaving || _isSyncingPurchases) {
+    if (_isCreatingQuickProduct || _isSaving) {
       return;
     }
 
@@ -371,10 +367,17 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
         var barcode = '';
 
         return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: CronosSpacing.md,
+            vertical: CronosSpacing.md,
+          ),
           title: const Text('Crear producto rápido'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
+          content: SizedBox(
+            width:
+                (MediaQuery.sizeOf(dialogContext).width - 64).clamp(0.0, 620.0),
+            child: Form(
+              key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -634,93 +637,6 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
     );
   }
 
-  Future<void> _syncPendingPurchases() async {
-    if (_isSyncingPurchases || _isSaving) {
-      return;
-    }
-
-    setState(() {
-      _isSyncingPurchases = true;
-    });
-
-    try {
-      final repairService = ref.read(purchaseSyncRepairServiceProvider);
-      await repairService.repairPartialOrFailedPurchases(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-      );
-
-      final productSyncService =
-          ref.read(inventoryProductFromMasterSyncServiceProvider);
-      final catalogUploadService = ref.read(catalogSyncUploadServiceProvider);
-      final outboxService = ref.read(purchaseSyncOutboxServiceProvider);
-      final uploadService = ref.read(purchasesSyncUploadServiceProvider);
-
-      await productSyncService
-          .enqueueManualProductsUsedByUnsyncedPurchasesForCatalogSync(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-        profileId: widget.profileId,
-        appDeviceId: widget.appDeviceId,
-        deviceInstallationId: widget.deviceInstallationId,
-      );
-
-      final catalogUploadResult =
-          await catalogUploadService.uploadPendingCatalogBatches(
-        businessId: widget.businessId,
-        batchLimit: 250,
-      );
-
-      await outboxService.enqueuePendingPurchases(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-        profileId: widget.profileId,
-        appDeviceId: widget.appDeviceId,
-        deviceInstallationId: widget.deviceInstallationId,
-        limit: 250,
-      );
-
-      final uploadResult = await uploadService.uploadPendingPurchasesBatches(
-        businessId: widget.businessId,
-        branchId: widget.branchId,
-        batchLimit: 250,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      ref.invalidate(
-        localProductsWithStockProvider(
-          ProductsWithLocalStockKey(
-            businessId: widget.businessId,
-            branchId: widget.branchId,
-            limit: 250,
-          ),
-        ),
-      );
-
-      final hasIssues = catalogUploadResult.batchesPartial > 0 ||
-          catalogUploadResult.batchesFailed > 0 ||
-          uploadResult.batchesPartial > 0 ||
-          uploadResult.batchesFailed > 0 ||
-          uploadResult.batchesWaitingForDependencies > 0 ||
-          uploadResult.batchesBlockedByDependencies > 0;
-      _showMessage(hasIssues
-          ? 'Algunas compras siguen pendientes. Revisa la sincronización e inténtalo nuevamente.'
-          : 'Las compras pendientes están al día.');
-    } catch (_) {
-      _showMessage(
-          'No pudimos sincronizar las compras. Tus cambios siguen guardados; inténtalo nuevamente.');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSyncingPurchases = false;
-        });
-      }
-    }
-  }
-
   Future<void> _savePurchase() async {
     if (_isSaving) {
       return;
@@ -895,19 +811,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
           title: const Text('Compras'),
           actions: [
             IconButton(
-              onPressed: _isSaving || _isSyncingPurchases
-                  ? null
-                  : _syncPendingPurchases,
-              icon: _isSyncingPurchases
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.cloud_sync_outlined),
-              tooltip: 'Sincronizar compras',
-            ),
-            IconButton(
-              onPressed: _isSaving || _isSyncingPurchases
+              onPressed: _isSaving
                   ? null
                   : () {
                       ref.invalidate(
@@ -932,11 +836,12 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
               if (wide) {
                 return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
                       flex: 6,
                       child: _ProductsPanel(
+                        scrollablePanel: true,
                         searchController: _searchController,
                         query: _query,
                         canViewInventoryCosts: _canViewInventoryCosts,
@@ -954,6 +859,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
                     Expanded(
                       flex: 4,
                       child: _PurchaseCartPanel(
+                        scrollablePanel: true,
                         supplierNameController: _supplierNameController,
                         items: _cartItems,
                         total: _total,
@@ -1070,6 +976,7 @@ class _PurchaseEntryScreenState extends ConsumerState<PurchaseEntryScreen> {
 
 class _ProductsPanel extends StatelessWidget {
   const _ProductsPanel({
+    this.scrollablePanel = false,
     required this.searchController,
     required this.query,
     required this.canViewInventoryCosts,
@@ -1080,6 +987,7 @@ class _ProductsPanel extends StatelessWidget {
     required this.onCreateQuickProduct,
   });
 
+  final bool scrollablePanel;
   final TextEditingController searchController;
   final String query;
   final bool canViewInventoryCosts;
@@ -1092,6 +1000,50 @@ class _ProductsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final results = productsAsync.when(
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(CronosSpacing.lg),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, _) => const AppEmptyState(
+        icon: Icons.error_outline,
+        title: 'No se pudieron cargar productos',
+        message: 'No pudimos cargar los productos. Vuelve a intentarlo.',
+      ),
+      data: (products) {
+        final filtered = filterProducts(products);
+        if (filtered.isEmpty) {
+          return const AppEmptyState(
+            icon: Icons.inventory_2_outlined,
+            title: 'Sin productos',
+            message:
+                'Sincroniza catálogo o crea productos antes de registrar compras.',
+          );
+        }
+        final list = ListView.separated(
+          key: const Key('purchase-products-scroll'),
+          primary: false,
+          padding: EdgeInsets.zero,
+          itemCount: filtered.length,
+          separatorBuilder: (_, __) => const SizedBox(height: CronosSpacing.sm),
+          itemBuilder: (context, index) {
+            final product = filtered[index];
+            return _ProductPurchaseTile(
+              product: product,
+              canViewInventoryCosts: canViewInventoryCosts,
+              onTap: () => onProductTap(product),
+            );
+          },
+        );
+        if (scrollablePanel) return list;
+        final listHeight = (MediaQuery.sizeOf(context).height * 0.52)
+            .clamp(280.0, 620.0)
+            .toDouble();
+        return SizedBox(height: listHeight, child: list);
+      },
+    );
     return Padding(
       padding: const EdgeInsets.all(CronosSpacing.md),
       child: AppGlassCard(
@@ -1122,55 +1074,7 @@ class _ProductsPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: CronosSpacing.md),
-            productsAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(CronosSpacing.lg),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (error, _) => const AppEmptyState(
-                icon: Icons.error_outline,
-                title: 'No se pudieron cargar productos',
-                message:
-                    'No pudimos cargar los productos. Vuelve a intentarlo.',
-              ),
-              data: (products) {
-                final filtered = filterProducts(products);
-
-                if (filtered.isEmpty) {
-                  return const AppEmptyState(
-                    icon: Icons.inventory_2_outlined,
-                    title: 'Sin productos',
-                    message:
-                        'Sincroniza catálogo o crea productos antes de registrar compras.',
-                  );
-                }
-
-                final listHeight = (MediaQuery.sizeOf(context).height * 0.52)
-                    .clamp(280.0, 620.0)
-                    .toDouble();
-
-                return SizedBox(
-                  height: listHeight,
-                  child: ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: CronosSpacing.sm),
-                    itemBuilder: (context, index) {
-                      final product = filtered[index];
-
-                      return _ProductPurchaseTile(
-                        product: product,
-                        canViewInventoryCosts: canViewInventoryCosts,
-                        onTap: () => onProductTap(product),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+            if (scrollablePanel) Expanded(child: results) else results,
           ],
         ),
       ),
@@ -1269,6 +1173,7 @@ class _ProductPurchaseTile extends StatelessWidget {
 
 class _PurchaseCartPanel extends StatelessWidget {
   const _PurchaseCartPanel({
+    this.scrollablePanel = false,
     required this.supplierNameController,
     required this.items,
     required this.total,
@@ -1284,6 +1189,7 @@ class _PurchaseCartPanel extends StatelessWidget {
     required this.onSave,
   });
 
+  final bool scrollablePanel;
   final TextEditingController supplierNameController;
   final List<_PurchaseCartItem> items;
   final double total;
@@ -1300,93 +1206,86 @@ class _PurchaseCartPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final children = <Widget>[
+      Text('Compra actual', style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: CronosSpacing.sm),
+      TextField(
+        controller: supplierNameController,
+        decoration: const InputDecoration(
+          labelText: 'Proveedor opcional',
+          prefixIcon: Icon(Icons.local_shipping_outlined),
+          border: OutlineInputBorder(),
+        ),
+      ),
+      const SizedBox(height: CronosSpacing.md),
+      if (items.isEmpty)
+        const AppEmptyState(
+          icon: Icons.add_shopping_cart_outlined,
+          title: 'Sin productos',
+          message: 'Agrega productos desde el listado para reponer stock.',
+        )
+      else
+        for (final item in items) ...[
+          _PurchaseCartTile(
+            key: ValueKey(
+                'purchase-cart-${item.productId}-${item.saleModeSnapshot.wireValue}'),
+            item: item,
+            onIncrement: () => onIncrement(item),
+            onDecrement: () => onDecrement(item),
+            onRemove: () => onRemove(item),
+            onEditQuantity: () => onEditQuantity(item),
+            onEditUnitCost: () => onEditUnitCost(item),
+            onUpdateWeight: onUpdateWeight,
+          ),
+          const SizedBox(height: CronosSpacing.sm),
+        ],
+      const SizedBox(height: CronosSpacing.md),
+      Wrap(
+        spacing: CronosSpacing.sm,
+        runSpacing: CronosSpacing.sm,
+        children: [
+          _PurchaseMetricPill(
+            icon: Icons.format_list_numbered_outlined,
+            label: weightLineCount == 0
+                ? '$itemCount uds.'
+                : itemCount == 0
+                    ? '$weightLineCount por peso'
+                    : '$itemCount uds. · $weightLineCount por peso',
+          ),
+          _PurchaseMetricPill(
+            icon: Icons.payments_outlined,
+            label: _PurchaseEntryScreenState._money(total),
+          ),
+        ],
+      ),
+      const SizedBox(height: CronosSpacing.md),
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: isSaving ? null : onSave,
+          icon: isSaving
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save_outlined),
+          label: Text(isSaving ? 'Guardando compra...' : 'Registrar compra'),
+        ),
+      ),
+    ];
     return Padding(
       padding: const EdgeInsets.all(CronosSpacing.md),
       child: AppGlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Compra actual',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: CronosSpacing.sm),
-            TextField(
-              controller: supplierNameController,
-              decoration: const InputDecoration(
-                labelText: 'Proveedor opcional',
-                prefixIcon: Icon(Icons.local_shipping_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: CronosSpacing.md),
-            if (items.isEmpty)
-              const AppEmptyState(
-                icon: Icons.add_shopping_cart_outlined,
-                title: 'Sin productos',
-                message:
-                    'Agrega productos desde el listado para reponer stock.',
+        child: scrollablePanel
+            ? ListView(
+                key: const Key('purchase-cart-scroll'),
+                primary: false,
+                children: children,
               )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: items.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: CronosSpacing.sm),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-
-                  return _PurchaseCartTile(
-                    key: ValueKey(
-                        'purchase-cart-${item.productId}-${item.saleModeSnapshot.wireValue}'),
-                    item: item,
-                    onIncrement: () => onIncrement(item),
-                    onDecrement: () => onDecrement(item),
-                    onRemove: () => onRemove(item),
-                    onEditQuantity: () => onEditQuantity(item),
-                    onEditUnitCost: () => onEditUnitCost(item),
-                    onUpdateWeight: onUpdateWeight,
-                  );
-                },
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
               ),
-            const SizedBox(height: CronosSpacing.md),
-            Wrap(
-              spacing: CronosSpacing.sm,
-              runSpacing: CronosSpacing.sm,
-              children: [
-                _PurchaseMetricPill(
-                  icon: Icons.format_list_numbered_outlined,
-                  label: weightLineCount == 0
-                      ? '$itemCount uds.'
-                      : itemCount == 0
-                          ? '$weightLineCount por peso'
-                          : '$itemCount uds. · $weightLineCount por peso',
-                ),
-                _PurchaseMetricPill(
-                  icon: Icons.payments_outlined,
-                  label: _PurchaseEntryScreenState._money(total),
-                ),
-              ],
-            ),
-            const SizedBox(height: CronosSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: isSaving ? null : onSave,
-                icon: isSaving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text(
-                  isSaving ? 'Guardando compra...' : 'Registrar compra',
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

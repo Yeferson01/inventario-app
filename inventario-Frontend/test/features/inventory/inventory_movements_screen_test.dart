@@ -73,6 +73,25 @@ void main() {
       },
     );
 
+    testWidgets('WEIGHT sale movement labels grams, not units', (tester) async {
+      final service = _FakeInventoryHistoryService(
+        rows: [
+          _row(
+            id: 'weight-sale',
+            effectiveType: 'sale',
+            isWeight: true,
+            quantityDelta: -735,
+            previousStock: 13000,
+            newStock: 12265,
+          ),
+        ],
+        coverage: _coverage(hasCachedRows: true, hasMoreRemote: false),
+      );
+      await _pumpScreen(tester, service: service, context: _context());
+      expect(find.text('-735 g'), findsOneWidget);
+      expect(find.text('Stock: 13000 g → 12265 g'), findsOneWidget);
+    });
+
     testWidgets(
       'distinguishes unknown cost from known zero cost',
       (tester) async {
@@ -646,6 +665,7 @@ InventoryHistoryCoverage _coverage({
 
 InventoryMovementHistoryEntry _row({
   required String id,
+  bool isWeight = false,
   DateTime? occurredAt,
   String effectiveType = 'purchase',
   String productName = 'Producto de prueba',
@@ -662,6 +682,7 @@ InventoryMovementHistoryEntry _row({
     productId: 'product-1',
     productName: productName,
     productBarcode: null,
+    isWeight: isWeight,
     movementType: effectiveType,
     effectiveType: effectiveType,
     quantityDelta: quantityDelta,

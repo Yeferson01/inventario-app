@@ -245,7 +245,9 @@ class PosLocalSaleService {
     final paymentTotalCents = exactSale
         ? paymentInputs.fold<BigInt>(
             BigInt.zero,
-            (sum, payment) => sum + BigInt.from(_moneyCents(payment.amount)),
+            (sum, payment) =>
+                sum +
+                BigInt.from(payment.amountCents ?? _moneyCents(payment.amount)),
           )
         : null;
     if (exactSale
@@ -270,7 +272,8 @@ class PosLocalSaleService {
         'reference': payment.reference,
         'metadata': {
           'source': 'pos_local_sale_service',
-          if (exactSale) 'amount_cents': _moneyCents(payment.amount),
+          if (exactSale)
+            'amount_cents': payment.amountCents ?? _moneyCents(payment.amount),
         },
         'sync_status': SyncStatus.pendingInsert.index,
         'local_status': 'dirty',
@@ -395,6 +398,11 @@ class PosLocalSaleService {
 
       if (payment.amount <= 0) {
         throw ArgumentError('El pago debe ser mayor a cero.');
+      }
+      if (payment.amountCents != null &&
+          (payment.amountCents! <= 0 ||
+              _moneyCents(payment.amount) != payment.amountCents)) {
+        throw ArgumentError('El pago exacto no coincide con su importe.');
       }
     }
   }

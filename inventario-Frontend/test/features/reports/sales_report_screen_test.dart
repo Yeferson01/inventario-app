@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventario_frontend/app/theme/dark_theme.dart';
 import 'package:inventario_frontend/features/reports/application/sales_report_controller.dart';
 import 'package:inventario_frontend/features/reports/application/sales_report_providers.dart';
 import 'package:inventario_frontend/features/reports/application/sales_report_service.dart';
@@ -336,6 +338,47 @@ void main() {
     expect(service.readScopes.single.period.filterKey, period.filterKey);
   });
 
+  testWidgets('tablet landscape accepts the calendar range without overflow',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _FakeSalesReportService();
+    await _pumpScreen(tester,
+        service: service, now: now, isOnline: false, useDarkAppTheme: true);
+    await tester.pumpAndSettle();
+    expect(Theme.of(tester.element(find.text('Sucursal Principal'))).brightness,
+        Brightness.light);
+    await tester.tap(find.text('Personalizado'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DateRangePickerDialog), findsOneWidget);
+    expect(tester.takeException(), null);
+    await tester.tap(find.text('Aplicar'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), null);
+    expect(find.byType(DateRangePickerDialog), findsNothing);
+  });
+
+  testWidgets('tablet portrait accepts the calendar range without overflow',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1280);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _FakeSalesReportService();
+    await _pumpScreen(tester,
+        service: service, now: now, isOnline: false, useDarkAppTheme: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Personalizado'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DateRangePickerDialog), findsOneWidget);
+    await tester.tap(find.text('Aplicar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DateRangePickerDialog), findsNothing);
+    expect(tester.takeException(), null);
+  });
+
   testWidgets(
       'custom picker submits inclusive range, shows offline cache, and reopens same range',
       (tester) async {
@@ -446,15 +489,10 @@ Future<void> _pumpScreen(
   required DateTime now,
   required bool isOnline,
   Set<String> permissions = const {salesReportCapability},
+  bool useDarkAppTheme = false,
 }) async {
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        salesReportServiceProvider.overrideWithValue(service),
-        salesReportOnlineCheckProvider.overrideWithValue(() async => isOnline),
-        salesReportClockProvider.overrideWithValue(() => now),
-      ],
-      child: MaterialApp(
+  Widget app() => MaterialApp(
+        theme: useDarkAppTheme ? AppDarkTheme.theme : null,
         home: SalesReportScreen(
           profileId: 'profile-1',
           businessId: 'business-1',
@@ -464,7 +502,21 @@ Future<void> _pumpScreen(
           authorizationContextReady: true,
           authorizationValidatedAt: DateTime.utc(2026, 9, 23, 12),
         ),
-      ),
+      );
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        salesReportServiceProvider.overrideWithValue(service),
+        salesReportOnlineCheckProvider.overrideWithValue(() async => isOnline),
+        salesReportClockProvider.overrideWithValue(() => now),
+      ],
+      child: useDarkAppTheme
+          ? ScreenUtilInit(
+              designSize: const Size(390, 844),
+              minTextAdapt: true,
+              builder: (context, child) => app(),
+            )
+          : app(),
     ),
   );
 }

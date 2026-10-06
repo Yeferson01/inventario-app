@@ -8,6 +8,7 @@ import '../../../core/database/database_provider.dart';
 import '../../catalog/application/catalog_local_providers.dart';
 import '../../cash/application/cash_session_local_provider.dart';
 import '../../inventory/application/purchase_local_provider.dart';
+import '../../inventory/application/inventory_product_providers.dart';
 import '../../sales/application/pos_local_sale_provider.dart';
 import 'app_installation_id_store.dart';
 import 'app_sync_coordinator_models.dart';
@@ -115,6 +116,8 @@ final productiveManualSyncServiceProvider =
   final posUpload = ref.watch(posSyncUploadServiceProvider);
   final purchaseOutbox = ref.watch(purchaseSyncOutboxServiceProvider);
   final purchaseUpload = ref.watch(purchasesSyncUploadServiceProvider);
+  final productFromMaster =
+      ref.watch(inventoryProductFromMasterSyncServiceProvider);
   final inventoryUpload = ref.watch(inventorySyncUploadServiceProvider);
 
   return ProductiveManualSyncService(
@@ -138,6 +141,14 @@ final productiveManualSyncServiceProvider =
       return runtime;
     },
     catalogUploadRunner: (context) async {
+      await productFromMaster
+          .enqueueManualProductsUsedByUnsyncedPurchasesForCatalogSync(
+        businessId: context.businessId,
+        branchId: context.branchId,
+        profileId: context.profileId,
+        appDeviceId: context.appDeviceId,
+        deviceInstallationId: context.installationId,
+      );
       final result = await catalogUpload.uploadPendingCatalogBatches(
         businessId: context.businessId,
       );
@@ -148,13 +159,18 @@ final productiveManualSyncServiceProvider =
       );
     },
     cashRunner: (context) async {
-      await cashOutbox.enqueuePendingCash(
-        businessId: context.businessId,
-        branchId: context.branchId,
-        profileId: context.profileId,
-        appDeviceId: context.appDeviceId,
-        deviceInstallationId: context.installationId,
-      );
+      try {
+        await cashOutbox.enqueuePendingCash(
+          businessId: context.businessId,
+          branchId: context.branchId,
+          profileId: context.profileId,
+          appDeviceId: context.appDeviceId,
+          deviceInstallationId: context.installationId,
+        );
+      } on StateError catch (error) {
+        // An existing batch owns this mutation. Upload it without moving it.
+        if (error.message != 'mutation_batch_identity_conflict') rethrow;
+      }
       final result = await cashUpload.uploadPendingCashBatches(
         businessId: context.businessId,
         branchId: context.branchId,

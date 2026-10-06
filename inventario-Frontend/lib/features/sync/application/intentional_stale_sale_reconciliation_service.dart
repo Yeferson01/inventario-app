@@ -94,6 +94,7 @@ typedef IntentionalStaleSaleLocalProjector
   required String reconciliationId,
   required String cashTreatment,
   required String reason,
+  required List<IntentionalStaleWeightedSaleProjection> weightedSaleResults,
 });
 
 typedef IntentionalStaleSaleLocalPreviewLoader
@@ -261,6 +262,24 @@ class IntentionalStaleSaleReconciliationService {
         reconciliationId: input.reconciliationId,
         cashTreatment: input.cashTreatment.wireValue,
         reason: input.reason.trim(),
+        weightedSaleResults: remote.weightedSaleReconciliationResults
+            .map(
+              (entry) => IntentionalStaleWeightedSaleProjection(
+                saleId: entry.saleId,
+                saleItemId: entry.saleItemId,
+                productId: entry.productId,
+                quantityGrams: entry.quantityGrams,
+                inventoryMovementId: entry.inventoryMovementId,
+                stockQuantityGrams: entry.stockQuantityGrams,
+                costBasisCents: entry.costBasisCents,
+                cogsCents: entry.cogsCents,
+                costEffectCents: entry.costEffectCents,
+                originalSyncMutationId: entry.originalSyncMutationId,
+                originalMutationStatus: entry.originalMutationStatus,
+                originalMutationErrorCode: entry.originalMutationErrorCode,
+              ),
+            )
+            .toList(growable: false),
       );
     } catch (error) {
       throw IntentionalStaleSaleReconciliationException(

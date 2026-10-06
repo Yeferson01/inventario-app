@@ -97,6 +97,23 @@ void main() {
     expect(rows.last.occurredAt, instant);
   });
 
+  test('history resolves WEIGHT quantity unit from scoped product', () async {
+    await db.customStatement(
+      'insert into businesses (id, name) values (?, ?)',
+      ['business', 'Shop'],
+    );
+    await db.customStatement(
+      'insert into products (id, business_id, name, sale_mode, sale_price) '
+      'values (?, ?, ?, ?, ?)',
+      ['product', 'business', 'Carne', 'weight', 12000],
+    );
+    await insertRaw('weight-sale', instant.millisecondsSinceEpoch ~/ 1000,
+        type: 'sale');
+    final entries =
+        await history.loadHistory(query: query(), canViewCosts: false);
+    expect(entries.single.isWeight, isTrue);
+  });
+
   test(
       'pending seconds, hydrated ISO and legacy milliseconds sort chronologically',
       () async {

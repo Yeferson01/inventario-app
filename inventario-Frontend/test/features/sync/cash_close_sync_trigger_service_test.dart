@@ -173,8 +173,8 @@ void main() {
 const _syncOrder = [
   'catalog-upload',
   'cash',
-  'pos',
   'purchases',
+  'pos',
   'inventory',
   'catalog-refresh',
   'status',

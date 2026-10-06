@@ -819,6 +819,106 @@ class PosLocalSaleDao {
     });
   }
 
+  /// Projects W5B's authoritative cost result onto the already-created local
+  /// sale and movement. Stock is deliberately not deducted here: the local
+  /// sale did that at creation, and inventory convergence rebases the remote
+  /// balance with any later pending local movements.
+  Future<void> applyWeightedSaleAck({
+    required String businessId,
+    required String branchId,
+    required String saleId,
+    required List<Map<String, dynamic>> entries,
+  }) async {
+    if (entries.isEmpty) {
+      throw StateError('weighted_sale_ack_missing');
+    }
+    await _db.transaction(() async {
+      final seenItemIds = <String>{};
+      for (final entry in entries) {
+        final itemId = entry['sale_item_id']?.toString();
+        final ackSaleId = entry['sale_id']?.toString();
+        final movementId = entry['inventory_movement_id']?.toString();
+        final stock = entry['stock_quantity_grams'];
+        final costBasis = entry['cost_basis_cents'];
+        final cogs = entry['cogs_cents'];
+        final effect = entry['cost_effect_cents'];
+        if (itemId == null ||
+            itemId.isEmpty ||
+            !seenItemIds.add(itemId) ||
+            ackSaleId != saleId ||
+            movementId == null ||
+            movementId.isEmpty ||
+            entry['mutation_status'] != 'applied' ||
+            stock is! int ||
+            stock < 0 ||
+            (costBasis != null && (costBasis is! int || costBasis < 0)) ||
+            (cogs != null && (cogs is! int || cogs < 0)) ||
+            (effect != null && effect is! int) ||
+            (cogs == null ? effect != null : effect != -cogs)) {
+          throw StateError('weighted_sale_ack_invalid');
+        }
+        final rows = await _db.customSelect(
+          '''
+          select si.id, si.quantity, si.cogs_cents, si.metadata_json,
+                 lm.id as movement_id, lm.quantity_change,
+                 lm.cost_effect_cents,
+                 lm.metadata_json as movement_metadata_json
+          from sale_items si
+          join sales s on s.id = si.sale_id
+          join local_inventory_movements lm
+           on lm.source_type = 'sale' and lm.source_id = s.id
+           and lm.product_id = si.product_id
+           and json_extract(lm.metadata_json, '\$.sale_item_id') = si.id
+          where si.id = ? and si.sale_id = ?
+            and si.sale_mode_snapshot = 'weight'
+            and s.business_id = ? and s.branch_id = ?
+            and lm.business_id = ? and lm.branch_id = ?
+            and si.deleted_at is null and lm.deleted_at is null
+          ''',
+          variables: [
+            Variable<String>(itemId),
+            Variable<String>(saleId),
+            Variable<String>(businessId),
+            Variable<String>(branchId),
+            Variable<String>(businessId),
+            Variable<String>(branchId),
+          ],
+          readsFrom: {_db.saleItems, _db.sales, _db.localInventoryMovements},
+        ).get();
+        if (rows.length != 1 ||
+            rows.single.data['quantity_change'] !=
+                -(rows.single.data['quantity'] as int)) {
+          throw StateError('weighted_sale_ack_local_scope_mismatch');
+        }
+        final row = rows.single.data;
+        final itemMetadata = _metadataMap(row['metadata_json']);
+        final oldAck = itemMetadata['w5b_remote_ack'];
+        final movementMetadata = _metadataMap(row['movement_metadata_json']);
+        if (oldAck != null &&
+            (oldAck is! Map ||
+                oldAck.length != entry.length ||
+                !entry.entries
+                    .every((field) => oldAck[field.key] == field.value) ||
+                row['cogs_cents'] != cogs ||
+                row['cost_effect_cents'] != effect ||
+                movementMetadata['w5b_remote_movement_id'] != movementId)) {
+          throw StateError('weighted_sale_ack_conflict');
+        }
+        itemMetadata['w5b_remote_ack'] = entry;
+        movementMetadata['w5b_remote_movement_id'] = movementId;
+        await _customStatement(
+          'update sale_items set cogs_cents = ?, metadata_json = ? where id = ?',
+          [cogs, jsonEncode(itemMetadata), itemId],
+        );
+        await _customStatement(
+          '''update local_inventory_movements
+             set cost_effect_cents = ?, metadata_json = ? where id = ?''',
+          [effect, jsonEncode(movementMetadata), row['movement_id']],
+        );
+      }
+    });
+  }
+
   Future<DiscardUnmaterializedLocalSaleLocalResult>
       discardUnmaterializedLocalSale({
     required String profileId,
@@ -1233,6 +1333,7 @@ class PosLocalSaleDao {
     required String reconciliationId,
     required String cashTreatment,
     required String reason,
+    required List<IntentionalStaleWeightedSaleProjection> weightedSaleResults,
   }) {
     return _db.transaction(() async {
       final now = DateTime.now().toUtc();
@@ -1252,24 +1353,17 @@ class PosLocalSaleDao {
       }
 
       final saleMetadata = _metadataMap(sale['metadata_json']);
-      if (saleMetadata['sale_reconciliation_id'] == reconciliationId) {
+      final alreadyProjected =
+          saleMetadata['sale_reconciliation_id'] == reconciliationId;
+
+      if (alreadyProjected) {
         if (sale['cash_session_id']?.toString() != destinationCashSessionId ||
             saleMetadata['cash_treatment']?.toString() != cashTreatment) {
           throw StateError(
             'La proyección local existente no coincide con el resultado canónico.',
           );
         }
-        return IntentionalStaleSaleLocalProjectionResult(
-          saleId: saleId,
-          alreadyProjected: true,
-          movementsAcknowledged: 0,
-          mutationsSuperseded: 0,
-          issuesResolved: 0,
-          stockByProductBefore: const {},
-          stockByProductAfter: const {},
-        );
-      }
-      if (sale['local_status']?.toString() != 'dirty' ||
+      } else if (sale['local_status']?.toString() != 'dirty' ||
           sale['sync_status'] == SyncStatus.synced.index) {
         throw StateError(
           'La venta local no conserva el estado dirty requerido.',
@@ -1356,6 +1450,173 @@ class PosLocalSaleDao {
             row.data['entity_id'] == saleId,
       )) {
         throw StateError('No existe el outbox original de la venta.');
+      }
+
+      Future<void> applyWeightedAuthoritativeProjection() async {
+        final weightedItems = items.where(
+          (row) => row.data['sale_mode_snapshot']?.toString() == 'weight',
+        );
+
+        final expectedItemIds =
+            weightedItems.map((row) => row.data['id'].toString()).toSet();
+
+        final receivedItemIds =
+            weightedSaleResults.map((result) => result.saleItemId).toSet();
+
+        if (expectedItemIds.length != weightedSaleResults.length ||
+            receivedItemIds.length != weightedSaleResults.length ||
+            expectedItemIds.length != receivedItemIds.length ||
+            !expectedItemIds.containsAll(receivedItemIds)) {
+          throw StateError(
+            'El resultado WEIGHT autoritativo no coincide con los items locales.',
+          );
+        }
+
+        for (final result in weightedSaleResults) {
+          if (result.saleId != saleId ||
+              result.originalMutationStatus != 'skipped' ||
+              result.originalMutationErrorCode !=
+                  'superseded_by_sale_reconciliation') {
+            throw StateError(
+              'El resultado WEIGHT autoritativo tiene una procedencia inválida.',
+            );
+          }
+
+          final matchingItems = items.where(
+            (row) => row.data['id']?.toString() == result.saleItemId,
+          );
+
+          if (matchingItems.length != 1) {
+            throw StateError(
+              'No existe exactamente un sale_item local para el resultado WEIGHT.',
+            );
+          }
+
+          final item = matchingItems.single;
+          if (item.data['product_id']?.toString() != result.productId ||
+              item.data['sale_mode_snapshot']?.toString() != 'weight' ||
+              (item.data['quantity'] as num).toInt() != result.quantityGrams) {
+            throw StateError(
+              'El sale_item WEIGHT local no coincide con Hosted.',
+            );
+          }
+
+          final matchingMutations = relatedMutations.where(
+            (row) =>
+                row.data['id']?.toString() == result.originalSyncMutationId &&
+                row.data['entity_table'] == 'sale_items' &&
+                row.data['entity_id']?.toString() == result.saleItemId,
+          );
+          if (matchingMutations.length != 1) {
+            throw StateError(
+              'La mutation original WEIGHT no coincide con el item local.',
+            );
+          }
+
+          final matchingMovements = movements.where((row) {
+            final metadata = _metadataMap(row.data['metadata_json']);
+            return row.data['product_id']?.toString() == result.productId &&
+                metadata['sale_item_id']?.toString() == result.saleItemId;
+          }).toList(growable: false);
+
+          if (matchingMovements.length != 1) {
+            throw StateError(
+              'No existe exactamente un movimiento local para el item WEIGHT.',
+            );
+          }
+
+          final movement = matchingMovements.single;
+
+          if ((movement.data['quantity_change'] as num).toInt() !=
+              -result.quantityGrams) {
+            throw StateError(
+              'La cantidad del movimiento WEIGHT local no coincide con Hosted.',
+            );
+          }
+
+          if ((result.cogsCents == null) != (result.costEffectCents == null) ||
+              (result.cogsCents != null &&
+                  result.costEffectCents != -result.cogsCents!)) {
+            throw StateError(
+              'Hosted devolvió COGS/cost effect WEIGHT inconsistentes.',
+            );
+          }
+
+          final canonical = result.toMetadata();
+
+          final itemMetadata = _metadataMap(item.data['metadata_json']);
+          final previous = itemMetadata['w5b_stale_remote_result'];
+          final movementMetadata = _metadataMap(movement.data['metadata_json']);
+          final previousMovement = movementMetadata['w5b_stale_remote_result'];
+
+          bool sameResult(Object? value) =>
+              value is Map &&
+              value.length == canonical.length &&
+              canonical.entries
+                  .every((field) => value[field.key] == field.value);
+
+          if (previous != null || previousMovement != null) {
+            if (!sameResult(previous) ||
+                !sameResult(previousMovement) ||
+                item.data['cogs_cents'] != result.cogsCents ||
+                movement.data['cost_effect_cents'] != result.costEffectCents ||
+                movementMetadata['w5b_stale_remote_inventory_movement_id'] !=
+                    result.inventoryMovementId) {
+              throw StateError('weighted_stale_sale_ack_conflict');
+            }
+            continue;
+          }
+
+          await _customStatement(
+            '''
+            update sale_items
+            set cogs_cents = ?, metadata_json = ?, updated_at = ?
+            where id = ? and deleted_at is null
+            ''',
+            [
+              result.cogsCents,
+              jsonEncode({
+                ...itemMetadata,
+                'w5b_stale_remote_result': canonical,
+              }),
+              now,
+              result.saleItemId,
+            ],
+          );
+
+          await _customStatement(
+            '''
+            update local_inventory_movements
+            set cost_effect_cents = ?, metadata_json = ?, updated_at = ?
+            where id = ? and deleted_at is null
+            ''',
+            [
+              result.costEffectCents,
+              jsonEncode({
+                ...movementMetadata,
+                'w5b_stale_remote_inventory_movement_id':
+                    result.inventoryMovementId,
+                'w5b_stale_remote_result': canonical,
+              }),
+              now,
+              movement.data['id'],
+            ],
+          );
+        }
+      }
+
+      if (alreadyProjected) {
+        await applyWeightedAuthoritativeProjection();
+
+        return IntentionalStaleSaleLocalProjectionResult(
+          saleId: saleId,
+          alreadyProjected: true,
+          movementsAcknowledged: 0,
+          mutationsSuperseded: 0,
+          issuesResolved: 0,
+          stockByProductBefore: const {},
+          stockByProductAfter: const {},
+        );
       }
 
       final audit = <String, Object?>{
@@ -1516,6 +1777,8 @@ class PosLocalSaleDao {
         );
         issuesResolved++;
       }
+
+      await applyWeightedAuthoritativeProjection();
 
       final stockAfter = <String, int>{};
       for (final productId in productIds) {
@@ -2144,6 +2407,51 @@ class PosLocalSaleDao {
 
     return parsed;
   }
+}
+
+class IntentionalStaleWeightedSaleProjection {
+  const IntentionalStaleWeightedSaleProjection({
+    required this.saleId,
+    required this.saleItemId,
+    required this.productId,
+    required this.quantityGrams,
+    required this.inventoryMovementId,
+    required this.stockQuantityGrams,
+    required this.costBasisCents,
+    required this.cogsCents,
+    required this.costEffectCents,
+    required this.originalSyncMutationId,
+    required this.originalMutationStatus,
+    required this.originalMutationErrorCode,
+  });
+
+  final String saleId;
+  final String saleItemId;
+  final String productId;
+  final int quantityGrams;
+  final String inventoryMovementId;
+  final int stockQuantityGrams;
+  final int? costBasisCents;
+  final int? cogsCents;
+  final int? costEffectCents;
+  final String originalSyncMutationId;
+  final String originalMutationStatus;
+  final String originalMutationErrorCode;
+
+  Map<String, dynamic> toMetadata() => {
+        'sale_id': saleId,
+        'sale_item_id': saleItemId,
+        'product_id': productId,
+        'quantity_grams': quantityGrams,
+        'inventory_movement_id': inventoryMovementId,
+        'stock_quantity_grams': stockQuantityGrams,
+        'cost_basis_cents': costBasisCents,
+        'cogs_cents': cogsCents,
+        'cost_effect_cents': costEffectCents,
+        'original_sync_mutation_id': originalSyncMutationId,
+        'original_mutation_status': originalMutationStatus,
+        'original_mutation_error_code': originalMutationErrorCode,
+      };
 }
 
 class DiscardUnmaterializedLocalSaleLocalResult {

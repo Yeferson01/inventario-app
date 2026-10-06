@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/routes_constants.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../shared/presentation/widgets/app_gradient_background.dart';
 import '../../application/productive_auth_providers.dart';
 
 class ProductiveLoginScreen extends ConsumerStatefulWidget {
@@ -75,108 +77,139 @@ class _ProductiveLoginScreenState extends ConsumerState<ProductiveLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        _isRecoveryMode
-                            ? 'Recuperar contraseña'
-                            : 'Iniciar sesión',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isRecoveryMode
-                            ? 'Te enviaremos un enlace seguro a la app.'
-                            : 'Accede a Cronos POS.',
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: _emailController,
-                        enabled: !_isSubmitting,
-                        keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
-                          labelText: 'Correo electrónico',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      if (!_isRecoveryMode) ...[
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _passwordController,
-                          enabled: !_isSubmitting,
-                          obscureText: _obscurePassword,
-                          autofillHints: const [AutofillHints.password],
-                          onSubmitted: (_) => _submit(),
-                          decoration: InputDecoration(
-                            labelText: 'Contraseña',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
+    return Theme(
+      data: CronosTheme.light(),
+      child: Scaffold(
+        body: AppGradientBackground(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(CronosSpacing.md),
+                      child: ConstrainedBox(
+                        key: const Key('productive-login-form-width'),
+                        constraints: const BoxConstraints(maxWidth: 440),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(CronosSpacing.lg),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Icon(Icons.point_of_sale_outlined,
+                                    size: 40, color: CronosColors.primary),
+                                const SizedBox(height: CronosSpacing.sm),
+                                Text('Cronos POS',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium),
+                                const SizedBox(height: CronosSpacing.lg),
+                                Text(
+                                  _isRecoveryMode
+                                      ? 'Recuperar contraseña'
+                                      : 'Iniciar sesión',
+                                  style:
+                                      Theme.of(context).textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _isRecoveryMode
+                                      ? 'Te enviaremos un enlace seguro a la app.'
+                                      : 'Accede a Cronos POS.',
+                                ),
+                                const SizedBox(height: 24),
+                                TextField(
+                                  controller: _emailController,
+                                  enabled: !_isSubmitting,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Correo electrónico',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                if (!_isRecoveryMode) ...[
+                                  const SizedBox(height: 16),
+                                  TextField(
+                                    controller: _passwordController,
+                                    enabled: !_isSubmitting,
+                                    obscureText: _obscurePassword,
+                                    autofillHints: const [
+                                      AutofillHints.password
+                                    ],
+                                    onSubmitted: (_) => _submit(),
+                                    decoration: InputDecoration(
+                                      labelText: 'Contraseña',
+                                      border: const OutlineInputBorder(),
+                                      suffixIcon: IconButton(
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (_message != null) ...[
+                                  const SizedBox(height: 16),
+                                  Semantics(
+                                    liveRegion: true,
+                                    child: Text(_message!),
+                                  ),
+                                ],
+                                const SizedBox(height: 20),
+                                FilledButton(
+                                  onPressed: _isSubmitting ? null : _submit,
+                                  child: _isSubmitting
+                                      ? const SizedBox.square(
+                                          dimension: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        )
+                                      : Text(
+                                          _isRecoveryMode
+                                              ? 'Enviar enlace'
+                                              : 'Ingresar',
+                                        ),
+                                ),
+                                TextButton(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () => setState(() {
+                                            _isRecoveryMode = !_isRecoveryMode;
+                                            _message = null;
+                                          }),
+                                  child: Text(
+                                    _isRecoveryMode
+                                        ? 'Volver al inicio de sesión'
+                                        : 'Olvidé mi contraseña',
+                                  ),
+                                ),
+                                if (!_isRecoveryMode)
+                                  TextButton(
+                                    key: const Key('login-create-account'),
+                                    onPressed: _isSubmitting
+                                        ? null
+                                        : () =>
+                                            context.go(AppRoutes.registerPath),
+                                    child: const Text('Crear cuenta'),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                      if (_message != null) ...[
-                        const SizedBox(height: 16),
-                        Semantics(
-                          liveRegion: true,
-                          child: Text(_message!),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      FilledButton(
-                        onPressed: _isSubmitting ? null : _submit,
-                        child: _isSubmitting
-                            ? const SizedBox.square(
-                                dimension: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Text(
-                                _isRecoveryMode ? 'Enviar enlace' : 'Ingresar',
-                              ),
                       ),
-                      TextButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => setState(() {
-                                  _isRecoveryMode = !_isRecoveryMode;
-                                  _message = null;
-                                }),
-                        child: Text(
-                          _isRecoveryMode
-                              ? 'Volver al inicio de sesión'
-                              : 'Olvidé mi contraseña',
-                        ),
-                      ),
-                      if (!_isRecoveryMode)
-                        TextButton(
-                          key: const Key('login-create-account'),
-                          onPressed: _isSubmitting
-                              ? null
-                              : () => context.go(AppRoutes.registerPath),
-                          child: const Text('Crear cuenta'),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
               ),

@@ -241,7 +241,7 @@ select throws_ok(
 
 insert into public.sync_batches (
   id, business_id, app_device_id, profile_id, branch_id,
-  client_batch_id, direction, status, metadata
+  client_batch_id, direction, status, mutation_count, metadata
 )
 values (
   'a6000000-0000-0000-0000-000000000311',
@@ -249,7 +249,7 @@ values (
   'a6000000-0000-0000-0000-000000000051',
   'a6000000-0000-0000-0000-000000000101',
   'a6000000-0000-0000-0000-000000000011',
-  'purchase-authorized-batch', 'upload', 'pending',
+  'purchase-authorized-batch', 'upload', 'pending', 2,
   '{"domain":"purchases"}'::jsonb
 );
 
@@ -399,7 +399,7 @@ select ok(
 
 insert into public.sync_batches (
   id, business_id, app_device_id, profile_id, branch_id,
-  client_batch_id, direction, status, metadata
+  client_batch_id, direction, status, mutation_count, metadata
 )
 values (
   'a6000000-0000-0000-0000-000000000312',
@@ -407,7 +407,7 @@ values (
   'a6000000-0000-0000-0000-000000000052',
   'a6000000-0000-0000-0000-000000000102',
   'a6000000-0000-0000-0000-000000000011',
-  'purchase-denied-batch', 'upload', 'pending',
+  'purchase-denied-batch', 'upload', 'pending', 2,
   '{"domain":"purchases"}'::jsonb
 );
 

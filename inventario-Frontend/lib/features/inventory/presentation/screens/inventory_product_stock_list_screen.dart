@@ -694,64 +694,92 @@ class _InventoryProductStockListScreenState
                             )));
                   }
 
-                  return SliverList.builder(
-                    key: const Key('inventory-product-list'),
-                    itemCount: products.length * 2 + 1,
-                    itemBuilder: (context, index) {
-                      if (index.isEven) {
-                        return SizedBox(
-                            height: index == 0 || index == products.length * 2
-                                ? CronosSpacing.md
-                                : CronosSpacing.sm);
-                      }
-                      final product = products[index ~/ 2];
-                      final actualProductId = _string(product['product_id']);
-                      final productKey = actualProductId ?? '$index';
+                  Widget productCard(BuildContext context, int index,
+                      {bool gridCard = false}) {
+                    final product = products[index];
+                    final actualProductId = _string(product['product_id']);
+                    final productKey = actualProductId ?? '$index';
 
-                      return Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: CronosSpacing.md),
-                          child: _InventoryProductCard(
-                            key: Key('inventory-product-$productKey'),
-                            product: product,
-                            canViewCosts: canViewCosts,
-                            isUpdatingMinimumStock:
-                                _minimumStockUpdates.contains(productKey),
-                            onOpenMovements: actualProductId != null &&
-                                    widget.onOpenProductMovements != null
-                                ? () async {
-                                    await widget.onOpenProductMovements!(
-                                      productId: actualProductId,
-                                      productName:
-                                          _string(product['product_name']) ??
-                                              'Producto sin nombre',
-                                      productBarcode:
-                                          _string(product['barcode']),
-                                    );
-                                  }
-                                : null,
-                            onEditMinimumStock: canEditMinimumStock
-                                ? () => _editMinimumStock(product)
-                                : null,
-                            onEditSaleConfiguration: canEditMinimumStock
-                                ? () => _editSaleConfiguration(product)
-                                : null,
-                            onAdjust: canAdjust &&
-                                    actualProductId != null &&
-                                    product['sale_mode'] != 'weight'
-                                ? () => _openAdjustment(product)
-                                : null,
-                            onTransfer: product['sale_mode'] != 'weight' &&
-                                    sourceContext != null &&
-                                    destinationContexts.isNotEmpty &&
-                                    _int(product['quantity_available']) > 0
-                                ? () => _openTransfer(
-                                      product: product,
-                                      sourceContext: sourceContext,
-                                      destinationContexts: destinationContexts,
-                                    )
-                                : null,
-                          ));
+                    return _InventoryProductCard(
+                      key: Key('inventory-product-$productKey'),
+                      product: product,
+                      gridCard: gridCard,
+                      canViewCosts: canViewCosts,
+                      isUpdatingMinimumStock:
+                          _minimumStockUpdates.contains(productKey),
+                      onOpenMovements: actualProductId != null &&
+                              widget.onOpenProductMovements != null
+                          ? () async {
+                              await widget.onOpenProductMovements!(
+                                productId: actualProductId,
+                                productName: _string(product['product_name']) ??
+                                    'Producto sin nombre',
+                                productBarcode: _string(product['barcode']),
+                              );
+                            }
+                          : null,
+                      onEditMinimumStock: canEditMinimumStock
+                          ? () => _editMinimumStock(product)
+                          : null,
+                      onEditSaleConfiguration: canEditMinimumStock
+                          ? () => _editSaleConfiguration(product)
+                          : null,
+                      onAdjust: canAdjust &&
+                              actualProductId != null &&
+                              product['sale_mode'] != 'weight'
+                          ? () => _openAdjustment(product)
+                          : null,
+                      onTransfer: product['sale_mode'] != 'weight' &&
+                              sourceContext != null &&
+                              destinationContexts.isNotEmpty &&
+                              _int(product['quantity_available']) > 0
+                          ? () => _openTransfer(
+                                product: product,
+                                sourceContext: sourceContext,
+                                destinationContexts: destinationContexts,
+                              )
+                          : null,
+                    );
+                  }
+
+                  return SliverLayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.crossAxisExtent >= 700) {
+                        return SliverPadding(
+                          padding: const EdgeInsets.all(CronosSpacing.md),
+                          sliver: SliverGrid.builder(
+                            key: const Key('inventory-product-grid'),
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 460,
+                              mainAxisExtent: 500,
+                              crossAxisSpacing: CronosSpacing.md,
+                              mainAxisSpacing: CronosSpacing.md,
+                            ),
+                            itemCount: products.length,
+                            itemBuilder: (context, index) =>
+                                productCard(context, index, gridCard: true),
+                          ),
+                        );
+                      }
+                      return SliverList.builder(
+                        key: const Key('inventory-product-list'),
+                        itemCount: products.length * 2 + 1,
+                        itemBuilder: (context, index) {
+                          if (index.isEven) {
+                            return SizedBox(
+                              height: index == 0 || index == products.length * 2
+                                  ? CronosSpacing.md
+                                  : CronosSpacing.sm,
+                            );
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: CronosSpacing.md),
+                            child: productCard(context, index ~/ 2),
+                          );
+                        },
+                      );
                     },
                   );
                 },
@@ -862,111 +890,135 @@ class _InventoryProductSelectionDialogState
     final hasError =
         businessProductsAsync.hasError || masterProductsAsync.hasError;
 
-    return AlertDialog(
-      title: const Text('Agregar producto'),
-      content: SizedBox(
-        width: 640,
-        height: 500,
-        child: Column(
-          children: [
-            TextField(
-              key: const Key('inventory-add-product-search'),
-              controller: _controller,
-              autofocus: true,
-              onChanged: (value) => setState(() => _query = value.trim()),
-              decoration: const InputDecoration(
-                labelText: 'Nombre, marca o código',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: CronosSpacing.md),
-            if (loading) const LinearProgressIndicator(),
-            Expanded(
-              child: hasError
-                  ? const _InventoryStateMessage(
-                      icon: Icons.error_outline,
-                      title: 'No se pudo consultar el catálogo local',
-                      message:
-                          'Cierra e intenta nuevamente. No se consultó la red.',
-                    )
-                  : ListView(
-                      key: const Key('inventory-add-product-results'),
-                      children: [
-                        if (businessProducts.isNotEmpty) ...[
-                          const _ProductSearchSectionTitle(
-                            title: 'Productos de mi negocio',
-                          ),
-                          for (final product in businessProducts)
-                            ListTile(
-                              key: Key(
-                                'inventory-existing-product-${_string(product['product_id'])}',
-                              ),
-                              leading: const Icon(Icons.inventory_2_outlined),
-                              title: Text(
-                                _string(product['product_name']) ??
-                                    'Producto sin nombre',
-                              ),
-                              subtitle: const Text(
-                                'Producto ya manejado por la tienda · Ya en mi catálogo',
-                              ),
-                              trailing: const Icon(Icons.check_circle_outline),
-                              onTap: () => Navigator.of(context).pop(
-                                _InventoryProductSelection.existing({
-                                  'id': product['product_id'],
-                                  'name': product['product_name'],
-                                  'barcode': product['barcode'],
-                                }),
-                              ),
+    final screenSize = MediaQuery.sizeOf(context);
+    final targetHeight = screenSize.width >= 600
+        ? (screenSize.height * 0.8).clamp(0.0, 640.0)
+        : (screenSize.height * 0.9).clamp(0.0, 720.0);
+    return Dialog(
+      key: const Key('inventory-product-picker-dialog'),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: CronosSpacing.md,
+        vertical: CronosSpacing.sm,
+      ),
+      child: SizedBox(
+        width: (screenSize.width - 64).clamp(0.0, 640.0),
+        height: targetHeight,
+        child: Padding(
+          key: const Key('inventory-product-picker-scroll'),
+          padding: const EdgeInsets.all(CronosSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ListView(
+                  key: const Key('inventory-add-product-results'),
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Agregar producto',
+                          style: Theme.of(context).textTheme.titleLarge),
+                    ),
+                    const SizedBox(height: CronosSpacing.sm),
+                    TextField(
+                      key: const Key('inventory-add-product-search'),
+                      controller: _controller,
+                      autofocus: true,
+                      onChanged: (value) =>
+                          setState(() => _query = value.trim()),
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre, marca o código',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: CronosSpacing.sm),
+                    if (loading) const LinearProgressIndicator(),
+                    if (hasError)
+                      const _InventoryStateMessage(
+                        icon: Icons.error_outline,
+                        title: 'No se pudo consultar el catálogo local',
+                        message:
+                            'Cierra e intenta nuevamente. No se consultó la red.',
+                      )
+                    else ...[
+                      if (businessProducts.isNotEmpty) ...[
+                        const _ProductSearchSectionTitle(
+                          title: 'Productos de mi negocio',
+                        ),
+                        for (final product in businessProducts)
+                          ListTile(
+                            key: Key(
+                              'inventory-existing-product-${_string(product['product_id'])}',
                             ),
-                        ],
-                        if (masterProducts.isNotEmpty) ...[
-                          const _ProductSearchSectionTitle(
-                            title: 'Catálogo maestro',
-                          ),
-                          for (final master in masterProducts)
-                            _MasterProductSearchTile(master: master),
-                        ],
-                        if (_query.isEmpty && businessProducts.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(CronosSpacing.md),
-                            child: Text(
-                              'Escribe un nombre, marca o código para buscar en el catálogo maestro local.',
+                            leading: const Icon(Icons.inventory_2_outlined),
+                            title: Text(
+                              _string(product['product_name']) ??
+                                  'Producto sin nombre',
                             ),
-                          )
-                        else if (!loading &&
-                            businessProducts.isEmpty &&
-                            masterProducts.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(CronosSpacing.md),
-                            child: Text(
-                              'No hay coincidencias en el negocio ni en el catálogo maestro local.',
+                            subtitle: const Text(
+                              'Producto ya manejado por la tienda · Ya en mi catálogo',
+                            ),
+                            trailing: const Icon(Icons.check_circle_outline),
+                            onTap: () => Navigator.of(context).pop(
+                              _InventoryProductSelection.existing({
+                                'id': product['product_id'],
+                                'name': product['product_name'],
+                                'barcode': product['barcode'],
+                              }),
                             ),
                           ),
                       ],
-                    ),
-            ),
-            const SizedBox(height: CronosSpacing.sm),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const Key('inventory-create-product-manually'),
-                onPressed: () => Navigator.of(context).pop(
-                  _InventoryProductSelection.manual(_query),
+                      if (masterProducts.isNotEmpty) ...[
+                        const _ProductSearchSectionTitle(
+                          title: 'Catálogo maestro',
+                        ),
+                        for (final master in masterProducts)
+                          _MasterProductSearchTile(master: master),
+                      ],
+                      if (_query.isEmpty && businessProducts.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(CronosSpacing.md),
+                          child: Text(
+                            'Escribe un nombre, marca o código para buscar en el catálogo maestro local.',
+                          ),
+                        )
+                      else if (!loading &&
+                          businessProducts.isEmpty &&
+                          masterProducts.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(CronosSpacing.md),
+                          child: Text(
+                            'No hay coincidencias en el negocio ni en el catálogo maestro local.',
+                          ),
+                        ),
+                    ],
+                  ],
                 ),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Crear manualmente'),
               ),
-            ),
-          ],
+              const SizedBox(height: CronosSpacing.xs),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                spacing: CronosSpacing.sm,
+                runSpacing: CronosSpacing.xs,
+                children: [
+                  TextButton.icon(
+                    key: const Key('inventory-create-product-manually'),
+                    onPressed: () => Navigator.of(context).pop(
+                      _InventoryProductSelection.manual(_query),
+                    ),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Crear manualmente'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-      ],
     );
   }
 }
@@ -1007,53 +1059,42 @@ class _MasterProductSearchTile extends StatelessWidget {
 
     return Card(
       key: Key('inventory-master-product-$masterId'),
-      child: Padding(
-        padding: const EdgeInsets.all(CronosSpacing.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                isExisting ? Icons.inventory_2_outlined : Icons.public_outlined,
-              ),
-              title: Text(name),
-              subtitle: Text(
-                [
-                  if (brand != null) brand,
-                  if (barcode != null) barcode,
-                  isExisting
-                      ? 'Producto ya manejado por la tienda · Ya en mi catálogo'
-                      : 'Referencia del catálogo maestro; aún no está en tu inventario',
-                ].join(' · '),
-              ),
-              trailing:
-                  isExisting ? const Icon(Icons.check_circle_outline) : null,
-              onTap: !isExisting
-                  ? null
-                  : () => Navigator.of(context).pop(
-                        _InventoryProductSelection.existing({
-                          'id': existingProductId,
-                          'name': master['existing_product_name'],
-                          'barcode': master['existing_product_barcode'],
-                        }),
-                      ),
-            ),
-            if (!isExisting)
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  key: Key('inventory-add-master-$masterId'),
-                  onPressed: barcode == null
-                      ? null
-                      : () => Navigator.of(context).pop(
-                            _InventoryProductSelection.master(master),
-                          ),
-                  child: const Text('Agregar a mi catálogo'),
-                ),
-              ),
-          ],
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: CronosSpacing.sm),
+        leading: Icon(
+          isExisting ? Icons.inventory_2_outlined : Icons.public_outlined,
         ),
+        title: Text(name),
+        subtitle: Text(
+          [
+            if (brand != null) brand,
+            if (barcode != null) barcode,
+            isExisting
+                ? 'Producto ya manejado por la tienda · Ya en mi catálogo'
+                : 'Referencia del catálogo maestro; aún no está en tu inventario',
+          ].join(' · '),
+        ),
+        trailing: isExisting
+            ? const Icon(Icons.check_circle_outline)
+            : FilledButton(
+                key: Key('inventory-add-master-$masterId'),
+                onPressed: barcode == null
+                    ? null
+                    : () => Navigator.of(context).pop(
+                          _InventoryProductSelection.master(master),
+                        ),
+                child: const Text('Agregar'),
+              ),
+        onTap: !isExisting
+            ? null
+            : () => Navigator.of(context).pop(
+                  _InventoryProductSelection.existing({
+                    'id': existingProductId,
+                    'name': master['existing_product_name'],
+                    'barcode': master['existing_product_barcode'],
+                  }),
+                ),
       ),
     );
   }
@@ -1204,18 +1245,28 @@ class _InventoryProductDraftDialogState
   @override
   Widget build(BuildContext context) {
     final fromMaster = widget.masterProduct != null;
-    return AlertDialog(
-      title: Text(
-        fromMaster ? 'Agregar a mi catálogo' : 'Crear producto manualmente',
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: CronosSpacing.md,
+        vertical: CronosSpacing.md,
       ),
-      content: SizedBox(
-        width: 520,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
+      child: SizedBox(
+        width: (MediaQuery.sizeOf(context).width - 64).clamp(0.0, 620.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(CronosSpacing.md),
+          child: Form(
+            key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  fromMaster
+                      ? 'Agregar a mi catálogo'
+                      : 'Crear producto manualmente',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: CronosSpacing.md),
                 if (fromMaster)
                   const Padding(
                     padding: EdgeInsets.only(bottom: CronosSpacing.md),
@@ -1254,36 +1305,44 @@ class _InventoryProductDraftDialogState
                   controller: _commercial,
                   keyPrefix: 'inventory-product',
                 ),
+                const SizedBox(height: CronosSpacing.md),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: CronosSpacing.sm,
+                  runSpacing: CronosSpacing.sm,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancelar'),
+                    ),
+                    FilledButton(
+                      key: const Key('inventory-product-create-confirm'),
+                      onPressed: () {
+                        if (!(_formKey.currentState?.validate() ?? false)) {
+                          return;
+                        }
+                        Navigator.of(context).pop(
+                          _InventoryProductDraft(
+                            name: _name.trim(),
+                            barcode: _string(_barcode),
+                            purchasePrice: 0,
+                            salePrice: _commercial.salePriceCents! / 100,
+                            saleMode: _commercial.saleMode,
+                            salePriceCents: _commercial.salePriceCents!,
+                            minimumStock: _commercial.minimumStock!,
+                            unit: _string(_commercial.unitForPersistence),
+                          ),
+                        );
+                      },
+                      child: const Text('Guardar producto'),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          key: const Key('inventory-product-create-confirm'),
-          onPressed: () {
-            if (!(_formKey.currentState?.validate() ?? false)) return;
-            Navigator.of(context).pop(
-              _InventoryProductDraft(
-                name: _name.trim(),
-                barcode: _string(_barcode),
-                purchasePrice: 0,
-                salePrice: _commercial.salePriceCents! / 100,
-                saleMode: _commercial.saleMode,
-                salePriceCents: _commercial.salePriceCents!,
-                minimumStock: _commercial.minimumStock!,
-                unit: _string(_commercial.unitForPersistence),
-              ),
-            );
-          },
-          child: const Text('Guardar producto'),
-        ),
-      ],
     );
   }
 }
@@ -1292,6 +1351,7 @@ class _InventoryProductCard extends StatelessWidget {
   const _InventoryProductCard({
     super.key,
     required this.product,
+    this.gridCard = false,
     required this.canViewCosts,
     required this.isUpdatingMinimumStock,
     this.onOpenMovements,
@@ -1302,6 +1362,7 @@ class _InventoryProductCard extends StatelessWidget {
   });
 
   final Map<String, dynamic> product;
+  final bool gridCard;
   final bool canViewCosts;
   final bool isUpdatingMinimumStock;
   final VoidCallback? onOpenMovements;
@@ -1338,6 +1399,7 @@ class _InventoryProductCard extends StatelessWidget {
               key: Key('inventory-product-image-$productId'),
               barcode: barcode,
               semanticLabel: 'Imagen de $name',
+              size: gridCard ? 80 : 48,
             ),
             const SizedBox(width: CronosSpacing.md),
             Expanded(

@@ -241,32 +241,56 @@ class PurchaseSyncOutboxService {
         );
       }
 
-      final enqueueResult = await _outboxService.enqueueUploadBatch(
-        businessId: businessId,
-        branchId: branchId,
-        profileId: profileId,
-        appDeviceId: appDeviceId,
-        deviceInstallationId: deviceInstallationId,
-        domain: 'purchases',
-        mutations: mutations,
-        metadata: {
-          'source': 'purchase_sync_outbox_service',
-          'domain': 'purchases',
-          'purchase_id': purchaseId,
-          'item_count': items.length,
-          'local_inventory_movement_count': localMovements.length,
-          'inventory_note':
-              'Local purchase inventory movements are offline UI ledger only. Remote inventory is applied by backend purchases trigger from purchase_items.',
-        },
-      );
+      Future<LocalSyncEnqueueResult?> existingBatch() =>
+          _outboxService.findExistingPurchaseBatch(
+            businessId: businessId,
+            branchId: branchId,
+            profileId: profileId,
+            purchaseId: purchaseId,
+            mutations: mutations,
+            itemCount: items.length,
+          );
+      var reused = await existingBatch();
+      LocalSyncEnqueueResult enqueueResult;
+      if (reused != null) {
+        enqueueResult = reused;
+      } else {
+        try {
+          enqueueResult = await _outboxService.enqueueUploadBatch(
+            businessId: businessId,
+            branchId: branchId,
+            profileId: profileId,
+            appDeviceId: appDeviceId,
+            deviceInstallationId: deviceInstallationId,
+            domain: 'purchases',
+            mutations: mutations,
+            metadata: {
+              'source': 'purchase_sync_outbox_service',
+              'domain': 'purchases',
+              'purchase_id': purchaseId,
+              'item_count': items.length,
+              'local_inventory_movement_count': localMovements.length,
+              'inventory_note':
+                  'Local purchase inventory movements are offline UI ledger only. Remote inventory is applied by backend purchases trigger from purchase_items.',
+            },
+          );
+        } on StateError catch (error) {
+          if (error.message != 'mutation_batch_identity_conflict') rethrow;
+          reused = await existingBatch();
+          if (reused == null) rethrow;
+          enqueueResult = reused;
+        }
+      }
 
-      purchasesEnqueued++;
-      batchesCreated++;
-      mutationsEnqueued += mutations.length;
+      if (reused == null) {
+        purchasesEnqueued++;
+        batchesCreated++;
+        mutationsEnqueued += mutations.length;
+      }
 
       results.add({
         'purchase_id': purchaseId,
-        'status': 'enqueued',
+        'status': reused == null ? 'enqueued' : 'reused',
         'item_count': items.length,
         'local_inventory_movement_count': localMovements.length,
         'mutation_count': mutations.length,

@@ -16,8 +16,249 @@ import 'package:inventario_frontend/features/inventory/application/product_stock
 import 'package:inventario_frontend/features/inventory/presentation/screens/inventory_product_stock_list_screen.dart';
 import 'package:inventario_frontend/features/sync/data/datasources/authorized_operational_context_local_dao.dart';
 import 'package:inventario_frontend/features/sync/data/models/local_recovery_models.dart';
+import 'package:inventario_frontend/shared/presentation/widgets/product_image.dart';
 
 void main() {
+  final catalogMatches = List<Map<String, dynamic>>.generate(
+    5,
+    (index) => {
+      'master_product_id': 'master-$index',
+      'master_product_name': 'Cafe $index',
+      'master_brand': 'Marca',
+      'barcode': '77012345678$index',
+      'existing_product_id': null,
+    },
+  );
+
+  testWidgets('tablet picker shows three catalog matches and both actions',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpScreen(tester, Stream.value(const []),
+        effectivePermissions: const {'products.create'},
+        enableCreation: true,
+        masterMatches: catalogMatches,
+        productsStreamFactory: () => Stream.value(const []));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-add-product-search')), 'cafe');
+    await tester.pumpAndSettle();
+
+    final dialog = find.byKey(const Key('inventory-product-picker-scroll'));
+    final results = find.byKey(const Key('inventory-add-product-results'));
+    final third = find.byKey(const Key('inventory-master-product-master-2'));
+    expect(dialog, findsOneWidget);
+    expect(tester.getSize(dialog).width, lessThanOrEqualTo(640));
+    expect(tester.getSize(dialog).height, lessThanOrEqualTo(640));
+    expect(third, findsOneWidget);
+    final resultsBounds = tester.getRect(results);
+    for (var index = 0; index < 3; index++) {
+      final match = find.byKey(Key('inventory-master-product-master-$index'));
+      expect(match, findsOneWidget);
+      expect(
+          tester.getRect(match).top, greaterThanOrEqualTo(resultsBounds.top));
+      expect(tester.getRect(match).bottom,
+          lessThanOrEqualTo(resultsBounds.bottom));
+    }
+    expect(find.byKey(const Key('inventory-create-product-manually')),
+        findsOneWidget);
+    expect(find.text('Cancelar'), findsOneWidget);
+    final pickerBounds = tester.getRect(dialog);
+    final manual = find.byKey(const Key('inventory-create-product-manually'));
+    final cancel = find.text('Cancelar');
+    final search = find.byKey(const Key('inventory-add-product-search'));
+    expect(tester.getRect(search).top, greaterThanOrEqualTo(pickerBounds.top));
+    expect(
+        tester.getRect(search).bottom, lessThanOrEqualTo(pickerBounds.bottom));
+    expect(
+        tester.getRect(manual).bottom, lessThanOrEqualTo(pickerBounds.bottom));
+    expect(
+        tester.getRect(cancel).bottom, lessThanOrEqualTo(pickerBounds.bottom));
+    final resultScroll = tester.state<ScrollableState>(
+        find.descendant(of: results, matching: find.byType(Scrollable)).first);
+    expect(resultScroll.position.maxScrollExtent, greaterThan(0));
+    expect(tester.takeException(), isNull);
+    await tester.tap(manual);
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const Key('inventory-product-name-field')), findsOneWidget);
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-add-product-search')), 'cafe');
+    await tester.pumpAndSettle();
+    await tester.tap(cancel);
+    await tester.pumpAndSettle();
+    expect(dialog, findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('picker actions and matches survive a keyboard-height viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpScreen(tester, Stream.value(const []),
+        effectivePermissions: const {'products.create'},
+        enableCreation: true,
+        masterMatches: catalogMatches,
+        productsStreamFactory: () => Stream.value(const []));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-add-product-search')), 'cafe');
+    tester.view.physicalSize = const Size(1280, 260);
+    await tester.pumpAndSettle();
+
+    final results = find.byKey(const Key('inventory-add-product-results'));
+    final third = find.byKey(const Key('inventory-master-product-master-2'));
+    expect(
+        tester
+            .widget<TextField>(
+                find.byKey(const Key('inventory-add-product-search')))
+            .controller!
+            .text,
+        'cafe');
+    await tester.dragUntilVisible(third, results, const Offset(0, -80));
+    await tester.pumpAndSettle();
+    expect(third, findsOneWidget);
+    final manual = find.byKey(const Key('inventory-create-product-manually'));
+    await Scrollable.ensureVisible(tester.element(manual), alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(manual).dy, lessThanOrEqualTo(260));
+    await Scrollable.ensureVisible(tester.element(find.text('Cancelar')),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(find.text('Cancelar')).dy,
+        lessThanOrEqualTo(260));
+    await tester.tap(find.text('Cancelar'));
+    tester.view.physicalSize = const Size(1280, 800);
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const Key('inventory-product-picker-dialog')), findsNothing);
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-add-product-search')), 'cafe');
+    tester.view.physicalSize = const Size(1280, 260);
+    await tester.pumpAndSettle();
+    await tester.tap(manual);
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const Key('inventory-product-name-field')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mobile picker keeps search results and actions scrollable',
+      (tester) async {
+    tester.view.physicalSize = const Size(412, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpScreen(tester, Stream.value(const []),
+        effectivePermissions: const {'products.create'},
+        enableCreation: true,
+        masterMatches: catalogMatches,
+        productsStreamFactory: () => Stream.value(const []));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('inventory-add-product-search')), 'cafe');
+    tester.view.physicalSize = const Size(412, 300);
+    await tester.pumpAndSettle();
+
+    final results = find.byKey(const Key('inventory-add-product-results'));
+    await tester.dragUntilVisible(
+      find.byKey(const Key('inventory-add-master-master-2')),
+      results,
+      const Offset(0, -80),
+    );
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const Key('inventory-add-master-master-2')), findsOneWidget);
+    final manual = find.byKey(const Key('inventory-create-product-manually'));
+    await Scrollable.ensureVisible(tester.element(manual), alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(manual).dy, lessThanOrEqualTo(300));
+    await Scrollable.ensureVisible(tester.element(find.text('Cancelar')),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(find.text('Cancelar')).dy,
+        lessThanOrEqualTo(300));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'tablet product dialogs remain usable at keyboard-height viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpScreen(tester, Stream.value(const []),
+        effectivePermissions: const {'products.create'}, enableCreation: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+        find.byKey(const Key('inventory-create-product-manually')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const Key('inventory-create-product-manually')));
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const Key('inventory-product-name-field')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('inventory-product-name-field')));
+    tester.view.physicalSize = const Size(1280, 220);
+    await tester.pumpAndSettle();
+    expect(find.text('Cancelar'), findsOneWidget);
+    expect(find.byKey(const Key('inventory-product-create-confirm')),
+        findsOneWidget);
+    final save = find.byKey(const Key('inventory-product-create-confirm'));
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(save).dy, lessThanOrEqualTo(220));
+    expect(tester.takeException(), null);
+  });
+
+  testWidgets('mobile product form actions scroll into a reduced viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(412, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpScreen(tester, Stream.value(const []),
+        effectivePermissions: const {'products.create'}, enableCreation: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('inventory-add-product')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+        find.byKey(const Key('inventory-create-product-manually')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const Key('inventory-create-product-manually')));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(412, 260);
+    await tester.pumpAndSettle();
+    final save = find.byKey(const Key('inventory-product-create-confirm'));
+    expect(find.text('Cancelar'), findsOneWidget);
+    expect(save, findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomRight(save).dy, lessThanOrEqualTo(260));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('landscape uses one scroll and preserves name and barcode width',
       (tester) async {
     tester.view.physicalSize = const Size(640, 320);
@@ -130,8 +371,24 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byKey(const Key('inventory-product-list')), findsOneWidget);
+    expect(find.byKey(const Key('inventory-product-grid')), findsOneWidget);
     expect(find.byKey(const Key('inventory-content-scroll')), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('inventory-product-product-1')))
+          .dy,
+      tester
+          .getTopLeft(find.byKey(const Key('inventory-product-product-2')))
+          .dy,
+    );
+    expect(
+      tester
+          .widget<ProductImage>(
+            find.byKey(const Key('inventory-product-image-product-1')),
+          )
+          .size,
+      80,
+    );
     expect(
       find.byKey(const Key('inventory-product-image-product-1')),
       findsOneWidget,
@@ -619,6 +876,10 @@ void main() {
       (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(1280, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final products = <Map<String, dynamic>>[
       {
         'product_id': 'rice-normal',
@@ -1026,10 +1287,17 @@ Future<void> _pumpScreen(
   Stream<List<Map<String, dynamic>>> stream, {
   InventoryValuationSummary? summary,
   Set<String> effectivePermissions = const {'inventory.view_costs'},
+  bool enableCreation = false,
+  List<Map<String, dynamic>> masterMatches = const [],
+  Stream<List<Map<String, dynamic>>> Function()? productsStreamFactory,
 }) {
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
+        if (enableCreation)
+          localMasterProductSearchProvider.overrideWith(
+            (ref, key) async => key.query.isEmpty ? const [] : masterMatches,
+          ),
         inventoryValuationSummaryProvider.overrideWith(
           (ref, key) =>
               Stream.value(summary ?? InventoryValuationSummary.empty),
@@ -1037,8 +1305,8 @@ Future<void> _pumpScreen(
         localProductsWithStockProvider.overrideWith((ref, key) {
           expect(key.businessId, 'business-1');
           expect(key.branchId, 'branch-1');
-          expect(key.limit, isNull);
-          return stream;
+          expect(key.limit, anyOf(isNull, 20));
+          return productsStreamFactory?.call() ?? stream;
         }),
       ],
       child: MaterialApp(
@@ -1046,6 +1314,9 @@ Future<void> _pumpScreen(
           businessId: 'business-1',
           branchId: 'branch-1',
           branchName: 'Principal',
+          profileId: enableCreation ? 'profile-1' : null,
+          appDeviceId: enableCreation ? 'device-1' : null,
+          deviceInstallationId: enableCreation ? 'installation-1' : null,
           effectivePermissions: effectivePermissions,
         ),
       ),

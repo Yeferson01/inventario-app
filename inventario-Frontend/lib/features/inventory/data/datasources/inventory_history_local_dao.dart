@@ -199,6 +199,7 @@ class InventoryHistoryLocalDao {
       select
         m.*,
         p.name as product_name,
+        p.sale_mode as product_sale_mode,
         coalesce(
           (
             select pb.barcode
@@ -250,6 +251,7 @@ class InventoryHistoryLocalDao {
         productId: data['product_id'].toString(),
         productName: data['product_name']?.toString(),
         productBarcode: data['product_barcode']?.toString(),
+        isWeight: data['product_sale_mode'] == 'weight',
         movementType: data['movement_type'].toString(),
         sourceType: data['source_type']?.toString(),
         effectiveType: data['effective_type'].toString(),

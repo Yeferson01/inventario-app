@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/logging/app_logger.dart';
-import '../../../sync/application/cash_sync_upload_provider.dart';
 import '../../../sync/application/app_router_sync_bootstrap_provider.dart';
 import '../../../sync/application/cash_close_sync_trigger_service.dart';
 import '../../../sync/application/cash_repair_context_service.dart';
@@ -19,7 +18,6 @@ import '../widgets/productive_open_cash_session_dialog.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/app_animated_entrance.dart';
 import '../../../../shared/presentation/widgets/app_gradient_background.dart';
-import '../../../sales/application/pos_local_sale_provider.dart';
 import '../../../sync/application/pos_sync_upload_provider.dart';
 import '../../../sync/presentation/widgets/productive_stale_sale_reconciliation_presenter.dart';
 
@@ -182,57 +180,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         );
       },
     );
-  }
-
-  Future<void> _syncCash() async {
-    _CashCloseSyncUiSummary? syncSummary;
-
-    await _runAction(
-      actionCode: 'sync',
-      action: () async {
-        final cashBeforePosSummary = await _prepareAndUploadCashForCashClose();
-        final posSummary = await _prepareAndUploadPosForCashClose();
-        final cashAfterPosSummary = await _prepareAndUploadCashForCashClose();
-
-        final cashSummary = cashBeforePosSummary.mergeWith(
-          cashAfterPosSummary,
-        );
-
-        final summary = _CashCloseSyncUiSummary(
-          pos: posSummary,
-          cash: cashSummary,
-        );
-
-        _assertCashCloseSyncHealthy(summary);
-
-        syncSummary = summary;
-      },
-    );
-
-    if (!mounted || syncSummary == null) {
-      return;
-    }
-
-    if (syncSummary!.hasIssues) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Hay operaciones pendientes'),
-          content: Text(syncSummary!.message),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Aceptar'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La caja está al día.')),
-      );
-    }
-    if (mounted) await _openPendingStaleSales();
   }
 
   Future<void> _closeCashSessionDialog() async {
@@ -417,75 +364,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
         );
   }
 
-  Future<_DomainCloseSyncUiSummary> _prepareAndUploadPosForCashClose() async {
-    final outboxService = ref.read(posSyncOutboxServiceProvider);
-    final uploadService = ref.read(posSyncUploadServiceProvider);
-
-    final enqueueResult = await outboxService.enqueuePendingPosSales(
-      businessId: widget.businessId,
-      branchId: widget.branchId,
-      profileId: widget.profileId,
-      appDeviceId: widget.appDeviceId,
-      deviceInstallationId: widget.deviceInstallationId,
-      limit: 250,
-    );
-
-    final uploadResult = await uploadService.uploadPendingPosBatches(
-      businessId: widget.businessId,
-      branchId: widget.branchId,
-      batchLimit: 250,
-    );
-
-    return _DomainCloseSyncUiSummary(
-      domainLabel: 'POS',
-      enqueuedCount: enqueueResult.salesEnqueued,
-      mutationsEnqueued: enqueueResult.mutationsEnqueued,
-      batchesChecked: uploadResult.batchesChecked,
-      batchesUploaded: uploadResult.batchesUploaded,
-      batchesCompleted: uploadResult.batchesCompleted,
-      batchesPartial: uploadResult.batchesPartial,
-      batchesFailed: uploadResult.batchesFailed,
-      mutationsUploaded: uploadResult.mutationsUploaded,
-    );
-  }
-
-  Future<_DomainCloseSyncUiSummary> _prepareAndUploadCashForCashClose() async {
-    final outboxService = ref.read(cashSyncOutboxServiceProvider);
-    final uploadService = ref.read(cashSyncUploadServiceProvider);
-
-    await outboxService.enqueuePendingCash(
-      businessId: widget.businessId,
-      branchId: widget.branchId,
-      profileId: widget.profileId,
-      appDeviceId: widget.appDeviceId,
-      deviceInstallationId: widget.deviceInstallationId,
-    );
-
-    final uploadResult = await uploadService.uploadPendingCashBatches(
-      businessId: widget.businessId,
-      branchId: widget.branchId,
-      batchLimit: 250,
-    );
-
-    return _DomainCloseSyncUiSummary(
-      domainLabel: 'Cash',
-      enqueuedCount: null,
-      mutationsEnqueued: null,
-      batchesChecked: uploadResult.batchesChecked,
-      batchesUploaded: uploadResult.batchesUploaded,
-      batchesCompleted: uploadResult.batchesCompleted,
-      batchesPartial: uploadResult.batchesPartial,
-      batchesFailed: uploadResult.batchesFailed,
-      mutationsUploaded: uploadResult.mutationsUploaded,
-    );
-  }
-
-  void _assertCashCloseSyncHealthy(_CashCloseSyncUiSummary summary) {
-    // La caja ya fue cerrada localmente. Las alertas de sync se muestran
-    // en el diálogo de resultado y quedan disponibles para reintento.
-    return;
-  }
-
   Future<void> _runAction({
     required String actionCode,
     String? successMessage,
@@ -575,12 +453,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
           actions: [
             if (widget.canReadCash)
               IconButton(
-                onPressed: _isBusy ? null : _syncCash,
-                icon: const Icon(Icons.cloud_sync_outlined),
-                tooltip: 'Sincronizar pendientes',
-              ),
-            if (widget.canReadCash)
-              IconButton(
                 onPressed: _isBusy ? null : _load,
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Actualizar',
@@ -665,7 +537,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                 ],
                 _CashActionsSection(
                   summary: summary,
-                  readiness: readiness,
                   isBusy: _isBusy,
                   isClosing: _runningAction == 'close',
                   allowRead: widget.canReadCash,
@@ -683,7 +554,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
                   onDisburse: () => _openCashMovementDialog(
                     CashMovementDirection.outflow,
                   ),
-                  onSyncCash: _syncCash,
                   onCloseCash: _closeCashSessionDialog,
                   onRefresh: _load,
                 ),
@@ -711,7 +581,6 @@ class _CashDashboardScreenState extends ConsumerState<CashDashboardScreen> {
 class _CashActionsSection extends StatelessWidget {
   const _CashActionsSection({
     required this.summary,
-    required this.readiness,
     required this.isBusy,
     required this.isClosing,
     required this.allowRead,
@@ -723,13 +592,11 @@ class _CashActionsSection extends StatelessWidget {
     required this.onOpenCash,
     required this.onReceive,
     required this.onDisburse,
-    required this.onSyncCash,
     required this.onCloseCash,
     required this.onRefresh,
   });
 
   final Map<String, dynamic>? summary;
-  final Map<String, dynamic>? readiness;
   final bool isBusy;
   final bool isClosing;
   final bool allowRead;
@@ -741,7 +608,6 @@ class _CashActionsSection extends StatelessWidget {
   final VoidCallback onOpenCash;
   final VoidCallback onReceive;
   final VoidCallback onDisburse;
-  final VoidCallback onSyncCash;
   final VoidCallback onCloseCash;
   final VoidCallback onRefresh;
 
@@ -750,8 +616,6 @@ class _CashActionsSection extends StatelessWidget {
     final status = summary?['status']?.toString();
     final isOpen = status == 'open';
     final isClosed = status == 'closed';
-    final hasDirtyCash = _int(readiness?['dirty_cash_register_count']) > 0 ||
-        _int(readiness?['dirty_cash_session_count']) > 0;
     final canClose = allowClose && isOpen;
     final canOpen = allowOpen && (summary == null || isClosed);
     final canMove = isOpen &&
@@ -770,12 +634,6 @@ class _CashActionsSection extends StatelessWidget {
               icon: const Icon(Icons.lock_open_outlined),
               label: Text(isClosed ? 'Abrir nueva caja' : 'Abrir caja'),
             ),
-            if (allowRead)
-              FilledButton.icon(
-                onPressed: isBusy || !hasDirtyCash ? null : onSyncCash,
-                icon: const Icon(Icons.sync),
-                label: const Text('Sincronizar caja'),
-              ),
             FilledButton.icon(
               onPressed: isBusy || !canClose ? null : onCloseCash,
               icon: const Icon(Icons.lock_outline),
@@ -1119,82 +977,6 @@ Map<String, dynamic>? _cashReadinessForPresentation(
     'pos_upload_blocked_reason':
         'Hay operaciones de caja pendientes de revisión.',
   };
-}
-
-class _DomainCloseSyncUiSummary {
-  const _DomainCloseSyncUiSummary({
-    required this.domainLabel,
-    required this.batchesChecked,
-    required this.batchesUploaded,
-    required this.batchesCompleted,
-    required this.batchesPartial,
-    required this.batchesFailed,
-    required this.mutationsUploaded,
-    this.enqueuedCount,
-    this.mutationsEnqueued,
-  });
-
-  final String domainLabel;
-  final int? enqueuedCount;
-  final int? mutationsEnqueued;
-  final int batchesChecked;
-  final int batchesUploaded;
-  final int batchesCompleted;
-  final int batchesPartial;
-  final int batchesFailed;
-  final int mutationsUploaded;
-
-  bool get hasIssues => batchesPartial > 0 || batchesFailed > 0;
-
-  _DomainCloseSyncUiSummary mergeWith(_DomainCloseSyncUiSummary other) {
-    int? sumNullable(int? left, int? right) {
-      if (left == null && right == null) {
-        return null;
-      }
-
-      return (left ?? 0) + (right ?? 0);
-    }
-
-    return _DomainCloseSyncUiSummary(
-      domainLabel: domainLabel,
-      enqueuedCount: sumNullable(enqueuedCount, other.enqueuedCount),
-      mutationsEnqueued: sumNullable(
-        mutationsEnqueued,
-        other.mutationsEnqueued,
-      ),
-      batchesChecked: batchesChecked + other.batchesChecked,
-      batchesUploaded: batchesUploaded + other.batchesUploaded,
-      batchesCompleted: batchesCompleted + other.batchesCompleted,
-      batchesPartial: batchesPartial + other.batchesPartial,
-      batchesFailed: batchesFailed + other.batchesFailed,
-      mutationsUploaded: mutationsUploaded + other.mutationsUploaded,
-    );
-  }
-
-  String get message {
-    return hasIssues
-        ? '$domainLabel conserva operaciones pendientes. Puede reintentar la sincronización.'
-        : '$domainLabel quedó actualizado.';
-  }
-}
-
-class _CashCloseSyncUiSummary {
-  const _CashCloseSyncUiSummary({
-    required this.pos,
-    required this.cash,
-  });
-
-  final _DomainCloseSyncUiSummary pos;
-  final _DomainCloseSyncUiSummary cash;
-
-  bool get hasIssues => pos.hasIssues || cash.hasIssues;
-
-  String get message {
-    return hasIssues
-        ? 'La caja quedó guardada, pero algunas operaciones siguen pendientes. '
-            'Puede reintentar la sincronización.'
-        : 'La información de caja y ventas quedó actualizada.';
-  }
 }
 
 class _CloseCashDialogResult {

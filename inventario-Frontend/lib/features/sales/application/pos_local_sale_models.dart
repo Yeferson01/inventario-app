@@ -24,11 +24,15 @@ class PosLocalPaymentInput {
   const PosLocalPaymentInput({
     required this.method,
     required this.amount,
+    this.amountCents,
     this.reference,
   });
 
   final String method;
   final double amount;
+
+  /// Exact monetary source for WEIGHT sales; [amount] is the legacy shadow.
+  final int? amountCents;
   final String? reference;
 }
 

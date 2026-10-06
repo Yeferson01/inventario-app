@@ -11,6 +11,17 @@ class PosSyncRemoteDataSource {
 
   final SupabaseClient _client;
 
+  Future<bool> supportsWeightedSaleSync() async {
+    try {
+      final version = await _client.rpc('weighted_sale_sync_capability');
+      return version == 'exact_weight_sale_v1';
+    } on PostgrestException {
+      // Old Hosted does not have W5B. Fail closed until the migration is
+      // deployed; registration and processing must not begin in that case.
+      return false;
+    }
+  }
+
   Future<CatalogUploadBatchResult> uploadAndProcessPosBatch({
     required Map<String, dynamic> localBatch,
     required List<Map<String, dynamic>> localMutations,
@@ -832,6 +843,7 @@ class IntentionalStaleSaleRemoteResult {
     required this.projectedExpectedCash,
     required this.status,
     required this.idempotent,
+    this.weightedSaleReconciliationResults = const [],
   });
 
   factory IntentionalStaleSaleRemoteResult.fromJson(
@@ -861,6 +873,31 @@ class IntentionalStaleSaleRemoteResult {
         'Stale Sale response has invalid idempotent.',
       );
     }
+    final weightedRaw = json['weighted_sale_reconciliation_results'];
+    final weightedResults = <IntentionalStaleWeightedSaleResult>[];
+
+    if (weightedRaw != null) {
+      if (weightedRaw is! List) {
+        throw const FormatException(
+          'Stale Sale response has invalid '
+          'weighted_sale_reconciliation_results.',
+        );
+      }
+
+      for (final entry in weightedRaw) {
+        if (entry is! Map) {
+          throw const FormatException(
+            'Stale Sale weighted result contains an invalid entry.',
+          );
+        }
+
+        weightedResults.add(
+          IntentionalStaleWeightedSaleResult.fromJson(
+            Map<String, dynamic>.from(entry),
+          ),
+        );
+      }
+    }
     return IntentionalStaleSaleRemoteResult(
       reconciliationId: requiredString('reconciliation_id'),
       businessId: requiredString('business_id'),
@@ -877,6 +914,7 @@ class IntentionalStaleSaleRemoteResult {
       projectedExpectedCash: requiredDouble('projected_expected_cash'),
       status: requiredString('status'),
       idempotent: idempotent,
+      weightedSaleReconciliationResults: List.unmodifiable(weightedResults),
     );
   }
 
@@ -895,6 +933,8 @@ class IntentionalStaleSaleRemoteResult {
   final double projectedExpectedCash;
   final String status;
   final bool idempotent;
+  final List<IntentionalStaleWeightedSaleResult>
+      weightedSaleReconciliationResults;
 
   Map<String, dynamic> toJson() => {
         'reconciliation_id': reconciliationId,
@@ -912,5 +952,151 @@ class IntentionalStaleSaleRemoteResult {
         'projected_expected_cash': projectedExpectedCash,
         'status': status,
         'idempotent': idempotent,
+        'weighted_sale_reconciliation_results':
+            weightedSaleReconciliationResults
+                .map((entry) => entry.toJson())
+                .toList(growable: false),
+      };
+}
+
+class IntentionalStaleWeightedSaleResult {
+  const IntentionalStaleWeightedSaleResult({
+    required this.saleId,
+    required this.saleItemId,
+    required this.productId,
+    required this.quantityGrams,
+    required this.inventoryMovementId,
+    required this.stockQuantityGrams,
+    required this.costBasisCents,
+    required this.cogsCents,
+    required this.costEffectCents,
+    required this.originalSyncMutationId,
+    required this.originalMutationStatus,
+    required this.originalMutationErrorCode,
+  });
+
+  factory IntentionalStaleWeightedSaleResult.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    String requiredString(String key) {
+      final value = json[key]?.toString().trim();
+      if (value == null || value.isEmpty) {
+        throw FormatException(
+          'Stale Sale weighted result is missing $key.',
+        );
+      }
+      return value;
+    }
+
+    int requiredInt(String key) {
+      final value = json[key];
+
+      if (value is int) return value;
+
+      if (value is num && value.isFinite && value == value.truncateToDouble()) {
+        return value.toInt();
+      }
+
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed == null) {
+        throw FormatException(
+          'Stale Sale weighted result has invalid $key.',
+        );
+      }
+
+      return parsed;
+    }
+
+    int? nullableInt(String key) {
+      if (!json.containsKey(key)) {
+        throw FormatException(
+          'Stale Sale weighted result is missing $key.',
+        );
+      }
+
+      if (json[key] == null) return null;
+      return requiredInt(key);
+    }
+
+    final quantityGrams = requiredInt('quantity_grams');
+    final stockQuantityGrams = requiredInt('stock_quantity_grams');
+    final costBasisCents = nullableInt('cost_basis_cents');
+    final cogsCents = nullableInt('cogs_cents');
+    final costEffectCents = nullableInt('cost_effect_cents');
+
+    if (quantityGrams <= 0 || stockQuantityGrams < 0) {
+      throw const FormatException(
+        'Stale Sale weighted result has invalid quantities.',
+      );
+    }
+
+    if (costBasisCents != null && costBasisCents < 0) {
+      throw const FormatException(
+        'Stale Sale weighted result has invalid cost basis.',
+      );
+    }
+
+    if ((cogsCents == null) != (costEffectCents == null)) {
+      throw const FormatException(
+        'Stale Sale weighted result has inconsistent COGS.',
+      );
+    }
+
+    if (cogsCents != null && (cogsCents < 0 || costEffectCents != -cogsCents)) {
+      throw const FormatException(
+        'Stale Sale weighted result has invalid cost effect.',
+      );
+    }
+
+    return IntentionalStaleWeightedSaleResult(
+      saleId: requiredString('sale_id'),
+      saleItemId: requiredString('sale_item_id'),
+      productId: requiredString('product_id'),
+      quantityGrams: quantityGrams,
+      inventoryMovementId: requiredString('inventory_movement_id'),
+      stockQuantityGrams: stockQuantityGrams,
+      costBasisCents: costBasisCents,
+      cogsCents: cogsCents,
+      costEffectCents: costEffectCents,
+      originalSyncMutationId: requiredString('original_sync_mutation_id'),
+      originalMutationStatus: requiredString('original_mutation_status'),
+      originalMutationErrorCode: requiredString('original_mutation_error_code'),
+    );
+  }
+
+  final String saleId;
+  final String saleItemId;
+  final String productId;
+  final int quantityGrams;
+  final String inventoryMovementId;
+
+  /// Authoritative Hosted balance after the reconciled Sale.
+  ///
+  /// This value is evidence only during local stale projection. It must NOT
+  /// be written directly to the local balance because a later inventory
+  /// refresh performs canonical balance convergence.
+  final int stockQuantityGrams;
+
+  final int? costBasisCents;
+  final int? cogsCents;
+  final int? costEffectCents;
+
+  final String originalSyncMutationId;
+  final String originalMutationStatus;
+  final String originalMutationErrorCode;
+
+  Map<String, dynamic> toJson() => {
+        'sale_id': saleId,
+        'sale_item_id': saleItemId,
+        'product_id': productId,
+        'quantity_grams': quantityGrams,
+        'inventory_movement_id': inventoryMovementId,
+        'stock_quantity_grams': stockQuantityGrams,
+        'cost_basis_cents': costBasisCents,
+        'cogs_cents': cogsCents,
+        'cost_effect_cents': costEffectCents,
+        'original_sync_mutation_id': originalSyncMutationId,
+        'original_mutation_status': originalMutationStatus,
+        'original_mutation_error_code': originalMutationErrorCode,
       };
 }

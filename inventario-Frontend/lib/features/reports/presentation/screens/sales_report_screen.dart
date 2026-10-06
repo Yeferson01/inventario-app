@@ -72,144 +72,161 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         ? ref.read(profitabilityProvider.notifier).refresh
         : controller.refresh;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reportes'),
-        actions: [
-          IconButton(
-            key: const Key('sales-report-refresh'),
-            onPressed:
-                isRefreshing || (showProfitability && !canPresentProfitability)
-                    ? null
-                    : refresh,
-            tooltip: 'Actualizar reporte',
-            icon: isRefreshing
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh_outlined),
-          ),
-        ],
-      ),
-      body: AppGradientBackground(
-        child: RefreshIndicator(
-          onRefresh: showProfitability && !canPresentProfitability
-              ? () async {}
-              : refresh,
-          child: ListView(
-            key: const Key('sales-report-scroll'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(CronosSpacing.md),
-            children: [
-              Text(
-                widget.branchName,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: CronosSpacing.xs),
-              Text(
-                _formatPeriod(state.period.from, state.period.to),
-                key: const Key('sales-report-period'),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: CronosSpacing.md),
-              if (widget.onOpenCashFlow != null) ...[
-                OutlinedButton.icon(
-                  key: const Key('open-cash-flow-report'),
-                  onPressed: widget.onOpenCashFlow,
-                  icon: const Icon(Icons.account_balance_wallet_outlined),
-                  label: const Text('Flujo de caja y gastos'),
-                ),
-                const SizedBox(height: CronosSpacing.md),
-              ],
-              if (request.canViewProfitability) ...[
-                SegmentedButton<bool>(
-                  key: const Key('report-view-selector'),
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Ventas')),
-                    ButtonSegment(value: true, label: Text('Rentabilidad')),
-                  ],
-                  selected: {showProfitability},
-                  onSelectionChanged: (selection) {
-                    setState(() => _showProfitability = selection.single);
-                  },
-                ),
-                const SizedBox(height: CronosSpacing.md),
-              ],
-              Wrap(
-                spacing: CronosSpacing.xs,
-                runSpacing: CronosSpacing.xs,
-                children: [
-                  for (final preset in SalesReportPreset.values)
-                    ChoiceChip(
-                      key: Key('sales-report-preset-${preset.name}'),
-                      label: Text(preset.label),
-                      selected: state.preset == preset,
-                      onSelected: isRefreshing
+    return Theme(
+      data: CronosTheme.light(),
+      child: Builder(
+          builder: (themedContext) => Scaffold(
+                appBar: AppBar(
+                  title: const Text('Reportes'),
+                  actions: [
+                    IconButton(
+                      key: const Key('sales-report-refresh'),
+                      onPressed: isRefreshing ||
+                              (showProfitability && !canPresentProfitability)
                           ? null
-                          : (selected) async {
-                              if (preset == SalesReportPreset.custom) {
-                                final range = await showDateRangePicker(
-                                  context: context,
-                                  initialDateRange: DateTimeRange(
-                                    start: state.selectedStartDate,
-                                    end: state.selectedEndDate,
-                                  ),
-                                  // Material requires calendar bounds; use the
-                                  // full four-digit calendar, no duration cap.
-                                  firstDate: DateTime(1),
-                                  lastDate: DateTime(9999, 12, 31),
-                                  helpText: 'Selecciona un rango de fechas',
-                                  cancelText: 'Cancelar',
-                                  confirmText: 'Aplicar',
-                                  saveText: 'Aplicar',
-                                  fieldStartLabelText: 'Fecha inicial',
-                                  fieldEndLabelText: 'Fecha final',
-                                );
-                                if (!context.mounted || range == null) return;
-                                await controller.selectCustomRange(
-                                  startDate: range.start,
-                                  endDate: range.end,
-                                );
-                              } else if (selected) {
-                                await controller.selectPreset(preset);
-                              }
+                          : refresh,
+                      tooltip: 'Actualizar reporte',
+                      icon: isRefreshing
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh_outlined),
+                    ),
+                  ],
+                ),
+                body: AppGradientBackground(
+                  child: RefreshIndicator(
+                    onRefresh: showProfitability && !canPresentProfitability
+                        ? () async {}
+                        : refresh,
+                    child: ListView(
+                      key: const Key('sales-report-scroll'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(CronosSpacing.md),
+                      children: [
+                        Text(
+                          widget.branchName,
+                          style: Theme.of(themedContext).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: CronosSpacing.xs),
+                        Text(
+                          _formatPeriod(state.period.from, state.period.to),
+                          key: const Key('sales-report-period'),
+                          style: Theme.of(themedContext).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: CronosSpacing.md),
+                        if (widget.onOpenCashFlow != null) ...[
+                          OutlinedButton.icon(
+                            key: const Key('open-cash-flow-report'),
+                            onPressed: widget.onOpenCashFlow,
+                            icon: const Icon(
+                                Icons.account_balance_wallet_outlined),
+                            label: const Text('Flujo de caja y gastos'),
+                          ),
+                          const SizedBox(height: CronosSpacing.md),
+                        ],
+                        if (request.canViewProfitability) ...[
+                          SegmentedButton<bool>(
+                            key: const Key('report-view-selector'),
+                            segments: const [
+                              ButtonSegment(
+                                  value: false, label: Text('Ventas')),
+                              ButtonSegment(
+                                  value: true, label: Text('Rentabilidad')),
+                            ],
+                            selected: {showProfitability},
+                            onSelectionChanged: (selection) {
+                              setState(
+                                  () => _showProfitability = selection.single);
                             },
+                          ),
+                          const SizedBox(height: CronosSpacing.md),
+                        ],
+                        Wrap(
+                          spacing: CronosSpacing.xs,
+                          runSpacing: CronosSpacing.xs,
+                          children: [
+                            for (final preset in SalesReportPreset.values)
+                              ChoiceChip(
+                                key: Key('sales-report-preset-${preset.name}'),
+                                label: Text(preset.label),
+                                selected: state.preset == preset,
+                                onSelected: isRefreshing
+                                    ? null
+                                    : (selected) async {
+                                        if (preset ==
+                                            SalesReportPreset.custom) {
+                                          final range =
+                                              await showDateRangePicker(
+                                            context: themedContext,
+                                            initialDateRange: DateTimeRange(
+                                              start: state.selectedStartDate,
+                                              end: state.selectedEndDate,
+                                            ),
+                                            // Material requires calendar bounds; use the
+                                            // full four-digit calendar, no duration cap.
+                                            firstDate: DateTime(1),
+                                            lastDate: DateTime(9999, 12, 31),
+                                            helpText:
+                                                'Selecciona un rango de fechas',
+                                            cancelText: 'Cancelar',
+                                            confirmText: 'Aplicar',
+                                            saveText: 'Aplicar',
+                                            fieldStartLabelText:
+                                                'Fecha inicial',
+                                            fieldEndLabelText: 'Fecha final',
+                                          );
+                                          if (!themedContext.mounted ||
+                                              range == null) {
+                                            return;
+                                          }
+                                          await controller.selectCustomRange(
+                                            startDate: range.start,
+                                            endDate: range.end,
+                                          );
+                                        } else if (selected) {
+                                          await controller.selectPreset(preset);
+                                        }
+                                      },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: CronosSpacing.md),
+                        if (!showProfitability && state.notice != null) ...[
+                          _SalesReportNotice(notice: state.notice!),
+                          const SizedBox(height: CronosSpacing.md),
+                        ],
+                        if (canPresentProfitability &&
+                            profitabilityState!.notice != null) ...[
+                          _ProfitabilityReportNotice(
+                              notice: profitabilityState.notice!),
+                          const SizedBox(height: CronosSpacing.md),
+                        ],
+                        if (showProfitability)
+                          if (presentationAccess!.isLoading)
+                            const Center(
+                              child: CircularProgressIndicator(
+                                key: Key('profitability-report-access-loading'),
+                              ),
+                            )
+                          else if (!canPresentProfitability)
+                            const _SalesReportMessage(
+                              key: Key('profitability-report-unauthorized'),
+                              icon: Icons.lock_outline,
+                              title: 'Reporte no autorizado',
+                              message:
+                                  'No tienes permiso para consultar rentabilidad.',
+                            )
+                          else
+                            _ProfitabilityReportBody(state: profitabilityState!)
+                        else
+                          _SalesReportBody(state: state),
+                      ],
                     ),
-                ],
-              ),
-              const SizedBox(height: CronosSpacing.md),
-              if (!showProfitability && state.notice != null) ...[
-                _SalesReportNotice(notice: state.notice!),
-                const SizedBox(height: CronosSpacing.md),
-              ],
-              if (canPresentProfitability &&
-                  profitabilityState!.notice != null) ...[
-                _ProfitabilityReportNotice(notice: profitabilityState.notice!),
-                const SizedBox(height: CronosSpacing.md),
-              ],
-              if (showProfitability)
-                if (presentationAccess!.isLoading)
-                  const Center(
-                    child: CircularProgressIndicator(
-                      key: Key('profitability-report-access-loading'),
-                    ),
-                  )
-                else if (!canPresentProfitability)
-                  const _SalesReportMessage(
-                    key: Key('profitability-report-unauthorized'),
-                    icon: Icons.lock_outline,
-                    title: 'Reporte no autorizado',
-                    message: 'No tienes permiso para consultar rentabilidad.',
-                  )
-                else
-                  _ProfitabilityReportBody(state: profitabilityState!)
-              else
-                _SalesReportBody(state: state),
-            ],
-          ),
-        ),
-      ),
+                  ),
+                ),
+              )),
     );
   }
 }

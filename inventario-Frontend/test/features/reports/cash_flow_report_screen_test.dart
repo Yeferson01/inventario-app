@@ -14,7 +14,8 @@ void main() {
 
   Future<void> pump(WidgetTester tester, _FakeService service,
       {bool online = false,
-      Set<String> permissions = const {'reports.cash'}}) async {
+      Set<String> permissions = const {'reports.cash'},
+      ThemeData? outerTheme}) async {
     await tester.pumpWidget(ProviderScope(
         overrides: [
           cashFlowReportServiceProvider.overrideWithValue(service),
@@ -22,16 +23,29 @@ void main() {
           salesReportClockProvider.overrideWithValue(() => now),
         ],
         child: MaterialApp(
+            theme: outerTheme,
             home: CashFlowReportScreen(
-          profileId: 'p',
-          businessId: 'b',
-          branchId: 'a',
-          branchName: 'Principal',
-          effectivePermissions: permissions,
-          authorizationContextReady: true,
-        ))));
+              profileId: 'p',
+              businessId: 'b',
+              branchId: 'a',
+              branchName: 'Principal',
+              effectivePermissions: permissions,
+              authorizationContextReady: true,
+            ))));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('cash-flow report keeps readable light surface under dark app',
+      (tester) async {
+    final period = cashFlowPeriodFor(CashFlowPreset.today, now);
+    final service =
+        _FakeService({period.filterKey: _snapshot(period, pending: false)});
+    await pump(tester, service, outerTheme: ThemeData.dark());
+    final branch = find.text('Principal');
+    expect(Theme.of(tester.element(branch)).brightness, Brightness.light);
+    expect(tester.widget<Text>(branch).style?.color, isNot(Colors.white));
+    expect(tester.takeException(), null);
+  });
 
   testWidgets('offline cache displays authoritative totals and pending warning',
       (tester) async {

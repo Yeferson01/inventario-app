@@ -212,6 +212,9 @@ void main() {
       profileId: _profileId,
       deviceInstallationId: 'installation-1',
     );
+    final originalBatch = await fixture.database.customSelect('''
+      select id, client_batch_id from local_sync_batches where domain = 'pos'
+    ''').getSingle();
     final first = await paymentPayload();
     expect(first['payment_event_time_contract'], 'v1');
     expect(first['paid_at'], event.toIso8601String());
@@ -223,6 +226,16 @@ void main() {
       profileId: _profileId,
       deviceInstallationId: 'installation-1',
     );
+    final reusedBatch = await fixture.database.customSelect('''
+      select id, client_batch_id,
+             (select count(*) from local_sync_batches where domain = 'pos')
+               as batch_count
+      from local_sync_batches where domain = 'pos'
+    ''').getSingle();
+    expect(reusedBatch.read<String>('id'), originalBatch.read<String>('id'));
+    expect(reusedBatch.read<String>('client_batch_id'),
+        originalBatch.read<String>('client_batch_id'));
+    expect(reusedBatch.read<int>('batch_count'), 1);
     expect(await paymentPayload(), first);
     final count = await fixture.database
         .customSelect(

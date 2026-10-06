@@ -45,8 +45,8 @@ values ('b7000000-0000-0000-0000-000000000201', 'b7000000-0000-0000-0000-0000000
 insert into public.product_stock_balances (id, business_id, branch_id, product_id, quantity_on_hand, quantity_reserved, average_cost)
 values ('b7000000-0000-0000-0000-000000000211', 'b7000000-0000-0000-0000-000000000001', 'b7000000-0000-0000-0000-000000000011', 'b7000000-0000-0000-0000-000000000201', 18, 0, 0);
 
-insert into public.sync_batches (id, business_id, app_device_id, profile_id, branch_id, client_batch_id, direction, status)
-values ('b7000000-0000-0000-0000-000000000301', 'b7000000-0000-0000-0000-000000000001', 'b7000000-0000-0000-0000-000000000051', 'b7000000-0000-0000-0000-000000000101', 'b7000000-0000-0000-0000-000000000011', 'historical-batch', 'upload', 'pending');
+insert into public.sync_batches (id, business_id, app_device_id, profile_id, branch_id, client_batch_id, direction, status, mutation_count)
+values ('b7000000-0000-0000-0000-000000000301', 'b7000000-0000-0000-0000-000000000001', 'b7000000-0000-0000-0000-000000000051', 'b7000000-0000-0000-0000-000000000101', 'b7000000-0000-0000-0000-000000000011', 'historical-batch', 'upload', 'pending', 2);
 
 insert into public.sync_mutations (
   id, business_id, sync_batch_id, app_device_id, profile_id, branch_id,
@@ -105,8 +105,8 @@ select throws_ok(
 );
 
 reset role;
-insert into public.sync_batches (id, business_id, app_device_id, profile_id, branch_id, client_batch_id, direction, status)
-values ('b7000000-0000-0000-0000-000000000302', 'b7000000-0000-0000-0000-000000000001', 'b7000000-0000-0000-0000-000000000051', 'b7000000-0000-0000-0000-000000000101', 'b7000000-0000-0000-0000-000000000011', 'retry-batch', 'upload', 'pending');
+insert into public.sync_batches (id, business_id, app_device_id, profile_id, branch_id, client_batch_id, direction, status, mutation_count)
+values ('b7000000-0000-0000-0000-000000000302', 'b7000000-0000-0000-0000-000000000001', 'b7000000-0000-0000-0000-000000000051', 'b7000000-0000-0000-0000-000000000101', 'b7000000-0000-0000-0000-000000000011', 'retry-batch', 'upload', 'pending', 2);
 update public.sync_mutations set sync_batch_id = 'b7000000-0000-0000-0000-000000000302', status = 'pending', error_code = null, error_message = null
 where id in ('b7000000-0000-0000-0000-000000000321', 'b7000000-0000-0000-0000-000000000322');
 
